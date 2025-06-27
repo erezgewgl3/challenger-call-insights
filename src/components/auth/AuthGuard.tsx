@@ -1,6 +1,6 @@
 
 import { useAuth } from '@/hooks/useAuth'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { Brain } from 'lucide-react'
 
 interface AuthGuardProps {
@@ -8,7 +8,8 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading } = useAuth()
+  const { user, loading, isAdmin } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -29,6 +30,11 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (!user) {
     return <Navigate to="/login" replace />
+  }
+
+  // Auto-redirect admins to admin dashboard if they hit /dashboard
+  if (isAdmin && location.pathname === '/dashboard') {
+    return <Navigate to="/admin" replace />
   }
 
   return <>{children}</>

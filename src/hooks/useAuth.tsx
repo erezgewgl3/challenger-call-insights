@@ -4,35 +4,87 @@ import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
+type UserRole = 'sales_user' | 'admin'
+
+interface AuthUser extends User {
+  role?: UserRole
+}
+
 interface AuthContextType {
-  user: User | null
+  user: AuthUser | null
   session: Session | null
   loading: boolean
   signOut: () => Promise<void>
+  isAdmin: boolean
+  isSalesUser: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+
+  // Fetch user role from database
+  const fetchUserRole = async (userId: string): Promise<UserRole | null> => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single()
+
+      if (error) {
+        console.error('Error fetching user role:', error)
+        return 'sales_user' // Default fallback
+      }
+
+      return data?.role || 'sales_user'
+    } catch (error) {
+      console.error('Failed to fetch user role:', error)
+      return 'sales_user' // Default fallback
+    }
+  }
+
+  // Enhance user object with role
+  const enhanceUserWithRole = async (authUser: User): Promise<AuthUser> => {
+    const role = await fetchUserRole(authUser.id)
+    return {
+      ...authUser,
+      role: role || 'sales_user'
+    }
+  }
 
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email)
         setSession(session)
-        setUser(session?.user ?? null)
+        
+        if (session?.user) {
+          const enhancedUser = await enhanceUserWithRole(session.user)
+          setUser(enhancedUser)
+        } else {
+          setUser(null)
+        }
+        
         setLoading(false)
       }
     )
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
-      setUser(session?.user ?? null)
+      
+      if (session?.user) {
+        const enhancedUser = await enhanceUserWithRole(session.user)
+        setUser(enhancedUser)
+      } else {
+        setUser(null)
+      }
+      
       setLoading(false)
     })
 
@@ -58,7 +110,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
-    signOut
+    signOut,
+    isAdmin: user?.role === 'admin',
+    isSalesUser: user?.role === 'sales_user'
   }
 
   return (

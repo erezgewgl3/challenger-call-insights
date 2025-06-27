@@ -11,15 +11,19 @@ import {
   FileText,
   Target,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  MessageSquare
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const Sidebar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const { isAdmin } = useAuth();
 
-  const navigation = [
+  // Different navigation based on user role
+  const salesNavigation = [
     { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
     { name: "Upload Call", href: "/upload", icon: Upload },
     { name: "Analysis", href: "/analysis", icon: Target },
@@ -27,6 +31,16 @@ const Sidebar = () => {
     { name: "Call History", href: "/history", icon: FileText },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
+
+  const adminNavigation = [
+    { name: "Dashboard", href: "/admin", icon: BarChart3 },
+    { name: "Prompt Management", href: "/admin/prompts", icon: MessageSquare },
+    { name: "User Management", href: "/admin/users", icon: Users },
+    { name: "Analytics", href: "/admin/analytics", icon: Target },
+    { name: "System Settings", href: "/admin/settings", icon: Settings },
+  ];
+
+  const navigation = isAdmin ? adminNavigation : salesNavigation;
 
   return (
     <div className={cn(
@@ -41,7 +55,12 @@ const Sidebar = () => {
               <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
                 <Brain className="h-5 w-5 text-white" />
               </div>
-              <span className="text-lg font-bold">Sales Whisperer</span>
+              <div>
+                <span className="text-lg font-bold">Sales Whisperer</span>
+                {isAdmin && (
+                  <div className="text-xs text-blue-400">Admin</div>
+                )}
+              </div>
             </div>
           )}
           <Button
@@ -61,7 +80,8 @@ const Sidebar = () => {
           {navigation.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.href || 
-              (item.href === "/dashboard" && location.pathname === "/");
+              (item.href === "/admin" && location.pathname.startsWith("/admin") && location.pathname !== "/admin/prompts" && location.pathname !== "/admin/users" && location.pathname !== "/admin/analytics" && location.pathname !== "/admin/settings") ||
+              (item.href === "/dashboard" && location.pathname === "/dashboard");
             
             return (
               <li key={item.name}>
@@ -91,7 +111,7 @@ const Sidebar = () => {
         {!collapsed && (
           <div className="text-xs text-slate-400">
             <p>Sales Whisperer v1.0</p>
-            <p>AI-Powered Sales Coaching</p>
+            <p>{isAdmin ? 'Admin Console' : 'AI-Powered Sales Coaching'}</p>
           </div>
         )}
       </div>
