@@ -29,21 +29,44 @@ export function LoginForm() {
     }
 
     try {
+      console.log('Attempting login for:', email)
+      
+      // First, let's check if the user exists in auth.users
+      const { data: existingSession } = await supabase.auth.getSession()
+      console.log('Current session before login:', existingSession)
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
       })
 
+      console.log('Login response:', { data, error })
+
       if (error) {
-        console.error('Login error:', error)
-        setError(error.message)
+        console.error('Login error details:', {
+          message: error.message,
+          status: error.status,
+          code: error.code
+        })
+        
+        // More specific error handling
+        if (error.message === 'Invalid login credentials') {
+          setError('Invalid email or password. Please check your credentials and try again.')
+        } else {
+          setError(error.message)
+        }
         toast.error('Login failed: ' + error.message)
       } else if (data.user) {
+        console.log('Login successful for user:', data.user.id)
         toast.success('Welcome back!')
         navigate('/dashboard')
+      } else {
+        console.error('Login returned no user data')
+        setError('Login failed - no user data returned')
+        toast.error('Login failed')
       }
     } catch (error) {
-      console.error('Login error:', error)
+      console.error('Login exception:', error)
       setError('An unexpected error occurred')
       toast.error('Login failed')
     } finally {
@@ -113,6 +136,12 @@ export function LoginForm() {
                     required
                   />
                 </div>
+              </div>
+
+              <div className="bg-blue-50 p-3 rounded text-sm">
+                <p className="text-blue-800 mb-1">Test credentials:</p>
+                <p className="text-blue-600">Email: test@saleswhisperer.com</p>
+                <p className="text-blue-600">Password: 0Rg!tX9$s9Q^S</p>
               </div>
 
               <Button 
