@@ -9,7 +9,6 @@ import { AuthGuard } from "@/components/auth/AuthGuard";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
 import WelcomeDashboard from "./pages/WelcomeDashboard";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
@@ -32,14 +31,6 @@ const App = () => (
               element={
                 <AuthGuard>
                   <WelcomeDashboard />
-                </AuthGuard>
-              } 
-            />
-            <Route 
-              path="/legacy-dashboard" 
-              element={
-                <AuthGuard>
-                  <Dashboard />
                 </AuthGuard>
               } 
             />
