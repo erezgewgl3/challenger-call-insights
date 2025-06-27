@@ -34,12 +34,15 @@ export function RegisterForm() {
     }
 
     try {
+      console.log('Validating invite token:', inviteToken, 'for email:', email)
       const { valid, invite, error: validationError } = await authHelpers.validateInviteToken(inviteToken, email)
 
       if (!valid) {
+        console.error('Invite validation failed:', validationError)
         setError(validationError || 'Invalid invite token')
         toast.error('Invalid invite token')
       } else {
+        console.log('Invite validated successfully:', invite)
         setValidatedInvite(invite)
         setStep('register')
         toast.success('Invite token validated! Please create your password.')
@@ -77,30 +80,38 @@ export function RegisterForm() {
     }
 
     try {
-      // Register the user
-      const redirectUrl = `${window.location.origin}/dashboard`
+      console.log('Starting registration for:', email)
+      
+      // Register the user without email confirmation requirement
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          emailRedirectTo: redirectUrl
-        }
+        password
       })
 
       if (error) {
         console.error('Registration error:', error)
         setError(error.message)
         toast.error('Registration failed: ' + error.message)
-      } else if (data.user) {
-        // Mark invite as used
+        return
+      }
+
+      if (data.user) {
+        console.log('User created successfully:', data.user.id)
+        
+        // Mark invite as used immediately after successful user creation
         if (validatedInvite) {
-          const { success } = await authHelpers.markInviteAsUsed(validatedInvite.id)
+          console.log('Marking invite as used:', validatedInvite.id)
+          const { success, error: markError } = await authHelpers.markInviteAsUsed(validatedInvite.id)
+          
           if (!success) {
-            console.warn('Failed to mark invite as used, but registration succeeded')
+            console.error('Failed to mark invite as used:', markError)
+            toast.error('Warning: Invite token could not be marked as used. Please contact support.')
+          } else {
+            console.log('Invite marked as used successfully')
           }
         }
 
-        toast.success('Registration successful! Please check your email to verify your account.')
+        toast.success('Registration successful! You can now log in.')
         navigate('/login')
       }
     } catch (error) {
