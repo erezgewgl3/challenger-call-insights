@@ -15,6 +15,7 @@ export function LoginForm() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -31,9 +32,9 @@ export function LoginForm() {
     try {
       console.log('Attempting login for:', email)
       
-      // First, let's check if the user exists in auth.users
-      const { data: existingSession } = await supabase.auth.getSession()
-      console.log('Current session before login:', existingSession)
+      // Clear any existing session first
+      console.log('Clearing existing session...')
+      await supabase.auth.signOut()
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
@@ -49,9 +50,8 @@ export function LoginForm() {
           code: error.code
         })
         
-        // More specific error handling
         if (error.message === 'Invalid login credentials') {
-          setError('Invalid email or password. Please check your credentials and try again.')
+          setError('Invalid email or password. Try resetting your password if the issue persists.')
         } else {
           setError(error.message)
         }
@@ -71,6 +71,31 @@ export function LoginForm() {
       toast.error('Login failed')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first')
+      return
+    }
+
+    setResetLoading(true)
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/login`
+      })
+
+      if (error) {
+        toast.error('Failed to send reset email: ' + error.message)
+      } else {
+        toast.success('Password reset email sent! Check your inbox.')
+      }
+    } catch (error) {
+      console.error('Password reset error:', error)
+      toast.error('Failed to send reset email')
+    } finally {
+      setResetLoading(false)
     }
   }
 
@@ -156,6 +181,23 @@ export function LoginForm() {
                   </>
                 ) : (
                   "Sign In"
+                )}
+              </Button>
+
+              <Button 
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handlePasswordReset}
+                disabled={resetLoading}
+              >
+                {resetLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-600 mr-2"></div>
+                    Sending Reset Email...
+                  </>
+                ) : (
+                  "Reset Password"
                 )}
               </Button>
             </form>
