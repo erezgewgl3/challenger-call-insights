@@ -58,6 +58,9 @@ export function PasswordCreationForm({
             required
           />
         </div>
+        <p className="text-sm text-slate-500">
+          Password must be at least 6 characters long
+        </p>
       </div>
 
       <div className="space-y-2">
