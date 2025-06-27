@@ -1,14 +1,15 @@
 
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Brain, Mail, Lock, AlertCircle } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { LoginHeader } from './LoginHeader'
+import { LoginFormFields } from './LoginFormFields'
+import { LoginActions } from './LoginActions'
+import { LoginFooter } from './LoginFooter'
 
 export function LoginForm() {
   const [email, setEmail] = useState('')
@@ -30,7 +31,6 @@ export function LoginForm() {
     }
 
     try {
-      // Clear any existing session first
       await supabase.auth.signOut()
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -87,19 +87,8 @@ export function LoginForm() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Brain className="h-7 w-7 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-slate-900">Sales Whisperer</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Welcome Back</h1>
-          <p className="text-slate-600">Sign in to access your sales coaching dashboard</p>
-        </div>
+        <LoginHeader />
 
-        {/* Login Form */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl">Sign In</CardTitle>
@@ -116,91 +105,24 @@ export function LoginForm() {
                 </Alert>
               )}
 
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    className="pl-10"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
+              <LoginFormFields
+                email={email}
+                password={password}
+                onEmailChange={setEmail}
+                onPasswordChange={setPassword}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Enter your password"
-                    className="pl-10"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
-                </div>
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-blue-600 hover:bg-blue-700"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Signing In...
-                  </>
-                ) : (
-                  "Sign In"
-                )}
-              </Button>
-
-              <Button 
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handlePasswordReset}
-                disabled={resetLoading}
-              >
-                {resetLoading ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-slate-600 mr-2"></div>
-                    Sending Reset Email...
-                  </>
-                ) : (
-                  "Reset Password"
-                )}
-              </Button>
+              <LoginActions
+                loading={loading}
+                resetLoading={resetLoading}
+                onLogin={handleLogin}
+                onPasswordReset={handlePasswordReset}
+              />
             </form>
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-slate-600">
-                Don't have an account?{" "}
-                <Link to="/register" className="text-blue-600 hover:underline font-medium">
-                  Register with invite
-                </Link>
-              </p>
-              <p className="text-xs text-slate-500 mt-2">
-                Sales Whisperer is invite-only for enterprise customers
-              </p>
-            </div>
+            <LoginFooter />
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <Link to="/" className="text-sm text-slate-600 hover:text-slate-900">
-            ← Back to Home
-          </Link>
-        </div>
       </div>
     </div>
   )
