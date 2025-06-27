@@ -30,10 +30,7 @@ export function LoginForm() {
     }
 
     try {
-      console.log('Attempting login for:', email)
-      
       // Clear any existing session first
-      console.log('Clearing existing session...')
       await supabase.auth.signOut()
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -41,15 +38,7 @@ export function LoginForm() {
         password
       })
 
-      console.log('Login response:', { data, error })
-
       if (error) {
-        console.error('Login error details:', {
-          message: error.message,
-          status: error.status,
-          code: error.code
-        })
-        
         if (error.message === 'Invalid login credentials') {
           setError('Invalid email or password. Try resetting your password if the issue persists.')
         } else {
@@ -57,16 +46,13 @@ export function LoginForm() {
         }
         toast.error('Login failed: ' + error.message)
       } else if (data.user) {
-        console.log('Login successful for user:', data.user.id)
         toast.success('Welcome back!')
         navigate('/dashboard')
       } else {
-        console.error('Login returned no user data')
         setError('Login failed - no user data returned')
         toast.error('Login failed')
       }
     } catch (error) {
-      console.error('Login exception:', error)
       setError('An unexpected error occurred')
       toast.error('Login failed')
     } finally {
@@ -92,7 +78,6 @@ export function LoginForm() {
         toast.success('Password reset email sent! Check your inbox.')
       }
     } catch (error) {
-      console.error('Password reset error:', error)
       toast.error('Failed to send reset email')
     } finally {
       setResetLoading(false)
@@ -161,12 +146,6 @@ export function LoginForm() {
                     required
                   />
                 </div>
-              </div>
-
-              <div className="bg-blue-50 p-3 rounded text-sm">
-                <p className="text-blue-800 mb-1">Test credentials:</p>
-                <p className="text-blue-600">Email: test@saleswhisperer.com</p>
-                <p className="text-blue-600">Password: 0Rg!tX9$s9Q^S</p>
               </div>
 
               <Button 

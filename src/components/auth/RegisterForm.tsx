@@ -34,21 +34,17 @@ export function RegisterForm() {
     }
 
     try {
-      console.log('Validating invite token:', inviteToken, 'for email:', email)
       const { valid, invite, error: validationError } = await authHelpers.validateInviteToken(inviteToken, email)
 
       if (!valid) {
-        console.error('Invite validation failed:', validationError)
         setError(validationError || 'Invalid invite token')
         toast.error('Invalid invite token')
       } else {
-        console.log('Invite validated successfully:', invite)
         setValidatedInvite(invite)
         setStep('register')
         toast.success('Invite token validated! Please create your password.')
       }
     } catch (error) {
-      console.error('Token validation error:', error)
       setError('Failed to validate invite token')
       toast.error('Failed to validate invite token')
     } finally {
@@ -80,8 +76,6 @@ export function RegisterForm() {
     }
 
     try {
-      console.log('Starting registration for:', email)
-      
       // Register the user without email confirmation requirement
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -89,25 +83,18 @@ export function RegisterForm() {
       })
 
       if (error) {
-        console.error('Registration error:', error)
         setError(error.message)
         toast.error('Registration failed: ' + error.message)
         return
       }
 
       if (data.user) {
-        console.log('User created successfully:', data.user.id)
-        
         // Mark invite as used immediately after successful user creation
         if (validatedInvite) {
-          console.log('Marking invite as used:', validatedInvite.id)
           const { success, error: markError } = await authHelpers.markInviteAsUsed(validatedInvite.id)
           
           if (!success) {
-            console.error('Failed to mark invite as used:', markError)
             toast.error('Warning: Invite token could not be marked as used. Please contact support.')
-          } else {
-            console.log('Invite marked as used successfully')
           }
         }
 
@@ -115,7 +102,6 @@ export function RegisterForm() {
         navigate('/login')
       }
     } catch (error) {
-      console.error('Registration error:', error)
       setError('An unexpected error occurred')
       toast.error('Registration failed')
     } finally {
@@ -207,12 +193,6 @@ export function RegisterForm() {
                     "Validate Invite"
                   )}
                 </Button>
-
-                <div className="text-center">
-                  <p className="text-xs text-slate-500">
-                    Use token: <code className="bg-slate-100 px-1 rounded">test-invite-2024</code> with email: <code className="bg-slate-100 px-1 rounded">test@saleswhisperer.com</code>
-                  </p>
-                </div>
               </form>
             ) : (
               <form onSubmit={handleRegister} className="space-y-4">
