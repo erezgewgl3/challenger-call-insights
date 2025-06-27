@@ -1,14 +1,13 @@
 
 import { useState } from 'react'
-import { useNavigate, Link, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Brain, Mail, Lock, AlertCircle, CheckCircle, Key } from 'lucide-react'
 import { supabase, authHelpers } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { RegisterHeader } from './RegisterHeader'
+import { InviteValidationForm } from './InviteValidationForm'
+import { PasswordCreationForm } from './PasswordCreationForm'
+import { RegisterFooter } from './RegisterFooter'
 
 export function RegisterForm() {
   const [searchParams] = useSearchParams()
@@ -76,7 +75,6 @@ export function RegisterForm() {
     }
 
     try {
-      // Register the user without email confirmation requirement
       const { data, error } = await supabase.auth.signUp({
         email,
         password
@@ -89,7 +87,6 @@ export function RegisterForm() {
       }
 
       if (data.user) {
-        // Mark invite as used immediately after successful user creation
         if (validatedInvite) {
           const { success, error: markError } = await authHelpers.markInviteAsUsed(validatedInvite.id)
           
@@ -112,19 +109,8 @@ export function RegisterForm() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Brain className="h-7 w-7 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-slate-900">Sales Whisperer</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-2">Join Sales Whisperer</h1>
-          <p className="text-slate-600">Create your account with an invite token</p>
-        </div>
+        <RegisterHeader />
 
-        {/* Registration Form */}
         <Card className="shadow-xl border-0">
           <CardHeader className="space-y-1">
             <CardTitle className="text-xl">
@@ -139,152 +125,32 @@ export function RegisterForm() {
           </CardHeader>
           <CardContent>
             {step === 'token' ? (
-              <form onSubmit={handleValidateToken} className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="token">Invite Token</Label>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="token"
-                      type="text"
-                      placeholder="Enter your invite token"
-                      className="pl-10"
-                      value={inviteToken}
-                      onChange={(e) => setInviteToken(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      className="pl-10"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Validating...
-                    </>
-                  ) : (
-                    "Validate Invite"
-                  )}
-                </Button>
-              </form>
+              <InviteValidationForm
+                inviteToken={inviteToken}
+                email={email}
+                error={error}
+                loading={loading}
+                onTokenChange={setInviteToken}
+                onEmailChange={setEmail}
+                onSubmit={handleValidateToken}
+              />
             ) : (
-              <form onSubmit={handleRegister} className="space-y-4">
-                <Alert>
-                  <CheckCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Invite validated for <strong>{email}</strong>
-                  </AlertDescription>
-                </Alert>
-
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="password"
-                      type="password"
-                      placeholder="Create a password"
-                      className="pl-10"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      placeholder="Confirm your password"
-                      className="pl-10"
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                </div>
-
-                <Button 
-                  type="submit" 
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creating Account...
-                    </>
-                  ) : (
-                    "Create Account"
-                  )}
-                </Button>
-
-                <Button 
-                  type="button"
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setStep('token')}
-                >
-                  ← Back to Token Validation
-                </Button>
-              </form>
+              <PasswordCreationForm
+                email={email}
+                password={password}
+                confirmPassword={confirmPassword}
+                error={error}
+                loading={loading}
+                onPasswordChange={setPassword}
+                onConfirmPasswordChange={setConfirmPassword}
+                onSubmit={handleRegister}
+                onBack={() => setStep('token')}
+              />
             )}
 
-            <div className="mt-6 text-center">
-              <p className="text-sm text-slate-600">
-                Already have an account?{" "}
-                <Link to="/login" className="text-blue-600 hover:underline font-medium">
-                  Sign in
-                </Link>
-              </p>
-            </div>
+            <RegisterFooter />
           </CardContent>
         </Card>
-
-        {/* Footer */}
-        <div className="text-center mt-8">
-          <Link to="/" className="text-sm text-slate-600 hover:text-slate-900">
-            ← Back to Home
-          </Link>
-        </div>
       </div>
     </div>
   )
