@@ -9,7 +9,189 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      accounts: {
+        Row: {
+          created_at: string | null
+          deal_stage: string | null
+          id: string
+          name: string
+          notes: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          deal_stage?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          deal_stage?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      conversation_analysis: {
+        Row: {
+          challenger_scores: Json | null
+          created_at: string | null
+          email_followup: Json | null
+          guidance: Json | null
+          id: string
+          transcript_id: string | null
+        }
+        Insert: {
+          challenger_scores?: Json | null
+          created_at?: string | null
+          email_followup?: Json | null
+          guidance?: Json | null
+          id?: string
+          transcript_id?: string | null
+        }
+        Update: {
+          challenger_scores?: Json | null
+          created_at?: string | null
+          email_followup?: Json | null
+          guidance?: Json | null
+          id?: string
+          transcript_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversation_analysis_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invites: {
+        Row: {
+          created_at: string | null
+          created_by: string | null
+          email: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          token: string
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          token?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invites_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transcripts: {
+        Row: {
+          account_id: string | null
+          created_at: string | null
+          duration_minutes: number | null
+          id: string
+          meeting_date: string
+          participants: Json | null
+          raw_text: string | null
+          status: Database["public"]["Enums"]["processing_status"] | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_date: string
+          participants?: Json | null
+          raw_text?: string | null
+          status?: Database["public"]["Enums"]["processing_status"] | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          meeting_date?: string
+          participants?: Json | null
+          raw_text?: string | null
+          status?: Database["public"]["Enums"]["processing_status"] | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcripts_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcripts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"] | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"] | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +200,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      processing_status: "uploaded" | "processing" | "completed" | "error"
+      user_role: "sales_user" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +316,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      processing_status: ["uploaded", "processing", "completed", "error"],
+      user_role: ["sales_user", "admin"],
+    },
   },
 } as const
