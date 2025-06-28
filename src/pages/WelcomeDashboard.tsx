@@ -1,47 +1,18 @@
 
-import { useAuth } from '@/hooks/useAuth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Brain, LogOut, Upload, Users, BarChart3 } from 'lucide-react'
-import { toast } from 'sonner'
+import { Upload, Users, BarChart3 } from 'lucide-react'
+import { DashboardHeader } from '@/components/layout/DashboardHeader'
 
 export default function WelcomeDashboard() {
-  const { user, signOut } = useAuth()
-
-  const handleSignOut = async () => {
-    await signOut()
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">Sales Whisperer</h1>
-                <p className="text-sm text-slate-600">AI-Powered Sales Coaching</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-slate-600">Welcome, {user?.email}</span>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSignOut}
-                className="text-slate-600 hover:text-slate-900"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <DashboardHeader
+        title="Sales Whisperer"
+        subtitle="AI-Powered Sales Coaching"
+        iconColor="bg-blue-600"
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

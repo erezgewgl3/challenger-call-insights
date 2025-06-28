@@ -1,49 +1,18 @@
 
-import { useAuth } from '@/hooks/useAuth'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Users, MessageSquare, Settings, Activity, Brain, LogOut } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { Users, MessageSquare, Settings, Activity } from 'lucide-react'
+import { DashboardHeader } from '@/components/layout/DashboardHeader'
 
 export default function AdminDashboard() {
-  const { user, signOut } = useAuth()
-
-  const handleSignOut = async () => {
-    await signOut()
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-200 to-violet-300">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
-                <Brain className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-slate-900">Sales Whisperer Admin</h1>
-                <p className="text-sm text-slate-600">System Administration</p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <span className="text-sm text-slate-600">Welcome, {user?.email}</span>
-                <div className="text-xs text-indigo-600 font-medium">Administrator</div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSignOut}
-                className="text-slate-600 hover:text-slate-900"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
+      <DashboardHeader
+        title="Sales Whisperer Admin"
+        subtitle="System Administration"
+        iconColor="bg-indigo-600"
+        showAdminBadge={true}
+      />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
