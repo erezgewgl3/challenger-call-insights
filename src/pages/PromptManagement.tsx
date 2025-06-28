@@ -6,30 +6,113 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, MessageSquare, History, Settings, Zap, AlertCircle } from 'lucide-react'
+import { Plus, MessageSquare, History, Settings, Zap, AlertCircle, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
 import { PromptEditor } from '@/components/prompts/PromptEditor'
 import { PromptVersionHistory } from '@/components/prompts/PromptVersionHistory'
 import { PromptSettings } from '@/components/prompts/PromptSettings'
 import { toast } from 'sonner'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+
+interface ApiKeyStatus {
+  openai: boolean
+  claude: boolean
+}
 
 export default function PromptManagement() {
   const [activeTab, setActiveTab] = useState('active')
   const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false)
+  const [pendingProvider, setPendingProvider] = useState<'openai' | 'claude' | null>(null)
+  const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>({ openai: false, claude: false })
+  const [isValidatingKeys, setIsValidatingKeys] = useState(false)
 
   const { data: allPrompts, isLoading } = usePrompts()
   const { data: activePrompts } = useActivePrompts()
   const { data: defaultAiProvider } = useDefaultAiProvider()
   const setAiProvider = useSetDefaultAiProvider()
 
-  const handleProviderChange = async (newProvider: 'openai' | 'claude') => {
+  // Validate API keys on component mount
+  React.useEffect(() => {
+    validateApiKeys()
+  }, [])
+
+  const validateApiKeys = async () => {
+    setIsValidatingKeys(true)
+    try {
+      // Check if API keys are configured by trying to make a simple test call
+      const response = await fetch('/api/validate-api-keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setApiKeyStatus(data)
+      } else {
+        // Fallback: assume both are available if validation endpoint doesn't exist
+        setApiKeyStatus({ openai: true, claude: true })
+      }
+    } catch (error) {
+      console.warn('Could not validate API keys:', error)
+      // Fallback: assume both are available
+      setApiKeyStatus({ openai: true, claude: true })
+    } finally {
+      setIsValidatingKeys(false)
+    }
+  }
+
+  const handleProviderChange = (newProvider: 'openai' | 'claude') => {
     if (newProvider === defaultAiProvider) return
     
+    // Check if the target provider has valid API keys
+    const hasValidKey = apiKeyStatus[newProvider]
+    
+    if (!hasValidKey) {
+      toast.error(`${newProvider.toUpperCase()} API key not configured. Please add it in System Settings.`)
+      return
+    }
+
+    setPendingProvider(newProvider)
+    setShowConfirmDialog(true)
+  }
+
+  const confirmProviderChange = async () => {
+    if (!pendingProvider) return
+
+    const previousProvider = defaultAiProvider
+    
     try {
-      await setAiProvider.mutateAsync(newProvider)
-      toast.success(`AI provider switched to ${newProvider.toUpperCase()}`)
+      await setAiProvider.mutateAsync(pendingProvider)
+      toast.success(`AI provider switched to ${pendingProvider.toUpperCase()}`)
+      setShowConfirmDialog(false)
+      setPendingProvider(null)
     } catch (error) {
-      toast.error('Failed to switch AI provider')
+      console.error('Failed to switch AI provider:', error)
+      toast.error(`Failed to switch to ${pendingProvider.toUpperCase()}. Keeping ${previousProvider?.toUpperCase()}.`)
+      // The mutation will automatically revert on error due to React Query's behavior
+    }
+  }
+
+  const cancelProviderChange = () => {
+    setShowConfirmDialog(false)
+    setPendingProvider(null)
+  }
+
+  const getProviderStatus = (provider: 'openai' | 'claude') => {
+    if (isValidatingKeys) return 'loading'
+    return apiKeyStatus[provider] ? 'available' : 'missing'
+  }
+
+  const getProviderStatusIcon = (provider: 'openai' | 'claude') => {
+    const status = getProviderStatus(provider)
+    switch (status) {
+      case 'available':
+        return <CheckCircle className="h-3 w-3 text-green-600" />
+      case 'missing':
+        return <XCircle className="h-3 w-3 text-red-600" />
+      case 'loading':
+        return <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-400"></div>
     }
   }
 
@@ -106,6 +189,7 @@ export default function PromptManagement() {
                 {defaultAiProvider?.toUpperCase() || 'Loading...'}
               </div>
               <Badge variant="outline" className="text-xs">Global</Badge>
+              {defaultAiProvider && getProviderStatusIcon(defaultAiProvider)}
             </div>
             
             <div className="space-y-2">
@@ -113,22 +197,28 @@ export default function PromptManagement() {
               <Select 
                 value={defaultAiProvider || ''} 
                 onValueChange={handleProviderChange}
-                disabled={setAiProvider.isPending}
+                disabled={setAiProvider.isPending || isValidatingKeys}
               >
                 <SelectTrigger className="h-8 text-xs">
                   <SelectValue placeholder="Select provider" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="openai">
-                    <div className="flex items-center space-x-2">
-                      <Zap className="h-3 w-3" />
-                      <span>OpenAI GPT-4</span>
+                  <SelectItem value="openai" disabled={!apiKeyStatus.openai}>
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center space-x-2">
+                        <Zap className="h-3 w-3" />
+                        <span>OpenAI GPT-4</span>
+                      </div>
+                      {getProviderStatusIcon('openai')}
                     </div>
                   </SelectItem>
-                  <SelectItem value="claude">
-                    <div className="flex items-center space-x-2">
-                      <Zap className="h-3 w-3" />
-                      <span>Anthropic Claude</span>
+                  <SelectItem value="claude" disabled={!apiKeyStatus.claude}>
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center space-x-2">
+                        <Zap className="h-3 w-3" />
+                        <span>Anthropic Claude</span>
+                      </div>
+                      {getProviderStatusIcon('claude')}
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -140,11 +230,43 @@ export default function PromptManagement() {
                   <span>Switching...</span>
                 </div>
               )}
+
+              {isValidatingKeys && (
+                <div className="flex items-center space-x-1 text-xs text-gray-600">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b border-gray-600"></div>
+                  <span>Checking API keys...</span>
+                </div>
+              )}
             </div>
             
             <div className="flex items-center space-x-1 text-xs text-amber-600">
               <AlertCircle className="h-3 w-3" />
               <span>Affects all analyses</span>
+            </div>
+
+            {/* API Key Status Indicators */}
+            <div className="pt-2 border-t border-gray-200">
+              <p className="text-xs text-muted-foreground mb-1">API Key Status:</p>
+              <div className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <span>OpenAI:</span>
+                  <div className="flex items-center space-x-1">
+                    {getProviderStatusIcon('openai')}
+                    <span className={apiKeyStatus.openai ? 'text-green-600' : 'text-red-600'}>
+                      {apiKeyStatus.openai ? 'Ready' : 'Missing'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-xs">
+                  <span>Claude:</span>
+                  <div className="flex items-center space-x-1">
+                    {getProviderStatusIcon('claude')}
+                    <span className={apiKeyStatus.claude ? 'text-green-600' : 'text-red-600'}>
+                      {apiKeyStatus.claude ? 'Ready' : 'Missing'}
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -172,6 +294,46 @@ export default function PromptManagement() {
           <PromptSettings />
         </TabsContent>
       </Tabs>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              <span>Confirm AI Provider Change</span>
+            </DialogTitle>
+            <DialogDescription className="space-y-2">
+              <p>
+                You're about to switch from <strong>{defaultAiProvider?.toUpperCase()}</strong> to{' '}
+                <strong>{pendingProvider?.toUpperCase()}</strong>.
+              </p>
+              <p className="text-amber-600 font-medium">
+                ⚠️ This will affect all future AI analyses across the entire system.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Any currently running analyses will continue with the previous provider, but all new
+                analyses will use {pendingProvider?.toUpperCase()}.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelProviderChange}>
+              Cancel
+            </Button>
+            <Button onClick={confirmProviderChange} disabled={setAiProvider.isPending}>
+              {setAiProvider.isPending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b border-white mr-2"></div>
+                  Switching...
+                </>
+              ) : (
+                `Switch to ${pendingProvider?.toUpperCase()}`
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {(isCreating || selectedPrompt) && (
         <PromptEditor 
