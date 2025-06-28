@@ -1,16 +1,16 @@
 
-import { DefaultPromptSettings } from './DefaultPromptSettings'
+import { SystemSettingsPanel } from './SystemSettingsPanel'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Crown, Info } from 'lucide-react'
+import { Info } from 'lucide-react'
 
 export function PromptSettings() {
   return (
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 mb-2">Prompt System Settings</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-2">System Configuration</h2>
         <p className="text-slate-600">
-          Configure the global default prompt and AI provider settings
+          Configure global AI provider and default prompt settings
         </p>
       </div>
 
@@ -19,19 +19,19 @@ export function PromptSettings() {
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-blue-900">
             <Info className="h-5 w-5" />
-            <span>How Default Prompts Work</span>
+            <span>How System Settings Work</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="text-blue-800 text-sm space-y-2">
-          <p>• Only one prompt can be set as the global default at a time</p>
-          <p>• The default prompt is used when analyzing sales conversations</p>
-          <p>• You can choose which AI provider (OpenAI or Claude) to use with the default prompt</p>
-          <p>• Setting a new default will automatically remove the default flag from the previous one</p>
+          <p>• <strong>AI Provider:</strong> Choose between OpenAI GPT-4 or Anthropic Claude for all analyses</p>
+          <p>• <strong>Default Prompt:</strong> Select which prompt content to use when analyzing conversations</p>
+          <p>• <strong>Global Configuration:</strong> These settings apply to all users and all analyses</p>
+          <p>• <strong>Separation of Concerns:</strong> Prompt content and AI provider are managed independently</p>
         </CardContent>
       </Card>
 
-      {/* Default Prompt Settings */}
-      <DefaultPromptSettings />
+      {/* System Settings Panel */}
+      <SystemSettingsPanel />
     </div>
   )
 }

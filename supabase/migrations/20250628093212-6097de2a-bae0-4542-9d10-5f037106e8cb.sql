@@ -1,4 +1,3 @@
 
--- Simple approach: just add the missing column without modifying constraints
-ALTER TABLE public.prompts 
-ADD COLUMN IF NOT EXISTS default_ai_provider text;
+-- Migration completed via SQL editor - this file can be cleaned up
+-- The actual migration was run directly in the database

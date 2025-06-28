@@ -5,13 +5,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Checkbox } from '@/components/ui/checkbox'
-import { MessageSquare, Code, User, Building, TestTube, Crown } from 'lucide-react'
+import { MessageSquare, Code, User, Building, TestTube } from 'lucide-react'
 import { PromptTester } from './PromptTester'
 
 interface PromptEditorProps {
@@ -22,10 +20,7 @@ interface PromptEditorProps {
 
 export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
   const [promptText, setPromptText] = useState('')
-  const [aiProvider, setAiProvider] = useState<'openai' | 'claude'>('openai')
   const [changeDescription, setChangeDescription] = useState('')
-  const [isDefault, setIsDefault] = useState(false)
-  const [defaultAiProvider, setDefaultAiProvider] = useState<'openai' | 'claude'>('openai')
   const [activeTab, setActiveTab] = useState('editor')
 
   const createPrompt = useCreatePrompt()
@@ -38,16 +33,10 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
   useEffect(() => {
     if (isEditing && currentPrompt) {
       setPromptText(currentPrompt.prompt_text)
-      setAiProvider(currentPrompt.ai_provider as 'openai' | 'claude')
-      setIsDefault(currentPrompt.is_default)
-      setDefaultAiProvider((currentPrompt.default_ai_provider || currentPrompt.ai_provider) as 'openai' | 'claude')
     } else {
       // Reset for new prompt
       setPromptText('')
-      setAiProvider('openai')
       setChangeDescription('')
-      setIsDefault(false)
-      setDefaultAiProvider('openai')
     }
     setActiveTab('editor')
   }, [isEditing, currentPrompt])
@@ -60,17 +49,11 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
         await updatePrompt.mutateAsync({
           parent_prompt_id: promptId,
           prompt_text: promptText,
-          ai_provider: aiProvider,
-          is_default: isDefault,
-          default_ai_provider: isDefault ? defaultAiProvider : undefined,
           change_description: changeDescription
         })
       } else {
         await createPrompt.mutateAsync({
           prompt_text: promptText,
-          ai_provider: aiProvider,
-          is_default: isDefault,
-          default_ai_provider: isDefault ? defaultAiProvider : undefined,
           change_description: changeDescription || 'Initial version'
         })
       }
@@ -124,65 +107,6 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Main Editor */}
               <div className="lg:col-span-2 space-y-4">
-                {/* Provider Selection */}
-                <div className="space-y-2">
-                  <Label htmlFor="ai-provider">AI Provider</Label>
-                  <Select value={aiProvider} onValueChange={(value) => setAiProvider(value as 'openai' | 'claude')}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select AI provider" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="openai">ChatGPT (OpenAI GPT-4.1)</SelectItem>
-                      <SelectItem value="claude">Claude (Anthropic 3.5 Sonnet)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Default Prompt Settings */}
-                <Card className="border-yellow-200 bg-yellow-50">
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center space-x-2">
-                      <Crown className="h-4 w-4 text-yellow-600" />
-                      <span>Default Prompt Settings</span>
-                    </CardTitle>
-                    <CardDescription className="text-xs">
-                      Set this prompt as the global default for all analyses
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="is-default"
-                        checked={isDefault}
-                        onCheckedChange={(checked) => setIsDefault(checked as boolean)}
-                      />
-                      <Label htmlFor="is-default" className="text-sm">
-                        Set as global default prompt
-                      </Label>
-                    </div>
-                    
-                    {isDefault && (
-                      <div className="space-y-2">
-                        <Label htmlFor="default-ai-provider" className="text-sm">
-                          Default AI Provider
-                        </Label>
-                        <Select 
-                          value={defaultAiProvider} 
-                          onValueChange={(value) => setDefaultAiProvider(value as 'openai' | 'claude')}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="openai">ChatGPT (OpenAI GPT-4.1)</SelectItem>
-                            <SelectItem value="claude">Claude (Anthropic 3.5 Sonnet)</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
                 {/* Prompt Text Editor */}
                 <div className="space-y-2">
                   <Label htmlFor="prompt-text">Prompt Text</Label>
@@ -273,7 +197,6 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
                             {version.is_active && <Badge variant="secondary" className="text-xs">Active</Badge>}
                             {version.is_default && (
                               <Badge variant="secondary" className="text-xs bg-yellow-100 text-yellow-800">
-                                <Crown className="h-2 w-2 mr-1" />
                                 Default
                               </Badge>
                             )}
@@ -292,10 +215,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
 
           <TabsContent value="test">
             {isEditing && currentPrompt && (
-              <PromptTester
-                promptId={currentPrompt.id}
-                aiProvider={(currentPrompt.default_ai_provider || currentPrompt.ai_provider) as 'openai' | 'claude'}
-              />
+              <PromptTester promptId={currentPrompt.id} />
             )}
           </TabsContent>
         </Tabs>
@@ -307,12 +227,6 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
           <div className="flex items-center space-x-2 text-sm text-slate-600">
             {isEditing && (
               <span>Creating version {(currentPrompt?.version_number || 0) + 1}</span>
-            )}
-            {isDefault && (
-              <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                <Crown className="h-3 w-3 mr-1" />
-                Will be set as default
-              </Badge>
             )}
           </div>
           <div className="flex items-center space-x-2">

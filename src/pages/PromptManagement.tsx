@@ -1,11 +1,12 @@
 
 import { useState } from 'react'
 import { usePrompts, useActivePrompts } from '@/hooks/usePrompts'
+import { useDefaultAiProvider } from '@/hooks/useSystemSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, MessageSquare, History, Settings, Crown } from 'lucide-react'
+import { Plus, MessageSquare, History, Settings, Zap } from 'lucide-react'
 import { PromptEditor } from '@/components/prompts/PromptEditor'
 import { PromptVersionHistory } from '@/components/prompts/PromptVersionHistory'
 import { PromptSettings } from '@/components/prompts/PromptSettings'
@@ -17,6 +18,7 @@ export default function PromptManagement() {
 
   const { data: allPrompts, isLoading } = usePrompts()
   const { data: activePrompts } = useActivePrompts()
+  const { data: defaultAiProvider } = useDefaultAiProvider()
 
   if (isLoading) {
     return (
@@ -33,7 +35,7 @@ export default function PromptManagement() {
         <div>
           <h1 className="text-3xl font-bold text-slate-900">AI Prompt Management</h1>
           <p className="text-slate-600 mt-1">
-            Manage and version control your AI coaching prompts
+            Manage prompt content and system configuration
           </p>
         </div>
         <Button 
@@ -72,7 +74,7 @@ export default function PromptManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Default Prompt</CardTitle>
-            <Crown className="h-4 w-4 text-muted-foreground" />
+            <Settings className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -84,12 +86,14 @@ export default function PromptManagement() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">AI Providers</CardTitle>
-            <Settings className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">AI Provider</CardTitle>
+            <Zap className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">OpenAI & Claude</p>
+            <div className="text-2xl font-bold">
+              {defaultAiProvider?.toUpperCase() || 'Loading...'}
+            </div>
+            <p className="text-xs text-muted-foreground">Global setting</p>
           </CardContent>
         </Card>
       </div>
@@ -99,7 +103,7 @@ export default function PromptManagement() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active">Active Prompts</TabsTrigger>
           <TabsTrigger value="versions">Version History</TabsTrigger>
-          <TabsTrigger value="settings">Default Settings</TabsTrigger>
+          <TabsTrigger value="settings">System Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
@@ -146,21 +150,12 @@ function PromptActiveList({ prompts, onEdit }: {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <CardTitle className="text-lg">
-                  {prompt.is_default ? 'Default Global Prompt' : 'Custom Prompt'}
+                  Prompt v{prompt.version_number}
                 </CardTitle>
-                <Badge variant={prompt.ai_provider === 'openai' ? 'default' : 'secondary'}>
-                  {prompt.ai_provider.toUpperCase()}
-                </Badge>
-                <Badge variant="outline">v{prompt.version_number}</Badge>
+                <Badge variant="outline">Active</Badge>
                 {prompt.is_default && (
                   <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                    <Crown className="h-3 w-3 mr-1" />
                     Default
-                  </Badge>
-                )}
-                {prompt.default_ai_provider && (
-                  <Badge variant="outline" className="text-xs">
-                    Uses {prompt.default_ai_provider.toUpperCase()}
                   </Badge>
                 )}
               </div>
@@ -173,6 +168,8 @@ function PromptActiveList({ prompts, onEdit }: {
               </Button>
             </div>
             <CardDescription>
+              {prompt.change_description || 'No description'}
+              {' • '}
               Last updated: {new Date(prompt.updated_at).toLocaleDateString()}
               {prompt.activated_at && (
                 <> • Activated: {new Date(prompt.activated_at).toLocaleDateString()}</>

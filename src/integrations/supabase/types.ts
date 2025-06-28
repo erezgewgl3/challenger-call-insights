@@ -120,10 +120,8 @@ export type Database = {
       prompts: {
         Row: {
           activated_at: string | null
-          ai_provider: string
           change_description: string | null
           created_at: string | null
-          default_ai_provider: string | null
           id: string
           is_active: boolean
           is_default: boolean
@@ -135,10 +133,8 @@ export type Database = {
         }
         Insert: {
           activated_at?: string | null
-          ai_provider: string
           change_description?: string | null
           created_at?: string | null
-          default_ai_provider?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -150,10 +146,8 @@ export type Database = {
         }
         Update: {
           activated_at?: string | null
-          ai_provider?: string
           change_description?: string | null
           created_at?: string | null
-          default_ai_provider?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -179,6 +173,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      system_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          setting_key: string
+          setting_value: string
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          setting_key: string
+          setting_value: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: string
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       transcripts: {
         Row: {
