@@ -54,6 +54,10 @@ export default function PromptManagement() {
     }
   }
 
+  // Separate active and inactive prompts
+  const inactivePrompts = allPrompts?.filter(prompt => !prompt.is_active) || []
+  const activePromptCount = allPrompts?.filter(prompt => prompt.is_active).length || 0
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -103,7 +107,7 @@ export default function PromptManagement() {
                   <div className="flex items-center space-x-2">
                     <Badge variant="default" className="text-xs">v{activePrompt.version_number}</Badge>
                     <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                      Active
+                      System-Wide
                     </Badge>
                   </div>
                 </>
@@ -121,7 +125,9 @@ export default function PromptManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{allPrompts?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">All versions</p>
+            <p className="text-xs text-muted-foreground">
+              {activePromptCount} active, {inactivePrompts.length} inactive
+            </p>
           </CardContent>
         </Card>
 
@@ -142,10 +148,15 @@ export default function PromptManagement() {
         </Card>
       </div>
 
-      {/* Active Prompt Display */}
+      {/* Active Prompt Section */}
       {activePrompt && (
         <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">Currently Active Prompt</h2>
+          <div className="flex items-center space-x-2">
+            <h2 className="text-xl font-semibold text-slate-900">Currently Active Prompt</h2>
+            <Badge variant="secondary" className="bg-green-100 text-green-800">
+              Powering All AI Analysis
+            </Badge>
+          </div>
           <PromptCard 
             prompt={activePrompt}
             onEdit={setSelectedPrompt}
@@ -153,35 +164,40 @@ export default function PromptManagement() {
         </div>
       )}
 
-      {/* All Prompts List */}
-      <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-slate-900">All Prompts</h2>
-        
-        <div className="grid gap-4">
-          {allPrompts && allPrompts.length > 0 ? (
-            allPrompts.map((prompt) => (
-              <div key={prompt.id} className={prompt.is_active ? 'ring-2 ring-green-200' : ''}>
-                <PromptCard 
-                  prompt={prompt}
-                  onEdit={setSelectedPrompt}
-                />
-              </div>
-            ))
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-slate-900 mb-2">No prompts yet</h3>
-                <p className="text-slate-600 mb-4">Create your first AI coaching prompt to get started.</p>
-                <Button onClick={() => setIsCreating(true)} className="bg-blue-600 hover:bg-blue-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Prompt
-                </Button>
-              </CardContent>
-            </Card>
-          )}
+      {/* Inactive Prompts Section */}
+      {inactivePrompts.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-slate-900">Previous Versions</h2>
+          <p className="text-sm text-slate-600">
+            These prompts are inactive and not being used for AI analysis. You can activate any of them to make it the system-wide active prompt.
+          </p>
+          
+          <div className="grid gap-4">
+            {inactivePrompts.map((prompt) => (
+              <PromptCard 
+                key={prompt.id}
+                prompt={prompt}
+                onEdit={setSelectedPrompt}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Empty State */}
+      {!activePrompt && inactivePrompts.length === 0 && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-slate-900 mb-2">No prompts yet</h3>
+            <p className="text-slate-600 mb-4">Create your first AI coaching prompt to get started.</p>
+            <Button onClick={() => setIsCreating(true)} className="bg-blue-600 hover:bg-blue-700">
+              <Plus className="h-4 w-4 mr-2" />
+              Create Your First Prompt
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Enhanced Prompt Editor */}
       {(isCreating || selectedPrompt) && (

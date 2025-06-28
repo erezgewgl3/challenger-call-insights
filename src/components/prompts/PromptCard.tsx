@@ -29,20 +29,32 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
     : prompt.prompt_text
 
   return (
-    <Card className="hover:shadow-md transition-shadow">
+    <Card className={`transition-shadow ${
+      prompt.is_active 
+        ? 'hover:shadow-md border-green-200 bg-green-50/50' 
+        : 'hover:shadow-md opacity-75'
+    }`}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <MessageSquare className="h-5 w-5 text-blue-600" />
+            <MessageSquare className={`h-5 w-5 ${
+              prompt.is_active ? 'text-green-600' : 'text-gray-400'
+            }`} />
             <div>
-              <CardTitle className="text-lg">
+              <CardTitle className={`text-lg ${
+                prompt.is_active ? 'text-slate-900' : 'text-slate-600'
+              }`}>
                 {prompt.is_default ? 'Default System Prompt' : 'Custom Prompt'}
               </CardTitle>
               <div className="flex items-center space-x-2 mt-1">
-                <Badge variant="default">v{prompt.version_number}</Badge>
-                <Badge variant="secondary" className="bg-green-100 text-green-800">
-                  Active
+                <Badge variant={prompt.is_active ? 'default' : 'outline'}>
+                  v{prompt.version_number}
                 </Badge>
+                {prompt.is_active && (
+                  <Badge variant="secondary" className="bg-green-100 text-green-800">
+                    Active System-Wide
+                  </Badge>
+                )}
                 {prompt.is_default && (
                   <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                     Default
@@ -77,11 +89,15 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
       <CardContent>
         <div className="space-y-3">
           {prompt.change_description && (
-            <p className="text-sm text-slate-700 font-medium">
+            <p className={`text-sm font-medium ${
+              prompt.is_active ? 'text-slate-700' : 'text-slate-500'
+            }`}>
               {prompt.change_description}
             </p>
           )}
-          <p className="text-sm text-slate-600 leading-relaxed">
+          <p className={`text-sm leading-relaxed ${
+            prompt.is_active ? 'text-slate-600' : 'text-slate-400'
+          }`}>
             {truncatedText}
           </p>
         </div>
