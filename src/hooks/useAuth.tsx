@@ -3,12 +3,8 @@ import { useState, useEffect, createContext, useContext } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-
-type UserRole = 'sales_user' | 'admin'
-
-interface AuthUser extends User {
-  role?: UserRole
-}
+import { authService, AuthUser, UserRole } from '@/services/authService'
+import { AUTH_ROLES, AUTH_MESSAGES, AUTH_CONFIG } from '@/constants/auth'
 
 interface AuthContextType {
   user: AuthUser | null
@@ -26,34 +22,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Function to fetch user role
-  const fetchUserRole = async (userId: string): Promise<UserRole> => {
+  const enhanceUserWithRoleAsync = async (authUser: User, mounted: boolean) => {
+    if (!mounted) return
+    
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', userId)
-        .single()
-
-      if (error) {
-        console.error('Error fetching user role:', error)
-        return 'sales_user'
+      const enhancedUser = await authService.enhanceUserWithRole(authUser)
+      if (mounted) {
+        setUser(enhancedUser)
       }
-
-      return data?.role || 'sales_user'
     } catch (error) {
-      console.error('Failed to fetch user role:', error)
-      return 'sales_user'
+      console.error('Failed to enhance user with role:', error)
     }
   }
 
-  // Enhanced user creation with role
-  const enhanceUserWithRole = async (authUser: User): Promise<AuthUser> => {
-    const role = await fetchUserRole(authUser.id)
-    return {
-      ...authUser,
-      role: role || 'sales_user'
+  const handleAuthStateChange = (session: Session | null, mounted: boolean) => {
+    if (!mounted) return
+
+    setSession(session)
+
+    if (session?.user) {
+      // Set user with default role immediately
+      const userWithDefaultRole: AuthUser = {
+        ...session.user,
+        role: AUTH_ROLES.SALES_USER as UserRole
+      }
+      setUser(userWithDefaultRole)
+
+      // Enhance with real role asynchronously
+      setTimeout(() => {
+        enhanceUserWithRoleAsync(session.user, mounted)
+      }, AUTH_CONFIG.ROLE_FETCH_DELAY)
+    } else {
+      setUser(null)
     }
+
+    setLoading(false)
   }
 
   useEffect(() => {
@@ -62,74 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state change handler
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        if (!mounted) return
-
-        // Set session immediately (synchronous)
-        setSession(session)
-
-        if (session?.user) {
-          // Set user with default role immediately (synchronous)
-          const userWithDefaultRole = {
-            ...session.user,
-            role: 'sales_user' as UserRole
-          }
-          setUser(userWithDefaultRole)
-
-          // Then fetch real role asynchronously WITHOUT blocking
-          setTimeout(async () => {
-            if (!mounted) return
-            
-            try {
-              const enhancedUser = await enhanceUserWithRole(session.user)
-              if (mounted) {
-                setUser(enhancedUser)
-              }
-            } catch (error) {
-              console.error('Failed to enhance user with role:', error)
-              // Keep the default role if fetch fails
-            }
-          }, 0)
-        } else {
-          setUser(null)
-        }
-
-        // Set loading false immediately (synchronous)
-        setLoading(false)
+        handleAuthStateChange(session, mounted)
       }
     )
 
     // Handle initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return
-      
-      setSession(session)
-      
-      if (session?.user) {
-        // Set user with default role immediately
-        const userWithDefaultRole = {
-          ...session.user,
-          role: 'sales_user' as UserRole
-        }
-        setUser(userWithDefaultRole)
-
-        // Then enhance with real role asynchronously
-        setTimeout(async () => {
-          if (!mounted) return
-          
-          try {
-            const enhancedUser = await enhanceUserWithRole(session.user)
-            if (mounted) {
-              setUser(enhancedUser)
-            }
-          } catch (error) {
-            console.error('Failed to enhance user with role:', error)
-          }
-        }, 0)
-      } else {
-        setUser(null)
-      }
-      
-      setLoading(false)
+      handleAuthStateChange(session, mounted)
     })
 
     return () => {
@@ -140,16 +82,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut()
+      const { error } = await authService.signOut()
       if (error) {
         console.error('Sign out error:', error)
-        toast.error('Failed to sign out')
+        toast.error(AUTH_MESSAGES.SIGN_OUT_ERROR)
       } else {
-        toast.success('Signed out successfully')
+        toast.success(AUTH_MESSAGES.SIGN_OUT_SUCCESS)
       }
     } catch (error) {
       console.error('Sign out error:', error)
-      toast.error('Failed to sign out')
+      toast.error(AUTH_MESSAGES.SIGN_OUT_ERROR)
     }
   }
 
@@ -158,8 +100,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     signOut,
-    isAdmin: user?.role === 'admin',
-    isSalesUser: user?.role === 'sales_user'
+    isAdmin: user?.role === AUTH_ROLES.ADMIN,
+    isSalesUser: user?.role === AUTH_ROLES.SALES_USER
   }
 
   return (
