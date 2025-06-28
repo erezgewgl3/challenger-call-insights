@@ -1,33 +1,48 @@
 
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { supabase, authHelpers } from '@/lib/supabase'
 import { toast } from 'sonner'
+
+import { AuthContainer } from './AuthContainer'
 import { RegisterHeader } from './RegisterHeader'
 import { InviteValidationForm } from './InviteValidationForm'
 import { PasswordCreationForm } from './PasswordCreationForm'
 import { RegisterFooter } from './RegisterFooter'
+import { useAuthForm } from '@/hooks/useAuthForm'
 
 export function RegisterForm() {
   const [searchParams] = useSearchParams()
-  const [inviteToken, setInviteToken] = useState(searchParams.get('token') || '')
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
   const [step, setStep] = useState<'token' | 'register'>('token')
   const [validatedInvite, setValidatedInvite] = useState<any>(null)
   const navigate = useNavigate()
+
+  const {
+    email,
+    password,
+    confirmPassword,
+    inviteToken,
+    loading,
+    error,
+    setEmail,
+    setPassword,
+    setConfirmPassword,
+    setInviteToken,
+    setLoading,
+    setError,
+    validateRequired,
+    validatePasswordMatch,
+    validatePasswordLength
+  } = useAuthForm({
+    initialToken: searchParams.get('token') || ''
+  })
 
   const handleValidateToken = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    if (!inviteToken || !email) {
-      setError('Please enter both invite token and email')
+    if (!validateRequired({ inviteToken, email }, ['invite token', 'email'])) {
       setLoading(false)
       return
     }
@@ -56,20 +71,9 @@ export function RegisterForm() {
     setLoading(true)
     setError('')
 
-    if (!password || !confirmPassword) {
-      setError('Please enter and confirm your password')
-      setLoading(false)
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match')
-      setLoading(false)
-      return
-    }
-
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long')
+    if (!validateRequired({ password, confirmPassword }, ['password', 'confirm password']) ||
+        !validatePasswordMatch() ||
+        !validatePasswordLength()) {
       setLoading(false)
       return
     }
@@ -107,51 +111,39 @@ export function RegisterForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <RegisterHeader />
+    <AuthContainer
+      title={step === 'token' ? 'Validate Invite' : 'Create Account'}
+      description={step === 'token' 
+        ? 'Enter your invite token and email to continue'
+        : 'Set up your password to complete registration'
+      }
+      header={<RegisterHeader />}
+    >
+      {step === 'token' ? (
+        <InviteValidationForm
+          inviteToken={inviteToken}
+          email={email}
+          error={error}
+          loading={loading}
+          onTokenChange={setInviteToken}
+          onEmailChange={setEmail}
+          onSubmit={handleValidateToken}
+        />
+      ) : (
+        <PasswordCreationForm
+          email={email}
+          password={password}
+          confirmPassword={confirmPassword}
+          error={error}
+          loading={loading}
+          onPasswordChange={setPassword}
+          onConfirmPasswordChange={setConfirmPassword}
+          onSubmit={handleRegister}
+          onBack={() => setStep('token')}
+        />
+      )}
 
-        <Card className="shadow-xl border-0">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">
-              {step === 'token' ? 'Validate Invite' : 'Create Account'}
-            </CardTitle>
-            <CardDescription>
-              {step === 'token' 
-                ? 'Enter your invite token and email to continue'
-                : 'Set up your password to complete registration'
-              }
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {step === 'token' ? (
-              <InviteValidationForm
-                inviteToken={inviteToken}
-                email={email}
-                error={error}
-                loading={loading}
-                onTokenChange={setInviteToken}
-                onEmailChange={setEmail}
-                onSubmit={handleValidateToken}
-              />
-            ) : (
-              <PasswordCreationForm
-                email={email}
-                password={password}
-                confirmPassword={confirmPassword}
-                error={error}
-                loading={loading}
-                onPasswordChange={setPassword}
-                onConfirmPasswordChange={setConfirmPassword}
-                onSubmit={handleRegister}
-                onBack={() => setStep('token')}
-              />
-            )}
-
-            <RegisterFooter />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      <RegisterFooter />
+    </AuthContainer>
   )
 }

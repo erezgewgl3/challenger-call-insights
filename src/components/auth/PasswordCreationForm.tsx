@@ -1,9 +1,8 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { AlertCircle, CheckCircle, Lock } from 'lucide-react'
+import { AlertCircle, CheckCircle } from 'lucide-react'
+import { PasswordField } from './AuthFormFields'
+import { AuthButton } from './AuthButton'
 
 interface PasswordCreationFormProps {
   email: string
@@ -44,64 +43,37 @@ export function PasswordCreationForm({
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-          <Input
-            id="password"
-            type="password"
-            placeholder="Create a password"
-            className="pl-10"
-            value={password}
-            onChange={(e) => onPasswordChange(e.target.value)}
-            required
-          />
-        </div>
-        <p className="text-sm text-slate-500">
-          Password must be at least 6 characters long
-        </p>
-      </div>
+      <PasswordField 
+        label="Password"
+        value={password} 
+        onChange={onPasswordChange}
+        placeholder="Create a password"
+      />
+      <p className="text-sm text-slate-500">
+        Password must be at least 6 characters long
+      </p>
 
-      <div className="space-y-2">
-        <Label htmlFor="confirmPassword">Confirm Password</Label>
-        <div className="relative">
-          <Lock className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-          <Input
-            id="confirmPassword"
-            type="password"
-            placeholder="Confirm your password"
-            className="pl-10"
-            value={confirmPassword}
-            onChange={(e) => onConfirmPasswordChange(e.target.value)}
-            required
-          />
-        </div>
-      </div>
+      <PasswordField 
+        id="confirmPassword"
+        label="Confirm Password"
+        value={confirmPassword} 
+        onChange={onConfirmPasswordChange}
+        placeholder="Confirm your password"
+      />
 
-      <Button 
-        type="submit" 
-        className="w-full bg-blue-600 hover:bg-blue-700"
-        disabled={loading}
-      >
-        {loading ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Creating Account...
-          </>
-        ) : (
-          "Create Account"
-        )}
-      </Button>
+      <AuthButton loading={loading} loadingText="Creating Account...">
+        Create Account
+      </AuthButton>
 
-      <Button 
+      <AuthButton 
         type="button"
         variant="outline"
-        className="w-full"
+        loading={false}
+        loadingText=""
         onClick={onBack}
       >
         ← Back to Token Validation
-      </Button>
+      </AuthButton>
     </form>
   )
 }

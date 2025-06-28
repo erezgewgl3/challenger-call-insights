@@ -1,22 +1,32 @@
 
-import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+
+import { AuthContainer } from './AuthContainer'
+import { EmailField, PasswordField } from './AuthFormFields'
+import { AuthButton } from './AuthButton'
 import { LoginHeader } from './LoginHeader'
-import { LoginFormFields } from './LoginFormFields'
-import { LoginActions } from './LoginActions'
 import { LoginFooter } from './LoginFooter'
+import { useAuthForm } from '@/hooks/useAuthForm'
 
 export function LoginForm() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const [resetLoading, setResetLoading] = useState(false)
+  const {
+    email,
+    password,
+    loading,
+    resetLoading,
+    error,
+    setEmail,
+    setPassword,
+    setLoading,
+    setResetLoading,
+    setError,
+    validateRequired
+  } = useAuthForm()
+  
   const navigate = useNavigate()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -24,8 +34,7 @@ export function LoginForm() {
     setLoading(true)
     setError('')
 
-    if (!email || !password) {
-      setError('Please enter both email and password')
+    if (!validateRequired({ email, password }, ['email', 'password'])) {
       setLoading(false)
       return
     }
@@ -85,45 +94,38 @@ export function LoginForm() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <LoginHeader />
+    <AuthContainer
+      title="Sign In"
+      description="Enter your credentials to access Sales Whisperer"
+      header={<LoginHeader />}
+    >
+      <form onSubmit={handleLogin} className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
-        <Card className="shadow-xl border-0">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access Sales Whisperer
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              {error && (
-                <Alert variant="destructive">
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+        <EmailField value={email} onChange={setEmail} />
+        <PasswordField label="Password" value={password} onChange={setPassword} />
 
-              <LoginFormFields
-                email={email}
-                password={password}
-                onEmailChange={setEmail}
-                onPasswordChange={setPassword}
-              />
+        <AuthButton loading={loading} loadingText="Signing In...">
+          Sign In
+        </AuthButton>
 
-              <LoginActions
-                loading={loading}
-                resetLoading={resetLoading}
-                onLogin={handleLogin}
-                onPasswordReset={handlePasswordReset}
-              />
-            </form>
+        <AuthButton 
+          type="button"
+          variant="outline"
+          loading={resetLoading}
+          loadingText="Sending Reset Email..."
+          onClick={handlePasswordReset}
+        >
+          Reset Password
+        </AuthButton>
+      </form>
 
-            <LoginFooter />
-          </CardContent>
-        </Card>
-      </div>
-    </div>
+      <LoginFooter />
+    </AuthContainer>
   )
 }

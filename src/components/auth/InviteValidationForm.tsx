@@ -1,9 +1,8 @@
 
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { AlertCircle, Mail, Key } from 'lucide-react'
+import { AlertCircle } from 'lucide-react'
+import { EmailField, TokenField } from './AuthFormFields'
+import { AuthButton } from './AuthButton'
 
 interface InviteValidationFormProps {
   inviteToken: string
@@ -33,52 +32,12 @@ export function InviteValidationForm({
         </Alert>
       )}
 
-      <div className="space-y-2">
-        <Label htmlFor="token">Invite Token</Label>
-        <div className="relative">
-          <Key className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-          <Input
-            id="token"
-            type="text"
-            placeholder="Enter your invite token"
-            className="pl-10"
-            value={inviteToken}
-            onChange={(e) => onTokenChange(e.target.value)}
-            required
-          />
-        </div>
-      </div>
+      <TokenField value={inviteToken} onChange={onTokenChange} />
+      <EmailField value={email} onChange={onEmailChange} />
 
-      <div className="space-y-2">
-        <Label htmlFor="email">Email Address</Label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-3 h-4 w-4 text-slate-400" />
-          <Input
-            id="email"
-            type="email"
-            placeholder="Enter your email"
-            className="pl-10"
-            value={email}
-            onChange={(e) => onEmailChange(e.target.value)}
-            required
-          />
-        </div>
-      </div>
-
-      <Button 
-        type="submit" 
-        className="w-full bg-blue-600 hover:bg-blue-700"
-        disabled={loading}
-      >
-        {loading ? (
-          <>
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            Validating...
-          </>
-        ) : (
-          "Validate Invite"
-        )}
-      </Button>
+      <AuthButton loading={loading} loadingText="Validating...">
+        Validate Invite
+      </AuthButton>
     </form>
   )
 }
