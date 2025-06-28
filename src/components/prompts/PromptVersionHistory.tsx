@@ -31,7 +31,6 @@ export function PromptVersionHistory({ prompts }: PromptVersionHistoryProps) {
   const activateVersion = useActivatePromptVersion()
   const deletePrompt = useDeletePrompt()
 
-  // Group prompts by their root prompt (either they are root or have same parent)
   const promptGroups = prompts.reduce((acc, prompt) => {
     const rootId = prompt.parent_prompt_id || prompt.id
     if (!acc[rootId]) {
@@ -187,7 +186,6 @@ export function PromptVersionHistory({ prompts }: PromptVersionHistoryProps) {
         )}
       </div>
 
-      {/* Prompt Preview Dialog */}
       {selectedPrompt && (
         <Dialog open={!!selectedPrompt} onOpenChange={() => setSelectedPrompt(null)}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">

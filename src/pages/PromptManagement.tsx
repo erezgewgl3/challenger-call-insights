@@ -30,7 +30,6 @@ export default function PromptManagement() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">AI Prompt Management</h1>
@@ -47,7 +46,6 @@ export default function PromptManagement() {
         </Button>
       </div>
 
-      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -98,7 +96,6 @@ export default function PromptManagement() {
         </Card>
       </div>
 
-      {/* Main Tabs Interface */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active">Active Prompts</TabsTrigger>
@@ -122,7 +119,6 @@ export default function PromptManagement() {
         </TabsContent>
       </Tabs>
 
-      {/* Prompt Editor Modal/Drawer */}
       {(isCreating || selectedPrompt) && (
         <PromptEditor 
           promptId={selectedPrompt}

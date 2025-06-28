@@ -39,7 +39,6 @@ export function DefaultPromptSettings() {
 
   return (
     <div className="space-y-6">
-      {/* Current Default Prompt */}
       {defaultPrompt && (
         <Card>
           <CardHeader>
@@ -77,7 +76,6 @@ export function DefaultPromptSettings() {
         </Card>
       )}
 
-      {/* Set New Default */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -125,7 +123,6 @@ export function DefaultPromptSettings() {
         </CardContent>
       </Card>
 
-      {/* Available Prompts List */}
       <Card>
         <CardHeader>
           <CardTitle>Available Active Prompts</CardTitle>

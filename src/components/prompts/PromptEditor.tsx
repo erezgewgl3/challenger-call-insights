@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { MessageSquare, Code, User, Building, TestTube } from 'lucide-react'
+import { MessageSquare, User, Building, TestTube } from 'lucide-react'
 import { PromptTester } from './PromptTester'
 
 interface PromptEditorProps {
@@ -34,7 +34,6 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
     if (isEditing && currentPrompt) {
       setPromptText(currentPrompt.prompt_text)
     } else {
-      // Reset for new prompt
       setPromptText('')
       setChangeDescription('')
     }
@@ -71,7 +70,6 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
       const newText = promptText.substring(0, start) + variable + promptText.substring(end)
       setPromptText(newText)
       
-      // Restore cursor position
       setTimeout(() => {
         textarea.focus()
         textarea.setSelectionRange(start + variable.length, start + variable.length)
@@ -105,9 +103,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
 
           <TabsContent value="editor">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Main Editor */}
               <div className="lg:col-span-2 space-y-4">
-                {/* Prompt Text Editor */}
                 <div className="space-y-2">
                   <Label htmlFor="prompt-text">Prompt Text</Label>
                   <Textarea
@@ -122,7 +118,6 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
                   </p>
                 </div>
 
-                {/* Change Description */}
                 <div className="space-y-2">
                   <Label htmlFor="change-description">
                     {isEditing ? 'Change Description' : 'Initial Description'}
@@ -137,9 +132,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
                 </div>
               </div>
 
-              {/* Sidebar */}
               <div className="space-y-4">
-                {/* Variable Insertion */}
                 <Card>
                   <CardHeader>
                     <CardTitle className="text-sm">Insert Variables</CardTitle>
@@ -178,7 +171,6 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
                   </CardContent>
                 </Card>
 
-                {/* Version History (if editing) */}
                 {isEditing && versions && versions.length > 0 && (
                   <Card>
                     <CardHeader>
@@ -222,7 +214,6 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
 
         <Separator />
 
-        {/* Actions */}
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm text-slate-600">
             {isEditing && (

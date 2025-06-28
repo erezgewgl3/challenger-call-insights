@@ -38,7 +38,6 @@ export function SystemSettingsPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Current Settings Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
@@ -86,7 +85,6 @@ export function SystemSettingsPanel() {
         </CardContent>
       </Card>
 
-      {/* AI Provider Settings */}
       <Card>
         <CardHeader>
           <CardTitle>AI Provider Configuration</CardTitle>
@@ -131,7 +129,6 @@ export function SystemSettingsPanel() {
         </CardContent>
       </Card>
 
-      {/* Default Prompt Settings */}
       <Card>
         <CardHeader>
           <CardTitle>Default Prompt Configuration</CardTitle>
