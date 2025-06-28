@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { useCreatePrompt, useUpdatePrompt, usePromptVersions } from '@/hooks/usePrompts'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -39,7 +38,7 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
       setChangeDescription('')
       setShowVersionHistory(false)
     }
-  }, [isE, currentPrompt])
+  }, [isEditing, currentPrompt])
 
   const handleSave = async () => {
     if (!promptText.trim()) return

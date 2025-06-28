@@ -1,6 +1,6 @@
 
 import { useState } from 'react'
-import { useDefaultPrompt, useActivePrompts } from '@/hooks/usePrompts'
+import { useDefaultPrompt, usePrompts } from '@/hooks/usePrompts'
 import { useSetDefaultPrompt } from '@/hooks/useSystemSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,10 +11,13 @@ import { Settings, Crown } from 'lucide-react'
 
 export function DefaultPromptSettings() {
   const { data: defaultPrompt, isLoading: defaultLoading } = useDefaultPrompt()
-  const { data: activePrompts, isLoading: promptsLoading } = useActivePrompts()
+  const { data: allPrompts, isLoading: promptsLoading } = usePrompts()
   const setDefaultPrompt = useSetDefaultPrompt()
   
   const [selectedPromptId, setSelectedPromptId] = useState<string>('')
+
+  // Filter for active prompts from all prompts
+  const activePrompts = allPrompts?.filter(prompt => prompt.is_active) || []
 
   const handleSetDefault = async () => {
     if (!selectedPromptId) return
@@ -97,7 +100,7 @@ export function DefaultPromptSettings() {
                 <SelectItem value="none">
                   <span className="text-slate-500">No default prompt</span>
                 </SelectItem>
-                {activePrompts?.map((prompt) => (
+                {activePrompts.map((prompt) => (
                   <SelectItem key={prompt.id} value={prompt.id}>
                     <div className="flex items-center space-x-2">
                       <span>v{prompt.version_number}</span>
@@ -132,7 +135,7 @@ export function DefaultPromptSettings() {
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {activePrompts?.map((prompt) => (
+            {activePrompts.map((prompt) => (
               <div 
                 key={prompt.id}
                 className={`flex items-center justify-between p-3 rounded-lg border ${

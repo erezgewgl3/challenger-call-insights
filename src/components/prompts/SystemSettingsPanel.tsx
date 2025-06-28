@@ -1,7 +1,7 @@
 
 import { useState } from 'react'
 import { useDefaultAiProvider, useDefaultPromptId, useSetDefaultAiProvider, useSetDefaultPrompt } from '@/hooks/useSystemSettings'
-import { useActivePrompts } from '@/hooks/usePrompts'
+import { usePrompts } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -12,7 +12,7 @@ import { Settings, Crown, Zap } from 'lucide-react'
 export function SystemSettingsPanel() {
   const { data: currentAiProvider } = useDefaultAiProvider()
   const { data: currentPromptId } = useDefaultPromptId()
-  const { data: activePrompts } = useActivePrompts()
+  const { data: allPrompts } = usePrompts()
   
   const setAiProvider = useSetDefaultAiProvider()
   const setDefaultPrompt = useSetDefaultPrompt()
@@ -20,7 +20,9 @@ export function SystemSettingsPanel() {
   const [selectedAiProvider, setSelectedAiProvider] = useState<'openai' | 'claude'>()
   const [selectedPromptId, setSelectedPromptId] = useState<string>('')
 
-  const currentPrompt = activePrompts?.find(p => p.id === currentPromptId)
+  // Filter for active prompts from all prompts
+  const activePrompts = allPrompts?.filter(prompt => prompt.is_active) || []
+  const currentPrompt = activePrompts.find(p => p.id === currentPromptId)
 
   const handleUpdateAiProvider = async () => {
     if (selectedAiProvider) {
@@ -150,7 +152,7 @@ export function SystemSettingsPanel() {
                 <SelectItem value="none">
                   <span className="text-slate-500">No default prompt</span>
                 </SelectItem>
-                {activePrompts?.map((prompt) => (
+                {activePrompts.map((prompt) => (
                   <SelectItem key={prompt.id} value={prompt.id}>
                     <div className="flex items-center space-x-2">
                       <span>v{prompt.version_number}</span>
