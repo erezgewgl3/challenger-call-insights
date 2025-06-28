@@ -12,13 +12,14 @@ interface Prompt {
   id: string
   parent_prompt_id?: string
   version_number: number
+  user_id?: string
   prompt_text: string
-  ai_provider: 'openai' | 'claude'
   is_default: boolean
   is_active: boolean
   change_description?: string
   activated_at?: string
   created_at: string
+  updated_at: string
 }
 
 interface PromptVersionHistoryProps {
@@ -72,8 +73,8 @@ export function PromptVersionHistory({ prompts }: PromptVersionHistoryProps) {
                       <span>
                         {rootPrompt.is_default ? 'Default Prompt' : 'Custom Prompt'}
                       </span>
-                      <Badge variant={rootPrompt.ai_provider === 'openai' ? 'default' : 'secondary'}>
-                        {rootPrompt.ai_provider.toUpperCase()}
+                      <Badge variant="default" className="text-sm">
+                        System Prompt
                       </Badge>
                     </CardTitle>
                     <CardDescription>
@@ -193,8 +194,8 @@ export function PromptVersionHistory({ prompts }: PromptVersionHistoryProps) {
             <DialogHeader>
               <DialogTitle className="flex items-center space-x-2">
                 <span>Prompt Version {selectedPrompt.version_number}</span>
-                <Badge variant={selectedPrompt.ai_provider === 'openai' ? 'default' : 'secondary'}>
-                  {selectedPrompt.ai_provider.toUpperCase()}
+                <Badge variant="default" className="text-sm">
+                  System Prompt
                 </Badge>
                 {selectedPrompt.is_active && (
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
