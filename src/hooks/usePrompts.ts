@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -73,21 +72,38 @@ export function useDefaultPrompt() {
   })
 }
 
-// Get prompt version history
-export function usePromptVersions(parentPromptId: string) {
+// Get prompt version history - fixed to show all versions in the family
+export function usePromptVersions(promptId: string) {
   return useQuery({
-    queryKey: ['prompt-versions', parentPromptId],
+    queryKey: ['prompt-versions', promptId],
     queryFn: async () => {
+      if (!promptId) return []
+
+      // First, get the current prompt to determine if it has a parent
+      const { data: currentPrompt, error: currentError } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('id', promptId)
+        .single()
+
+      if (currentError) throw currentError
+
+      // Determine the root parent ID
+      const rootParentId = currentPrompt.parent_prompt_id || currentPrompt.id
+
+      // Now fetch all versions that either:
+      // 1. Are the root parent (id = rootParentId)
+      // 2. Have the root parent as their parent (parent_prompt_id = rootParentId)
       const { data, error } = await supabase
         .from('prompts')
         .select('*')
-        .or(`id.eq.${parentPromptId},parent_prompt_id.eq.${parentPromptId}`)
+        .or(`id.eq.${rootParentId},parent_prompt_id.eq.${rootParentId}`)
         .order('version_number', { ascending: false })
 
       if (error) throw error
       return data as Prompt[]
     },
-    enabled: !!parentPromptId
+    enabled: !!promptId
   })
 }
 
