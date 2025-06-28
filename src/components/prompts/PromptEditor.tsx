@@ -222,7 +222,11 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
 
           <TabsContent value="test">
             {isEditing && currentPrompt && (
-              <PromptTester promptId={currentPrompt.id} />
+              <PromptTester 
+                prompt={currentPrompt}
+                isOpen={true}
+                onClose={() => setActiveTab('editor')}
+              />
             )}
           </TabsContent>
         </Tabs>
