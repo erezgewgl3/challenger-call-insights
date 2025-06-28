@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -42,10 +41,24 @@ export function usePrompts() {
   })
 }
 
-// Get active prompts only
-export function useActivePrompts() {
+// Get the single active prompt (system-wide)
+export function useActivePrompt() {
   return useQuery({
     queryKey: ['prompts', 'active'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .rpc('get_active_prompt')
+
+      if (error) throw error
+      return data?.[0] as Prompt | null
+    }
+  })
+}
+
+// Keep this for backward compatibility but mark as deprecated
+export function useActivePrompts() {
+  return useQuery({
+    queryKey: ['prompts', 'active-legacy'],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('prompts')
@@ -94,30 +107,38 @@ export function usePromptVersions(parentPromptId: string) {
   })
 }
 
-// Create new prompt
+// Create new prompt and make it active
 export function useCreatePrompt() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (data: CreatePromptData) => {
-      const { data: result, error } = await supabase
+      // Use the database function to ensure only one prompt is active
+      const { data: result, error: insertError } = await supabase
         .from('prompts')
         .insert([{
           prompt_text: data.prompt_text,
           is_default: false,
-          is_active: true,
+          is_active: false, // Will be activated by the function
           version_number: 1,
           change_description: data.change_description || 'Initial version'
         }])
         .select()
         .single()
 
-      if (error) throw error
+      if (insertError) throw insertError
+
+      // Activate the new prompt using the database function
+      const { error: activateError } = await supabase
+        .rpc('activate_single_prompt', { prompt_id_param: result.id })
+
+      if (activateError) throw activateError
+
       return result as Prompt
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prompts'] })
-      toast.success('Prompt created successfully')
+      toast.success('Prompt created and activated successfully')
     },
     onError: (error) => {
       console.error('Failed to create prompt:', error)
@@ -126,7 +147,7 @@ export function useCreatePrompt() {
   })
 }
 
-// Update prompt (creates new version)
+// Update prompt (creates new version) and make it active
 export function useUpdatePrompt() {
   const queryClient = useQueryClient()
 
@@ -141,33 +162,33 @@ export function useUpdatePrompt() {
 
       if (parentError) throw parentError
 
-      // Deactivate current active version
-      await supabase
-        .from('prompts')
-        .update({ is_active: false })
-        .or(`id.eq.${data.parent_prompt_id},parent_prompt_id.eq.${data.parent_prompt_id}`)
-
-      // Create new version
+      // Create new version (inactive initially)
       const { data: result, error } = await supabase
         .from('prompts')
         .insert([{
           parent_prompt_id: data.parent_prompt_id,
           prompt_text: data.prompt_text,
           is_default: parent?.is_default || false,
-          is_active: true,
+          is_active: false, // Will be activated by the function
           version_number: (parent?.version_number || 0) + 1,
-          change_description: data.change_description || 'Updated prompt',
-          activated_at: new Date().toISOString()
+          change_description: data.change_description || 'Updated prompt'
         }])
         .select()
         .single()
 
       if (error) throw error
+
+      // Activate the new version using the database function
+      const { error: activateError } = await supabase
+        .rpc('activate_single_prompt', { prompt_id_param: result.id })
+
+      if (activateError) throw activateError
+
       return result as Prompt
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prompts'] })
-      toast.success('Prompt updated successfully')
+      toast.success('Prompt updated and activated successfully')
     },
     onError: (error) => {
       console.error('Failed to update prompt:', error)
@@ -176,37 +197,31 @@ export function useUpdatePrompt() {
   })
 }
 
-// Activate specific prompt version
+// Activate specific prompt version (system-wide)
 export function useActivatePromptVersion() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: async ({ promptId, parentPromptId }: { promptId: string, parentPromptId?: string }) => {
-      const targetId = parentPromptId || promptId
-
-      // Deactivate all versions of this prompt family
-      await supabase
-        .from('prompts')
-        .update({ is_active: false })
-        .or(`id.eq.${targetId},parent_prompt_id.eq.${targetId}`)
-
-      // Activate the selected version
-      const { data, error } = await supabase
-        .from('prompts')
-        .update({ 
-          is_active: true,
-          activated_at: new Date().toISOString()
-        })
-        .eq('id', promptId)
-        .select()
-        .single()
+    mutationFn: async ({ promptId }: { promptId: string }) => {
+      // Use the database function to ensure only one prompt is active
+      const { error } = await supabase
+        .rpc('activate_single_prompt', { prompt_id_param: promptId })
 
       if (error) throw error
+
+      // Get the activated prompt to return
+      const { data, error: selectError } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('id', promptId)
+        .single()
+
+      if (selectError) throw selectError
       return data as Prompt
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['prompts'] })
-      toast.success('Prompt version activated')
+      toast.success('Prompt activated successfully')
     },
     onError: (error) => {
       console.error('Failed to activate prompt version:', error)

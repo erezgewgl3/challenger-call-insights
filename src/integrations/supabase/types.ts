@@ -281,7 +281,26 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      activate_single_prompt: {
+        Args: { prompt_id_param: string }
+        Returns: undefined
+      }
+      get_active_prompt: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          parent_prompt_id: string
+          version_number: number
+          user_id: string
+          prompt_text: string
+          is_default: boolean
+          is_active: boolean
+          change_description: string
+          activated_at: string
+          created_at: string
+          updated_at: string
+        }[]
+      }
     }
     Enums: {
       processing_status: "uploaded" | "processing" | "completed" | "error"

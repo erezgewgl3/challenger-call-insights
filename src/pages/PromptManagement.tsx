@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react'
-import { usePrompts, useActivePrompts } from '@/hooks/usePrompts'
+import { usePrompts, useActivePrompt } from '@/hooks/usePrompts'
 import { useDefaultAiProvider, useSetDefaultAiProvider } from '@/hooks/useSystemSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -24,7 +24,7 @@ export default function PromptManagement() {
   const [isValidatingKeys, setIsValidatingKeys] = useState(false)
 
   const { data: allPrompts, isLoading } = usePrompts()
-  const { data: activePrompts } = useActivePrompts()
+  const { data: activePrompt } = useActivePrompt()
   const { data: defaultAiProvider } = useDefaultAiProvider()
 
   // Validate API keys on component mount
@@ -88,14 +88,29 @@ export default function PromptManagement() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
+        <Card className="border-green-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Prompts</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Active Prompt</CardTitle>
+            <MessageSquare className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activePrompts?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Currently active</p>
+            <div className="space-y-1">
+              {activePrompt ? (
+                <>
+                  <div className="text-sm font-medium truncate">
+                    {activePrompt.is_default ? 'Default System Prompt' : 'Custom Prompt'}
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="default" className="text-xs">v{activePrompt.version_number}</Badge>
+                    <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                      Active
+                    </Badge>
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">No active prompt</div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -127,20 +142,32 @@ export default function PromptManagement() {
         </Card>
       </div>
 
-      {/* Prompt List */}
+      {/* Active Prompt Display */}
+      {activePrompt && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-slate-900">Currently Active Prompt</h2>
+          <PromptCard 
+            prompt={activePrompt}
+            onEdit={setSelectedPrompt}
+          />
+        </div>
+      )}
+
+      {/* All Prompts List */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-slate-900">Your Prompts</h2>
+        <h2 className="text-xl font-semibold text-slate-900">All Prompts</h2>
         
         <div className="grid gap-4">
-          {activePrompts?.map((prompt) => (
-            <PromptCard 
-              key={prompt.id}
-              prompt={prompt}
-              onEdit={setSelectedPrompt}
-            />
-          ))}
-          
-          {activePrompts?.length === 0 && (
+          {allPrompts && allPrompts.length > 0 ? (
+            allPrompts.map((prompt) => (
+              <div key={prompt.id} className={prompt.is_active ? 'ring-2 ring-green-200' : ''}>
+                <PromptCard 
+                  prompt={prompt}
+                  onEdit={setSelectedPrompt}
+                />
+              </div>
+            ))
+          ) : (
             <Card>
               <CardContent className="p-8 text-center">
                 <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-4" />

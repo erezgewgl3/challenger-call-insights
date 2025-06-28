@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Play, Eye, Calendar } from 'lucide-react'
+import { Play, Eye, Calendar, AlertTriangle } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 
 interface Prompt {
   id: string
@@ -36,10 +37,7 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
 
   const handleActivateVersion = async (version: Prompt) => {
     try {
-      await activateVersion.mutateAsync({ 
-        promptId: version.id, 
-        parentPromptId: version.parent_prompt_id 
-      })
+      await activateVersion.mutateAsync({ promptId: version.id })
     } catch (error) {
       console.error('Failed to activate version:', error)
     }
@@ -74,7 +72,7 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
                       </Badge>
                       {version.is_active && (
                         <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                          Active
+                          Active System-Wide
                         </Badge>
                       )}
                     </div>
@@ -137,7 +135,7 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
                 <span>Version {selectedVersion.version_number}</span>
                 {selectedVersion.is_active && (
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Active
+                    Active System-Wide
                   </Badge>
                 )}
               </DialogTitle>
@@ -147,6 +145,15 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
             </DialogHeader>
             
             <div className="space-y-4">
+              {selectedVersion.is_active && (
+                <Alert>
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    This prompt is currently active system-wide and powers all AI analyses.
+                  </AlertDescription>
+                </Alert>
+              )}
+              
               <div className="text-xs text-slate-500">
                 Created: {new Date(selectedVersion.created_at).toLocaleDateString()}
                 {selectedVersion.activated_at && (
