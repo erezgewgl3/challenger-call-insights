@@ -1,3 +1,4 @@
+
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, authHelpers } from '@/lib/supabase'
@@ -70,7 +71,7 @@ export function RegisterForm() {
     setLoading(true)
     setError('')
 
-    if (!validateRequired({ password, confirmPassword }, ['password', 'confirm password']) ||
+    if (!validateRequired({ password, confirmPassword }, ['password', 'confirmPassword']) ||
         !validatePasswordMatch() ||
         !validatePasswordLength()) {
       setLoading(false)
