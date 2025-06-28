@@ -60,6 +60,7 @@ serve(async (req) => {
       .single();
 
     if (promptError || !prompt) {
+      console.error('Prompt fetch error:', promptError);
       return new Response(JSON.stringify({ error: 'Prompt not found or not active' }), {
         status: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -82,12 +83,14 @@ serve(async (req) => {
 
     if (prompt.ai_provider === 'openai') {
       if (!openaiApiKey) {
+        console.error('OpenAI API key not configured');
         return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
+      console.log('Making OpenAI API call with gpt-4.1-2025-04-14');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -95,7 +98,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4.1-2025-04-14',
           messages: [
             { role: 'user', content: processedPrompt }
           ],
@@ -107,7 +110,7 @@ serve(async (req) => {
       if (!response.ok) {
         const error = await response.text();
         console.error('OpenAI API error:', error);
-        return new Response(JSON.stringify({ error: 'ChatGPT API request failed' }), {
+        return new Response(JSON.stringify({ error: 'ChatGPT API request failed', details: error }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -118,21 +121,23 @@ serve(async (req) => {
 
     } else if (prompt.ai_provider === 'claude') {
       if (!anthropicApiKey) {
+        console.error('Anthropic API key not configured');
         return new Response(JSON.stringify({ error: 'Anthropic API key not configured' }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
 
+      console.log('Making Claude API call with claude-sonnet-4-20250514');
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${anthropicApiKey}`,
+          'x-api-key': anthropicApiKey,
           'Content-Type': 'application/json',
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-3-sonnet-20240229',
+          model: 'claude-3-5-sonnet-20241022',
           max_tokens: 2000,
           messages: [
             { role: 'user', content: processedPrompt }
@@ -144,7 +149,7 @@ serve(async (req) => {
       if (!response.ok) {
         const error = await response.text();
         console.error('Claude API error:', error);
-        return new Response(JSON.stringify({ error: 'Claude API request failed' }), {
+        return new Response(JSON.stringify({ error: 'Claude API request failed', details: error }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -161,16 +166,13 @@ serve(async (req) => {
 
     const processingTime = Date.now() - startTime;
 
-    // Try to parse the AI response as JSON
+    // Try to parse the AI response as JSON - return blank if it fails
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(aiResponse);
     } catch (parseError) {
-      console.warn('AI response is not valid JSON:', aiResponse);
-      parsedResponse = {
-        raw_response: aiResponse,
-        parsing_error: 'Response was not valid JSON'
-      };
+      console.warn('AI response is not valid JSON, returning blank response:', aiResponse);
+      parsedResponse = {};
     }
 
     return new Response(JSON.stringify({
