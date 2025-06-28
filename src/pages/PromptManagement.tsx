@@ -54,9 +54,16 @@ export default function PromptManagement() {
     }
   }
 
-  // Separate active and inactive prompts
-  const inactivePrompts = allPrompts?.filter(prompt => !prompt.is_active) || []
-  const activePromptCount = allPrompts?.filter(prompt => prompt.is_active).length || 0
+  const totalVersions = allPrompts?.length || 0
+  const inactiveVersions = allPrompts?.filter(prompt => !prompt.is_active).length || 0
+
+  const handleEditPrompt = (promptId: string) => {
+    setSelectedPrompt(promptId)
+  }
+
+  const handleViewHistory = (promptId: string) => {
+    setSelectedPrompt(promptId)
+  }
 
   if (isLoading) {
     return (
@@ -120,13 +127,13 @@ export default function PromptManagement() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Versions</CardTitle>
+            <CardTitle className="text-sm font-medium">Version History</CardTitle>
             <History className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{allPrompts?.length || 0}</div>
+            <div className="text-2xl font-bold">{totalVersions}</div>
             <p className="text-xs text-muted-foreground">
-              {activePromptCount} active, {inactivePrompts.length} inactive
+              {inactiveVersions} archived version{inactiveVersions !== 1 ? 's' : ''}
             </p>
           </CardContent>
         </Card>
@@ -148,53 +155,76 @@ export default function PromptManagement() {
         </Card>
       </div>
 
-      {/* Active Prompt Section */}
-      {activePrompt && (
+      {/* Current Active Prompt */}
+      {activePrompt ? (
         <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <h2 className="text-xl font-semibold text-slate-900">Currently Active Prompt</h2>
-            <Badge variant="secondary" className="bg-green-100 text-green-800">
-              Powering All AI Analysis
-            </Badge>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <h2 className="text-xl font-semibold text-slate-900">Current Active Prompt</h2>
+              <Badge variant="secondary" className="bg-green-100 text-green-800">
+                Powering All AI Analysis
+              </Badge>
+            </div>
           </div>
           <PromptCard 
             prompt={activePrompt}
-            onEdit={setSelectedPrompt}
+            onEdit={handleEditPrompt}
+            onViewHistory={handleViewHistory}
           />
         </div>
-      )}
-
-      {/* Inactive Prompts Section */}
-      {inactivePrompts.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-slate-900">Previous Versions</h2>
-          <p className="text-sm text-slate-600">
-            These prompts are inactive and not being used for AI analysis. You can activate any of them to make it the system-wide active prompt.
-          </p>
-          
-          <div className="grid gap-4">
-            {inactivePrompts.map((prompt) => (
-              <PromptCard 
-                key={prompt.id}
-                prompt={prompt}
-                onEdit={setSelectedPrompt}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Empty State */}
-      {!activePrompt && inactivePrompts.length === 0 && (
+      ) : (
         <Card>
           <CardContent className="p-8 text-center">
             <MessageSquare className="h-12 w-12 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-slate-900 mb-2">No prompts yet</h3>
+            <h3 className="text-lg font-medium text-slate-900 mb-2">No active prompt</h3>
             <p className="text-slate-600 mb-4">Create your first AI coaching prompt to get started.</p>
             <Button onClick={() => setIsCreating(true)} className="bg-blue-600 hover:bg-blue-700">
               <Plus className="h-4 w-4 mr-2" />
               Create Your First Prompt
             </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Version Summary */}
+      {inactiveVersions > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center space-x-2">
+              <History className="h-5 w-5 text-slate-600" />
+              <span>Version History</span>
+            </CardTitle>
+            <CardDescription>
+              {inactiveVersions} archived version{inactiveVersions !== 1 ? 's' : ''} available. 
+              Use the "Edit" or "History" button above to view and manage all versions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 bg-slate-200 rounded-full flex items-center justify-center">
+                  <History className="h-5 w-5 text-slate-600" />
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">
+                    {inactiveVersions} Previous Version{inactiveVersions !== 1 ? 's' : ''}
+                  </p>
+                  <p className="text-sm text-slate-600">
+                    View, compare, and activate from version history
+                  </p>
+                </div>
+              </div>
+              {activePrompt && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleViewHistory(activePrompt.id)}
+                  className="flex items-center space-x-1"
+                >
+                  <History className="h-4 w-4" />
+                  <span>View History</span>
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
       )}

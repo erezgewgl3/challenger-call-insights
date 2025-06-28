@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Play, Eye, Calendar, AlertTriangle } from 'lucide-react'
+import { Play, Eye, Calendar, AlertTriangle, Copy } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
@@ -43,6 +43,10 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
     }
   }
 
+  const handleUseAsBase = (version: Prompt) => {
+    onVersionSelect(version)
+  }
+
   return (
     <div className="w-80 pl-4">
       <Card className="h-full">
@@ -52,7 +56,7 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
             Version History
           </CardTitle>
           <CardDescription className="text-xs">
-            {versions.length} version{versions.length !== 1 ? 's' : ''}
+            {versions.length} version{versions.length !== 1 ? 's' : ''} • Click to view or use as base
           </CardDescription>
         </CardHeader>
         <CardContent className="p-0">
@@ -61,9 +65,11 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
               {sortedVersions.map((version) => (
                 <div 
                   key={version.id}
-                  className={`p-3 rounded-lg border ${
-                    version.is_active ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                  } hover:shadow-sm transition-shadow`}
+                  className={`p-3 rounded-lg border transition-all ${
+                    version.is_active 
+                      ? 'bg-green-50 border-green-200 shadow-sm' 
+                      : 'bg-gray-50 border-gray-200 hover:bg-gray-100'
+                  }`}
                 >
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-2">
@@ -72,7 +78,7 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
                       </Badge>
                       {version.is_active && (
                         <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
-                          Active System-Wide
+                          Current
                         </Badge>
                       )}
                     </div>
@@ -82,9 +88,16 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
                     {version.change_description || 'No description'}
                   </p>
                   
-                  <p className="text-xs text-slate-500 mb-3">
+                  <p className="text-xs text-slate-500 mb-2">
                     {new Date(version.created_at).toLocaleDateString()}
+                    {version.activated_at && (
+                      <span> • Activated {new Date(version.activated_at).toLocaleDateString()}</span>
+                    )}
                   </p>
+                  
+                  <div className="text-xs text-slate-400 mb-3">
+                    {version.prompt_text.split(/\s+/).length} words, {version.prompt_text.length} chars
+                  </div>
                   
                   <div className="flex items-center space-x-1">
                     <Button
@@ -97,26 +110,29 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
                       View
                     </Button>
                     
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs h-6 px-2"
-                      onClick={() => onVersionSelect(version)}
-                    >
-                      Use
-                    </Button>
-                    
                     {!version.is_active && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-6 px-2"
-                        onClick={() => handleActivateVersion(version)}
-                        disabled={activateVersion.isPending}
-                      >
-                        <Play className="h-3 w-3 mr-1" />
-                        Activate
-                      </Button>
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-6 px-2"
+                          onClick={() => handleUseAsBase(version)}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Use as Base
+                        </Button>
+                        
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-6 px-2"
+                          onClick={() => handleActivateVersion(version)}
+                          disabled={activateVersion.isPending}
+                        >
+                          <Play className="h-3 w-3 mr-1" />
+                          Activate
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -135,7 +151,7 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
                 <span>Version {selectedVersion.version_number}</span>
                 {selectedVersion.is_active && (
                   <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    Active System-Wide
+                    Current Active
                   </Badge>
                 )}
               </DialogTitle>
@@ -154,17 +170,48 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
                 </Alert>
               )}
               
-              <div className="text-xs text-slate-500">
-                Created: {new Date(selectedVersion.created_at).toLocaleDateString()}
+              <div className="text-xs text-slate-500 flex items-center space-x-4">
+                <span>Created: {new Date(selectedVersion.created_at).toLocaleDateString()}</span>
                 {selectedVersion.activated_at && (
-                  <> • Activated: {new Date(selectedVersion.activated_at).toLocaleDateString()}</>
+                  <span>Activated: {new Date(selectedVersion.activated_at).toLocaleDateString()}</span>
                 )}
+                <span>{selectedVersion.prompt_text.split(/\s+/).length} words</span>
+                <span>{selectedVersion.prompt_text.length} characters</span>
               </div>
               
               <div className="bg-slate-50 p-4 rounded-lg">
                 <pre className="text-sm whitespace-pre-wrap font-mono">
                   {selectedVersion.prompt_text}
                 </pre>
+              </div>
+
+              <div className="flex items-center space-x-2 pt-4 border-t">
+                {!selectedVersion.is_active && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        handleUseAsBase(selectedVersion)
+                        setSelectedVersion(null)
+                      }}
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Use as Base for New Version
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        handleActivateVersion(selectedVersion)
+                        setSelectedVersion(null)
+                      }}
+                      disabled={activateVersion.isPending}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <Play className="h-4 w-4 mr-2" />
+                      Activate This Version
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </DialogContent>

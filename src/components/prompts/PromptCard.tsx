@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Edit, Calendar, MessageSquare } from 'lucide-react'
+import { Edit, Calendar, MessageSquare, History } from 'lucide-react'
 
 interface Prompt {
   id: string
@@ -20,19 +20,24 @@ interface Prompt {
 
 interface PromptCardProps {
   prompt: Prompt
-  onEdit: (id: string) => void
+  onEdit?: (id: string) => void
+  onViewHistory?: (id: string) => void
+  showActions?: boolean
 }
 
-export function PromptCard({ prompt, onEdit }: PromptCardProps) {
+export function PromptCard({ prompt, onEdit, onViewHistory, showActions = true }: PromptCardProps) {
   const truncatedText = prompt.prompt_text.length > 200 
     ? prompt.prompt_text.substring(0, 200) + '...'
     : prompt.prompt_text
+
+  const wordCount = prompt.prompt_text.split(/\s+/).length
+  const charCount = prompt.prompt_text.length
 
   return (
     <Card className={`transition-shadow ${
       prompt.is_active 
         ? 'hover:shadow-md border-green-200 bg-green-50/50' 
-        : 'hover:shadow-md opacity-75'
+        : 'hover:shadow-md opacity-75 bg-gray-50/50 border-gray-200'
     }`}>
       <CardHeader>
         <div className="flex items-center justify-between">
@@ -63,15 +68,32 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
               </div>
             </div>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => onEdit(prompt.id)}
-            className="flex items-center space-x-1"
-          >
-            <Edit className="h-4 w-4" />
-            <span>Edit</span>
-          </Button>
+          {showActions && (
+            <div className="flex items-center space-x-2">
+              {prompt.is_active && onEdit && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onEdit(prompt.id)}
+                  className="flex items-center space-x-1"
+                >
+                  <Edit className="h-4 w-4" />
+                  <span>Edit</span>
+                </Button>
+              )}
+              {onViewHistory && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onViewHistory(prompt.id)}
+                  className="flex items-center space-x-1"
+                >
+                  <History className="h-4 w-4" />
+                  <span>History</span>
+                </Button>
+              )}
+            </div>
+          )}
         </div>
         <CardDescription className="flex items-center space-x-4 text-sm">
           <div className="flex items-center space-x-1">
@@ -84,6 +106,8 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
               <span>Activated {new Date(prompt.activated_at).toLocaleDateString()}</span>
             </>
           )}
+          <span>•</span>
+          <span>{wordCount} words, {charCount} chars</span>
         </CardDescription>
       </CardHeader>
       <CardContent>
