@@ -38,9 +38,9 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
   useEffect(() => {
     if (isEditing && currentPrompt) {
       setPromptText(currentPrompt.prompt_text)
-      setAiProvider(currentPrompt.ai_provider)
+      setAiProvider(currentPrompt.ai_provider as 'openai' | 'claude')
       setIsDefault(currentPrompt.is_default)
-      setDefaultAiProvider(currentPrompt.default_ai_provider || 'openai')
+      setDefaultAiProvider((currentPrompt.default_ai_provider || 'openai') as 'openai' | 'claude')
     } else {
       // Reset for new prompt
       setPromptText('')
@@ -127,7 +127,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
                 {/* Provider Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="ai-provider">AI Provider</Label>
-                  <Select value={aiProvider} onValueChange={(value: 'openai' | 'claude') => setAiProvider(value)}>
+                  <Select value={aiProvider} onValueChange={(value) => setAiProvider(value as 'openai' | 'claude')}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select AI provider" />
                     </SelectTrigger>
@@ -168,7 +168,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
                         </Label>
                         <Select 
                           value={defaultAiProvider} 
-                          onValueChange={(value: 'openai' | 'claude') => setDefaultAiProvider(value)}
+                          onValueChange={(value) => setDefaultAiProvider(value as 'openai' | 'claude')}
                         >
                           <SelectTrigger>
                             <SelectValue />
