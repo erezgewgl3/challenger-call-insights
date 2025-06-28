@@ -12,13 +12,13 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 to-indigo-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center">
                 <Brain className="h-6 w-6 text-white" />
               </div>
               <div>
@@ -29,7 +29,7 @@ export default function AdminDashboard() {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <span className="text-sm text-slate-600">Welcome, {user?.email}</span>
-                <div className="text-xs text-blue-600 font-medium">Administrator</div>
+                <div className="text-xs text-indigo-600 font-medium">Administrator</div>
               </div>
               <Button
                 variant="ghost"
@@ -106,7 +106,7 @@ export default function AdminDashboard() {
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <MessageSquare className="h-5 w-5 text-blue-600" />
+                <MessageSquare className="h-5 w-5 text-indigo-600" />
                 <span>AI Prompt Management</span>
               </CardTitle>
               <CardDescription>
@@ -164,10 +164,10 @@ export default function AdminDashboard() {
                 <p className="text-sm font-medium text-green-800">Authentication</p>
                 <p className="text-xs text-green-600">Active</p>
               </div>
-              <div className="text-center p-4 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-600">i</div>
-                <p className="text-sm font-medium text-blue-800">AI Services</p>
-                <p className="text-xs text-blue-600">Ready for setup</p>
+              <div className="text-center p-4 bg-indigo-50 rounded-lg">
+                <div className="text-2xl font-bold text-indigo-600">i</div>
+                <p className="text-sm font-medium text-indigo-800">AI Services</p>
+                <p className="text-xs text-indigo-600">Ready for setup</p>
               </div>
             </div>
           </CardContent>
