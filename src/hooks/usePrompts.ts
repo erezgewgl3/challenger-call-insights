@@ -1,31 +1,36 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 
 interface Prompt {
   id: string
-  parent_prompt_id?: string
   version_number: number
   user_id?: string
   prompt_text: string
+  prompt_name: string
   is_default: boolean
   is_active: boolean
   change_description?: string
   activated_at?: string
   created_at: string
   updated_at: string
+  created_by?: string
 }
 
 interface CreatePromptData {
   prompt_text: string
+  prompt_name: string
   change_description?: string
 }
 
-interface UpdatePromptData extends CreatePromptData {
-  parent_prompt_id: string
+interface UpdatePromptData {
+  prompt_text: string
+  prompt_name: string
+  change_description?: string
 }
 
-// Get all prompts with version info
+// Get all prompts in chronological order
 export function usePrompts() {
   return useQuery({
     queryKey: ['prompts'],
@@ -33,7 +38,7 @@ export function usePrompts() {
       const { data, error } = await supabase
         .from('prompts')
         .select('*')
-        .order('created_at', { ascending: false })
+        .order('version_number', { ascending: false })
 
       if (error) throw error
       return data as Prompt[]
@@ -72,38 +77,19 @@ export function useDefaultPrompt() {
   })
 }
 
-// Get prompt version history - fixed to show all versions in the family
-export function usePromptVersions(promptId: string) {
+// Get all prompts for history view (simplified - just returns all prompts)
+export function usePromptVersions() {
   return useQuery({
-    queryKey: ['prompt-versions', promptId],
+    queryKey: ['prompts', 'all'],
     queryFn: async () => {
-      if (!promptId) return []
-
-      // First, get the current prompt to determine if it has a parent
-      const { data: currentPrompt, error: currentError } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('id', promptId)
-        .single()
-
-      if (currentError) throw currentError
-
-      // Determine the root parent ID
-      const rootParentId = currentPrompt.parent_prompt_id || currentPrompt.id
-
-      // Now fetch all versions that either:
-      // 1. Are the root parent (id = rootParentId)
-      // 2. Have the root parent as their parent (parent_prompt_id = rootParentId)
       const { data, error } = await supabase
         .from('prompts')
         .select('*')
-        .or(`id.eq.${rootParentId},parent_prompt_id.eq.${rootParentId}`)
         .order('version_number', { ascending: false })
 
       if (error) throw error
       return data as Prompt[]
-    },
-    enabled: !!promptId
+    }
   })
 }
 
@@ -117,10 +103,10 @@ export function useCreatePrompt() {
         .from('prompts')
         .insert([{
           prompt_text: data.prompt_text,
+          prompt_name: data.prompt_name,
           is_default: false,
           is_active: false,
-          version_number: 1,
-          change_description: data.change_description || 'Initial version'
+          change_description: data.change_description || 'New prompt created'
         }])
         .select()
         .single()
@@ -151,22 +137,13 @@ export function useUpdatePrompt() {
 
   return useMutation({
     mutationFn: async (data: UpdatePromptData) => {
-      const { data: parent, error: parentError } = await supabase
-        .from('prompts')
-        .select('version_number, is_default')
-        .eq('id', data.parent_prompt_id)
-        .single()
-
-      if (parentError) throw parentError
-
       const { data: result, error } = await supabase
         .from('prompts')
         .insert([{
-          parent_prompt_id: data.parent_prompt_id,
           prompt_text: data.prompt_text,
-          is_default: parent?.is_default || false,
+          prompt_name: data.prompt_name,
+          is_default: false,
           is_active: false,
-          version_number: (parent?.version_number || 0) + 1,
           change_description: data.change_description || 'Updated prompt'
         }])
         .select()
@@ -223,7 +200,7 @@ export function useActivatePromptVersion() {
   })
 }
 
-// Delete prompt (and all versions if parent)
+// Delete prompt (simplified - just delete the specific prompt)
 export function useDeletePrompt() {
   const queryClient = useQueryClient()
 
@@ -232,7 +209,7 @@ export function useDeletePrompt() {
       const { error } = await supabase
         .from('prompts')
         .delete()
-        .or(`id.eq.${promptId},parent_prompt_id.eq.${promptId}`)
+        .eq('id', promptId)
 
       if (error) throw error
     },

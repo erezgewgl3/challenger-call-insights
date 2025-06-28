@@ -1,11 +1,11 @@
 
 import React, { useState } from 'react'
-import { useActivePrompt } from '@/hooks/usePrompts'
+import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, MessageSquare, History, Settings, Zap } from 'lucide-react'
-import { EnhancedPromptEditor } from '@/components/prompts/EnhancedPromptEditor'
+import { Plus, MessageSquare, History, Settings, Zap, Play } from 'lucide-react'
+import { SimplePromptEditor } from '@/components/prompts/SimplePromptEditor'
 import { PromptCard } from '@/components/prompts/PromptCard'
 import { AiProviderSelector } from '@/components/prompts/AiProviderSelector'
 import { useDefaultAiProvider } from '@/hooks/useSystemSettings'
@@ -15,14 +15,32 @@ interface ApiKeyStatus {
   claude: boolean
 }
 
+interface Prompt {
+  id: string
+  version_number: number
+  user_id?: string
+  prompt_text: string
+  prompt_name: string
+  is_default: boolean
+  is_active: boolean
+  change_description?: string
+  activated_at?: string
+  created_at: string
+  updated_at: string
+  created_by?: string
+}
+
 export default function PromptManagement() {
-  const [selectedPrompt, setSelectedPrompt] = useState<string | null>(null)
+  const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>({ openai: false, claude: false })
   const [isValidatingKeys, setIsValidatingKeys] = useState(false)
 
   const { data: activePrompt, isLoading } = useActivePrompt()
+  const { data: allPrompts } = usePrompts()
   const { data: defaultAiProvider } = useDefaultAiProvider()
+  const activateVersion = useActivatePromptVersion()
+  const deletePrompt = useDeletePrompt()
 
   React.useEffect(() => {
     validateApiKeys()
@@ -50,12 +68,26 @@ export default function PromptManagement() {
     }
   }
 
-  const handleEditPrompt = (promptId: string) => {
-    setSelectedPrompt(promptId)
+  const handleEditPrompt = (prompt: Prompt) => {
+    setSelectedPrompt(prompt)
   }
 
-  const handleViewHistory = (promptId: string) => {
-    setSelectedPrompt(promptId)
+  const handleDeletePrompt = async (promptId: string) => {
+    if (window.confirm('Are you sure you want to delete this prompt? This action cannot be undone.')) {
+      try {
+        await deletePrompt.mutateAsync(promptId)
+      } catch (error) {
+        console.error('Failed to delete prompt:', error)
+      }
+    }
+  }
+
+  const handleActivatePrompt = async (promptId: string) => {
+    try {
+      await activateVersion.mutateAsync({ promptId })
+    } catch (error) {
+      console.error('Failed to activate prompt:', error)
+    }
   }
 
   if (isLoading) {
@@ -66,13 +98,15 @@ export default function PromptManagement() {
     )
   }
 
+  const inactivePrompts = allPrompts?.filter(p => !p.is_active) || []
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">AI Prompt Management</h1>
           <p className="text-slate-600 mt-1">
-            Manage your AI coaching prompts and system configuration
+            Manage your AI coaching prompts with simplified flat versioning
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -101,7 +135,7 @@ export default function PromptManagement() {
               {activePrompt ? (
                 <>
                   <div className="text-sm font-medium truncate">
-                    {activePrompt.is_default ? 'Default System Prompt' : 'Custom Prompt'}
+                    {activePrompt.prompt_name}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="default" className="text-xs">v{activePrompt.version_number}</Badge>
@@ -119,13 +153,13 @@ export default function PromptManagement() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Management</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Prompts</CardTitle>
             <History className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">Integrated</div>
+            <div className="text-2xl font-bold">{allPrompts?.length || 0}</div>
             <p className="text-xs text-muted-foreground">
-              Version history within editor
+              All versions available
             </p>
           </CardContent>
         </Card>
@@ -160,7 +194,7 @@ export default function PromptManagement() {
           <PromptCard 
             prompt={activePrompt}
             onEdit={handleEditPrompt}
-            onViewHistory={handleViewHistory}
+            onDelete={handleDeletePrompt}
           />
         </div>
       ) : (
@@ -177,9 +211,38 @@ export default function PromptManagement() {
         </Card>
       )}
 
+      {inactivePrompts.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-xl font-semibold text-slate-900">All Prompt Versions</h2>
+          <div className="grid gap-4">
+            {inactivePrompts.map((prompt) => (
+              <div key={prompt.id} className="relative">
+                <PromptCard 
+                  prompt={prompt}
+                  onEdit={handleEditPrompt}
+                  onDelete={handleDeletePrompt}
+                />
+                <div className="absolute top-4 right-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleActivatePrompt(prompt.id)}
+                    disabled={activateVersion.isPending}
+                    className="bg-white hover:bg-green-50 border-green-200"
+                  >
+                    <Play className="h-4 w-4 mr-1" />
+                    Activate
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {(isCreating || selectedPrompt) && (
-        <EnhancedPromptEditor 
-          promptId={selectedPrompt}
+        <SimplePromptEditor 
+          prompt={selectedPrompt}
           isOpen={isCreating || !!selectedPrompt}
           onClose={() => {
             setIsCreating(false)

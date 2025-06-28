@@ -122,10 +122,11 @@ export type Database = {
           activated_at: string | null
           change_description: string | null
           created_at: string | null
+          created_by: string | null
           id: string
           is_active: boolean
           is_default: boolean
-          parent_prompt_id: string | null
+          prompt_name: string | null
           prompt_text: string
           updated_at: string | null
           user_id: string | null
@@ -135,10 +136,11 @@ export type Database = {
           activated_at?: string | null
           change_description?: string | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
-          parent_prompt_id?: string | null
+          prompt_name?: string | null
           prompt_text: string
           updated_at?: string | null
           user_id?: string | null
@@ -148,10 +150,11 @@ export type Database = {
           activated_at?: string | null
           change_description?: string | null
           created_at?: string | null
+          created_by?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
-          parent_prompt_id?: string | null
+          prompt_name?: string | null
           prompt_text?: string
           updated_at?: string | null
           user_id?: string | null
@@ -159,10 +162,10 @@ export type Database = {
         }
         Relationships: [
           {
-            foreignKeyName: "prompts_parent_prompt_id_fkey"
-            columns: ["parent_prompt_id"]
+            foreignKeyName: "prompts_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
-            referencedRelation: "prompts"
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -289,16 +292,17 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: {
           id: string
-          parent_prompt_id: string
           version_number: number
           user_id: string
           prompt_text: string
+          prompt_name: string
           is_default: boolean
           is_active: boolean
           change_description: string
           activated_at: string
           created_at: string
           updated_at: string
+          created_by: string
         }[]
       }
     }

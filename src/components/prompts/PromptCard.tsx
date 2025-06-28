@@ -2,30 +2,31 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Edit, Calendar, MessageSquare, History } from 'lucide-react'
+import { Edit, Calendar, MessageSquare, Trash2 } from 'lucide-react'
 
 interface Prompt {
   id: string
-  parent_prompt_id?: string
   version_number: number
   user_id?: string
   prompt_text: string
+  prompt_name: string
   is_default: boolean
   is_active: boolean
   change_description?: string
   activated_at?: string
   created_at: string
   updated_at: string
+  created_by?: string
 }
 
 interface PromptCardProps {
   prompt: Prompt
-  onEdit?: (id: string) => void
-  onViewHistory?: (id: string) => void
+  onEdit?: (prompt: Prompt) => void
+  onDelete?: (id: string) => void
   showActions?: boolean
 }
 
-export function PromptCard({ prompt, onEdit, onViewHistory, showActions = true }: PromptCardProps) {
+export function PromptCard({ prompt, onEdit, onDelete, showActions = true }: PromptCardProps) {
   const truncatedText = prompt.prompt_text.length > 200 
     ? prompt.prompt_text.substring(0, 200) + '...'
     : prompt.prompt_text
@@ -49,7 +50,7 @@ export function PromptCard({ prompt, onEdit, onViewHistory, showActions = true }
               <CardTitle className={`text-lg ${
                 prompt.is_active ? 'text-slate-900' : 'text-slate-600'
               }`}>
-                {prompt.is_default ? 'Default System Prompt' : 'Custom Prompt'}
+                {prompt.prompt_name}
               </CardTitle>
               <div className="flex items-center space-x-2 mt-1">
                 <Badge variant={prompt.is_active ? 'default' : 'outline'}>
@@ -70,26 +71,26 @@ export function PromptCard({ prompt, onEdit, onViewHistory, showActions = true }
           </div>
           {showActions && (
             <div className="flex items-center space-x-2">
-              {prompt.is_active && onEdit && (
+              {onEdit && (
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => onEdit(prompt.id)}
+                  onClick={() => onEdit(prompt)}
                   className="flex items-center space-x-1"
                 >
                   <Edit className="h-4 w-4" />
                   <span>Edit</span>
                 </Button>
               )}
-              {onViewHistory && (
+              {onDelete && !prompt.is_active && (
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => onViewHistory(prompt.id)}
-                  className="flex items-center space-x-1"
+                  onClick={() => onDelete(prompt.id)}
+                  className="flex items-center space-x-1 text-red-600 hover:text-red-700"
                 >
-                  <History className="h-4 w-4" />
-                  <span>History</span>
+                  <Trash2 className="h-4 w-4" />
+                  <span>Delete</span>
                 </Button>
               )}
             </div>
@@ -98,7 +99,7 @@ export function PromptCard({ prompt, onEdit, onViewHistory, showActions = true }
         <CardDescription className="flex items-center space-x-4 text-sm">
           <div className="flex items-center space-x-1">
             <Calendar className="h-3 w-3" />
-            <span>Updated {new Date(prompt.updated_at).toLocaleDateString()}</span>
+            <span>Created {new Date(prompt.created_at).toLocaleDateString()}</span>
           </div>
           {prompt.activated_at && (
             <>
