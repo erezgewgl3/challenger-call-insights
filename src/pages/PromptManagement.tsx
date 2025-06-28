@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react'
 import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt, useCreatePrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -423,13 +422,15 @@ export default function PromptManagement() {
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-slate-900">All Prompt Versions</h2>
                 {inactivePrompts.length > 1 && (
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-3 bg-white px-4 py-2 rounded-lg border border-gray-200 shadow-sm">
                     <Checkbox
                       checked={selectedPrompts.size === inactivePrompts.length && inactivePrompts.length > 0}
                       onCheckedChange={handleSelectAll}
-                      className="mr-2"
+                      className="border-2 border-blue-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
                     />
-                    <span className="text-sm text-slate-600">Select all</span>
+                    <span className="text-sm font-medium text-slate-700">
+                      Select all ({inactivePrompts.length} prompts)
+                    </span>
                   </div>
                 )}
               </div>
@@ -445,34 +446,40 @@ export default function PromptManagement() {
               
               <div className="space-y-4">
                 {inactivePrompts.map((prompt) => (
-                  <div key={prompt.id} className="relative bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
-                    <div className="absolute top-6 left-6 z-10">
-                      <Checkbox
-                        checked={selectedPrompts.has(prompt.id)}
-                        onCheckedChange={(checked) => handleSelectPrompt(prompt.id, checked as boolean)}
-                        className="bg-white border-2"
-                      />
-                    </div>
-                    <div className="ml-12">
-                      <PromptCard 
-                        prompt={prompt}
-                        onEdit={handleEditPrompt}
-                        onDelete={handleDeletePrompt}
-                        onTest={handleTestPrompt}
-                        onDuplicate={handleDuplicatePrompt}
-                      />
-                    </div>
-                    <div className="absolute top-6 right-6">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleActivatePrompt(prompt.id)}
-                        disabled={activateVersion.isPending}
-                        className="bg-white hover:bg-green-50 border-green-200 text-green-700 hover:text-green-800 shadow-sm hover:shadow-md transition-all duration-200"
-                      >
-                        <Play className="h-4 w-4 mr-1" />
-                        Activate
-                      </Button>
+                  <div key={prompt.id} className={`relative transition-all duration-200 ${
+                    selectedPrompts.has(prompt.id) 
+                      ? 'ring-2 ring-blue-500 ring-offset-2 rounded-lg' 
+                      : ''
+                  }`}>
+                    <div className="flex items-start space-x-4 bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 p-2">
+                      <div className="flex-shrink-0 pt-4 pl-2">
+                        <Checkbox
+                          checked={selectedPrompts.has(prompt.id)}
+                          onCheckedChange={(checked) => handleSelectPrompt(prompt.id, checked as boolean)}
+                          className="border-2 border-blue-500 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 shadow-sm"
+                        />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <PromptCard 
+                          prompt={prompt}
+                          onEdit={handleEditPrompt}
+                          onDelete={handleDeletePrompt}
+                          onTest={handleTestPrompt}
+                          onDuplicate={handleDuplicatePrompt}
+                        />
+                      </div>
+                      <div className="flex-shrink-0 pt-4 pr-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleActivatePrompt(prompt.id)}
+                          disabled={activateVersion.isPending}
+                          className="bg-white hover:bg-green-50 border-green-200 text-green-700 hover:text-green-800 shadow-sm hover:shadow-md transition-all duration-200"
+                        >
+                          <Play className="h-4 w-4 mr-1" />
+                          Activate
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
