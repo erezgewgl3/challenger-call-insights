@@ -4,6 +4,7 @@ import { useCreatePrompt, useUpdatePrompt, usePromptVersions } from '@/hooks/use
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,40 +21,44 @@ interface EnhancedPromptEditorProps {
 
 export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedPromptEditorProps) {
   const [promptText, setPromptText] = useState('')
+  const [promptName, setPromptName] = useState('')
   const [changeDescription, setChangeDescription] = useState('')
   const [showVersionHistory, setShowVersionHistory] = useState(false)
 
   const createPrompt = useCreatePrompt()
   const updatePrompt = useUpdatePrompt()
-  const { data: versions } = usePromptVersions(promptId || '')
+  const { data: versions } = usePromptVersions()
 
   const isEditing = !!promptId
-  const currentPrompt = versions?.find(v => v.is_active)
+  const currentPrompt = versions?.find(v => v.id === promptId)
 
   useEffect(() => {
     if (isEditing && currentPrompt) {
       setPromptText(currentPrompt.prompt_text)
+      setPromptName(currentPrompt.prompt_name || '')
       setShowVersionHistory(true)
     } else {
       setPromptText('')
+      setPromptName('')
       setChangeDescription('')
       setShowVersionHistory(false)
     }
   }, [isEditing, currentPrompt])
 
   const handleSave = async () => {
-    if (!promptText.trim()) return
+    if (!promptText.trim() || !promptName.trim()) return
 
     try {
-      if (isEditing && promptId) {
+      if (isEditing) {
         await updatePrompt.mutateAsync({
-          parent_prompt_id: promptId,
           prompt_text: promptText,
+          prompt_name: promptName,
           change_description: changeDescription
         })
       } else {
         await createPrompt.mutateAsync({
           prompt_text: promptText,
+          prompt_name: promptName,
           change_description: changeDescription || 'Initial version'
         })
       }
@@ -83,7 +88,7 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
       <DialogContent className="max-w-7xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
-            <span>{isEditing ? 'Edit AI Prompt' : 'Create New AI Prompt'}</span>
+            <span>{isEditing ? 'Create New Prompt Version' : 'Create New AI Prompt'}</span>
             {isEditing && (
               <Button
                 variant="outline"
@@ -97,7 +102,7 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
           </DialogTitle>
           <DialogDescription>
             {isEditing 
-              ? 'Create a new version of this prompt with your changes.'
+              ? 'Create a new version based on the selected prompt.'
               : 'Create a new AI coaching prompt for analyzing sales conversations.'
             }
           </DialogDescription>
@@ -107,6 +112,16 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
           <div className={`flex-1 space-y-4 pr-4 ${showVersionHistory ? 'border-r' : ''}`}>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
               <div className="lg:col-span-3 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="prompt-name">Prompt Name</Label>
+                  <Input
+                    id="prompt-name"
+                    value={promptName}
+                    onChange={(e) => setPromptName(e.target.value)}
+                    placeholder="Enter a descriptive name for this prompt..."
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="prompt-text">Prompt Text</Label>
                   <Textarea
@@ -146,7 +161,9 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
                     <CardContent className="space-y-2">
                       <div className="flex items-center space-x-2">
                         <Badge variant="default">v{currentPrompt.version_number}</Badge>
-                        <Badge variant="secondary" className="bg-green-100 text-green-800">Active</Badge>
+                        {currentPrompt.is_active && (
+                          <Badge variant="secondary" className="bg-green-100 text-green-800">Active</Badge>
+                        )}
                       </div>
                       <p className="text-xs text-slate-600">
                         {currentPrompt.change_description || 'No description'}
@@ -167,6 +184,7 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
               currentPromptId={promptId!}
               onVersionSelect={(version) => {
                 setPromptText(version.prompt_text)
+                setPromptName(version.prompt_name || '')
                 setChangeDescription(`Based on v${version.version_number}`)
               }}
             />
@@ -178,7 +196,7 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm text-slate-600">
             {isEditing && (
-              <span>Creating version {(currentPrompt?.version_number || 0) + 1}</span>
+              <span>Creating new version</span>
             )}
           </div>
           <div className="flex items-center space-x-2">
@@ -187,10 +205,10 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
             </Button>
             <Button 
               onClick={handleSave}
-              disabled={!promptText.trim() || createPrompt.isPending || updatePrompt.isPending}
+              disabled={!promptText.trim() || !promptName.trim() || createPrompt.isPending || updatePrompt.isPending}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {createPrompt.isPending || updatePrompt.isPending ? 'Saving...' : 'Save Prompt'}
+              {createPrompt.isPending || updatePrompt.isPending ? 'Saving...' : 'Save & Activate'}
             </Button>
           </div>
         </div>

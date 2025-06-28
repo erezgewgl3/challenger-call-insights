@@ -4,6 +4,7 @@ import { useCreatePrompt, useUpdatePrompt, usePromptVersions } from '@/hooks/use
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -20,39 +21,43 @@ interface PromptEditorProps {
 
 export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
   const [promptText, setPromptText] = useState('')
+  const [promptName, setPromptName] = useState('')
   const [changeDescription, setChangeDescription] = useState('')
   const [activeTab, setActiveTab] = useState('editor')
 
   const createPrompt = useCreatePrompt()
   const updatePrompt = useUpdatePrompt()
-  const { data: versions } = usePromptVersions(promptId || '')
+  const { data: versions } = usePromptVersions()
 
   const isEditing = !!promptId
-  const currentPrompt = versions?.find(v => v.is_active)
+  const currentPrompt = versions?.find(v => v.id === promptId)
 
   useEffect(() => {
     if (isEditing && currentPrompt) {
       setPromptText(currentPrompt.prompt_text)
+      setPromptName(currentPrompt.prompt_name || '')
     } else {
       setPromptText('')
+      setPromptName('')
       setChangeDescription('')
     }
     setActiveTab('editor')
   }, [isEditing, currentPrompt])
 
   const handleSave = async () => {
-    if (!promptText.trim()) return
+    if (!promptText.trim() || !promptName.trim()) return
 
     try {
-      if (isEditing && promptId) {
+      if (isEditing) {
         await updatePrompt.mutateAsync({
-          parent_prompt_id: promptId,
           prompt_text: promptText,
+          prompt_name: promptName,
           change_description: changeDescription
         })
       } else {
         await createPrompt.mutateAsync({
           prompt_text: promptText,
+          prompt_name: promptName,
           change_description: changeDescription || 'Initial version'
         })
       }
@@ -82,11 +87,11 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {isEditing ? 'Edit AI Prompt' : 'Create New AI Prompt'}
+            {isEditing ? 'Create New Prompt Version' : 'Create New AI Prompt'}
           </DialogTitle>
           <DialogDescription>
             {isEditing 
-              ? 'Create a new version of this prompt with your changes.'
+              ? 'Create a new version based on the selected prompt.'
               : 'Create a new AI coaching prompt for analyzing sales conversations.'
             }
           </DialogDescription>
@@ -104,6 +109,16 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
           <TabsContent value="editor">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="prompt-name">Prompt Name</Label>
+                  <Input
+                    id="prompt-name"
+                    value={promptName}
+                    onChange={(e) => setPromptName(e.target.value)}
+                    placeholder="Enter a descriptive name for this prompt..."
+                  />
+                </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="prompt-text">Prompt Text</Label>
                   <Textarea
@@ -174,9 +189,9 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
                 {isEditing && versions && versions.length > 0 && (
                   <Card>
                     <CardHeader>
-                      <CardTitle className="text-sm">Version History</CardTitle>
+                      <CardTitle className="text-sm">All Prompts</CardTitle>
                       <CardDescription className="text-xs">
-                        Previous versions of this prompt
+                        All available prompts
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-2">
@@ -217,7 +232,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2 text-sm text-slate-600">
             {isEditing && (
-              <span>Creating version {(currentPrompt?.version_number || 0) + 1}</span>
+              <span>Creating new version</span>
             )}
           </div>
           <div className="flex items-center space-x-2">
@@ -226,10 +241,10 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
             </Button>
             <Button 
               onClick={handleSave}
-              disabled={!promptText.trim() || createPrompt.isPending || updatePrompt.isPending}
+              disabled={!promptText.trim() || !promptName.trim() || createPrompt.isPending || updatePrompt.isPending}
               className="bg-blue-600 hover:bg-blue-700"
             >
-              {createPrompt.isPending || updatePrompt.isPending ? 'Saving...' : 'Save Prompt'}
+              {createPrompt.isPending || updatePrompt.isPending ? 'Saving...' : 'Save & Activate'}
             </Button>
           </div>
         </div>
