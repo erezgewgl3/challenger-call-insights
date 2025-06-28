@@ -26,42 +26,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Separate effect to fetch user role when session user changes
-  useEffect(() => {
-    const fetchUserRole = async (userId: string): Promise<UserRole> => {
-      try {
-        const { data, error } = await supabase
-          .from('users')
-          .select('role')
-          .eq('id', userId)
-          .single()
+  // Function to fetch user role
+  const fetchUserRole = async (userId: string): Promise<UserRole> => {
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .select('role')
+        .eq('id', userId)
+        .single()
 
-        if (error) {
-          console.error('Error fetching user role:', error)
-          return 'sales_user' // Default fallback
-        }
-
-        return data?.role || 'sales_user'
-      } catch (error) {
-        console.error('Failed to fetch user role:', error)
+      if (error) {
+        console.error('Error fetching user role:', error)
         return 'sales_user' // Default fallback
       }
-    }
 
-    const enhanceUserWithRole = async (authUser: User) => {
-      const role = await fetchUserRole(authUser.id)
-      const enhancedUser = {
-        ...authUser,
-        role: role || 'sales_user'
-      }
-      setUser(enhancedUser)
+      return data?.role || 'sales_user'
+    } catch (error) {
+      console.error('Failed to fetch user role:', error)
+      return 'sales_user' // Default fallback
     }
+  }
 
-    // Only fetch role if we have a session user and current user doesn't have role or is different user
-    if (session?.user && (!user?.role || user.id !== session.user.id)) {
-      enhanceUserWithRole(session.user)
+  // Function to enhance user with role
+  const enhanceUserWithRole = async (authUser: User) => {
+    const role = await fetchUserRole(authUser.id)
+    const enhancedUser = {
+      ...authUser,
+      role: role || 'sales_user'
     }
-  }, [session?.user?.id]) // Only depend on session user ID
+    setUser(enhancedUser)
+  }
 
   useEffect(() => {
     // Set up auth state listener - MUST be synchronous
@@ -70,8 +64,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('Auth state changed:', event, session?.user?.email)
         setSession(session)
         
-        // Only set basic user state here - role will be fetched separately
-        if (!session?.user) {
+        if (session?.user) {
+          // Enhance user with role asynchronously
+          enhanceUserWithRole(session.user)
+        } else {
           setUser(null)
         }
         
@@ -83,7 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
       
-      if (!session?.user) {
+      if (session?.user) {
+        enhanceUserWithRole(session.user)
+      } else {
         setUser(null)
       }
       
