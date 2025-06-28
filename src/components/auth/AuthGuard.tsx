@@ -8,7 +8,7 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  const { user, loading, isAdmin } = useAuth()
+  const { user, loading } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -30,11 +30,6 @@ export function AuthGuard({ children }: AuthGuardProps) {
 
   if (!user) {
     return <Navigate to="/login" replace />
-  }
-
-  // Auto-redirect admins to admin dashboard if they hit /dashboard
-  if (isAdmin && location.pathname === '/dashboard') {
-    return <Navigate to="/admin" replace />
   }
 
   return <>{children}</>
