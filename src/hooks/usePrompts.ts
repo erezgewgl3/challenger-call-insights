@@ -73,10 +73,10 @@ export function useDefaultPrompt() {
         .from('prompts')
         .select('*')
         .eq('is_default', true)
-        .single()
+        .maybeSingle()
 
       if (error) throw error
-      return data as Prompt
+      return data as Prompt | null
     }
   })
 }
@@ -109,7 +109,7 @@ export function useCreatePrompt() {
       if (data.is_default) {
         await supabase
           .from('prompts')
-          .update({ is_default: false })
+          .update({ is_default: false, default_ai_provider: null })
           .eq('is_default', true)
       }
 
@@ -161,7 +161,7 @@ export function useUpdatePrompt() {
         // Remove default from any existing default prompt
         await supabase
           .from('prompts')
-          .update({ is_default: false })
+          .update({ is_default: false, default_ai_provider: null })
           .eq('is_default', true)
       }
 

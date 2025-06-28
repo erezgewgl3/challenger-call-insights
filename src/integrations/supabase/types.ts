@@ -123,6 +123,7 @@ export type Database = {
           ai_provider: string
           change_description: string | null
           created_at: string | null
+          default_ai_provider: string | null
           id: string
           is_active: boolean
           is_default: boolean
@@ -137,6 +138,7 @@ export type Database = {
           ai_provider: string
           change_description?: string | null
           created_at?: string | null
+          default_ai_provider?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean
@@ -151,6 +153,7 @@ export type Database = {
           ai_provider?: string
           change_description?: string | null
           created_at?: string | null
+          default_ai_provider?: string | null
           id?: string
           is_active?: boolean
           is_default?: boolean

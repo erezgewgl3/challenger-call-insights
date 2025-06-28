@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { useCreatePrompt, useUpdatePrompt, usePromptVersions } from '@/hooks/usePrompts'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -39,7 +40,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
       setPromptText(currentPrompt.prompt_text)
       setAiProvider(currentPrompt.ai_provider as 'openai' | 'claude')
       setIsDefault(currentPrompt.is_default)
-      setDefaultAiProvider((currentPrompt.default_ai_provider || 'openai') as 'openai' | 'claude')
+      setDefaultAiProvider((currentPrompt.default_ai_provider || currentPrompt.ai_provider) as 'openai' | 'claude')
     } else {
       // Reset for new prompt
       setPromptText('')
