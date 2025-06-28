@@ -128,7 +128,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
                 className="min-h-[400px] font-mono text-sm"
               />
               <p className="text-xs text-slate-500">
-                Use variables like {{conversation}}, {{account_context}}, and {{user_context}} for dynamic content.
+                Use variables like {`{{conversation}}`}, {`{{account_context}}`}, and {`{{user_context}}`} for dynamic content.
               </p>
             </div>
 
