@@ -4,35 +4,22 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Edit, Calendar, MessageSquare, Trash2 } from 'lucide-react'
 
-interface Prompt {
-  id: string
-  version_number: number
-  user_id?: string
-  prompt_text: string
-  prompt_name: string
-  is_default: boolean
-  is_active: boolean
-  change_description?: string
-  activated_at?: string
-  created_at: string
-  updated_at: string
-  created_by?: string
-}
+// Remove the duplicate Prompt interface - we'll use the one from usePrompts.ts through props
 
 interface PromptCardProps {
-  prompt: Prompt
-  onEdit?: (prompt: Prompt) => void
+  prompt: any
+  onEdit?: (prompt: any) => void
   onDelete?: (id: string) => void
   showActions?: boolean
 }
 
 export function PromptCard({ prompt, onEdit, onDelete, showActions = true }: PromptCardProps) {
-  const truncatedText = prompt.prompt_text.length > 200 
+  const truncatedText = prompt.prompt_text?.length > 200 
     ? prompt.prompt_text.substring(0, 200) + '...'
-    : prompt.prompt_text
+    : prompt.prompt_text || ''
 
-  const wordCount = prompt.prompt_text.split(/\s+/).length
-  const charCount = prompt.prompt_text.length
+  const wordCount = prompt.prompt_text?.split(/\s+/).length || 0
+  const charCount = prompt.prompt_text?.length || 0
 
   return (
     <Card className={`transition-shadow ${
@@ -50,7 +37,7 @@ export function PromptCard({ prompt, onEdit, onDelete, showActions = true }: Pro
               <CardTitle className={`text-lg ${
                 prompt.is_active ? 'text-slate-900' : 'text-slate-600'
               }`}>
-                {prompt.prompt_name}
+                {prompt.prompt_name || 'Untitled'}
               </CardTitle>
               <div className="flex items-center space-x-2 mt-1">
                 <Badge variant={prompt.is_active ? 'default' : 'outline'}>

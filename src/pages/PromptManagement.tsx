@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react'
 import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,23 +14,8 @@ interface ApiKeyStatus {
   claude: boolean
 }
 
-interface Prompt {
-  id: string
-  version_number: number
-  user_id?: string
-  prompt_text: string
-  prompt_name: string
-  is_default: boolean
-  is_active: boolean
-  change_description?: string
-  activated_at?: string
-  created_at: string
-  updated_at: string
-  created_by?: string
-}
-
 export default function PromptManagement() {
-  const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null)
+  const [selectedPrompt, setSelectedPrompt] = useState<any>(null)
   const [isCreating, setIsCreating] = useState(false)
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>({ openai: false, claude: false })
   const [isValidatingKeys, setIsValidatingKeys] = useState(false)
@@ -68,7 +52,7 @@ export default function PromptManagement() {
     }
   }
 
-  const handleEditPrompt = (prompt: Prompt) => {
+  const handleEditPrompt = (prompt: any) => {
     setSelectedPrompt(prompt)
   }
 
@@ -135,7 +119,7 @@ export default function PromptManagement() {
               {activePrompt ? (
                 <>
                   <div className="text-sm font-medium truncate">
-                    {activePrompt.prompt_name}
+                    {activePrompt.prompt_name || 'Untitled'}
                   </div>
                   <div className="flex items-center space-x-2">
                     <Badge variant="default" className="text-xs">v{activePrompt.version_number}</Badge>
