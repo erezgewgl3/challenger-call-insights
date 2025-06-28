@@ -292,19 +292,6 @@ export default function PromptManagement() {
                 Manage your AI coaching prompts with simplified flat versioning
               </p>
             </div>
-            <div className="flex items-center space-x-3">
-              <AiProviderSelector 
-                apiKeyStatus={apiKeyStatus}
-                isValidating={isValidatingKeys}
-              />
-              <Button 
-                onClick={() => setIsCreating(true)}
-                className="bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Create Prompt
-              </Button>
-            </div>
           </div>
 
           {/* Metrics Cards - MOVED TO POSITION 2 */}
@@ -379,6 +366,21 @@ export default function PromptManagement() {
             onClearFilters={handleClearFilters}
             hasActiveFilters={hasActiveFilters}
           />
+
+          {/* Moved Controls Section - AI Provider and Create Button */}
+          <div className="flex items-center justify-end space-x-3">
+            <AiProviderSelector 
+              apiKeyStatus={apiKeyStatus}
+              isValidating={isValidatingKeys}
+            />
+            <Button 
+              onClick={() => setIsCreating(true)}
+              className="bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Create Prompt
+            </Button>
+          </div>
 
           {/* Active prompt section */}
           {activePrompt ? (
