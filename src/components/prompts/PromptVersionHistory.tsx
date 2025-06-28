@@ -40,9 +40,9 @@ export function PromptVersionHistory({ prompts }: PromptVersionHistoryProps) {
     return acc
   }, {} as Record<string, Prompt[]>)
 
-  const handleActivateVersion = async (promptId: string, parentPromptId?: string) => {
+  const handleActivateVersion = async (promptId: string) => {
     try {
-      await activateVersion.mutateAsync({ promptId, parentPromptId })
+      await activateVersion.mutateAsync({ promptId })
     } catch (error) {
       console.error('Failed to activate version:', error)
     }
@@ -157,7 +157,7 @@ export function PromptVersionHistory({ prompts }: PromptVersionHistoryProps) {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleActivateVersion(version.id, version.parent_prompt_id)}
+                            onClick={() => handleActivateVersion(version.id)}
                             disabled={activateVersion.isPending}
                           >
                             <Play className="h-4 w-4 mr-1" />
