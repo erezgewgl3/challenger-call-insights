@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { useCreatePrompt, useUpdatePrompt, usePromptVersions } from '@/hooks/usePrompts'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -294,7 +293,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
             {isEditing && currentPrompt && (
               <PromptTester
                 promptId={currentPrompt.id}
-                aiProvider={currentPrompt.default_ai_provider || currentPrompt.ai_provider}
+                aiProvider={(currentPrompt.default_ai_provider || currentPrompt.ai_provider) as 'openai' | 'claude'}
               />
             )}
           </TabsContent>
