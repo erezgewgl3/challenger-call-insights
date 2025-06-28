@@ -12,6 +12,7 @@ interface Prompt {
   ai_provider: 'openai' | 'claude'
   is_default: boolean
   is_active: boolean
+  default_ai_provider?: string
   change_description?: string
   activated_at?: string
   created_at: string
@@ -22,6 +23,7 @@ interface CreatePromptData {
   prompt_text: string
   ai_provider: 'openai' | 'claude'
   is_default?: boolean
+  default_ai_provider?: 'openai' | 'claude'
   change_description?: string
 }
 
@@ -62,6 +64,23 @@ export function useActivePrompts() {
   })
 }
 
+// Get the single global default prompt
+export function useDefaultPrompt() {
+  return useQuery({
+    queryKey: ['prompts', 'default'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('is_default', true)
+        .single()
+
+      if (error) throw error
+      return data as Prompt
+    }
+  })
+}
+
 // Get prompt version history
 export function usePromptVersions(parentPromptId: string) {
   return useQuery({
@@ -86,12 +105,21 @@ export function useCreatePrompt() {
 
   return useMutation({
     mutationFn: async (data: CreatePromptData) => {
+      // If creating a new default prompt, first remove default from existing one
+      if (data.is_default) {
+        await supabase
+          .from('prompts')
+          .update({ is_default: false })
+          .eq('is_default', true)
+      }
+
       const { data: result, error } = await supabase
         .from('prompts')
         .insert([{
           prompt_text: data.prompt_text,
           ai_provider: data.ai_provider,
           is_default: data.is_default || false,
+          default_ai_provider: data.is_default ? data.default_ai_provider : null,
           is_active: true,
           version_number: 1,
           change_description: data.change_description || 'Initial version'
@@ -122,11 +150,20 @@ export function useUpdatePrompt() {
       // First, get current version number
       const { data: parent, error: parentError } = await supabase
         .from('prompts')
-        .select('version_number')
+        .select('version_number, is_default')
         .eq('id', data.parent_prompt_id)
         .single()
 
       if (parentError) throw parentError
+
+      // If updating a default prompt, handle default flag properly
+      if (data.is_default && !parent?.is_default) {
+        // Remove default from any existing default prompt
+        await supabase
+          .from('prompts')
+          .update({ is_default: false })
+          .eq('is_default', true)
+      }
 
       // Deactivate current active version
       await supabase
@@ -141,7 +178,8 @@ export function useUpdatePrompt() {
           parent_prompt_id: data.parent_prompt_id,
           prompt_text: data.prompt_text,
           ai_provider: data.ai_provider,
-          is_default: false,
+          is_default: data.is_default || parent?.is_default || false,
+          default_ai_provider: data.is_default ? data.default_ai_provider : (parent?.is_default ? data.default_ai_provider : null),
           is_active: true,
           version_number: (parent?.version_number || 0) + 1,
           change_description: data.change_description || 'Updated prompt',
@@ -160,6 +198,44 @@ export function useUpdatePrompt() {
     onError: (error) => {
       console.error('Failed to update prompt:', error)
       toast.error('Failed to update prompt')
+    }
+  })
+}
+
+// Set a prompt as the global default
+export function useSetDefaultPrompt() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async ({ promptId, aiProvider }: { promptId: string, aiProvider: 'openai' | 'claude' }) => {
+      // Remove default from any existing default prompt
+      await supabase
+        .from('prompts')
+        .update({ is_default: false, default_ai_provider: null })
+        .eq('is_default', true)
+
+      // Set the selected prompt as default
+      const { data, error } = await supabase
+        .from('prompts')
+        .update({ 
+          is_default: true,
+          default_ai_provider: aiProvider,
+          activated_at: new Date().toISOString()
+        })
+        .eq('id', promptId)
+        .select()
+        .single()
+
+      if (error) throw error
+      return data as Prompt
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prompts'] })
+      toast.success('Default prompt updated')
+    },
+    onError: (error) => {
+      console.error('Failed to set default prompt:', error)
+      toast.error('Failed to set default prompt')
     }
   })
 }

@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Plus, MessageSquare, History, Settings } from 'lucide-react'
+import { Plus, MessageSquare, History, Settings, Crown } from 'lucide-react'
 import { PromptEditor } from '@/components/prompts/PromptEditor'
 import { PromptVersionHistory } from '@/components/prompts/PromptVersionHistory'
 import { PromptSettings } from '@/components/prompts/PromptSettings'
@@ -46,7 +46,7 @@ export default function PromptManagement() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Prompts</CardTitle>
@@ -54,7 +54,7 @@ export default function PromptManagement() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{activePrompts?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Currently in use</p>
+            <p className="text-xs text-muted-foreground">Currently active</p>
           </CardContent>
         </Card>
 
@@ -66,6 +66,19 @@ export default function PromptManagement() {
           <CardContent>
             <div className="text-2xl font-bold">{allPrompts?.length || 0}</div>
             <p className="text-xs text-muted-foreground">All versions</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Default Prompt</CardTitle>
+            <Crown className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {allPrompts?.find(p => p.is_default) ? '1' : '0'}
+            </div>
+            <p className="text-xs text-muted-foreground">Global default set</p>
           </CardContent>
         </Card>
 
@@ -86,7 +99,7 @@ export default function PromptManagement() {
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="active">Active Prompts</TabsTrigger>
           <TabsTrigger value="versions">Version History</TabsTrigger>
-          <TabsTrigger value="settings">System Settings</TabsTrigger>
+          <TabsTrigger value="settings">Default Settings</TabsTrigger>
         </TabsList>
 
         <TabsContent value="active" className="space-y-4">
@@ -133,12 +146,23 @@ function PromptActiveList({ prompts, onEdit }: {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <CardTitle className="text-lg">
-                  {prompt.is_default ? 'Default Prompt' : 'Custom Prompt'}
+                  {prompt.is_default ? 'Default Global Prompt' : 'Custom Prompt'}
                 </CardTitle>
                 <Badge variant={prompt.ai_provider === 'openai' ? 'default' : 'secondary'}>
                   {prompt.ai_provider.toUpperCase()}
                 </Badge>
                 <Badge variant="outline">v{prompt.version_number}</Badge>
+                {prompt.is_default && (
+                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
+                    <Crown className="h-3 w-3 mr-1" />
+                    Default
+                  </Badge>
+                )}
+                {prompt.default_ai_provider && (
+                  <Badge variant="outline" className="text-xs">
+                    Uses {prompt.default_ai_provider.toUpperCase()}
+                  </Badge>
+                )}
               </div>
               <Button 
                 variant="outline" 
@@ -150,6 +174,9 @@ function PromptActiveList({ prompts, onEdit }: {
             </div>
             <CardDescription>
               Last updated: {new Date(prompt.updated_at).toLocaleDateString()}
+              {prompt.activated_at && (
+                <> • Activated: {new Date(prompt.activated_at).toLocaleDateString()}</>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>

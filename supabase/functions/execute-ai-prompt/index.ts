@@ -44,27 +44,40 @@ serve(async (req) => {
 
     const { promptId, testData } = await req.json();
 
-    if (!promptId) {
-      return new Response(JSON.stringify({ error: 'Prompt ID is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    // Get the prompt - either specific ID or default prompt
+    let prompt;
+    if (promptId) {
+      const { data, error: promptError } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('id', promptId)
+        .eq('is_active', true)
+        .single();
 
-    // Get the active prompt
-    const { data: prompt, error: promptError } = await supabase
-      .from('prompts')
-      .select('*')
-      .eq('id', promptId)
-      .eq('is_active', true)
-      .single();
+      if (promptError || !data) {
+        console.error('Prompt fetch error:', promptError);
+        return new Response(JSON.stringify({ error: 'Prompt not found or not active' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      prompt = data;
+    } else {
+      // Get the default prompt
+      const { data, error: defaultError } = await supabase
+        .from('prompts')
+        .select('*')
+        .eq('is_default', true)
+        .single();
 
-    if (promptError || !prompt) {
-      console.error('Prompt fetch error:', promptError);
-      return new Response(JSON.stringify({ error: 'Prompt not found or not active' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      if (defaultError || !data) {
+        console.error('Default prompt fetch error:', defaultError);
+        return new Response(JSON.stringify({ error: 'No default prompt configured' }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+      prompt = data;
     }
 
     // Substitute variables in the prompt
@@ -81,7 +94,11 @@ serve(async (req) => {
     let aiResponse;
     const startTime = Date.now();
 
-    if (prompt.ai_provider === 'openai') {
+    // Determine which AI provider to use
+    // For default prompts, use default_ai_provider, otherwise use ai_provider
+    const aiProviderToUse = prompt.is_default ? (prompt.default_ai_provider || prompt.ai_provider) : prompt.ai_provider;
+
+    if (aiProviderToUse === 'openai') {
       if (!openaiApiKey) {
         console.error('OpenAI API key not configured');
         return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
@@ -119,7 +136,7 @@ serve(async (req) => {
       const data = await response.json();
       aiResponse = data.choices[0].message.content;
 
-    } else if (prompt.ai_provider === 'claude') {
+    } else if (aiProviderToUse === 'claude') {
       if (!anthropicApiKey) {
         console.error('Anthropic API key not configured');
         return new Response(JSON.stringify({ error: 'Anthropic API key not configured' }), {
@@ -128,7 +145,7 @@ serve(async (req) => {
         });
       }
 
-      console.log('Making Claude API call with claude-sonnet-4-20250514');
+      console.log('Making Claude API call with claude-3-5-sonnet-20241022');
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -179,8 +196,9 @@ serve(async (req) => {
       success: true,
       response: parsedResponse,
       processing_time_ms: processingTime,
-      ai_provider: prompt.ai_provider,
-      prompt_version: prompt.version_number
+      ai_provider: aiProviderToUse,
+      prompt_version: prompt.version_number,
+      is_default_prompt: prompt.is_default
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
