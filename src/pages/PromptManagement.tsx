@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +7,8 @@ import { Plus, MessageSquare, History, Settings, Zap, Play } from 'lucide-react'
 import { SimplePromptEditor } from '@/components/prompts/SimplePromptEditor'
 import { PromptCard } from '@/components/prompts/PromptCard'
 import { AiProviderSelector } from '@/components/prompts/AiProviderSelector'
+import { SearchFilterControls } from '@/components/prompts/SearchFilterControls'
+import { EmptySearchState } from '@/components/prompts/EmptySearchState'
 import { useDefaultAiProvider } from '@/hooks/useSystemSettings'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 
@@ -22,6 +23,12 @@ export default function PromptManagement() {
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>({ openai: false, claude: false })
   const [isValidatingKeys, setIsValidatingKeys] = useState(false)
 
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterStatus, setFilterStatus] = useState('all')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState('desc')
+
   const { data: activePrompt, isLoading } = useActivePrompt()
   const { data: allPrompts } = usePrompts()
   const { data: defaultAiProvider } = useDefaultAiProvider()
@@ -31,6 +38,68 @@ export default function PromptManagement() {
   React.useEffect(() => {
     validateApiKeys()
   }, [])
+
+  // Filter and sort logic
+  const filteredPrompts = useMemo(() => {
+    if (!allPrompts) return []
+
+    let filtered = [...allPrompts]
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(prompt => 
+        (prompt.prompt_name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        prompt.prompt_text.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (prompt.change_description?.toLowerCase().includes(searchTerm.toLowerCase()))
+      )
+    }
+
+    // Apply status filter
+    if (filterStatus === 'active') {
+      filtered = filtered.filter(prompt => prompt.is_active)
+    } else if (filterStatus === 'inactive') {
+      filtered = filtered.filter(prompt => !prompt.is_active)
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue, bValue
+
+      switch (sortBy) {
+        case 'version_number':
+          aValue = a.version_number
+          bValue = b.version_number
+          break
+        case 'prompt_name':
+          aValue = (a.prompt_name || 'Untitled').toLowerCase()
+          bValue = (b.prompt_name || 'Untitled').toLowerCase()
+          break
+        case 'created_at':
+        default:
+          aValue = new Date(a.created_at).getTime()
+          bValue = new Date(b.created_at).getTime()
+          break
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1
+      } else {
+        return aValue < bValue ? 1 : -1
+      }
+    })
+
+    return filtered
+  }, [allPrompts, searchTerm, filterStatus, sortBy, sortOrder])
+
+  const inactivePrompts = filteredPrompts.filter(p => !p.is_active)
+  const hasActiveFilters = searchTerm !== '' || filterStatus !== 'all' || sortBy !== 'created_at' || sortOrder !== 'desc'
+
+  const handleClearFilters = () => {
+    setSearchTerm('')
+    setFilterStatus('all')
+    setSortBy('created_at')
+    setSortOrder('desc')
+  }
 
   const validateApiKeys = async () => {
     setIsValidatingKeys(true)
@@ -86,8 +155,6 @@ export default function PromptManagement() {
     )
   }
 
-  const inactivePrompts = allPrompts?.filter(p => !p.is_active) || []
-
   return (
     <AdminLayout>
       <div className="p-8 bg-gradient-to-br from-slate-50 to-gray-100 min-h-full">
@@ -113,6 +180,21 @@ export default function PromptManagement() {
               </Button>
             </div>
           </div>
+
+          {/* Search and Filter Controls */}
+          <SearchFilterControls
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            filterStatus={filterStatus}
+            onFilterStatusChange={setFilterStatus}
+            sortBy={sortBy}
+            onSortByChange={setSortBy}
+            sortOrder={sortOrder}
+            onSortOrderChange={setSortOrder}
+            totalResults={filteredPrompts.length}
+            onClearFilters={handleClearFilters}
+            hasActiveFilters={hasActiveFilters}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white">
@@ -171,6 +253,7 @@ export default function PromptManagement() {
             </Card>
           </div>
 
+          {/* ... keep existing code (active prompt section) the same ... */}
           {activePrompt ? (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
@@ -205,7 +288,8 @@ export default function PromptManagement() {
             </Card>
           )}
 
-          {inactivePrompts.length > 0 && (
+          {/* Updated prompt versions section */}
+          {inactivePrompts.length > 0 ? (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-slate-900">All Prompt Versions</h2>
               <div className="space-y-4">
@@ -232,7 +316,16 @@ export default function PromptManagement() {
                 ))}
               </div>
             </div>
-          )}
+          ) : filteredPrompts.length === 0 && hasActiveFilters ? (
+            <div className="space-y-6">
+              <h2 className="text-2xl font-bold text-slate-900">Search Results</h2>
+              <EmptySearchState
+                searchTerm={searchTerm}
+                onClearFilters={handleClearFilters}
+                hasActiveFilters={hasActiveFilters}
+              />
+            </div>
+          ) : null}
 
           {(isCreating || selectedPrompt) && (
             <SimplePromptEditor 
