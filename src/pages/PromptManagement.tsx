@@ -4,6 +4,7 @@ import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt,
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Plus, MessageSquare, History, Settings, Zap, Play } from 'lucide-react'
 import { SimplePromptEditor } from '@/components/prompts/SimplePromptEditor'
 import { PromptCard } from '@/components/prompts/PromptCard'
@@ -11,6 +12,7 @@ import { PromptTester } from '@/components/prompts/PromptTester'
 import { AiProviderSelector } from '@/components/prompts/AiProviderSelector'
 import { SearchFilterControls } from '@/components/prompts/SearchFilterControls'
 import { EmptySearchState } from '@/components/prompts/EmptySearchState'
+import { BulkOperationsToolbar } from '@/components/prompts/BulkOperationsToolbar'
 import { useDefaultAiProvider } from '@/hooks/useSystemSettings'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { toast } from 'sonner'
@@ -32,6 +34,10 @@ export default function PromptManagement() {
   const [filterStatus, setFilterStatus] = useState('all')
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState('desc')
+
+  // Bulk operations state
+  const [selectedPrompts, setSelectedPrompts] = useState<Set<string>>(new Set())
+  const [isBulkOperationLoading, setIsBulkOperationLoading] = useState(false)
 
   const { data: activePrompt, isLoading } = useActivePrompt()
   const { data: allPrompts } = usePrompts()
@@ -166,6 +172,104 @@ export default function PromptManagement() {
       console.error('Failed to duplicate prompt:', error)
       toast.error('Failed to duplicate prompt')
     }
+  }
+
+  // Bulk operations handlers
+  const handleSelectPrompt = (promptId: string, checked: boolean) => {
+    const newSelection = new Set(selectedPrompts)
+    if (checked) {
+      newSelection.add(promptId)
+    } else {
+      newSelection.delete(promptId)
+    }
+    setSelectedPrompts(newSelection)
+  }
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const allInactiveIds = new Set(inactivePrompts.map(p => p.id))
+      setSelectedPrompts(allInactiveIds)
+    } else {
+      setSelectedPrompts(new Set())
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedPrompts.size === 0) return
+    
+    const confirmMessage = `Are you sure you want to delete ${selectedPrompts.size} prompt${selectedPrompts.size > 1 ? 's' : ''}? This action cannot be undone.`
+    if (!window.confirm(confirmMessage)) return
+
+    setIsBulkOperationLoading(true)
+    try {
+      const deletePromises = Array.from(selectedPrompts).map(id => 
+        deletePrompt.mutateAsync(id)
+      )
+      await Promise.all(deletePromises)
+      setSelectedPrompts(new Set())
+      toast.success(`${selectedPrompts.size} prompt${selectedPrompts.size > 1 ? 's' : ''} deleted successfully`)
+    } catch (error) {
+      console.error('Failed to delete prompts:', error)
+      toast.error('Failed to delete some prompts')
+    } finally {
+      setIsBulkOperationLoading(false)
+    }
+  }
+
+  const handleBulkExport = () => {
+    if (selectedPrompts.size === 0) return
+
+    const selectedPromptData = inactivePrompts
+      .filter(p => selectedPrompts.has(p.id))
+      .map(prompt => ({
+        prompt_name: prompt.prompt_name,
+        prompt_text: prompt.prompt_text,
+        version_number: prompt.version_number,
+        change_description: prompt.change_description,
+        created_at: prompt.created_at
+      }))
+
+    const blob = new Blob([JSON.stringify(selectedPromptData, null, 2)], { 
+      type: 'application/json' 
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `prompts-export-${new Date().toISOString().split('T')[0]}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+    
+    toast.success(`${selectedPrompts.size} prompt${selectedPrompts.size > 1 ? 's' : ''} exported successfully`)
+  }
+
+  const handleBulkDuplicate = async () => {
+    if (selectedPrompts.size === 0) return
+
+    setIsBulkOperationLoading(true)
+    try {
+      const duplicatePromises = inactivePrompts
+        .filter(p => selectedPrompts.has(p.id))
+        .map(prompt => createPrompt.mutateAsync({
+          prompt_text: prompt.prompt_text,
+          prompt_name: `${prompt.prompt_name || 'Untitled'} (Copy)`,
+          change_description: `Duplicated from v${prompt.version_number}`
+        }))
+      
+      await Promise.all(duplicatePromises)
+      setSelectedPrompts(new Set())
+      toast.success(`${selectedPrompts.size} prompt${selectedPrompts.size > 1 ? 's' : ''} duplicated successfully`)
+    } catch (error) {
+      console.error('Failed to duplicate prompts:', error)
+      toast.error('Failed to duplicate some prompts')
+    } finally {
+      setIsBulkOperationLoading(false)
+    }
+  }
+
+  const handleClearSelection = () => {
+    setSelectedPrompts(new Set())
   }
 
   if (isLoading) {
@@ -316,17 +420,48 @@ export default function PromptManagement() {
           {/* Prompt versions section */}
           {inactivePrompts.length > 0 ? (
             <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-slate-900">All Prompt Versions</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-slate-900">All Prompt Versions</h2>
+                {inactivePrompts.length > 1 && (
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      checked={selectedPrompts.size === inactivePrompts.length && inactivePrompts.length > 0}
+                      onCheckedChange={handleSelectAll}
+                      className="mr-2"
+                    />
+                    <span className="text-sm text-slate-600">Select all</span>
+                  </div>
+                )}
+              </div>
+              
+              <BulkOperationsToolbar
+                selectedCount={selectedPrompts.size}
+                onBulkDelete={handleBulkDelete}
+                onBulkExport={handleBulkExport}
+                onBulkDuplicate={handleBulkDuplicate}
+                onClearSelection={handleClearSelection}
+                isLoading={isBulkOperationLoading}
+              />
+              
               <div className="space-y-4">
                 {inactivePrompts.map((prompt) => (
                   <div key={prompt.id} className="relative bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200">
-                    <PromptCard 
-                      prompt={prompt}
-                      onEdit={handleEditPrompt}
-                      onDelete={handleDeletePrompt}
-                      onTest={handleTestPrompt}
-                      onDuplicate={handleDuplicatePrompt}
-                    />
+                    <div className="absolute top-6 left-6 z-10">
+                      <Checkbox
+                        checked={selectedPrompts.has(prompt.id)}
+                        onCheckedChange={(checked) => handleSelectPrompt(prompt.id, checked as boolean)}
+                        className="bg-white border-2"
+                      />
+                    </div>
+                    <div className="ml-12">
+                      <PromptCard 
+                        prompt={prompt}
+                        onEdit={handleEditPrompt}
+                        onDelete={handleDeletePrompt}
+                        onTest={handleTestPrompt}
+                        onDuplicate={handleDuplicatePrompt}
+                      />
+                    </div>
                     <div className="absolute top-6 right-6">
                       <Button
                         variant="outline"
