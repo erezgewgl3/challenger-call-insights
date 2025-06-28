@@ -8,7 +8,7 @@ interface Prompt {
   version_number: number
   user_id?: string
   prompt_text: string
-  prompt_name: string
+  prompt_name?: string | null
   is_default: boolean
   is_active: boolean
   change_description?: string
