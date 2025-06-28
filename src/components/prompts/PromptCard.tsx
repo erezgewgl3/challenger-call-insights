@@ -2,24 +2,45 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Edit, Calendar, MessageSquare, Trash2 } from 'lucide-react'
-
-// Remove the duplicate Prompt interface - we'll use the one from usePrompts.ts through props
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Edit, Calendar, MessageSquare, Trash2, TestTube, MoreHorizontal, Copy, Download } from 'lucide-react'
 
 interface PromptCardProps {
   prompt: any
   onEdit?: (prompt: any) => void
   onDelete?: (id: string) => void
+  onTest?: (prompt: any) => void
+  onDuplicate?: (prompt: any) => void
   showActions?: boolean
 }
 
-export function PromptCard({ prompt, onEdit, onDelete, showActions = true }: PromptCardProps) {
+export function PromptCard({ prompt, onEdit, onDelete, onTest, onDuplicate, showActions = true }: PromptCardProps) {
   const truncatedText = prompt.prompt_text?.length > 200 
     ? prompt.prompt_text.substring(0, 200) + '...'
     : prompt.prompt_text || ''
 
   const wordCount = prompt.prompt_text?.split(/\s+/).length || 0
   const charCount = prompt.prompt_text?.length || 0
+
+  const handleExport = () => {
+    const exportData = {
+      prompt_name: prompt.prompt_name,
+      prompt_text: prompt.prompt_text,
+      version_number: prompt.version_number,
+      change_description: prompt.change_description,
+      created_at: prompt.created_at
+    }
+    
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${prompt.prompt_name || 'prompt'}-v${prompt.version_number}.json`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <Card className={`transition-shadow ${
@@ -58,6 +79,17 @@ export function PromptCard({ prompt, onEdit, onDelete, showActions = true }: Pro
           </div>
           {showActions && (
             <div className="flex items-center space-x-2">
+              {onTest && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onTest(prompt)}
+                  className="flex items-center space-x-1 text-blue-600 hover:text-blue-700"
+                >
+                  <TestTube className="h-4 w-4" />
+                  <span>Test</span>
+                </Button>
+              )}
               {onEdit && (
                 <Button 
                   variant="outline" 
@@ -69,17 +101,37 @@ export function PromptCard({ prompt, onEdit, onDelete, showActions = true }: Pro
                   <span>Edit</span>
                 </Button>
               )}
-              {onDelete && !prompt.is_active && (
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => onDelete(prompt.id)}
-                  className="flex items-center space-x-1 text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  <span>Delete</span>
-                </Button>
-              )}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  {onDuplicate && (
+                    <DropdownMenuItem onClick={() => onDuplicate(prompt)}>
+                      <Copy className="h-4 w-4 mr-2" />
+                      Duplicate Prompt
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem onClick={handleExport}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export JSON
+                  </DropdownMenuItem>
+                  {onDelete && !prompt.is_active && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => onDelete(prompt.id)}
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Prompt
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>

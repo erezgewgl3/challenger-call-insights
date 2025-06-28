@@ -1,16 +1,19 @@
+
 import React, { useState, useMemo } from 'react'
-import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt } from '@/hooks/usePrompts'
+import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt, useCreatePrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Plus, MessageSquare, History, Settings, Zap, Play } from 'lucide-react'
 import { SimplePromptEditor } from '@/components/prompts/SimplePromptEditor'
 import { PromptCard } from '@/components/prompts/PromptCard'
+import { PromptTester } from '@/components/prompts/PromptTester'
 import { AiProviderSelector } from '@/components/prompts/AiProviderSelector'
 import { SearchFilterControls } from '@/components/prompts/SearchFilterControls'
 import { EmptySearchState } from '@/components/prompts/EmptySearchState'
 import { useDefaultAiProvider } from '@/hooks/useSystemSettings'
 import { AdminLayout } from '@/components/layout/AdminLayout'
+import { toast } from 'sonner'
 
 interface ApiKeyStatus {
   openai: boolean
@@ -20,6 +23,7 @@ interface ApiKeyStatus {
 export default function PromptManagement() {
   const [selectedPrompt, setSelectedPrompt] = useState<any>(null)
   const [isCreating, setIsCreating] = useState(false)
+  const [testingPrompt, setTestingPrompt] = useState<any>(null)
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>({ openai: false, claude: false })
   const [isValidatingKeys, setIsValidatingKeys] = useState(false)
 
@@ -34,6 +38,7 @@ export default function PromptManagement() {
   const { data: defaultAiProvider } = useDefaultAiProvider()
   const activateVersion = useActivatePromptVersion()
   const deletePrompt = useDeletePrompt()
+  const createPrompt = useCreatePrompt()
 
   React.useEffect(() => {
     validateApiKeys()
@@ -145,6 +150,24 @@ export default function PromptManagement() {
     }
   }
 
+  const handleTestPrompt = (prompt: any) => {
+    setTestingPrompt(prompt)
+  }
+
+  const handleDuplicatePrompt = async (prompt: any) => {
+    try {
+      await createPrompt.mutateAsync({
+        prompt_text: prompt.prompt_text,
+        prompt_name: `${prompt.prompt_name || 'Untitled'} (Copy)`,
+        change_description: `Duplicated from v${prompt.version_number}`
+      })
+      toast.success('Prompt duplicated successfully')
+    } catch (error) {
+      console.error('Failed to duplicate prompt:', error)
+      toast.error('Failed to duplicate prompt')
+    }
+  }
+
   if (isLoading) {
     return (
       <AdminLayout>
@@ -157,7 +180,7 @@ export default function PromptManagement() {
 
   return (
     <AdminLayout>
-      <div className="p-8 bg-gradient-to-br from-slate-50 to-gray-100 min-h-full">
+      <div className="p-8 bg-white min-h-full">
         <div className="space-y-8">
           <div className="flex items-center justify-between">
             <div>
@@ -197,10 +220,10 @@ export default function PromptManagement() {
           />
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white">
+            <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-slate-700">Active Prompt</CardTitle>
-                <MessageSquare className="h-4 w-4 text-green-600" />
+                <MessageSquare className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
@@ -210,8 +233,8 @@ export default function PromptManagement() {
                         {activePrompt.prompt_name || 'Untitled'}
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Badge variant="default" className="text-xs bg-green-600">v{activePrompt.version_number}</Badge>
-                        <Badge variant="secondary" className="bg-green-100 text-green-800 text-xs">
+                        <Badge variant="default" className="text-xs bg-blue-600">v{activePrompt.version_number}</Badge>
+                        <Badge variant="secondary" className="bg-blue-100 text-blue-800 text-xs">
                           System-Wide
                         </Badge>
                       </div>
@@ -223,10 +246,10 @@ export default function PromptManagement() {
               </CardContent>
             </Card>
 
-            <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
+            <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-slate-700">Total Prompts</CardTitle>
-                <History className="h-4 w-4 text-blue-500" />
+                <History className="h-4 w-4 text-green-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-slate-900">{allPrompts?.length || 0}</div>
@@ -253,13 +276,13 @@ export default function PromptManagement() {
             </Card>
           </div>
 
-          {/* ... keep existing code (active prompt section) the same ... */}
+          {/* Active prompt section */}
           {activePrompt ? (
             <div className="space-y-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <h2 className="text-2xl font-bold text-slate-900">Current Active Prompt</h2>
-                  <Badge variant="secondary" className="bg-green-100 text-green-800 px-3 py-1">
+                  <Badge variant="secondary" className="bg-blue-100 text-blue-800 px-3 py-1">
                     Powering All AI Analysis
                   </Badge>
                 </div>
@@ -269,6 +292,8 @@ export default function PromptManagement() {
                   prompt={activePrompt}
                   onEdit={handleEditPrompt}
                   onDelete={handleDeletePrompt}
+                  onTest={handleTestPrompt}
+                  onDuplicate={handleDuplicatePrompt}
                 />
               </div>
             </div>
@@ -288,7 +313,7 @@ export default function PromptManagement() {
             </Card>
           )}
 
-          {/* Updated prompt versions section */}
+          {/* Prompt versions section */}
           {inactivePrompts.length > 0 ? (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-slate-900">All Prompt Versions</h2>
@@ -299,6 +324,8 @@ export default function PromptManagement() {
                       prompt={prompt}
                       onEdit={handleEditPrompt}
                       onDelete={handleDeletePrompt}
+                      onTest={handleTestPrompt}
+                      onDuplicate={handleDuplicatePrompt}
                     />
                     <div className="absolute top-6 right-6">
                       <Button
@@ -327,6 +354,7 @@ export default function PromptManagement() {
             </div>
           ) : null}
 
+          {/* Modals */}
           {(isCreating || selectedPrompt) && (
             <SimplePromptEditor 
               prompt={selectedPrompt}
@@ -335,6 +363,14 @@ export default function PromptManagement() {
                 setIsCreating(false)
                 setSelectedPrompt(null)
               }}
+            />
+          )}
+
+          {testingPrompt && (
+            <PromptTester
+              prompt={testingPrompt}
+              isOpen={!!testingPrompt}
+              onClose={() => setTestingPrompt(null)}
             />
           )}
         </div>
