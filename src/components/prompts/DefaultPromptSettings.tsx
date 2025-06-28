@@ -1,6 +1,7 @@
 
 import { useState } from 'react'
-import { useDefaultPrompt, useSetDefaultPrompt, useActivePrompts } from '@/hooks/usePrompts'
+import { useDefaultPrompt, useActivePrompts } from '@/hooks/usePrompts'
+import { useSetDefaultPrompt } from '@/hooks/useSystemSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -14,16 +15,12 @@ export function DefaultPromptSettings() {
   const setDefaultPrompt = useSetDefaultPrompt()
   
   const [selectedPromptId, setSelectedPromptId] = useState<string>('')
-  const [selectedAiProvider, setSelectedAiProvider] = useState<'openai' | 'claude'>('openai')
 
   const handleSetDefault = async () => {
     if (!selectedPromptId) return
     
     try {
-      await setDefaultPrompt.mutateAsync({
-        promptId: selectedPromptId,
-        aiProvider: selectedAiProvider
-      })
+      await setDefaultPrompt.mutateAsync(selectedPromptId === 'none' ? null : selectedPromptId)
       setSelectedPromptId('')
     } catch (error) {
       console.error('Failed to set default prompt:', error)
@@ -58,9 +55,6 @@ export function DefaultPromptSettings() {
             <div className="space-y-4">
               <div className="flex items-center space-x-2">
                 <Badge variant="outline">v{defaultPrompt.version_number}</Badge>
-                <Badge variant={defaultPrompt.default_ai_provider === 'openai' ? 'default' : 'secondary'}>
-                  {defaultPrompt.default_ai_provider?.toUpperCase() || 'NO PROVIDER'}
-                </Badge>
                 <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                   Default
                 </Badge>
@@ -91,7 +85,7 @@ export function DefaultPromptSettings() {
             <span>Set New Default Prompt</span>
           </CardTitle>
           <CardDescription>
-            Choose which prompt should be the global default and which AI provider to use
+            Choose which prompt should be the global default for all analyses
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -102,6 +96,9 @@ export function DefaultPromptSettings() {
                 <SelectValue placeholder="Choose a prompt to set as default" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="none">
+                  <span className="text-slate-500">No default prompt</span>
+                </SelectItem>
                 {activePrompts?.map((prompt) => (
                   <SelectItem key={prompt.id} value={prompt.id}>
                     <div className="flex items-center space-x-2">
@@ -114,19 +111,6 @@ export function DefaultPromptSettings() {
                     </div>
                   </SelectItem>
                 ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="ai-provider-select">AI Provider</Label>
-            <Select value={selectedAiProvider} onValueChange={(value: 'openai' | 'claude') => setSelectedAiProvider(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="openai">ChatGPT (OpenAI GPT-4.1)</SelectItem>
-                <SelectItem value="claude">Claude (Anthropic 3.5 Sonnet)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -161,9 +145,6 @@ export function DefaultPromptSettings() {
                 <div className="flex items-center space-x-3">
                   <div className="flex items-center space-x-2">
                     <Badge variant="outline">v{prompt.version_number}</Badge>
-                    <Badge variant={prompt.ai_provider === 'openai' ? 'default' : 'secondary'}>
-                      {prompt.ai_provider.toUpperCase()}
-                    </Badge>
                     {prompt.is_default && (
                       <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                         <Crown className="h-3 w-3 mr-1" />
