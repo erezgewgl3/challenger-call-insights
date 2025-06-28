@@ -12,7 +12,6 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 import Index from "./pages/Index";
 import WelcomeDashboard from "./pages/WelcomeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
-import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -49,7 +48,7 @@ const App = () => (
               } 
             />
             
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            {/* Catch-all for 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

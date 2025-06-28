@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
@@ -25,7 +26,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Function to fetch user role (unchanged)
+  // Function to fetch user role
   const fetchUserRole = async (userId: string): Promise<UserRole> => {
     try {
       const { data, error } = await supabase
@@ -58,25 +59,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // ✅ FIX: Make auth state change handler SYNCHRONOUS
+    // Set up auth state change handler
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email)
-        
         if (!mounted) return
 
-        // ✅ Set session immediately (synchronous)
+        // Set session immediately (synchronous)
         setSession(session)
 
         if (session?.user) {
-          // ✅ Set user with default role immediately (synchronous)
+          // Set user with default role immediately (synchronous)
           const userWithDefaultRole = {
             ...session.user,
             role: 'sales_user' as UserRole
           }
           setUser(userWithDefaultRole)
 
-          // ✅ Then fetch real role asynchronously WITHOUT blocking
+          // Then fetch real role asynchronously WITHOUT blocking
           setTimeout(async () => {
             if (!mounted) return
             
@@ -94,26 +93,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setUser(null)
         }
 
-        // ✅ Set loading false immediately (synchronous)
+        // Set loading false immediately (synchronous)
         setLoading(false)
       }
     )
 
-    // ✅ Handle initial session check (also synchronous)
+    // Handle initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return
       
       setSession(session)
       
       if (session?.user) {
-        // ✅ Set user with default role immediately
+        // Set user with default role immediately
         const userWithDefaultRole = {
           ...session.user,
           role: 'sales_user' as UserRole
         }
         setUser(userWithDefaultRole)
 
-        // ✅ Then enhance with real role asynchronously
+        // Then enhance with real role asynchronously
         setTimeout(async () => {
           if (!mounted) return
           
