@@ -50,9 +50,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let mounted = true
 
-    // Set up auth state listener - MUST be synchronous to prevent deadlock
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email)
         
         if (!mounted) return
@@ -60,31 +60,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session)
         
         if (session?.user) {
-          // Set user immediately with default role, then fetch real role asynchronously
-          const userWithDefaultRole = {
-            ...session.user,
-            role: 'sales_user' as UserRole
-          }
-          setUser(userWithDefaultRole)
-          
-          // Fetch actual role asynchronously using setTimeout to avoid deadlock
-          setTimeout(async () => {
-            if (!mounted) return
-            
-            try {
-              const role = await fetchUserRole(session.user.id)
-              if (mounted) {
-                const enhancedUser = {
-                  ...session.user,
-                  role: role || 'sales_user'
-                }
-                setUser(enhancedUser)
-                console.log('User role updated:', { email: session.user.email, role })
+          try {
+            const role = await fetchUserRole(session.user.id)
+            if (mounted) {
+              const enhancedUser = {
+                ...session.user,
+                role: role || 'sales_user'
               }
-            } catch (error) {
-              console.error('Failed to enhance user with role:', error)
+              setUser(enhancedUser)
             }
-          }, 0)
+          } catch (error) {
+            console.error('Failed to enhance user with role:', error)
+            if (mounted) {
+              setUser({ ...session.user, role: 'sales_user' })
+            }
+          }
         } else {
           if (mounted) {
             setUser(null)
@@ -98,37 +88,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     )
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return
       
       setSession(session)
       
       if (session?.user) {
-        // Set user immediately with default role
-        const userWithDefaultRole = {
-          ...session.user,
-          role: 'sales_user' as UserRole
-        }
-        setUser(userWithDefaultRole)
-        
-        // Fetch actual role asynchronously
-        setTimeout(async () => {
-          if (!mounted) return
-          
-          try {
-            const role = await fetchUserRole(session.user.id)
-            if (mounted) {
-              const enhancedUser = {
-                ...session.user,
-                role: role || 'sales_user'
-              }
-              setUser(enhancedUser)
-              console.log('Initial user role set:', { email: session.user.email, role })
+        try {
+          const role = await fetchUserRole(session.user.id)
+          if (mounted) {
+            const enhancedUser = {
+              ...session.user,
+              role: role || 'sales_user'
             }
-          } catch (error) {
-            console.error('Failed to enhance user with role:', error)
+            setUser(enhancedUser)
           }
-        }, 0)
+        } catch (error) {
+          console.error('Failed to enhance user with role:', error)
+          if (mounted) {
+            setUser({ ...session.user, role: 'sales_user' })
+          }
+        }
       } else {
         if (mounted) {
           setUser(null)
@@ -169,13 +149,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin: user?.role === 'admin',
     isSalesUser: user?.role === 'sales_user'
   }
-
-  console.log('Auth context value:', { 
-    userEmail: user?.email, 
-    role: user?.role, 
-    isAdmin: user?.role === 'admin',
-    loading 
-  })
 
   return (
     <AuthContext.Provider value={value}>

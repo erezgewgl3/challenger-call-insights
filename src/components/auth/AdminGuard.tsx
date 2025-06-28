@@ -11,13 +11,6 @@ interface AdminGuardProps {
 export function AdminGuard({ children }: AdminGuardProps) {
   const { user, loading, isAdmin } = useAuth()
 
-  console.log('AdminGuard:', { 
-    userEmail: user?.email,
-    role: user?.role,
-    isAdmin, 
-    loading 
-  })
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center">
@@ -27,12 +20,10 @@ export function AdminGuard({ children }: AdminGuardProps) {
   }
 
   if (!user) {
-    console.log('AdminGuard: No user, redirecting to login')
     return <Navigate to="/login" replace />
   }
 
   if (!isAdmin) {
-    console.log('AdminGuard: User is not admin, showing access restricted')
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
@@ -54,6 +45,5 @@ export function AdminGuard({ children }: AdminGuardProps) {
     )
   }
 
-  console.log('AdminGuard: Admin access granted')
   return <>{children}</>
 }
