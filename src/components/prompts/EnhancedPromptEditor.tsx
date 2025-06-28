@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { useCreatePrompt, useUpdatePrompt, usePromptVersions } from '@/hooks/usePrompts'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -102,7 +103,7 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex h-[calc(90vh-120px)]">
+        <div className="flex h-[calc(90vh-200px)]">
           <div className={`flex-1 space-y-4 pr-4 ${showVersionHistory ? 'border-r' : ''}`}>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
               <div className="lg:col-span-3 space-y-4">
