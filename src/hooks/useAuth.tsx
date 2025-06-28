@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
@@ -26,7 +25,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // Function to fetch user role
+  // Function to fetch user role (unchanged)
   const fetchUserRole = async (userId: string): Promise<UserRole> => {
     try {
       const { data, error } = await supabase
@@ -37,87 +36,101 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) {
         console.error('Error fetching user role:', error)
-        return 'sales_user' // Default fallback
+        return 'sales_user'
       }
 
       return data?.role || 'sales_user'
     } catch (error) {
       console.error('Failed to fetch user role:', error)
-      return 'sales_user' // Default fallback
+      return 'sales_user'
+    }
+  }
+
+  // Enhanced user creation with role
+  const enhanceUserWithRole = async (authUser: User): Promise<AuthUser> => {
+    const role = await fetchUserRole(authUser.id)
+    return {
+      ...authUser,
+      role: role || 'sales_user'
     }
   }
 
   useEffect(() => {
     let mounted = true
 
-    // Set up auth state listener
+    // ✅ FIX: Make auth state change handler SYNCHRONOUS
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email)
         
         if (!mounted) return
-        
+
+        // ✅ Set session immediately (synchronous)
         setSession(session)
-        
+
         if (session?.user) {
-          try {
-            const role = await fetchUserRole(session.user.id)
-            if (mounted) {
-              const enhancedUser = {
-                ...session.user,
-                role: role || 'sales_user'
+          // ✅ Set user with default role immediately (synchronous)
+          const userWithDefaultRole = {
+            ...session.user,
+            role: 'sales_user' as UserRole
+          }
+          setUser(userWithDefaultRole)
+
+          // ✅ Then fetch real role asynchronously WITHOUT blocking
+          setTimeout(async () => {
+            if (!mounted) return
+            
+            try {
+              const enhancedUser = await enhanceUserWithRole(session.user)
+              if (mounted) {
+                setUser(enhancedUser)
               }
-              setUser(enhancedUser)
+            } catch (error) {
+              console.error('Failed to enhance user with role:', error)
+              // Keep the default role if fetch fails
             }
-          } catch (error) {
-            console.error('Failed to enhance user with role:', error)
-            if (mounted) {
-              setUser({ ...session.user, role: 'sales_user' })
-            }
-          }
+          }, 0)
         } else {
-          if (mounted) {
-            setUser(null)
-          }
+          setUser(null)
         }
-        
-        if (mounted) {
-          setLoading(false)
-        }
+
+        // ✅ Set loading false immediately (synchronous)
+        setLoading(false)
       }
     )
 
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // ✅ Handle initial session check (also synchronous)
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return
       
       setSession(session)
       
       if (session?.user) {
-        try {
-          const role = await fetchUserRole(session.user.id)
-          if (mounted) {
-            const enhancedUser = {
-              ...session.user,
-              role: role || 'sales_user'
+        // ✅ Set user with default role immediately
+        const userWithDefaultRole = {
+          ...session.user,
+          role: 'sales_user' as UserRole
+        }
+        setUser(userWithDefaultRole)
+
+        // ✅ Then enhance with real role asynchronously
+        setTimeout(async () => {
+          if (!mounted) return
+          
+          try {
+            const enhancedUser = await enhanceUserWithRole(session.user)
+            if (mounted) {
+              setUser(enhancedUser)
             }
-            setUser(enhancedUser)
+          } catch (error) {
+            console.error('Failed to enhance user with role:', error)
           }
-        } catch (error) {
-          console.error('Failed to enhance user with role:', error)
-          if (mounted) {
-            setUser({ ...session.user, role: 'sales_user' })
-          }
-        }
+        }, 0)
       } else {
-        if (mounted) {
-          setUser(null)
-        }
+        setUser(null)
       }
       
-      if (mounted) {
-        setLoading(false)
-      }
+      setLoading(false)
     })
 
     return () => {
