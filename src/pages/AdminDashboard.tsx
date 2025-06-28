@@ -8,7 +8,6 @@ import { Link } from 'react-router-dom'
 export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-200 to-violet-300">
-      {/* Header */}
       <DashboardHeader
         title="Sales Whisperer Admin"
         subtitle="System Administration"
@@ -16,7 +15,6 @@ export default function AdminDashboard() {
         showAdminBadge={true}
       />
 
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-slate-900 mb-2">Admin Dashboard</h2>
@@ -25,7 +23,6 @@ export default function AdminDashboard() {
           </p>
         </div>
 
-        {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -72,7 +69,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Main Action Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -120,7 +116,6 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* System Status */}
         <Card>
           <CardHeader>
             <CardTitle>System Status</CardTitle>

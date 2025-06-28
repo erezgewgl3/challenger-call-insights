@@ -137,7 +137,6 @@ export default function PromptManagement() {
   )
 }
 
-// Helper component for active prompts list
 function PromptActiveList({ prompts, onEdit }: { 
   prompts: any[], 
   onEdit: (id: string) => void 

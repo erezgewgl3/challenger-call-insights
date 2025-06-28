@@ -6,7 +6,6 @@ import { Info } from 'lucide-react'
 export function PromptSettings() {
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-2xl font-bold text-slate-900 mb-2">System Configuration</h2>
         <p className="text-slate-600">
@@ -14,7 +13,6 @@ export function PromptSettings() {
         </p>
       </div>
 
-      {/* Info Card */}
       <Card className="border-blue-200 bg-blue-50">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-blue-900">
@@ -30,7 +28,6 @@ export function PromptSettings() {
         </CardContent>
       </Card>
 
-      {/* System Settings Panel */}
       <SystemSettingsPanel />
     </div>
   )

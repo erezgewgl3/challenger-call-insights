@@ -1,4 +1,5 @@
 
+import { useState } from 'react'
 import { useDefaultAiProvider, useDefaultPromptId, useSetDefaultAiProvider, useSetDefaultPrompt } from '@/hooks/useSystemSettings'
 import { useActivePrompts } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,7 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Settings, Crown, Zap } from 'lucide-react'
-import { useState } from 'react'
 
 export function SystemSettingsPanel() {
   const { data: currentAiProvider } = useDefaultAiProvider()

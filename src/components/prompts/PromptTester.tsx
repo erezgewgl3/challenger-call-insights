@@ -36,7 +36,6 @@ export function PromptTester({ promptId }: PromptTesterProps) {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold">Test Prompt</h3>
@@ -50,7 +49,6 @@ export function PromptTester({ promptId }: PromptTesterProps) {
         </Badge>
       </div>
 
-      {/* Test Inputs */}
       <div className="grid gap-4">
         <div className="space-y-2">
           <Label htmlFor="test-conversation">Sample Conversation *</Label>
@@ -88,7 +86,6 @@ export function PromptTester({ promptId }: PromptTesterProps) {
         </div>
       </div>
 
-      {/* Test Button */}
       <Button 
         onClick={handleTest}
         disabled={!testConversation.trim() || executePrompt.isPending}
@@ -107,7 +104,6 @@ export function PromptTester({ promptId }: PromptTesterProps) {
         )}
       </Button>
 
-      {/* Results */}
       {executePrompt.data && (
         <Card>
           <CardHeader>
@@ -136,7 +132,6 @@ export function PromptTester({ promptId }: PromptTesterProps) {
         </Card>
       )}
 
-      {/* Error State */}
       {executePrompt.error && (
         <Card className="border-red-200 bg-red-50">
           <CardHeader>

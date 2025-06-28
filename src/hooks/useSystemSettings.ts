@@ -12,7 +12,6 @@ interface SystemSetting {
   created_at: string
 }
 
-// Get all system settings
 export function useSystemSettings() {
   return useQuery({
     queryKey: ['system-settings'],
@@ -28,7 +27,6 @@ export function useSystemSettings() {
   })
 }
 
-// Get a specific system setting
 export function useSystemSetting(settingKey: string) {
   return useQuery({
     queryKey: ['system-setting', settingKey],
@@ -45,7 +43,6 @@ export function useSystemSetting(settingKey: string) {
   })
 }
 
-// Get the default AI provider
 export function useDefaultAiProvider() {
   return useQuery({
     queryKey: ['system-setting', 'default_ai_provider'],
@@ -62,7 +59,6 @@ export function useDefaultAiProvider() {
   })
 }
 
-// Get the default prompt ID
 export function useDefaultPromptId() {
   return useQuery({
     queryKey: ['system-setting', 'default_prompt_id'],
@@ -79,7 +75,6 @@ export function useDefaultPromptId() {
   })
 }
 
-// Update system setting
 export function useUpdateSystemSetting() {
   const queryClient = useQueryClient()
 
@@ -110,7 +105,6 @@ export function useUpdateSystemSetting() {
   })
 }
 
-// Set default AI provider
 export function useSetDefaultAiProvider() {
   const updateSetting = useUpdateSystemSetting()
 
@@ -127,20 +121,17 @@ export function useSetDefaultAiProvider() {
   })
 }
 
-// Set default prompt
 export function useSetDefaultPrompt() {
   const updateSetting = useUpdateSystemSetting()
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: async (promptId: string | null) => {
-      // First, remove default flag from all prompts
       await supabase
         .from('prompts')
         .update({ is_default: false })
         .eq('is_default', true)
 
-      // Set the new default prompt if provided
       if (promptId) {
         await supabase
           .from('prompts')
@@ -148,7 +139,6 @@ export function useSetDefaultPrompt() {
           .eq('id', promptId)
       }
 
-      // Update system setting
       return updateSetting.mutateAsync({
         settingKey: 'default_prompt_id',
         settingValue: promptId || 'none'
