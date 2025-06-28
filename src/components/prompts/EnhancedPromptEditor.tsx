@@ -13,6 +13,21 @@ import { History } from 'lucide-react'
 import { VariableInserter } from './VariableInserter'
 import { VersionHistorySidebar } from './VersionHistorySidebar'
 
+interface Prompt {
+  id: string
+  version_number: number
+  user_id?: string
+  prompt_text: string
+  prompt_name?: string | null
+  is_default: boolean
+  is_active: boolean
+  change_description?: string
+  activated_at?: string
+  created_at: string
+  updated_at: string
+  created_by?: string
+}
+
 interface EnhancedPromptEditorProps {
   promptId?: string | null
   isOpen: boolean
