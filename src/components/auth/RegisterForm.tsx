@@ -1,4 +1,3 @@
-
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase, authHelpers } from '@/lib/supabase'
@@ -42,7 +41,7 @@ export function RegisterForm() {
     setLoading(true)
     setError('')
 
-    if (!validateRequired({ inviteToken, email }, ['invite token', 'email'])) {
+    if (!validateRequired({ inviteToken, email }, ['inviteToken', 'email'])) {
       setLoading(false)
       return
     }
