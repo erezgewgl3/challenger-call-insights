@@ -24,6 +24,7 @@ serve(async (req) => {
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
+      console.error('Missing authorization header');
       return new Response(JSON.stringify({ error: 'Missing authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -36,6 +37,7 @@ serve(async (req) => {
     );
 
     if (authError || !user) {
+      console.error('Authentication failed:', authError);
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -43,6 +45,25 @@ serve(async (req) => {
     }
 
     const { promptId, testData } = await req.json();
+    console.log('Execute prompt request:', { promptId, hasTestData: !!testData });
+
+    // Get the default AI provider from system settings
+    const { data: aiProviderSetting, error: providerError } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'default_ai_provider')
+      .single();
+
+    if (providerError || !aiProviderSetting) {
+      console.error('Failed to get default AI provider:', providerError);
+      return new Response(JSON.stringify({ error: 'No AI provider configured' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const defaultAiProvider = aiProviderSetting.setting_value as 'openai' | 'claude';
+    console.log('Using AI provider:', defaultAiProvider);
 
     // Get the prompt - either specific ID or default prompt
     let prompt;
@@ -80,6 +101,8 @@ serve(async (req) => {
       prompt = data;
     }
 
+    console.log('Using prompt:', { id: prompt.id, version: prompt.version_number, isDefault: prompt.is_default });
+
     // Substitute variables in the prompt
     let processedPrompt = prompt.prompt_text;
     
@@ -94,11 +117,7 @@ serve(async (req) => {
     let aiResponse;
     const startTime = Date.now();
 
-    // Determine which AI provider to use
-    // For default prompts, use default_ai_provider, otherwise use ai_provider
-    const aiProviderToUse = prompt.is_default ? (prompt.default_ai_provider || prompt.ai_provider) : prompt.ai_provider;
-
-    if (aiProviderToUse === 'openai') {
+    if (defaultAiProvider === 'openai') {
       if (!openaiApiKey) {
         console.error('OpenAI API key not configured');
         return new Response(JSON.stringify({ error: 'OpenAI API key not configured' }), {
@@ -107,7 +126,7 @@ serve(async (req) => {
         });
       }
 
-      console.log('Making OpenAI API call with gpt-4.1-2025-04-14');
+      console.log('Making OpenAI API call with gpt-4o-mini');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -115,7 +134,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4.1-2025-04-14',
+          model: 'gpt-4o-mini',
           messages: [
             { role: 'user', content: processedPrompt }
           ],
@@ -127,7 +146,7 @@ serve(async (req) => {
       if (!response.ok) {
         const error = await response.text();
         console.error('OpenAI API error:', error);
-        return new Response(JSON.stringify({ error: 'ChatGPT API request failed', details: error }), {
+        return new Response(JSON.stringify({ error: 'OpenAI API request failed', details: error }), {
           status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
@@ -136,7 +155,7 @@ serve(async (req) => {
       const data = await response.json();
       aiResponse = data.choices[0].message.content;
 
-    } else if (aiProviderToUse === 'claude') {
+    } else if (defaultAiProvider === 'claude') {
       if (!anthropicApiKey) {
         console.error('Anthropic API key not configured');
         return new Response(JSON.stringify({ error: 'Anthropic API key not configured' }), {
@@ -175,6 +194,7 @@ serve(async (req) => {
       const data = await response.json();
       aiResponse = data.content[0].text;
     } else {
+      console.error('Unsupported AI provider:', defaultAiProvider);
       return new Response(JSON.stringify({ error: 'Unsupported AI provider' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -182,11 +202,13 @@ serve(async (req) => {
     }
 
     const processingTime = Date.now() - startTime;
+    console.log('AI processing completed in', processingTime, 'ms');
 
     // Try to parse the AI response as JSON - return blank if it fails
     let parsedResponse;
     try {
       parsedResponse = JSON.parse(aiResponse);
+      console.log('Successfully parsed AI response as JSON');
     } catch (parseError) {
       console.warn('AI response is not valid JSON, returning blank response:', aiResponse);
       parsedResponse = {};
@@ -196,7 +218,7 @@ serve(async (req) => {
       success: true,
       response: parsedResponse,
       processing_time_ms: processingTime,
-      ai_provider: aiProviderToUse,
+      ai_provider: defaultAiProvider,
       prompt_version: prompt.version_number,
       is_default_prompt: prompt.is_default
     }), {
