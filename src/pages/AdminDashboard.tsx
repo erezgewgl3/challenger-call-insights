@@ -1,7 +1,9 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { Users, MessageSquare, Settings, Activity } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
+import { Link } from 'react-router-dom'
 
 export default function AdminDashboard() {
   return (
@@ -42,8 +44,8 @@ export default function AdminDashboard() {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">--</div>
-              <p className="text-xs text-muted-foreground">Coming soon</p>
+              <div className="text-2xl font-bold">2</div>
+              <p className="text-xs text-muted-foreground">Default prompts active</p>
             </CardContent>
           </Card>
 
@@ -70,7 +72,7 @@ export default function AdminDashboard() {
           </Card>
         </div>
 
-        {/* Coming Soon Sections */}
+        {/* Main Action Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -83,12 +85,17 @@ export default function AdminDashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-slate-600 mb-4">Coming in next implementation phase...</p>
-              <div className="text-sm text-slate-500">
+              <p className="text-slate-600 mb-4">Create, edit, and version AI prompts with full audit trails.</p>
+              <div className="text-sm text-slate-500 mb-4">
                 <p>• Create custom prompts for different sales scenarios</p>
-                <p>• Version control and A/B testing</p>
-                <p>• User-specific prompt overrides</p>
+                <p>• Version control and rollback capabilities</p>
+                <p>• Variable insertion for dynamic content</p>
               </div>
+              <Link to="/admin/prompts">
+                <Button className="bg-indigo-600 hover:bg-indigo-700">
+                  Manage Prompts
+                </Button>
+              </Link>
             </CardContent>
           </Card>
 
@@ -122,7 +129,7 @@ export default function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">✓</div>
                 <p className="text-sm font-medium text-green-800">Database</p>
@@ -131,6 +138,11 @@ export default function AdminDashboard() {
               <div className="text-center p-4 bg-green-50 rounded-lg">
                 <div className="text-2xl font-bold text-green-600">✓</div>
                 <p className="text-sm font-medium text-green-800">Authentication</p>
+                <p className="text-xs text-green-600">Active</p>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">✓</div>
+                <p className="text-sm font-medium text-green-800">Prompt System</p>
                 <p className="text-xs text-green-600">Active</p>
               </div>
               <div className="text-center p-4 bg-indigo-50 rounded-lg">

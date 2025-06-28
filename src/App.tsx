@@ -12,6 +12,7 @@ import { RegisterForm } from "@/components/auth/RegisterForm";
 import Index from "./pages/Index";
 import WelcomeDashboard from "./pages/WelcomeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import PromptManagement from "./pages/PromptManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,16 @@ const App = () => (
               element={
                 <AdminGuard>
                   <AdminDashboard />
+                </AdminGuard>
+              } 
+            />
+            
+            {/* Admin Prompt Management */}
+            <Route 
+              path="/admin/prompts" 
+              element={
+                <AdminGuard>
+                  <PromptManagement />
                 </AdminGuard>
               } 
             />

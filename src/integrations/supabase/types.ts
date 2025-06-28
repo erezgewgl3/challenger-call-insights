@@ -117,6 +117,66 @@ export type Database = {
           },
         ]
       }
+      prompts: {
+        Row: {
+          activated_at: string | null
+          ai_provider: string
+          change_description: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean
+          is_default: boolean
+          parent_prompt_id: string | null
+          prompt_text: string
+          updated_at: string | null
+          user_id: string | null
+          version_number: number
+        }
+        Insert: {
+          activated_at?: string | null
+          ai_provider: string
+          change_description?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          parent_prompt_id?: string | null
+          prompt_text: string
+          updated_at?: string | null
+          user_id?: string | null
+          version_number?: number
+        }
+        Update: {
+          activated_at?: string | null
+          ai_provider?: string
+          change_description?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          parent_prompt_id?: string | null
+          prompt_text?: string
+          updated_at?: string | null
+          user_id?: string | null
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prompts_parent_prompt_id_fkey"
+            columns: ["parent_prompt_id"]
+            isOneToOne: false
+            referencedRelation: "prompts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prompts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcripts: {
         Row: {
           account_id: string | null
