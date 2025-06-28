@@ -9,7 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MessageSquare, Code, User, Building } from 'lucide-react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { MessageSquare, Code, User, Building, TestTube } from 'lucide-react'
+import { PromptTester } from './PromptTester'
 
 interface PromptEditorProps {
   promptId?: string | null
@@ -22,6 +24,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
   const [aiProvider, setAiProvider] = useState<'openai' | 'claude'>('openai')
   const [changeDescription, setChangeDescription] = useState('')
   const [isDefault, setIsDefault] = useState(false)
+  const [activeTab, setActiveTab] = useState('editor')
 
   const createPrompt = useCreatePrompt()
   const updatePrompt = useUpdatePrompt()
@@ -42,6 +45,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
       setChangeDescription('')
       setIsDefault(false)
     }
+    setActiveTab('editor')
   }, [isEditing, currentPrompt])
 
   const handleSave = async () => {
@@ -87,7 +91,7 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit AI Prompt' : 'Create New AI Prompt'}
@@ -100,122 +104,143 @@ export function PromptEditor({ promptId, isOpen, onClose }: PromptEditorProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Editor */}
-          <div className="lg:col-span-2 space-y-4">
-            {/* Provider Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="ai-provider">AI Provider</Label>
-              <Select value={aiProvider} onValueChange={(value: 'openai' | 'claude') => setAiProvider(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select AI provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="openai">OpenAI GPT-4</SelectItem>
-                  <SelectItem value="claude">Anthropic Claude</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="editor">Editor</TabsTrigger>
+            <TabsTrigger value="test" disabled={!isEditing || !currentPrompt}>
+              <TestTube className="h-4 w-4 mr-2" />
+              Test Prompt
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Prompt Text Editor */}
-            <div className="space-y-2">
-              <Label htmlFor="prompt-text">Prompt Text</Label>
-              <Textarea
-                id="prompt-text"
-                value={promptText}
-                onChange={(e) => setPromptText(e.target.value)}
-                placeholder="Enter your AI coaching prompt here..."
-                className="min-h-[400px] font-mono text-sm"
+          <TabsContent value="editor">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Main Editor */}
+              <div className="lg:col-span-2 space-y-4">
+                {/* Provider Selection */}
+                <div className="space-y-2">
+                  <Label htmlFor="ai-provider">AI Provider</Label>
+                  <Select value={aiProvider} onValueChange={(value: 'openai' | 'claude') => setAiProvider(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select AI provider" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="openai">ChatGPT (OpenAI GPT-4)</SelectItem>
+                      <SelectItem value="claude">Claude (Anthropic)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Prompt Text Editor */}
+                <div className="space-y-2">
+                  <Label htmlFor="prompt-text">Prompt Text</Label>
+                  <Textarea
+                    id="prompt-text"
+                    value={promptText}
+                    onChange={(e) => setPromptText(e.target.value)}
+                    placeholder="Enter your AI coaching prompt here..."
+                    className="min-h-[400px] font-mono text-sm"
+                  />
+                  <p className="text-xs text-slate-500">
+                    Use variables like {`{{conversation}}`}, {`{{account_context}}`}, and {`{{user_context}}`} for dynamic content.
+                  </p>
+                </div>
+
+                {/* Change Description */}
+                <div className="space-y-2">
+                  <Label htmlFor="change-description">
+                    {isEditing ? 'Change Description' : 'Initial Description'}
+                  </Label>
+                  <Textarea
+                    id="change-description"
+                    value={changeDescription}
+                    onChange={(e) => setChangeDescription(e.target.value)}
+                    placeholder="Describe what changed in this version..."
+                    className="h-20"
+                  />
+                </div>
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-4">
+                {/* Variable Insertion */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-sm">Insert Variables</CardTitle>
+                    <CardDescription className="text-xs">
+                      Click to insert dynamic variables into your prompt
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => insertVariable('{{conversation}}')}
+                    >
+                      <MessageSquare className="h-3 w-3 mr-2" />
+                      Conversation
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => insertVariable('{{account_context}}')}
+                    >
+                      <Building className="h-3 w-3 mr-2" />
+                      Account Context
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => insertVariable('{{user_context}}')}
+                    >
+                      <User className="h-3 w-3 mr-2" />
+                      User Context
+                    </Button>
+                  </CardContent>
+                </Card>
+
+                {/* Version History (if editing) */}
+                {isEditing && versions && versions.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm">Version History</CardTitle>
+                      <CardDescription className="text-xs">
+                        Previous versions of this prompt
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {versions.slice(0, 5).map((version) => (
+                        <div key={version.id} className="flex items-center justify-between text-xs">
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={version.is_active ? 'default' : 'outline'} className="text-xs">
+                              v{version.version_number}
+                            </Badge>
+                            {version.is_active && <Badge variant="secondary" className="text-xs">Active</Badge>}
+                          </div>
+                          <span className="text-slate-500">
+                            {new Date(version.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="test">
+            {isEditing && currentPrompt && (
+              <PromptTester
+                promptId={currentPrompt.id}
+                aiProvider={currentPrompt.ai_provider}
               />
-              <p className="text-xs text-slate-500">
-                Use variables like {`{{conversation}}`}, {`{{account_context}}`}, and {`{{user_context}}`} for dynamic content.
-              </p>
-            </div>
-
-            {/* Change Description */}
-            <div className="space-y-2">
-              <Label htmlFor="change-description">
-                {isEditing ? 'Change Description' : 'Initial Description'}
-              </Label>
-              <Textarea
-                id="change-description"
-                value={changeDescription}
-                onChange={(e) => setChangeDescription(e.target.value)}
-                placeholder="Describe what changed in this version..."
-                className="h-20"
-              />
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-4">
-            {/* Variable Insertion */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Insert Variables</CardTitle>
-                <CardDescription className="text-xs">
-                  Click to insert dynamic variables into your prompt
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => insertVariable('{{conversation}}')}
-                >
-                  <MessageSquare className="h-3 w-3 mr-2" />
-                  Conversation
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => insertVariable('{{account_context}}')}
-                >
-                  <Building className="h-3 w-3 mr-2" />
-                  Account Context
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start"
-                  onClick={() => insertVariable('{{user_context}}')}
-                >
-                  <User className="h-3 w-3 mr-2" />
-                  User Context
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Version History (if editing) */}
-            {isEditing && versions && versions.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Version History</CardTitle>
-                  <CardDescription className="text-xs">
-                    Previous versions of this prompt
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {versions.slice(0, 5).map((version) => (
-                    <div key={version.id} className="flex items-center justify-between text-xs">
-                      <div className="flex items-center space-x-2">
-                        <Badge variant={version.is_active ? 'default' : 'outline'} className="text-xs">
-                          v{version.version_number}
-                        </Badge>
-                        {version.is_active && <Badge variant="secondary" className="text-xs">Active</Badge>}
-                      </div>
-                      <span className="text-slate-500">
-                        {new Date(version.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-                  ))}
-                </CardContent>
-              </Card>
             )}
-          </div>
-        </div>
+          </TabsContent>
+        </Tabs>
 
         <Separator />
 
