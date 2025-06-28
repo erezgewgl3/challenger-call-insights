@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { usePrompts, useActivePrompts } from '@/hooks/usePrompts'
 import { useDefaultAiProvider, useSetDefaultAiProvider } from '@/hooks/useSystemSettings'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
