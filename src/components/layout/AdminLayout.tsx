@@ -10,10 +10,17 @@ import {
   Home,
   Shield,
   LogOut,
-  Zap
+  Zap,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/useAuth';
 
 interface AdminLayoutProps {
@@ -168,26 +175,32 @@ export function AdminLayout({ children }: AdminLayoutProps) {
             <div className="w-2 h-2 bg-green-500 rounded-full"></div>
           </div>
 
-          {/* User Info */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-            <div className="flex items-center space-x-3">
-              <div className="flex items-center justify-center w-8 h-8 bg-purple-600 rounded-full">
-                <Shield className="w-4 h-4 text-white" />
+          {/* User Info with Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-colors">
+                <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-center w-8 h-8 bg-purple-600 rounded-full">
+                    <Shield className="w-4 h-4 text-white" />
+                  </div>
+                  <div>
+                    <div className="font-medium text-sm text-gray-900">{user?.email}</div>
+                    <Badge variant="outline" className="text-xs">Admin</Badge>
+                  </div>
+                </div>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
               </div>
-              <div>
-                <div className="font-medium text-sm text-gray-900">{user?.email}</div>
-                <Badge variant="outline" className="text-xs">Admin</Badge>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signOut}
-              className="text-gray-500 hover:text-red-600"
-            >
-              <LogOut className="w-4 h-4" />
-            </Button>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuItem 
+                onClick={signOut}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50 cursor-pointer"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
