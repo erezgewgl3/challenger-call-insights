@@ -9,18 +9,20 @@ import { Play, Eye, Calendar, AlertTriangle, Copy } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 
+// Import the Prompt type from usePrompts.ts to ensure consistency
 interface Prompt {
   id: string
-  parent_prompt_id?: string
   version_number: number
   user_id?: string
   prompt_text: string
+  prompt_name?: string | null
   is_default: boolean
   is_active: boolean
   change_description?: string
   activated_at?: string
   created_at: string
   updated_at: string
+  created_by?: string
 }
 
 interface VersionHistorySidebarProps {
