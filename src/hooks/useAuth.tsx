@@ -47,48 +47,83 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Function to enhance user with role
-  const enhanceUserWithRole = async (authUser: User) => {
-    const role = await fetchUserRole(authUser.id)
-    const enhancedUser = {
-      ...authUser,
-      role: role || 'sales_user'
-    }
-    setUser(enhancedUser)
-  }
-
   useEffect(() => {
-    // Set up auth state listener - MUST be synchronous
+    let mounted = true
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         console.log('Auth state changed:', event, session?.user?.email)
+        
+        if (!mounted) return
+        
         setSession(session)
         
         if (session?.user) {
-          // Enhance user with role asynchronously
-          enhanceUserWithRole(session.user)
+          try {
+            const role = await fetchUserRole(session.user.id)
+            if (mounted) {
+              const enhancedUser = {
+                ...session.user,
+                role: role || 'sales_user'
+              }
+              setUser(enhancedUser)
+            }
+          } catch (error) {
+            console.error('Failed to enhance user with role:', error)
+            if (mounted) {
+              setUser({ ...session.user, role: 'sales_user' })
+            }
+          }
         } else {
-          setUser(null)
+          if (mounted) {
+            setUser(null)
+          }
         }
         
-        setLoading(false)
+        if (mounted) {
+          setLoading(false)
+        }
       }
     )
 
     // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return
+      
       setSession(session)
       
       if (session?.user) {
-        enhanceUserWithRole(session.user)
+        try {
+          const role = await fetchUserRole(session.user.id)
+          if (mounted) {
+            const enhancedUser = {
+              ...session.user,
+              role: role || 'sales_user'
+            }
+            setUser(enhancedUser)
+          }
+        } catch (error) {
+          console.error('Failed to enhance user with role:', error)
+          if (mounted) {
+            setUser({ ...session.user, role: 'sales_user' })
+          }
+        }
       } else {
-        setUser(null)
+        if (mounted) {
+          setUser(null)
+        }
       }
       
-      setLoading(false)
+      if (mounted) {
+        setLoading(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signOut = async () => {
