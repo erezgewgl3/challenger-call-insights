@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -55,23 +56,6 @@ export function useActivePrompt() {
   })
 }
 
-// Keep this for backward compatibility but mark as deprecated
-export function useActivePrompts() {
-  return useQuery({
-    queryKey: ['prompts', 'active-legacy'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('prompts')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false })
-
-      if (error) throw error
-      return data as Prompt[]
-    }
-  })
-}
-
 // Get the single global default prompt
 export function useDefaultPrompt() {
   return useQuery({
@@ -113,13 +97,12 @@ export function useCreatePrompt() {
 
   return useMutation({
     mutationFn: async (data: CreatePromptData) => {
-      // Use the database function to ensure only one prompt is active
       const { data: result, error: insertError } = await supabase
         .from('prompts')
         .insert([{
           prompt_text: data.prompt_text,
           is_default: false,
-          is_active: false, // Will be activated by the function
+          is_active: false,
           version_number: 1,
           change_description: data.change_description || 'Initial version'
         }])
@@ -128,7 +111,6 @@ export function useCreatePrompt() {
 
       if (insertError) throw insertError
 
-      // Activate the new prompt using the database function
       const { error: activateError } = await supabase
         .rpc('activate_single_prompt', { prompt_id_param: result.id })
 
@@ -153,7 +135,6 @@ export function useUpdatePrompt() {
 
   return useMutation({
     mutationFn: async (data: UpdatePromptData) => {
-      // First, get current version number
       const { data: parent, error: parentError } = await supabase
         .from('prompts')
         .select('version_number, is_default')
@@ -162,14 +143,13 @@ export function useUpdatePrompt() {
 
       if (parentError) throw parentError
 
-      // Create new version (inactive initially)
       const { data: result, error } = await supabase
         .from('prompts')
         .insert([{
           parent_prompt_id: data.parent_prompt_id,
           prompt_text: data.prompt_text,
           is_default: parent?.is_default || false,
-          is_active: false, // Will be activated by the function
+          is_active: false,
           version_number: (parent?.version_number || 0) + 1,
           change_description: data.change_description || 'Updated prompt'
         }])
@@ -178,7 +158,6 @@ export function useUpdatePrompt() {
 
       if (error) throw error
 
-      // Activate the new version using the database function
       const { error: activateError } = await supabase
         .rpc('activate_single_prompt', { prompt_id_param: result.id })
 
@@ -203,13 +182,11 @@ export function useActivatePromptVersion() {
 
   return useMutation({
     mutationFn: async ({ promptId }: { promptId: string }) => {
-      // Use the database function to ensure only one prompt is active
       const { error } = await supabase
         .rpc('activate_single_prompt', { prompt_id_param: promptId })
 
       if (error) throw error
 
-      // Get the activated prompt to return
       const { data, error: selectError } = await supabase
         .from('prompts')
         .select('*')
@@ -236,7 +213,6 @@ export function useDeletePrompt() {
 
   return useMutation({
     mutationFn: async (promptId: string) => {
-      // Delete all related versions and the prompt itself
       const { error } = await supabase
         .from('prompts')
         .delete()

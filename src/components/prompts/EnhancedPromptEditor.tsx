@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MessageSquare, User, Building, History, Eye, Play } from 'lucide-react'
+import { History } from 'lucide-react'
 import { VariableInserter } from './VariableInserter'
 import { VersionHistorySidebar } from './VersionHistorySidebar'
 
@@ -39,7 +39,7 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
       setChangeDescription('')
       setShowVersionHistory(false)
     }
-  }, [isEditing, currentPrompt])
+  }, [isE, currentPrompt])
 
   const handleSave = async () => {
     if (!promptText.trim()) return
@@ -104,7 +104,6 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
         </DialogHeader>
 
         <div className="flex h-[calc(90vh-120px)]">
-          {/* Main Editor */}
           <div className={`flex-1 space-y-4 pr-4 ${showVersionHistory ? 'border-r' : ''}`}>
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 h-full">
               <div className="lg:col-span-3 space-y-4">
@@ -162,7 +161,6 @@ export function EnhancedPromptEditor({ promptId, isOpen, onClose }: EnhancedProm
             </div>
           </div>
 
-          {/* Version History Sidebar */}
           {showVersionHistory && isEditing && versions && (
             <VersionHistorySidebar 
               versions={versions}

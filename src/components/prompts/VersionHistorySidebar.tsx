@@ -142,7 +142,6 @@ export function VersionHistorySidebar({ versions, currentPromptId, onVersionSele
         </CardContent>
       </Card>
 
-      {/* Version Preview Dialog */}
       {selectedVersion && (
         <Dialog open={!!selectedVersion} onOpenChange={() => setSelectedVersion(null)}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">

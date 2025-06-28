@@ -1,16 +1,14 @@
 
 import React, { useState } from 'react'
-import { usePrompts, useActivePrompt } from '@/hooks/usePrompts'
-import { useDefaultAiProvider, useSetDefaultAiProvider } from '@/hooks/useSystemSettings'
+import { useActivePrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Plus, MessageSquare, History, Settings, Zap, AlertCircle, CheckCircle, XCircle } from 'lucide-react'
+import { Plus, MessageSquare, History, Settings, Zap } from 'lucide-react'
 import { EnhancedPromptEditor } from '@/components/prompts/EnhancedPromptEditor'
 import { PromptCard } from '@/components/prompts/PromptCard'
 import { AiProviderSelector } from '@/components/prompts/AiProviderSelector'
-import { toast } from 'sonner'
+import { useDefaultAiProvider } from '@/hooks/useSystemSettings'
 
 interface ApiKeyStatus {
   openai: boolean
@@ -23,11 +21,9 @@ export default function PromptManagement() {
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>({ openai: false, claude: false })
   const [isValidatingKeys, setIsValidatingKeys] = useState(false)
 
-  const { data: allPrompts, isLoading } = usePrompts()
-  const { data: activePrompt } = useActivePrompt()
+  const { data: activePrompt, isLoading } = useActivePrompt()
   const { data: defaultAiProvider } = useDefaultAiProvider()
 
-  // Validate API keys on component mount
   React.useEffect(() => {
     validateApiKeys()
   }, [])
@@ -53,9 +49,6 @@ export default function PromptManagement() {
       setIsValidatingKeys(false)
     }
   }
-
-  const totalVersions = allPrompts?.length || 0
-  const inactiveVersions = allPrompts?.filter(prompt => !prompt.is_active).length || 0
 
   const handleEditPrompt = (promptId: string) => {
     setSelectedPrompt(promptId)
@@ -97,7 +90,6 @@ export default function PromptManagement() {
         </div>
       </div>
 
-      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="border-green-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -127,13 +119,13 @@ export default function PromptManagement() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Version History</CardTitle>
+            <CardTitle className="text-sm font-medium">Management</CardTitle>
             <History className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalVersions}</div>
+            <div className="text-2xl font-bold">Integrated</div>
             <p className="text-xs text-muted-foreground">
-              {inactiveVersions} archived version{inactiveVersions !== 1 ? 's' : ''}
+              Version history within editor
             </p>
           </CardContent>
         </Card>
@@ -155,7 +147,6 @@ export default function PromptManagement() {
         </Card>
       </div>
 
-      {/* Current Active Prompt */}
       {activePrompt ? (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -186,50 +177,6 @@ export default function PromptManagement() {
         </Card>
       )}
 
-      {/* Version Summary */}
-      {inactiveVersions > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center space-x-2">
-              <History className="h-5 w-5 text-slate-600" />
-              <span>Version History</span>
-            </CardTitle>
-            <CardDescription>
-              {inactiveVersions} archived version{inactiveVersions !== 1 ? 's' : ''} available. 
-              Use the "Edit" or "History" button above to view and manage all versions.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
-              <div className="flex items-center space-x-3">
-                <div className="h-10 w-10 bg-slate-200 rounded-full flex items-center justify-center">
-                  <History className="h-5 w-5 text-slate-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900">
-                    {inactiveVersions} Previous Version{inactiveVersions !== 1 ? 's' : ''}
-                  </p>
-                  <p className="text-sm text-slate-600">
-                    View, compare, and activate from version history
-                  </p>
-                </div>
-              </div>
-              {activePrompt && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleViewHistory(activePrompt.id)}
-                  className="flex items-center space-x-1"
-                >
-                  <History className="h-4 w-4" />
-                  <span>View History</span>
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Enhanced Prompt Editor */}
       {(isCreating || selectedPrompt) && (
         <EnhancedPromptEditor 
           promptId={selectedPrompt}
