@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -17,7 +16,8 @@ import {
   Clock,
   AlertTriangle,
   TrendingUp,
-  DollarSign
+  DollarSign,
+  ExternalLink
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -60,6 +60,29 @@ export function NewAnalysisView({
     } catch (error) {
       toast.error('Failed to copy to clipboard')
     }
+  }
+
+  const copyEmailSubject = async (subject: string) => {
+    await copyToClipboard(subject, 'Email subject')
+  }
+
+  const copyEmailBody = async (body: string) => {
+    await copyToClipboard(body, 'Email body')
+  }
+
+  const copyFullEmail = async (subject: string, body: string, attachments: string[]) => {
+    const attachmentText = attachments && attachments.length > 0 
+      ? `\n\nAttachments:\n${attachments.map(att => `- ${att}`).join('\n')}`
+      : ''
+    const fullEmail = `Subject: ${subject}\n\n${body}${attachmentText}`
+    await copyToClipboard(fullEmail, 'Complete email')
+  }
+
+  const openInEmailClient = (subject: string, body: string) => {
+    const encodedSubject = encodeURIComponent(subject)
+    const encodedBody = encodeURIComponent(body)
+    const mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`
+    window.open(mailtoUrl, '_blank')
   }
 
   const formatDate = (dateString: string) => {
@@ -473,6 +496,115 @@ export function NewAnalysisView({
                       </div>
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Email Follow-up Suggestions */}
+          {analysis.action_plan?.actions?.some((action: any) => action.copyPasteContent?.subject) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Mail className="w-5 h-5 mr-2" />
+                  Email Follow-up Suggestions
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {analysis.action_plan.actions
+                    .filter((action: any) => action.copyPasteContent?.subject)
+                    .map((action: any, index: number) => (
+                      <div key={index} className="border border-slate-200 rounded-lg p-4 bg-white">
+                        <div className="space-y-4">
+                          {/* Email Subject */}
+                          <div>
+                            <h5 className="font-semibold text-slate-900 mb-2">Subject Line</h5>
+                            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                              <p className="text-slate-900 font-medium">{action.copyPasteContent.subject}</p>
+                            </div>
+                          </div>
+
+                          {/* Email Body */}
+                          {action.copyPasteContent.body && (
+                            <div>
+                              <h5 className="font-semibold text-slate-900 mb-2">Email Content</h5>
+                              <div className="p-3 bg-slate-50 rounded-lg border max-h-48 overflow-y-auto">
+                                <div className="text-slate-800 text-sm leading-relaxed whitespace-pre-wrap">
+                                  {action.copyPasteContent.body}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Attachments */}
+                          {action.copyPasteContent.attachments && action.copyPasteContent.attachments.length > 0 && (
+                            <div>
+                              <h5 className="font-semibold text-slate-900 mb-2">Suggested Attachments</h5>
+                              <ul className="space-y-1">
+                                {action.copyPasteContent.attachments.map((attachment: string, attIndex: number) => (
+                                  <li key={attIndex} className="flex items-start">
+                                    <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                                    <span className="text-slate-700 text-sm">{attachment}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="flex flex-wrap gap-2 pt-4 border-t">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => copyEmailSubject(action.copyPasteContent.subject)}
+                              className="h-8"
+                            >
+                              <Copy className="w-3 h-3 mr-1" />
+                              Copy Subject
+                            </Button>
+                            
+                            {action.copyPasteContent.body && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => copyEmailBody(action.copyPasteContent.body)}
+                                className="h-8"
+                              >
+                                <Copy className="w-3 h-3 mr-1" />
+                                Copy Email
+                              </Button>
+                            )}
+                            
+                            {action.copyPasteContent.body && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openInEmailClient(action.copyPasteContent.subject, action.copyPasteContent.body)}
+                                className="h-8"
+                              >
+                                <ExternalLink className="w-3 h-3 mr-1" />
+                                Open in Email
+                              </Button>
+                            )}
+                            
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => copyFullEmail(
+                                action.copyPasteContent.subject, 
+                                action.copyPasteContent.body || '', 
+                                action.copyPasteContent.attachments || []
+                              )}
+                              className="h-8"
+                            >
+                              <Copy className="w-3 h-3 mr-1" />
+                              Copy All
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
