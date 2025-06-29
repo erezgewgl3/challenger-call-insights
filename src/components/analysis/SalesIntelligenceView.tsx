@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
@@ -10,7 +9,7 @@ import {
   Users, FileText, Lightbulb, Target, Brain, Zap, 
   ArrowLeft, Upload, AlertCircle, CheckCircle, 
   Clock, Mail, Phone, MessageCircle, Copy,
-  ArrowRight, Refresh
+  ArrowRight, RefreshCw
 } from 'lucide-react'
 
 interface SalesIntelligenceViewProps {
@@ -74,7 +73,22 @@ export function SalesIntelligenceView({
       }
 
       console.log('🔍 Transcript data:', transcriptData)
-      setTranscript(transcriptData)
+      
+      // Transform the data to match our interface, handling the participants type conversion
+      const transformedTranscript: TranscriptData = {
+        id: transcriptData.id,
+        title: transcriptData.title,
+        participants: Array.isArray(transcriptData.participants) 
+          ? transcriptData.participants as string[]
+          : typeof transcriptData.participants === 'string'
+          ? [transcriptData.participants]
+          : [],
+        duration_minutes: transcriptData.duration_minutes || 0,
+        meeting_date: transcriptData.meeting_date,
+        status: transcriptData.status
+      }
+      
+      setTranscript(transformedTranscript)
 
       // Fetch analysis results
       const { data: analysisData, error: analysisError } = await supabase
@@ -206,7 +220,7 @@ export function SalesIntelligenceView({
                       </>
                     ) : (
                       <>
-                        <Refresh className="w-4 h-4 mr-2" />
+                        <RefreshCw className="w-4 h-4 mr-2" />
                         Retry Analysis
                       </>
                     )}
@@ -250,7 +264,7 @@ export function SalesIntelligenceView({
                   <p>✉️ Creating ready-to-use follow-up content</p>
                 </div>
                 <Button onClick={retryAnalysis} variant="outline" className="w-full">
-                  <Refresh className="w-4 h-4 mr-2" />
+                  <RefreshCw className="w-4 h-4 mr-2" />
                   Check Status
                 </Button>
               </CardContent>
@@ -286,7 +300,7 @@ export function SalesIntelligenceView({
                 <p className="text-sm text-gray-600">
                   {new Date(transcript.meeting_date).toLocaleDateString()} • 
                   {transcript.duration_minutes}min • 
-                  {Array.isArray(transcript.participants) ? transcript.participants.length : 0} participants
+                  {transcript.participants.length} participants
                 </p>
               </div>
             </div>
@@ -712,7 +726,7 @@ export function SalesIntelligenceView({
                   </>
                 ) : (
                   <>
-                    <Refresh className="w-4 h-4 mr-2" />
+                    <RefreshCw className="w-4 h-4 mr-2" />
                     Retry Analysis
                   </>
                 )}
