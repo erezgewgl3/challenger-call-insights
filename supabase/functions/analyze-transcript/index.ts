@@ -80,6 +80,17 @@ serve(async (req) => {
       // Don't throw here, continue with analysis
     }
 
+    // Get AI provider setting
+    console.log('🔍 [SYSTEM] Fetching AI provider setting');
+    const { data: providerData, error: providerError } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'default_ai_provider')
+      .maybeSingle();
+
+    const aiProvider = providerData?.setting_value || 'openai'; // Default to openai if not set
+    console.log('🔍 [SYSTEM] AI provider selected:', aiProvider);
+
     // Get active prompt
     console.log('🔍 [PROMPT] Fetching active prompt');
     const { data: promptData, error: promptError } = await supabase
@@ -113,12 +124,20 @@ serve(async (req) => {
 
     console.log('🔍 [PROMPT] Prompt built, length:', finalPrompt.length);
 
-    // Call OpenAI
-    const openAIResponse = await callOpenAI(finalPrompt);
-    console.log('🔍 [AI] OpenAI response received, length:', openAIResponse.length);
+    // Call AI based on provider setting
+    console.log('🔍 [AI] Calling AI provider:', aiProvider);
+    let aiResponse: string;
+    
+    if (aiProvider === 'claude') {
+      aiResponse = await callClaude(finalPrompt);
+    } else {
+      aiResponse = await callOpenAI(finalPrompt);
+    }
+    
+    console.log('🔍 [AI] AI response received, length:', aiResponse.length);
 
     // Parse AI response
-    const parsedResult = parseAIResponse(openAIResponse);
+    const parsedResult = parseAIResponse(aiResponse);
     console.log('🔍 [PARSE] AI response parsed successfully');
 
     // Save analysis results with proper error handling
@@ -165,14 +184,15 @@ serve(async (req) => {
       // Don't throw, analysis is saved successfully
     }
 
-    console.log('🔍 [COMPLETE] Analysis pipeline completed successfully');
+    console.log('🔍 [COMPLETE] Analysis pipeline completed successfully using', aiProvider);
 
     return new Response(JSON.stringify({
       success: true,
       analysisId: analysisData.id,
       transcriptId,
       strategy,
-      message: 'Analysis completed successfully'
+      aiProvider,
+      message: `Analysis completed successfully using ${aiProvider}`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -241,6 +261,46 @@ async function callOpenAI(prompt: string): Promise<string> {
   console.log('🔍 [API] OpenAI response received successfully');
   
   return data.choices[0].message.content;
+}
+
+async function callClaude(prompt: string): Promise<string> {
+  const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!claudeApiKey) {
+    throw new Error('Claude API key not found');
+  }
+
+  console.log('🔍 [API] Starting Claude API call');
+  
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${claudeApiKey}`,
+      'Content-Type': 'application/json',
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 4000,
+      messages: [
+        { 
+          role: 'user', 
+          content: `You are a sales intelligence AI that analyzes sales conversations and provides actionable insights in JSON format. Please analyze the following:\n\n${prompt}` 
+        }
+      ],
+      temperature: 0.3,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('🔍 [ERROR] Claude API error:', response.status, errorText);
+    throw new Error(`Claude API error: ${response.status} ${errorText}`);
+  }
+
+  const data = await response.json();
+  console.log('🔍 [API] Claude response received successfully');
+  
+  return data.content[0].text;
 }
 
 function parseAIResponse(aiResponse: string): ParsedAnalysis {
