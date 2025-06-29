@@ -17,8 +17,9 @@ import { AnalysisResultsView } from '@/components/analysis/AnalysisResultsView'
 export default function WelcomeDashboard() {
   const { stats, isLoading } = useTranscriptData()
   const { uploadFiles, processFiles } = useTranscriptUpload()
-  const [viewMode, setViewMode] = useState<'dashboard' | 'results'>('dashboard')
+  const [viewMode, setViewMode] = useState<'dashboard' | 'progress' | 'results'>('dashboard')
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
+  const [analysisProgress, setAnalysisProgress] = useState(0)
   
   console.log('🔍 Dashboard Render - View Mode:', viewMode, 'Analysis ID:', currentAnalysisId)
   
@@ -26,7 +27,7 @@ export default function WelcomeDashboard() {
     currentView,
     transitionState,
     currentTranscriptId,
-    analysisProgress,
+    analysisProgress: flowAnalysisProgress,
     error,
     estimatedTime,
     uploadContext,
@@ -42,23 +43,37 @@ export default function WelcomeDashboard() {
   console.log('🔍 Analysis Flow State:', {
     currentView,
     currentTranscriptId,
-    analysisProgress,
+    analysisProgress: flowAnalysisProgress,
     transitionState
   })
 
-  // Monitor upload files to trigger flow state changes
+  // CRITICAL FIX: Connect upload files to view state management
   useEffect(() => {
-    console.log('🔍 Upload Files Effect - Files:', uploadFiles.length)
+    console.log('🔍 CRITICAL - Upload Files Effect - Files:', uploadFiles.length)
     
     const activeUploads = uploadFiles.filter(f => 
       f.status === 'uploading' || f.status === 'processing'
     )
     
-    console.log('🔍 Active Uploads:', activeUploads.length)
+    console.log('🔍 CRITICAL - Active Uploads:', activeUploads.length)
     
-    if (activeUploads.length > 0 && currentView === 'dashboard') {
+    // Handle upload start
+    if (activeUploads.length > 0 && viewMode === 'dashboard') {
       const latestUpload = activeUploads[activeUploads.length - 1]
-      console.log('🔍 Starting upload flow for:', latestUpload.file.name)
+      console.log('🔍 CRITICAL - Starting upload flow for:', latestUpload.file.name)
+      
+      // Switch to progress view immediately when upload starts
+      setViewMode('progress')
+      
+      // If we have a transcript ID, capture it
+      if (latestUpload.transcriptId) {
+        console.log('🔍 CRITICAL - Capturing transcript ID from active upload:', latestUpload.transcriptId)
+        setCurrentAnalysisId(latestUpload.transcriptId)
+      }
+      
+      // Update progress based on upload progress
+      setAnalysisProgress(latestUpload.progress || 0)
+      
       startUpload({
         fileName: latestUpload.file.name,
         fileSize: latestUpload.file.size,
@@ -66,56 +81,83 @@ export default function WelcomeDashboard() {
       })
     }
 
-    // Check for completed uploads and trigger automatic results view
+    // CRITICAL: Handle completed uploads - capture transcript ID and switch to results
     const completedUploads = uploadFiles.filter(f => f.status === 'completed')
-    console.log('🔍 Completed Uploads:', completedUploads.length)
+    console.log('🔍 CRITICAL - Completed Uploads:', completedUploads.length)
     
-    if (completedUploads.length > 0 && currentView === 'progress') {
+    if (completedUploads.length > 0) {
       const latestUpload = completedUploads[completedUploads.length - 1]
-      console.log('🔍 Latest completed upload:', latestUpload.transcriptId)
+      console.log('🔍 CRITICAL - Latest completed upload:', latestUpload.transcriptId)
       
-      if (latestUpload.transcriptId) {
-        console.log('🔍 Triggering upload complete with transcript ID:', latestUpload.transcriptId)
+      if (latestUpload.transcriptId && viewMode !== 'results') {
+        console.log('🔍 CRITICAL - Upload completed, transcript ID:', latestUpload.transcriptId)
+        console.log('🔍 CRITICAL - Setting currentAnalysisId to:', latestUpload.transcriptId)
+        
+        setCurrentAnalysisId(latestUpload.transcriptId)
+        setAnalysisProgress(100)
+        
+        // Trigger upload complete in flow
         uploadComplete(latestUpload.transcriptId, latestUpload.metadata?.durationMinutes)
         
-        // Automatically set to results view mode
-        console.log('🔍 Setting view mode to results')
-        setViewMode('results')
-        setCurrentAnalysisId(latestUpload.transcriptId)
+        // CRITICAL: Switch to results view automatically
+        console.log('🔍 CRITICAL - Switching to results view')
+        setTimeout(() => {
+          setViewMode('results')
+        }, 1500) // Brief delay to show completion
       }
+    }
+
+    // Handle processing uploads - update progress
+    const processingUploads = uploadFiles.filter(f => f.status === 'processing')
+    if (processingUploads.length > 0) {
+      const latestProcessing = processingUploads[processingUploads.length - 1]
+      console.log('🔍 CRITICAL - Processing upload progress:', latestProcessing.progress)
+      
+      if (latestProcessing.transcriptId && !currentAnalysisId) {
+        console.log('🔍 CRITICAL - Capturing transcript ID from processing upload:', latestProcessing.transcriptId)
+        setCurrentAnalysisId(latestProcessing.transcriptId)
+      }
+      
+      setAnalysisProgress(latestProcessing.progress || 0)
     }
 
     // Check for errors
     const errorUploads = uploadFiles.filter(f => f.status === 'error')
-    if (errorUploads.length > 0 && currentView !== 'dashboard') {
+    if (errorUploads.length > 0 && viewMode !== 'dashboard') {
       const latestError = errorUploads[errorUploads.length - 1]
-      console.log('🔍 Upload error:', latestError.error)
+      console.log('🔍 CRITICAL - Upload error:', latestError.error)
       uploadError(latestError.error || 'Upload failed')
     }
-  }, [uploadFiles, currentView, startUpload, uploadComplete, uploadError])
+  }, [uploadFiles, viewMode, currentAnalysisId, startUpload, uploadComplete, uploadError])
 
   // Additional debugging for analysis flow changes
   useEffect(() => {
     console.log('🔍 Analysis Flow Change Effect:', {
       currentView,
       currentTranscriptId,
-      analysisProgress
+      analysisProgress: flowAnalysisProgress
     })
     
+    // Sync flow analysis progress with local state
+    if (flowAnalysisProgress > 0) {
+      setAnalysisProgress(flowAnalysisProgress)
+    }
+    
     // Check if analysis is complete and we should show results
-    if (currentView === 'progress' && analysisProgress === 100 && currentTranscriptId) {
-      console.log('🔍 Analysis complete! Switching to results view')
+    if (currentView === 'progress' && flowAnalysisProgress === 100 && currentTranscriptId) {
+      console.log('🔍 Analysis complete via flow! Switching to results view')
       console.log('🔍 Setting viewMode to results and currentAnalysisId to:', currentTranscriptId)
       setViewMode('results')
       setCurrentAnalysisId(currentTranscriptId)
     }
-  }, [currentView, currentTranscriptId, analysisProgress])
+  }, [currentView, currentTranscriptId, flowAnalysisProgress])
 
   // Handle back to dashboard navigation
   const handleBackToDashboard = () => {
     console.log('🔍 Handling back to dashboard')
     setViewMode('dashboard')
     setCurrentAnalysisId(null)
+    setAnalysisProgress(0)
     backToDashboard()
   }
 
@@ -124,13 +166,14 @@ export default function WelcomeDashboard() {
     console.log('🔍 Handling upload another')
     setViewMode('dashboard')
     setCurrentAnalysisId(null)
+    setAnalysisProgress(0)
     uploadAnother()
   }
 
   // Show results view when analysis is complete
   console.log('🔍 Should show results?', viewMode === 'results' && currentAnalysisId)
   if (viewMode === 'results' && currentAnalysisId) {
-    console.log('🔍 Rendering AnalysisResultsView with transcript ID:', currentAnalysisId)
+    console.log('🔍 CRITICAL - Rendering AnalysisResultsView with transcript ID:', currentAnalysisId)
     return (
       <AnalysisResultsView 
         transcriptId={currentAnalysisId}
@@ -147,8 +190,8 @@ export default function WelcomeDashboard() {
   }
 
   // Handle progress view
-  if (currentView === 'progress') {
-    console.log('🔍 Rendering progress view')
+  if (viewMode === 'progress' || currentView === 'progress') {
+    console.log('🔍 CRITICAL - Rendering progress view with analysisProgress:', analysisProgress)
     return (
       <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 transition-all duration-300 ${
         transitionState === 'transitioning' ? 'opacity-0' : 'opacity-100'

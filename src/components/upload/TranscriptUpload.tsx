@@ -216,12 +216,12 @@ export function TranscriptUpload() {
                   </div>
                 )}
 
-                {/* Success Message */}
+                {/* Success Message - UPDATED: No longer shows "View results in Recent Transcripts" */}
                 {uploadFile.status === 'completed' && (
                   <div className="flex items-center space-x-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-500" />
                     <span className="text-green-600 font-medium">
-                      Analysis completed! View results in Recent Transcripts.
+                      Analysis completed! Loading your insights...
                     </span>
                   </div>
                 )}
