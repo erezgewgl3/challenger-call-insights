@@ -186,6 +186,46 @@ export function useActivatePromptVersion() {
   })
 }
 
+// Set default prompt (clears all others and sets one as default)
+export function useSetDefaultPrompt() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (promptId: string | null) => {
+      // First, clear all existing defaults
+      const { error: clearError } = await supabase
+        .from('prompts')
+        .update({ is_default: false })
+        .eq('is_default', true)
+
+      if (clearError) throw clearError
+
+      // If promptId is provided, set it as default
+      if (promptId) {
+        const { data, error: setError } = await supabase
+          .from('prompts')
+          .update({ is_default: true })
+          .eq('id', promptId)
+          .select()
+          .single()
+
+        if (setError) throw setError
+        return data as Prompt
+      }
+
+      return null
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prompts'] })
+      toast.success('Default prompt updated successfully')
+    },
+    onError: (error) => {
+      console.error('Failed to set default prompt:', error)
+      toast.error('Failed to set default prompt')
+    }
+  })
+}
+
 // Delete prompt (simplified - just delete the specific prompt)
 export function useDeletePrompt() {
   const queryClient = useQueryClient()
