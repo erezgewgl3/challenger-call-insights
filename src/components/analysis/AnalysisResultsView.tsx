@@ -88,14 +88,14 @@ export function AnalysisResultsView({
         if (transcript?.conversation_analysis?.[0]) {
           const analysis = transcript.conversation_analysis[0]
           setAnalysisData({
-            challengerScores: (analysis.challenger_scores as ChallengerScores) || { teaching: 3, tailoring: 3, control: 3 },
-            guidance: (analysis.guidance as Guidance) || {
+            challengerScores: (analysis.challenger_scores as unknown as ChallengerScores) || { teaching: 3, tailoring: 3, control: 3 },
+            guidance: (analysis.guidance as unknown as Guidance) || {
               recommendation: 'Continue',
               message: 'Good conversation with room for improvement.',
               keyInsights: ['Engaged with prospect effectively'],
               nextSteps: ['Follow up within 48 hours']
             },
-            emailFollowUp: (analysis.email_followup as EmailFollowUp) || {
+            emailFollowUp: (analysis.email_followup as unknown as EmailFollowUp) || {
               subject: 'Following up on our conversation',
               body: 'Thank you for taking the time to speak with me today...',
               timing: '48 hours',
