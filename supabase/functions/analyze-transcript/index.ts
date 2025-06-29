@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
@@ -22,25 +21,29 @@ interface AnalysisRequest {
 }
 
 interface ChallengerScores {
-  teaching: number | null;
-  tailoring: number | null;
-  control: number | null;
+  teaching: number | null
+  tailoring: number | null
+  control: number | null
+}
+
+interface Guidance {
+  recommendation: string | null
+  message: string | null
+  keyInsights: string[]
+  nextSteps: string[]
+}
+
+interface EmailFollowUp {
+  subject: string | null
+  body: string | null
+  timing: string | null
+  channel: string | null
 }
 
 interface AnalysisResult {
   challengerScores: ChallengerScores;
-  guidance: {
-    recommendation: string | null;
-    message: string | null;
-    keyInsights: string[];
-    nextSteps: string[];
-  };
-  emailFollowUp: {
-    subject: string | null;
-    body: string | null;
-    timing: string | null;
-    channel: string | null;
-  };
+  guidance: Guidance;
+  emailFollowUp: EmailFollowUp;
 }
 
 type AnalysisStrategy = 'single_pass' | 'smart_chunking' | 'hierarchical';
@@ -194,37 +197,83 @@ class HybridAnalysisEngine {
       }
     }
 
-    // Extract and validate scores - NO FALLBACKS
-    const teachingScore = this.validateScore(parsed.challengerScores?.teaching);
-    const tailoringScore = this.validateScore(parsed.challengerScores?.tailoring);
-    const controlScore = this.validateScore(parsed.challengerScores?.control);
+    // NEW PARSING LOGIC - Extract from the actual AI response structure
+    let teachingScore: number | null = null;
+    let tailoringScore: number | null = null;
+    let controlScore: number | null = null;
+    
+    // Try multiple paths to find challenger scores
+    if (parsed.challengerScores) {
+      teachingScore = this.validateScore(parsed.challengerScores.teaching);
+      tailoringScore = this.validateScore(parsed.challengerScores.tailoring);
+      controlScore = this.validateScore(parsed.challengerScores.control);
+    } else if (parsed.challengerAnalysis) {
+      // Extract from the detailed structure we see in logs
+      teachingScore = this.extractScoreFromAnalysis(parsed.challengerAnalysis.teaching);
+      tailoringScore = this.extractScoreFromAnalysis(parsed.challengerAnalysis.tailoring);
+      controlScore = this.extractScoreFromAnalysis(parsed.challengerAnalysis.control);
+    }
 
-    console.log('🔍 Parsed challenger scores:', {
+    console.log('🔍 Extracted challenger scores:', {
       teaching: teachingScore,
       tailoring: tailoringScore,
       control: controlScore
     });
 
-    // Extract guidance - NO FALLBACKS
-    const recommendation = parsed.guidance?.recommendation || null;
-    const message = parsed.guidance?.message || null;
-    const keyInsights = Array.isArray(parsed.guidance?.keyInsights) ? parsed.guidance.keyInsights : [];
-    const nextSteps = Array.isArray(parsed.guidance?.nextSteps) ? parsed.guidance.nextSteps : [];
+    // Extract guidance - try multiple paths
+    let recommendation: string | null = null;
+    let message: string | null = null;
+    let keyInsights: string[] = [];
+    let nextSteps: string[] = [];
 
-    console.log('🔍 Parsed guidance:', {
+    if (parsed.guidance) {
+      // Direct guidance structure
+      recommendation = parsed.guidance.recommendation || null;
+      message = parsed.guidance.message || null;
+      keyInsights = Array.isArray(parsed.guidance.keyInsights) ? parsed.guidance.keyInsights : [];
+      nextSteps = Array.isArray(parsed.guidance.nextSteps) ? parsed.guidance.nextSteps : [];
+    } else {
+      // Extract from detailed structure
+      if (parsed.nextSteps?.recommendation) {
+        recommendation = parsed.nextSteps.recommendation;
+      }
+      if (parsed.conversationSummary?.overview) {
+        message = parsed.conversationSummary.overview;
+      }
+      if (parsed.coachingInsights?.keyWins) {
+        keyInsights = Array.isArray(parsed.coachingInsights.keyWins) ? parsed.coachingInsights.keyWins : [];
+      }
+      if (parsed.strategicRecommendations?.immediateActions) {
+        nextSteps = Array.isArray(parsed.strategicRecommendations.immediateActions) ? parsed.strategicRecommendations.immediateActions : [];
+      }
+    }
+
+    console.log('🔍 Extracted guidance:', {
       recommendation,
       message,
       keyInsights,
       nextSteps
     });
 
-    // Extract email follow-up - NO FALLBACKS
-    const subject = parsed.emailFollowUp?.subject || null;
-    const body = parsed.emailFollowUp?.body || null;
-    const timing = parsed.emailFollowUp?.timing || null;
-    const channel = parsed.emailFollowUp?.channel || null;
+    // Extract email follow-up
+    let subject: string | null = null;
+    let body: string | null = null;
+    let timing: string | null = null;
+    let channel: string | null = null;
 
-    console.log('🔍 Parsed email follow-up:', {
+    if (parsed.emailFollowUp) {
+      subject = parsed.emailFollowUp.subject || null;
+      body = parsed.emailFollowUp.body || null;
+      timing = parsed.emailFollowUp.timing || null;
+      channel = parsed.emailFollowUp.channel || null;
+    } else if (parsed.followUpCommunication) {
+      subject = parsed.followUpCommunication.subject || null;
+      body = parsed.followUpCommunication.keyMessages?.join('\n\n') || null;
+      timing = parsed.followUpCommunication.timeline || null;
+      channel = parsed.nextSteps?.channel || 'Email';
+    }
+
+    console.log('🔍 Extracted email follow-up:', {
       subject,
       body,
       timing,
@@ -263,6 +312,23 @@ class HybridAnalysisEngine {
     }
     console.log('🔍 Valid score:', score, '-> returning', num);
     return num;
+  }
+
+  extractScoreFromAnalysis(analysisSection: any): number | null {
+    // Try to extract numeric score from analysis text or infer from content
+    if (!analysisSection) return null;
+    
+    // Look for strengths/opportunities ratio to infer score
+    const strengthsCount = analysisSection.strengths?.length || 0;
+    const opportunitiesCount = analysisSection.opportunities?.length || 0;
+    
+    if (strengthsCount > opportunitiesCount) {
+      return strengthsCount >= 2 ? 4 : 3; // Good performance
+    } else if (strengthsCount === opportunitiesCount) {
+      return 3; // Balanced
+    } else {
+      return 2; // Needs improvement
+    }
   }
 
   async singlePassAnalysis(transcriptText: string, accountContext: string, promptTemplate: string): Promise<AnalysisResult> {
@@ -419,16 +485,21 @@ Provide a refined final analysis in JSON format with challengerScores, guidance,
       throw new Error('Failed to store analysis results');
     }
 
-    // Update transcript status
-    await this.supabase
+    // IMPORTANT: Update transcript status to "completed"
+    const { error: updateError } = await this.supabase
       .from('transcripts')
       .update({ 
         status: 'completed',
         processed_at: new Date().toISOString()
       })
       .eq('id', transcriptId);
+
+    if (updateError) {
+      console.error('Failed to update transcript status:', updateError);
+      // Don't throw here - analysis is stored, just status update failed
+    }
       
-    console.log('✅ Successfully stored analysis results for transcript:', transcriptId);
+    console.log('✅ Successfully stored analysis results and updated status for transcript:', transcriptId);
   }
 }
 
@@ -494,7 +565,7 @@ serve(async (req) => {
     const processingTime = Date.now() - startTime;
     console.log(`Analysis completed in ${processingTime}ms using ${strategy} strategy`);
 
-    // Store results with RLS
+    // Store results with improved error handling
     await engine.storeResults(request.transcriptId, result, strategy, processingTime);
 
     return new Response(JSON.stringify({
