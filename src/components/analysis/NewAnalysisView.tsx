@@ -13,7 +13,8 @@ import {
   Mail,
   MessageSquare,
   Calendar,
-  CheckCircle
+  CheckCircle,
+  Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -308,18 +309,28 @@ export function NewAnalysisView({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {analysis.reasoning.business_context && (
+                  {analysis.reasoning.businessContext && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Business Context</h4>
-                      <p className="text-slate-700 leading-relaxed">{analysis.reasoning.business_context}</p>
+                      <p className="text-slate-700 leading-relaxed">{analysis.reasoning.businessContext}</p>
                     </div>
                   )}
                   
-                  {analysis.reasoning.client_signals_observed && analysis.reasoning.client_signals_observed.length > 0 && (
+                  {analysis.reasoning.timing && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Timing Considerations</h4>
+                      <div className="flex items-start p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                        <Clock className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                        <p className="text-slate-700 leading-relaxed">{analysis.reasoning.timing}</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {analysis.reasoning.clientSignalsObserved && analysis.reasoning.clientSignalsObserved.length > 0 && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Client Signals Observed</h4>
                       <ul className="space-y-1">
-                        {analysis.reasoning.client_signals_observed.map((signal: string, index: number) => (
+                        {analysis.reasoning.clientSignalsObserved.map((signal: string, index: number) => (
                           <li key={index} className="flex items-start">
                             <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
                             <span className="text-slate-700">{signal}</span>
@@ -329,10 +340,10 @@ export function NewAnalysisView({
                     </div>
                   )}
                   
-                  {analysis.reasoning.why_these_recommendations && (
+                  {analysis.reasoning.whyTheseRecommendations && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Why These Recommendations</h4>
-                      <p className="text-slate-700 leading-relaxed">{analysis.reasoning.why_these_recommendations}</p>
+                      <p className="text-slate-700 leading-relaxed">{analysis.reasoning.whyTheseRecommendations}</p>
                     </div>
                   )}
                 </div>
