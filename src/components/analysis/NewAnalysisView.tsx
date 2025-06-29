@@ -295,20 +295,6 @@ export function NewAnalysisView({
                       <p className="text-slate-700 leading-relaxed">{analysis.recommendations.riskMitigation}</p>
                     </div>
                   )}
-
-                  {analysis.recommendations.immediateActions && analysis.recommendations.immediateActions.length > 0 && (
-                    <div>
-                      <h4 className="font-semibold text-slate-900 mb-2">Immediate Actions</h4>
-                      <ul className="space-y-1">
-                        {analysis.recommendations.immediateActions.map((action: string, index: number) => (
-                          <li key={index} className="flex items-start">
-                            <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
-                            <span className="text-slate-700">{action}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -377,7 +363,9 @@ export function NewAnalysisView({
                           <div key={index} className="border border-slate-200 rounded-lg p-4 bg-white">
                             <div className="flex items-start justify-between mb-3">
                               <div className="flex-1">
-                                <h5 className="font-medium text-slate-900 mb-1">{action.action}</h5>
+                                <h5 className="font-medium text-slate-900 mb-1">
+                                  {action.objective ? `${action.action}: ${action.objective}` : action.action}
+                                </h5>
                                 <div className="flex items-center space-x-4 text-sm text-slate-600">
                                   <div className="flex items-center">
                                     <Calendar className="w-4 h-4 mr-1" />
