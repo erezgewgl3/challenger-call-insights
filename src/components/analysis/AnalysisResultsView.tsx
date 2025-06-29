@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { useQuery } from '@tanstack/react-query'
 
 interface ChallengerScores {
   teaching: number
@@ -61,77 +62,50 @@ export function AnalysisResultsView({
   onUploadAnother
 }: AnalysisResultsViewProps) {
   const [emailCopied, setEmailCopied] = useState(false)
-  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
 
-  // Fetch analysis data
-  useEffect(() => {
-    const fetchAnalysisData = async () => {
-      try {
-        // Fetch transcript and analysis data
-        const { data: transcript, error: transcriptError } = await supabase
-          .from('transcripts')
-          .select(`
-            id,
-            title,
-            conversation_analysis (
-              challenger_scores,
-              guidance,
-              email_followup
-            )
-          `)
-          .eq('id', transcriptId)
-          .single()
+  // Fetch real analysis data from database
+  const { data: analysisData, isLoading, error } = useQuery({
+    queryKey: ['analysis', transcriptId],
+    queryFn: async () => {
+      const { data: transcript, error: transcriptError } = await supabase
+        .from('transcripts')
+        .select(`
+          id,
+          title,
+          conversation_analysis (
+            challenger_scores,
+            guidance,
+            email_followup
+          )
+        `)
+        .eq('id', transcriptId)
+        .single()
 
-        if (transcriptError) throw transcriptError
+      if (transcriptError) throw transcriptError
 
-        if (transcript?.conversation_analysis?.[0]) {
-          const analysis = transcript.conversation_analysis[0]
-          setAnalysisData({
-            challengerScores: (analysis.challenger_scores as unknown as ChallengerScores) || { teaching: 3, tailoring: 3, control: 3 },
-            guidance: (analysis.guidance as unknown as Guidance) || {
-              recommendation: 'Continue',
-              message: 'Good conversation with room for improvement.',
-              keyInsights: ['Engaged with prospect effectively'],
-              nextSteps: ['Follow up within 48 hours']
-            },
-            emailFollowUp: (analysis.email_followup as unknown as EmailFollowUp) || {
-              subject: 'Following up on our conversation',
-              body: 'Thank you for taking the time to speak with me today...',
-              timing: '48 hours',
-              channel: 'Email'
-            },
-            transcriptTitle: transcript.title
-          })
-        } else {
-          // Fallback data if analysis doesn't exist yet
-          setAnalysisData({
-            challengerScores: { teaching: 3, tailoring: 3, control: 3 },
-            guidance: {
-              recommendation: 'Continue',
-              message: 'Analysis in progress. Please check back shortly.',
-              keyInsights: ['Analysis is being processed'],
-              nextSteps: ['Check back in a few minutes']
-            },
-            emailFollowUp: {
-              subject: 'Following up on our conversation',
-              body: 'Thank you for taking the time to speak with me today...',
-              timing: '48 hours',
-              channel: 'Email'
-            },
-            transcriptTitle: transcript.title
-          })
+      if (transcript?.conversation_analysis?.[0]) {
+        const analysis = transcript.conversation_analysis[0]
+        return {
+          challengerScores: (analysis.challenger_scores as unknown as ChallengerScores) || { teaching: 3, tailoring: 3, control: 3 },
+          guidance: (analysis.guidance as unknown as Guidance) || {
+            recommendation: 'Continue',
+            message: 'Analysis completed successfully',
+            keyInsights: ['Call analyzed'],
+            nextSteps: ['Follow up as planned']
+          },
+          emailFollowUp: (analysis.email_followup as unknown as EmailFollowUp) || {
+            subject: 'Following up on our conversation',
+            body: 'Thank you for taking the time to speak with me today...',
+            timing: '48 hours',
+            channel: 'Email'
+          },
+          transcriptTitle: transcript.title
         }
-      } catch (error) {
-        console.error('Failed to fetch analysis data:', error)
-        toast.error('Failed to load analysis results')
-      } finally {
-        setIsLoading(false)
       }
-    }
 
-    fetchAnalysisData()
-  }, [transcriptId])
+      return null
+    }
+  })
 
   if (isLoading) {
     return (
@@ -144,11 +118,13 @@ export function AnalysisResultsView({
     )
   }
 
-  if (!analysisData) {
+  if (error || !analysisData) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <p className="text-slate-600">Failed to load analysis results</p>
+          <p className="text-slate-600">
+            {error ? 'Failed to load analysis results' : 'Analysis not found'}
+          </p>
           <Button onClick={onBackToDashboard}>Return to Dashboard</Button>
         </div>
       </div>
@@ -227,7 +203,7 @@ export function AnalysisResultsView({
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="text-center">
             <div className={`text-2xl font-bold ${color.replace('text-', 'text-')}`}>
-              {getImpactLevel(value).level}
+              {value}/5
             </div>
           </div>
         </div>
@@ -425,7 +401,10 @@ export function AnalysisResultsView({
                 <label className="text-sm font-semibold text-slate-700 mb-2 block">Message Preview</label>
                 <div className="p-4 bg-slate-50 rounded-lg border max-h-32 overflow-y-auto">
                   <p className="text-slate-900 text-sm leading-relaxed">
-                    {emailFollowUp.body.substring(0, 200)}...
+                    {emailFollowUp.body.length > 200 
+                      ? `${emailFollowUp.body.substring(0, 200)}...`
+                      : emailFollowUp.body
+                    }
                   </p>
                 </div>
               </div>
