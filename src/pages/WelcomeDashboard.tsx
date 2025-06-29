@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
@@ -7,7 +8,7 @@ import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
 import { AccountSelector } from '@/components/account/AccountSelector'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAnalysisFlow } from '@/hooks/useAnalysisFlow'
 import { FlowNavigation } from '@/components/flow/FlowNavigation'
 import { CelebrationTransition } from '@/components/flow/CelebrationTransition'
@@ -16,6 +17,8 @@ import { AnalysisResultsView } from '@/components/analysis/AnalysisResultsView'
 export default function WelcomeDashboard() {
   const { stats, isLoading } = useTranscriptData()
   const { uploadFiles, processFiles } = useTranscriptUpload()
+  const [viewMode, setViewMode] = useState<'dashboard' | 'results'>('dashboard')
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
   
   const {
     currentView,
@@ -49,12 +52,15 @@ export default function WelcomeDashboard() {
       })
     }
 
-    // Check for completed uploads
+    // Check for completed uploads and trigger automatic results view
     const completedUploads = uploadFiles.filter(f => f.status === 'completed')
     if (completedUploads.length > 0 && currentView === 'progress') {
       const latestUpload = completedUploads[completedUploads.length - 1]
       if (latestUpload.transcriptId) {
         uploadComplete(latestUpload.transcriptId, latestUpload.metadata?.durationMinutes)
+        // Automatically set to results view mode
+        setViewMode('results')
+        setCurrentAnalysisId(latestUpload.transcriptId)
       }
     }
 
@@ -66,29 +72,34 @@ export default function WelcomeDashboard() {
     }
   }, [uploadFiles, currentView, startUpload, uploadComplete, uploadError])
 
+  // Handle back to dashboard navigation
+  const handleBackToDashboard = () => {
+    setViewMode('dashboard')
+    setCurrentAnalysisId(null)
+    backToDashboard()
+  }
+
+  // Handle upload another navigation
+  const handleUploadAnother = () => {
+    setViewMode('dashboard')
+    setCurrentAnalysisId(null)
+    uploadAnother()
+  }
+
+  // Show results view when analysis is complete
+  if (viewMode === 'results' && currentAnalysisId) {
+    return (
+      <AnalysisResultsView 
+        transcriptId={currentAnalysisId}
+        onBackToDashboard={handleBackToDashboard}
+        onUploadAnother={handleUploadAnother}
+      />
+    )
+  }
+
   // Handle celebration transition
   if (transitionState === 'celebrating') {
     return <CelebrationTransition fileName={uploadContext.fileName} />
-  }
-
-  // Handle results view
-  if (currentView === 'results' && currentTranscriptId) {
-    // We'll need to fetch the analysis data for this view
-    // For now, we'll show a loading state and navigate to the dedicated analysis page
-    useEffect(() => {
-      if (currentTranscriptId) {
-        viewResults()
-      }
-    }, [currentTranscriptId, viewResults])
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="text-slate-600">Loading your insights...</p>
-        </div>
-      </div>
-    )
   }
 
   // Handle progress view
@@ -99,8 +110,8 @@ export default function WelcomeDashboard() {
       }`}>
         <FlowNavigation
           currentView={currentView}
-          onBackToDashboard={backToDashboard}
-          onUploadAnother={uploadAnother}
+          onBackToDashboard={handleBackToDashboard}
+          onUploadAnother={handleUploadAnother}
           showUploadAnother={false}
         />
         
@@ -112,7 +123,7 @@ export default function WelcomeDashboard() {
               error={error}
               estimatedTime={estimatedTime}
               onRetry={retryUpload}
-              onUploadAnother={uploadAnother}
+              onUploadAnother={handleUploadAnother}
               fileName={uploadContext.fileName}
               fileSize={uploadContext.fileSize}
               fileDuration={uploadContext.fileDuration}

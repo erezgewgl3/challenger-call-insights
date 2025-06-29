@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -21,6 +21,7 @@ import {
   Zap
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 
 interface ChallengerScores {
   teaching: number
@@ -42,24 +43,120 @@ interface EmailFollowUp {
   channel: string
 }
 
-interface AnalysisResultsViewProps {
+interface AnalysisData {
   challengerScores: ChallengerScores
   guidance: Guidance
   emailFollowUp: EmailFollowUp
   transcriptTitle: string
+}
+
+interface AnalysisResultsViewProps {
+  transcriptId: string
   onBackToDashboard: () => void
   onUploadAnother: () => void
 }
 
 export function AnalysisResultsView({ 
-  challengerScores, 
-  guidance, 
-  emailFollowUp, 
-  transcriptTitle,
+  transcriptId,
   onBackToDashboard,
   onUploadAnother
 }: AnalysisResultsViewProps) {
   const [emailCopied, setEmailCopied] = useState(false)
+  const [analysisData, setAnalysisData] = useState<AnalysisData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+
+  // Fetch analysis data
+  useEffect(() => {
+    const fetchAnalysisData = async () => {
+      try {
+        // Fetch transcript and analysis data
+        const { data: transcript, error: transcriptError } = await supabase
+          .from('transcripts')
+          .select(`
+            id,
+            title,
+            conversation_analysis (
+              challenger_scores,
+              guidance,
+              email_followup
+            )
+          `)
+          .eq('id', transcriptId)
+          .single()
+
+        if (transcriptError) throw transcriptError
+
+        if (transcript?.conversation_analysis?.[0]) {
+          const analysis = transcript.conversation_analysis[0]
+          setAnalysisData({
+            challengerScores: analysis.challenger_scores || { teaching: 3, tailoring: 3, control: 3 },
+            guidance: analysis.guidance || {
+              recommendation: 'Continue',
+              message: 'Good conversation with room for improvement.',
+              keyInsights: ['Engaged with prospect effectively'],
+              nextSteps: ['Follow up within 48 hours']
+            },
+            emailFollowUp: analysis.email_followup || {
+              subject: 'Following up on our conversation',
+              body: 'Thank you for taking the time to speak with me today...',
+              timing: '48 hours',
+              channel: 'Email'
+            },
+            transcriptTitle: transcript.title
+          })
+        } else {
+          // Fallback data if analysis doesn't exist yet
+          setAnalysisData({
+            challengerScores: { teaching: 3, tailoring: 3, control: 3 },
+            guidance: {
+              recommendation: 'Continue',
+              message: 'Analysis in progress. Please check back shortly.',
+              keyInsights: ['Analysis is being processed'],
+              nextSteps: ['Check back in a few minutes']
+            },
+            emailFollowUp: {
+              subject: 'Following up on our conversation',
+              body: 'Thank you for taking the time to speak with me today...',
+              timing: '48 hours',
+              channel: 'Email'
+            },
+            transcriptTitle: transcript.title
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch analysis data:', error)
+        toast.error('Failed to load analysis results')
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAnalysisData()
+  }, [transcriptId])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-slate-600">Loading your insights...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!analysisData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <p className="text-slate-600">Failed to load analysis results</p>
+          <Button onClick={onBackToDashboard}>Return to Dashboard</Button>
+        </div>
+      </div>
+    )
+  }
+
+  const { challengerScores, guidance, emailFollowUp, transcriptTitle } = analysisData
 
   // Determine the biggest strength for hero section
   const getTopStrength = () => {
