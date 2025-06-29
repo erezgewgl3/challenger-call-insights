@@ -77,6 +77,7 @@ serve(async (req) => {
 
     if (statusError) {
       console.error('🔍 [ERROR] Failed to update transcript status:', statusError);
+      // Don't throw here, continue with analysis
     }
 
     // Get active prompt
@@ -86,11 +87,13 @@ serve(async (req) => {
 
     if (promptError) {
       console.error('🔍 [ERROR] Failed to fetch active prompt:', promptError);
+      await updateTranscriptError(supabase, transcriptId, 'Failed to fetch active prompt');
       throw new Error('Failed to fetch active prompt');
     }
 
     const activePrompt = promptData?.[0];
     if (!activePrompt) {
+      await updateTranscriptError(supabase, transcriptId, 'No active prompt found');
       throw new Error('No active prompt found');
     }
 
@@ -118,38 +121,30 @@ serve(async (req) => {
     const parsedResult = parseAIResponse(openAIResponse);
     console.log('🔍 [PARSE] AI response parsed successfully');
 
-    // Save analysis results
+    // Save analysis results with proper error handling
     console.log('🔍 [DB] Saving analysis results to database');
+    const analysisPayload = {
+      transcript_id: transcriptId,
+      challenger_scores: parsedResult.challengerScores,
+      guidance: parsedResult.guidance,
+      email_followup: parsedResult.emailFollowUp,
+      participants: parsedResult.participants || null,
+      call_summary: parsedResult.callSummary || null,
+      key_takeaways: parsedResult.keyTakeaways || [],
+      recommendations: parsedResult.recommendations || null,
+      reasoning: parsedResult.reasoning || null,
+      action_plan: parsedResult.actionPlan || null
+    };
+
     const { data: analysisData, error: analysisError } = await supabase
       .from('conversation_analysis')
-      .insert({
-        transcript_id: transcriptId,
-        challenger_scores: parsedResult.challengerScores,
-        guidance: parsedResult.guidance,
-        email_followup: parsedResult.emailFollowUp,
-        // Store additional data for Sales Intelligence
-        ...(parsedResult.participants && { participants: parsedResult.participants }),
-        ...(parsedResult.callSummary && { call_summary: parsedResult.callSummary }),
-        ...(parsedResult.keyTakeaways && { key_takeaways: parsedResult.keyTakeaways }),
-        ...(parsedResult.recommendations && { recommendations: parsedResult.recommendations }),
-        ...(parsedResult.reasoning && { reasoning: parsedResult.reasoning }),
-        ...(parsedResult.actionPlan && { action_plan: parsedResult.actionPlan })
-      })
+      .insert(analysisPayload)
       .select()
       .single();
 
     if (analysisError) {
       console.error('🔍 [ERROR] Failed to save analysis results:', analysisError);
-      
-      // Update transcript status to error
-      await supabase
-        .from('transcripts')
-        .update({ 
-          status: 'error',
-          error_message: `Analysis save failed: ${analysisError.message}`
-        })
-        .eq('id', transcriptId);
-      
+      await updateTranscriptError(supabase, transcriptId, `Analysis save failed: ${analysisError.message}`);
       throw new Error(`Failed to save analysis: ${analysisError.message}`);
     }
 
@@ -160,12 +155,14 @@ serve(async (req) => {
     const { error: completeError } = await supabase
       .from('transcripts')
       .update({ 
-        status: 'completed'
+        status: 'completed',
+        error_message: null // Clear any previous error
       })
       .eq('id', transcriptId);
 
     if (completeError) {
       console.error('🔍 [ERROR] Failed to update transcript to completed:', completeError);
+      // Don't throw, analysis is saved successfully
     }
 
     console.log('🔍 [COMPLETE] Analysis pipeline completed successfully');
@@ -193,6 +190,18 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper function to update transcript with error status
+async function updateTranscriptError(supabase: any, transcriptId: string, errorMessage: string) {
+  await supabase
+    .from('transcripts')
+    .update({ 
+      status: 'error',
+      error_message: errorMessage,
+      processed_at: new Date().toISOString()
+    })
+    .eq('id', transcriptId);
+}
 
 async function callOpenAI(prompt: string): Promise<string> {
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');

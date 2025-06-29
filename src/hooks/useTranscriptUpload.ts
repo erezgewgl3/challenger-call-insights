@@ -1,356 +1,221 @@
 
-import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-import mammoth from 'mammoth'
 
-console.log('🔍 useTranscriptUpload.ts file loaded')
+type UploadStatus = 'idle' | 'validating' | 'uploading' | 'processing' | 'completed' | 'error'
 
 interface UploadFile {
   id: string
   file: File
+  status: UploadStatus
   progress: number
-  status: 'validating' | 'uploading' | 'processing' | 'completed' | 'error'
   error?: string
   transcriptId?: string
   metadata?: {
     title: string
     participants: string[]
-    durationMinutes?: number
+    meetingDate: string
+    durationMinutes: number
   }
-}
-
-interface TranscriptMetadata {
-  title: string
-  participants: string[]
-  meetingDate: Date
-  durationMinutes?: number
-}
-
-interface UploadRequest {
-  file: File
-  metadata: TranscriptMetadata
-  accountId?: string
 }
 
 export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) => void) {
-  console.log('🔍 useTranscriptUpload hook initialized')
-  
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([])
-  const queryClient = useQueryClient()
 
-  const validateFile = (file: File): string | null => {
-    const allowedTypes = [
-      'text/plain',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'text/vtt'
+  const updateFileStatus = useCallback((fileId: string, updates: Partial<UploadFile>) => {
+    setUploadFiles(prev => prev.map(file => 
+      file.id === fileId ? { ...file, ...updates } : file
+    ))
+  }, [])
+
+  const extractTextFromFile = async (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const content = e.target?.result as string
+        resolve(content)
+      }
+      reader.onerror = () => reject(new Error('Failed to read file'))
+      reader.readAsText(file)
+    })
+  }
+
+  const extractMetadataFromText = (text: string, fileName: string) => {
+    // Simple metadata extraction
+    const lines = text.split('\n').filter(line => line.trim())
+    const title = fileName.replace(/\.[^/.]+$/, "") // Remove extension
+    
+    // Try to extract participants from common patterns
+    const participants: string[] = []
+    const participantPatterns = [
+      /^([A-Z][a-z]+ [A-Z][a-z]+):/,
+      /^([A-Z][a-z]+):/,
+      /Speaker \d+/
     ]
     
-    if (!allowedTypes.includes(file.type)) {
-      return `Invalid file type. Only .txt, .docx, and .vtt files are supported.`
-    }
-    
-    if (file.size > 10 * 1024 * 1024) { // 10MB
-      return `File size must be less than 10MB.`
-    }
-    
-    return null
-  }
+    lines.forEach(line => {
+      participantPatterns.forEach(pattern => {
+        const match = line.match(pattern)
+        if (match && !participants.includes(match[1])) {
+          participants.push(match[1])
+        }
+      })
+    })
 
-  const extractTextContent = async (file: File): Promise<string> => {
-    switch (file.type) {
-      case 'text/plain':
-        return await file.text()
-      
-      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
-        const arrayBuffer = await file.arrayBuffer()
-        const result = await mammoth.extractRawText({ arrayBuffer })
-        return result.value
-      
-      case 'text/vtt':
-        const vttText = await file.text()
-        // Parse VTT format and extract only the text content
-        return vttText
-          .split('\n')
-          .filter(line => 
-            !line.startsWith('WEBVTT') && 
-            !line.includes('-->') && 
-            line.trim() !== '' &&
-            !/^\d+$/.test(line.trim())
-          )
-          .join(' ')
-          .trim()
-      
-      default:
-        throw new Error(`Unsupported file type: ${file.type}`)
-    }
-  }
-
-  const extractMetadata = (text: string, filename: string): Partial<TranscriptMetadata> => {
-    // Extract title from filename or first line
-    let title = filename.replace(/\.(txt|docx|vtt)$/i, '')
-    
-    // Try to find a better title in the first few lines
-    const lines = text.split('\n').slice(0, 5)
-    for (const line of lines) {
-      if (line.length > 10 && line.length < 100 && !line.includes('WEBVTT')) {
-        title = line.trim()
-        break
-      }
-    }
-
-    // Extract participants (look for patterns like "John:", "Speaker 1:", etc.)
-    const participantMatches = text.match(/\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*:/g)
-    const participants = participantMatches 
-      ? [...new Set(participantMatches.map(match => match.replace(':', '').trim()))]
-      : []
-
-    // Estimate duration based on word count (average 150 words per minute)
-    const wordCount = text.split(/\s+/).length
-    const estimatedDuration = Math.round(wordCount / 150)
+    // Estimate duration based on content length (rough estimate)
+    const estimatedDuration = Math.max(5, Math.min(120, Math.floor(text.length / 1000)))
 
     return {
       title,
-      participants: participants.slice(0, 10), // Limit to 10 participants
-      durationMinutes: estimatedDuration > 0 ? estimatedDuration : undefined
+      participants: participants.length > 0 ? participants : ['Speaker 1', 'Speaker 2'],
+      meetingDate: new Date().toISOString(),
+      durationMinutes: estimatedDuration
     }
   }
 
-  const updateFileStatus = (fileId: string, updates: Partial<UploadFile>) => {
-    console.log('🔍 Updating file status:', fileId, updates)
-    setUploadFiles(prev => 
-      prev.map(f => 
-        f.id === fileId 
-          ? { ...f, ...updates }
-          : f
-      )
-    )
-  }
+  const processFiles = useCallback(async (files: File[]) => {
+    const newFiles: UploadFile[] = files.map(file => ({
+      id: Math.random().toString(36).substr(2, 9),
+      file,
+      status: 'validating' as UploadStatus,
+      progress: 0
+    }))
 
-  // Set up real-time subscription to listen for analysis completion
-  const setupAnalysisListener = (transcriptId: string) => {
-    console.log('🔍 Setting up analysis listener for:', transcriptId)
-    
-    const channel = supabase
-      .channel(`transcript-${transcriptId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'transcripts',
-          filter: `id=eq.${transcriptId}`
-        },
-        (payload) => {
-          console.log('🔍 Transcript status update:', payload.new)
-          const updatedTranscript = payload.new as any
-          
-          if (updatedTranscript.status === 'completed') {
-            console.log('🔍 Analysis completed, calling callback')
-            toast.success('Analysis completed! View your sales intelligence now.', {
-              duration: 5000,
+    setUploadFiles(prev => [...prev, ...newFiles])
+
+    for (const uploadFile of newFiles) {
+      try {
+        // Validation phase
+        updateFileStatus(uploadFile.id, { status: 'validating', progress: 20 })
+        
+        // Extract text content
+        const textContent = await extractTextFromFile(uploadFile.file)
+        updateFileStatus(uploadFile.id, { progress: 40 })
+        
+        // Extract metadata
+        const metadata = extractMetadataFromText(textContent, uploadFile.file.name)
+        updateFileStatus(uploadFile.id, { metadata, progress: 60 })
+
+        // Upload phase
+        updateFileStatus(uploadFile.id, { status: 'uploading', progress: 70 })
+
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('User not authenticated')
+
+        // Create transcript record
+        const { data: transcript, error: transcriptError } = await supabase
+          .from('transcripts')
+          .insert({
+            user_id: user.id,
+            title: metadata.title,
+            participants: metadata.participants,
+            meeting_date: metadata.meetingDate,
+            duration_minutes: metadata.durationMinutes,
+            raw_text: textContent,
+            status: 'uploaded'
+          })
+          .select()
+          .single()
+
+        if (transcriptError) throw transcriptError
+
+        updateFileStatus(uploadFile.id, { 
+          transcriptId: transcript.id,
+          status: 'processing',
+          progress: 80
+        })
+
+        // Start AI analysis
+        const analysisResponse = await supabase.functions.invoke('analyze-transcript', {
+          body: {
+            transcriptId: transcript.id,
+            userId: user.id,
+            transcriptText: textContent,
+            durationMinutes: metadata.durationMinutes
+          }
+        })
+
+        if (analysisResponse.error) {
+          console.error('Analysis failed:', analysisResponse.error)
+          updateFileStatus(uploadFile.id, {
+            status: 'error',
+            error: 'Analysis failed to start'
+          })
+          continue
+        }
+
+        // Poll for completion
+        let attempts = 0
+        const maxAttempts = 30 // 30 seconds max wait
+        
+        const pollForCompletion = async () => {
+          const { data: transcriptStatus } = await supabase
+            .from('transcripts')
+            .select('status, error_message')
+            .eq('id', transcript.id)
+            .single()
+
+          if (transcriptStatus?.status === 'completed') {
+            updateFileStatus(uploadFile.id, {
+              status: 'completed',
+              progress: 100
             })
             
-            // Call the completion callback
-            if (onAnalysisComplete) {
-              onAnalysisComplete(transcriptId)
-            }
+            toast.success(`Analysis complete for ${uploadFile.file.name}`)
             
-            // Clean up the listener
-            supabase.removeChannel(channel)
-          } else if (updatedTranscript.status === 'error') {
-            console.log('🔍 Analysis failed')
-            toast.error('Analysis failed. Please try again.')
-            supabase.removeChannel(channel)
+            // Auto-navigate after brief delay
+            setTimeout(() => {
+              onAnalysisComplete?.(transcript.id)
+            }, 2000)
+          } else if (transcriptStatus?.status === 'error') {
+            updateFileStatus(uploadFile.id, {
+              status: 'error',
+              error: transcriptStatus.error_message || 'Analysis failed'
+            })
+          } else if (attempts < maxAttempts) {
+            attempts++
+            setTimeout(pollForCompletion, 1000)
+          } else {
+            updateFileStatus(uploadFile.id, {
+              status: 'error',
+              error: 'Analysis timed out'
+            })
           }
         }
-      )
-      .subscribe()
 
-    return channel
-  }
-
-  const uploadMutation = useMutation({
-    mutationFn: async (request: UploadRequest): Promise<string> => {
-      console.log('🔍 Upload mutation started for:', request.file.name)
-      
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('User not authenticated')
-
-      // Extract text content
-      const textContent = await extractTextContent(request.file)
-      if (!textContent.trim()) {
-        throw new Error('File appears to be empty or contains no readable text')
-      }
-
-      console.log('🔍 Text content extracted, length:', textContent.length)
-
-      // Insert transcript record
-      const { data: transcript, error: insertError } = await supabase
-        .from('transcripts')
-        .insert({
-          user_id: user.id,
-          account_id: request.accountId,
-          title: request.metadata.title,
-          participants: request.metadata.participants,
-          meeting_date: request.metadata.meetingDate.toISOString(),
-          duration_minutes: request.metadata.durationMinutes,
-          raw_text: textContent,
-          status: 'uploaded'
-        })
-        .select()
-        .single()
-
-      if (insertError || !transcript) {
-        throw new Error(`Failed to save transcript: ${insertError?.message || 'Unknown error'}`)
-      }
-
-      console.log('🔍 Transcript saved with ID:', transcript.id)
-
-      // Set up real-time listener for analysis completion
-      setupAnalysisListener(transcript.id)
-
-      // Trigger analysis
-      const { error: analysisError } = await supabase.functions.invoke('analyze-transcript', {
-        body: {
-          transcriptId: transcript.id,
-          userId: user.id,
-          transcriptText: textContent,
-          durationMinutes: request.metadata.durationMinutes || 30,
-          accountId: request.accountId
-        }
-      })
-
-      if (analysisError) {
-        console.warn('Analysis failed to start:', analysisError)
-        // Don't throw here - transcript is saved, analysis can be retried
-        toast.warning('Analysis failed to start automatically. You can retry from the transcript page.')
-      } else {
-        console.log('🔍 Analysis triggered for transcript:', transcript.id)
-      }
-
-      return transcript.id
-    },
-    onSuccess: (transcriptId, variables) => {
-      console.log('🔍 Upload mutation success, transcript ID:', transcriptId)
-      toast.success(`Transcript "${variables.metadata.title}" uploaded successfully`)
-      queryClient.invalidateQueries({ queryKey: ['transcripts'] })
-    },
-    onError: (error) => {
-      console.error('🔍 Upload mutation failed:', error)
-      toast.error(`Upload failed: ${error.message}`)
-    }
-  })
-
-  const processFiles = async (files: File[]) => {
-    console.log('🔍 Processing files:', files.map(f => f.name))
-    
-    for (const file of files) {
-      const fileId = Math.random().toString(36).substr(2, 9)
-      console.log('🔍 Processing file:', file.name, 'with ID:', fileId)
-      
-      // Validate file
-      const validationError = validateFile(file)
-      if (validationError) {
-        console.error('🔍 File validation failed:', file.name, validationError)
-        toast.error(`${file.name}: ${validationError}`)
-        continue
-      }
-
-      // Add to upload queue
-      setUploadFiles(prev => [...prev, {
-        id: fileId,
-        file,
-        progress: 0,
-        status: 'validating'
-      }])
-
-      try {
-        // Extract content and metadata
-        console.log('🔍 Starting validation for:', file.name)
-        updateFileStatus(fileId, { status: 'validating', progress: 20 })
-        const textContent = await extractTextContent(file)
-        
-        console.log('🔍 Text extracted, extracting metadata for:', file.name)
-        updateFileStatus(fileId, { progress: 40 })
-        const extractedMetadata = extractMetadata(textContent, file.name)
-        
-        const metadata: TranscriptMetadata = {
-          title: extractedMetadata.title || file.name,
-          participants: extractedMetadata.participants || [],
-          meetingDate: new Date(),
-          durationMinutes: extractedMetadata.durationMinutes
-        }
-
-        console.log('🔍 Metadata extracted for:', file.name, metadata)
-
-        updateFileStatus(fileId, { 
-          status: 'uploading',
-          progress: 60,
-          metadata
-        })
-
-        // Upload and trigger analysis
-        console.log('🔍 Starting upload for:', file.name)
-        const transcriptId = await uploadMutation.mutateAsync({
-          file,
-          metadata,
-          accountId: undefined // Will be handled by account association later
-        })
-
-        console.log('🔍 Upload completed, transcript ID:', transcriptId)
-
-        updateFileStatus(fileId, {
-          status: 'processing',
-          progress: 80,
-          transcriptId
-        })
-
-        // Mark as completed when upload is done
-        setTimeout(() => {
-          console.log('🔍 Marking upload as completed for:', file.name)
-          updateFileStatus(fileId, {
-            status: 'completed',
-            progress: 100
-          })
-        }, 1000)
+        setTimeout(pollForCompletion, 2000) // Start polling after 2 seconds
 
       } catch (error) {
-        console.error('🔍 File processing failed for:', file.name, error)
-        updateFileStatus(fileId, {
+        console.error('Upload failed:', error)
+        updateFileStatus(uploadFile.id, {
           status: 'error',
-          progress: 0,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Upload failed'
         })
+        toast.error(`Upload failed: ${uploadFile.file.name}`)
       }
     }
-  }
+  }, [updateFileStatus, onAnalysisComplete])
 
-  const removeFile = (fileId: string) => {
-    console.log('🔍 Removing file:', fileId)
-    setUploadFiles(prev => prev.filter(f => f.id !== fileId))
-  }
+  const removeFile = useCallback((fileId: string) => {
+    setUploadFiles(prev => prev.filter(file => file.id !== fileId))
+  }, [])
 
-  const retryFile = async (fileId: string) => {
-    console.log('🔍 Retrying file:', fileId)
+  const retryFile = useCallback((fileId: string) => {
     const file = uploadFiles.find(f => f.id === fileId)
-    if (!file) return
+    if (file) {
+      processFiles([file.file])
+      removeFile(fileId)
+    }
+  }, [uploadFiles, processFiles, removeFile])
 
-    updateFileStatus(fileId, { 
-      status: 'validating', 
-      progress: 0, 
-      error: undefined 
-    })
-
-    // Retry the process
-    processFiles([file.file])
-  }
-
-  const clearFiles = () => {
-    console.log('🔍 Clearing all files')
+  const clearFiles = useCallback(() => {
     setUploadFiles([])
-  }
+  }, [])
+
+  const isUploading = uploadFiles.some(file => 
+    ['validating', 'uploading', 'processing'].includes(file.status)
+  )
 
   return {
     uploadFiles,
@@ -358,6 +223,6 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
     removeFile,
     retryFile,
     clearFiles,
-    isUploading: uploadMutation.isPending
+    isUploading
   }
 }

@@ -46,27 +46,45 @@ export type Database = {
       }
       conversation_analysis: {
         Row: {
+          action_plan: Json | null
+          call_summary: Json | null
           challenger_scores: Json | null
           created_at: string | null
           email_followup: Json | null
           guidance: Json | null
           id: string
+          key_takeaways: Json | null
+          participants: Json | null
+          reasoning: Json | null
+          recommendations: Json | null
           transcript_id: string | null
         }
         Insert: {
+          action_plan?: Json | null
+          call_summary?: Json | null
           challenger_scores?: Json | null
           created_at?: string | null
           email_followup?: Json | null
           guidance?: Json | null
           id?: string
+          key_takeaways?: Json | null
+          participants?: Json | null
+          reasoning?: Json | null
+          recommendations?: Json | null
           transcript_id?: string | null
         }
         Update: {
+          action_plan?: Json | null
+          call_summary?: Json | null
           challenger_scores?: Json | null
           created_at?: string | null
           email_followup?: Json | null
           guidance?: Json | null
           id?: string
+          key_takeaways?: Json | null
+          participants?: Json | null
+          reasoning?: Json | null
+          recommendations?: Json | null
           transcript_id?: string | null
         }
         Relationships: [
@@ -209,9 +227,11 @@ export type Database = {
           account_id: string | null
           created_at: string | null
           duration_minutes: number | null
+          error_message: string | null
           id: string
           meeting_date: string
           participants: Json | null
+          processed_at: string | null
           raw_text: string | null
           status: Database["public"]["Enums"]["processing_status"] | null
           title: string
@@ -221,9 +241,11 @@ export type Database = {
           account_id?: string | null
           created_at?: string | null
           duration_minutes?: number | null
+          error_message?: string | null
           id?: string
           meeting_date: string
           participants?: Json | null
+          processed_at?: string | null
           raw_text?: string | null
           status?: Database["public"]["Enums"]["processing_status"] | null
           title: string
@@ -233,9 +255,11 @@ export type Database = {
           account_id?: string | null
           created_at?: string | null
           duration_minutes?: number | null
+          error_message?: string | null
           id?: string
           meeting_date?: string
           participants?: Json | null
+          processed_at?: string | null
           raw_text?: string | null
           status?: Database["public"]["Enums"]["processing_status"] | null
           title?: string
