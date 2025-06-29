@@ -134,7 +134,7 @@ export function useTranscriptUpload() {
         throw new Error('File appears to be empty or contains no readable text')
       }
 
-      // Insert transcript record
+      // Insert transcript record - removed upload_source field
       const { data: transcript, error: insertError } = await supabase
         .from('transcripts')
         .insert({
@@ -145,8 +145,7 @@ export function useTranscriptUpload() {
           meeting_date: request.metadata.meetingDate.toISOString(),
           duration_minutes: request.metadata.durationMinutes,
           raw_text: textContent,
-          status: 'uploaded',
-          upload_source: 'manual_upload'
+          status: 'uploaded'
         })
         .select()
         .single()
