@@ -9,8 +9,12 @@ import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
 
 console.log('🔍 TranscriptUpload.tsx file loaded')
 
-export function TranscriptUpload() {
-  console.log('🔍 TranscriptUpload component rendering')
+interface TranscriptUploadProps {
+  onAnalysisComplete?: (transcriptId: string) => void
+}
+
+export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) {
+  console.log('🔍 TranscriptUpload component rendering', { onAnalysisComplete: !!onAnalysisComplete })
   
   const { uploadFiles, processFiles, removeFile, retryFile, isUploading } = useTranscriptUpload()
 
@@ -24,6 +28,27 @@ export function TranscriptUpload() {
       transcriptId: f.transcriptId 
     }))
   })
+
+  // Check for completed uploads and notify parent
+  React.useEffect(() => {
+    console.log('🔍 TranscriptUpload checking for completed uploads')
+    
+    const completedUploads = uploadFiles.filter(f => 
+      f.status === 'completed' && f.transcriptId
+    )
+    
+    if (completedUploads.length > 0) {
+      const latestCompleted = completedUploads[completedUploads.length - 1]
+      console.log('🔍 FOUND COMPLETED UPLOAD:', latestCompleted.transcriptId)
+      
+      if (onAnalysisComplete && latestCompleted.transcriptId) {
+        console.log('🔍 CALLING onAnalysisComplete:', latestCompleted.transcriptId)
+        onAnalysisComplete(latestCompleted.transcriptId)
+      } else {
+        console.log('🔍 NO onAnalysisComplete callback provided')
+      }
+    }
+  }, [uploadFiles, onAnalysisComplete])
 
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
     console.log('🔍 Files dropped:', { acceptedFiles: acceptedFiles.length, rejectedFiles: rejectedFiles.length })

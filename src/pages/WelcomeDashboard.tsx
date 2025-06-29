@@ -7,118 +7,33 @@ import { UploadProgress } from '@/components/upload/UploadProgress'
 import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
 import { AccountSelector } from '@/components/account/AccountSelector'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
-import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
-import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
 import { AnalysisResultsView } from '@/components/analysis/AnalysisResultsView'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 console.log('🔍 WelcomeDashboard.tsx file loaded')
 
 export default function WelcomeDashboard() {
-  console.log('🔍 WelcomeDashboard component rendering')
+  console.log('🔍 WelcomeDashboard MOUNTED')
+  console.log('🔍 Current route:', window.location.pathname)
   
   const { stats, isLoading } = useTranscriptData()
-  const { uploadFiles } = useTranscriptUpload()
-  const [currentView, setCurrentView] = useState<'dashboard' | 'progress' | 'results'>('dashboard')
+  const [currentView, setCurrentView] = useState<'dashboard' | 'results'>('dashboard')
   const [currentTranscriptId, setCurrentTranscriptId] = useState<string | null>(null)
-  const [analysisProgress, setAnalysisProgress] = useState(0)
-  
-  // Use analysis status hook to track completion
-  const { status: analysisStatus } = useAnalysisStatus(currentTranscriptId || undefined)
 
-  console.log('🔍 Dashboard State:', {
-    currentView,
-    currentTranscriptId,
-    analysisProgress,
-    uploadFilesCount: uploadFiles.length,
-    analysisStatus: analysisStatus?.status
-  })
+  console.log('🔍 Component states:', { currentView, currentTranscriptId })
 
-  // Handle upload state changes
-  useEffect(() => {
-    console.log('🔍 Upload files effect triggered - Files:', uploadFiles.length)
-    
-    // Find active uploads (uploading or processing)
-    const activeUploads = uploadFiles.filter(f => 
-      f.status === 'uploading' || f.status === 'processing'
-    )
-    
-    // Find completed uploads
-    const completedUploads = uploadFiles.filter(f => f.status === 'completed')
-    
-    console.log('🔍 Active uploads:', activeUploads.length)
-    console.log('🔍 Completed uploads:', completedUploads.length)
-
-    // Handle new uploads starting
-    if (activeUploads.length > 0 && currentView === 'dashboard') {
-      const latestUpload = activeUploads[activeUploads.length - 1]
-      console.log('🔍 File upload started:', latestUpload.file.name)
-      
-      setCurrentView('progress')
-      setAnalysisProgress(latestUpload.progress || 0)
-      
-      // If we have a transcript ID from the upload, capture it
-      if (latestUpload.transcriptId) {
-        console.log('🔍 Capturing transcript ID from upload:', latestUpload.transcriptId)
-        setCurrentTranscriptId(latestUpload.transcriptId)
-      }
-    }
-
-    // Handle upload progress updates
-    if (activeUploads.length > 0) {
-      const latestUpload = activeUploads[activeUploads.length - 1]
-      setAnalysisProgress(latestUpload.progress || 0)
-      
-      // Capture transcript ID when it becomes available
-      if (latestUpload.transcriptId && !currentTranscriptId) {
-        console.log('🔍 Transcript ID now available:', latestUpload.transcriptId)
-        setCurrentTranscriptId(latestUpload.transcriptId)
-      }
-    }
-
-    // Handle completed uploads
-    if (completedUploads.length > 0 && currentView !== 'results') {
-      const latestCompleted = completedUploads[completedUploads.length - 1]
-      console.log('🔍 Upload completed for:', latestCompleted.file.name)
-      
-      if (latestCompleted.transcriptId) {
-        console.log('🔍 Transcript ID from completed upload:', latestCompleted.transcriptId)
-        setCurrentTranscriptId(latestCompleted.transcriptId)
-        setAnalysisProgress(100)
-        
-        // Brief delay then switch to results
-        setTimeout(() => {
-          console.log('🔍 Switching to results view for transcript:', latestCompleted.transcriptId)
-          setCurrentView('results')
-        }, 1500)
-      }
-    }
-  }, [uploadFiles, currentView, currentTranscriptId])
-
-  // Handle analysis status changes
-  useEffect(() => {
-    console.log('🔍 Analysis status effect:', analysisStatus)
-    
-    if (analysisStatus && currentTranscriptId) {
-      console.log('🔍 Analysis status for transcript:', currentTranscriptId, 'Status:', analysisStatus.status)
-      
-      if (analysisStatus.status === 'completed' && currentView !== 'results') {
-        console.log('🔍 Analysis completed! Switching to results view')
-        setCurrentView('results')
-        setAnalysisProgress(100)
-      } else if (analysisStatus.status === 'processing') {
-        console.log('🔍 Analysis in progress, updating progress')
-        setAnalysisProgress(analysisStatus.progress || 50)
-      }
-    }
-  }, [analysisStatus, currentTranscriptId, currentView])
+  // Handle analysis completion from TranscriptUpload
+  const handleAnalysisComplete = (transcriptId: string) => {
+    console.log('🔍 DASHBOARD RECEIVED COMPLETION:', transcriptId)
+    setCurrentTranscriptId(transcriptId)
+    setCurrentView('results')
+  }
 
   // Handle navigation back to dashboard
   const handleBackToDashboard = () => {
     console.log('🔍 Returning to dashboard')
     setCurrentView('dashboard')
     setCurrentTranscriptId(null)
-    setAnalysisProgress(0)
   }
 
   // Handle upload another
@@ -126,7 +41,6 @@ export default function WelcomeDashboard() {
     console.log('🔍 Starting new upload')
     setCurrentView('dashboard')
     setCurrentTranscriptId(null)
-    setAnalysisProgress(0)
   }
 
   // Show results view
@@ -138,30 +52,6 @@ export default function WelcomeDashboard() {
         onBackToDashboard={handleBackToDashboard}
         onUploadAnother={handleUploadAnother}
       />
-    )
-  }
-
-  // Show progress view
-  if (currentView === 'progress') {
-    console.log('🔍 Rendering progress view with progress:', analysisProgress)
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-        <main className="max-w-4xl mx-auto px-4 py-8">
-          <div className="flex justify-center">
-            <UploadProgress
-              uploadStatus="processing"
-              analysisProgress={analysisProgress}
-              error={null}
-              estimatedTime="Processing..."
-              onRetry={() => {}}
-              onUploadAnother={handleUploadAnother}
-              fileName={uploadFiles.find(f => f.transcriptId === currentTranscriptId)?.file.name}
-              fileSize={uploadFiles.find(f => f.transcriptId === currentTranscriptId)?.file.size}
-              fileDuration={uploadFiles.find(f => f.transcriptId === currentTranscriptId)?.metadata?.durationMinutes}
-            />
-          </div>
-        </main>
-      </div>
     )
   }
 
@@ -257,7 +147,7 @@ export default function WelcomeDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Upload Section */}
           <div className="space-y-6">
-            <TranscriptUpload />
+            <TranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
             <AccountSelector />
           </div>
 
