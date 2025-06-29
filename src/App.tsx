@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -14,58 +13,37 @@ import WelcomeDashboard from "./pages/WelcomeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import PromptManagement from "./pages/PromptManagement";
 import NotFound from "./pages/NotFound";
+import TranscriptAnalysis from "./pages/TranscriptAnalysis";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
       <Toaster />
-      <Sonner />
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<LoginForm />} />
-            <Route path="/register" element={<RegisterForm />} />
-            
-            {/* Sales User Dashboard */}
-            <Route 
-              path="/dashboard" 
-              element={
-                <AuthGuard>
-                  <WelcomeDashboard />
-                </AuthGuard>
-              } 
-            />
-            
-            {/* Admin Dashboard */}
-            <Route 
-              path="/admin" 
-              element={
-                <AdminGuard>
-                  <AdminDashboard />
-                </AdminGuard>
-              } 
-            />
-            
-            {/* Admin Prompt Management */}
-            <Route 
-              path="/admin/prompts" 
-              element={
-                <AdminGuard>
-                  <PromptManagement />
-                </AdminGuard>
-              } 
-            />
-            
-            {/* Catch-all for 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/admin" element={
+            <AdminGuard>
+              <AdminDashboard />
+            </AdminGuard>
+          } />
+          <Route path="/prompts" element={
+            <AdminGuard>
+              <PromptManagement />
+            </AdminGuard>
+          } />
+          <Route path="/analysis/:transcriptId" element={
+            <AuthGuard>
+              <TranscriptAnalysis />
+            </AuthGuard>
+          } />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </QueryClientProvider>
+  )
+}
 
-export default App;
+export default App

@@ -1,12 +1,14 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
 import { TranscriptUpload } from '@/components/upload/TranscriptUpload'
 import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
 import { AccountSelector } from '@/components/account/AccountSelector'
+import { useTranscriptData } from '@/hooks/useTranscriptData'
 
 export default function WelcomeDashboard() {
+  const { stats, isLoading } = useTranscriptData()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       {/* Header */}
@@ -34,8 +36,12 @@ export default function WelcomeDashboard() {
               <BarChart3 className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">12</div>
-              <p className="text-xs text-slate-500 mt-1">+3 this week</p>
+              <div className="text-2xl font-bold text-slate-900">
+                {isLoading ? '-' : stats.totalTranscripts}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {stats.completedTranscripts} completed
+              </p>
             </CardContent>
           </Card>
 
@@ -45,8 +51,14 @@ export default function WelcomeDashboard() {
               <TrendingUp className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">4.2</div>
-              <p className="text-xs text-slate-500 mt-1">+0.3 from last month</p>
+              <div className="text-2xl font-bold text-slate-900">
+                {isLoading ? '-' : stats.averageTeachingScore > 0 ? stats.averageTeachingScore.toFixed(1) : 'N/A'}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {stats.averageTeachingScore >= 4 ? 'Excellent performance' : 
+                 stats.averageTeachingScore >= 3 ? 'Good performance' : 
+                 stats.averageTeachingScore > 0 ? 'Growing skills' : 'Start analyzing calls'}
+              </p>
             </CardContent>
           </Card>
 
@@ -56,19 +68,29 @@ export default function WelcomeDashboard() {
               <Clock className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">42m</div>
-              <p className="text-xs text-slate-500 mt-1">Optimal range</p>
+              <div className="text-2xl font-bold text-slate-900">
+                {isLoading ? '-' : stats.averageCallDuration > 0 ? `${stats.averageCallDuration}m` : 'N/A'}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {stats.averageCallDuration >= 45 ? 'Great depth' : 
+                 stats.averageCallDuration >= 30 ? 'Good length' : 
+                 stats.averageCallDuration > 0 ? 'Consider longer calls' : 'Upload calls to track'}
+              </p>
             </CardContent>
           </Card>
 
           <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Active Deals</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-700">Active Accounts</CardTitle>
               <Target className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-slate-900">8</div>
-              <p className="text-xs text-slate-500 mt-1">3 in negotiation</p>
+              <div className="text-2xl font-bold text-slate-900">
+                {isLoading ? '-' : stats.activeDeals}
+              </div>
+              <p className="text-xs text-slate-500 mt-1">
+                {stats.activeDeals > 0 ? 'Pipeline engaged' : 'Start tracking accounts'}
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -99,75 +121,82 @@ export default function WelcomeDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="border-l-4 border-l-blue-500 pl-4">
-                    <p className="font-medium text-slate-900 mb-1">Strong Teaching Momentum</p>
-                    <p className="text-sm text-slate-600">
-                      Your last 3 calls showed excellent insight sharing. Keep challenging assumptions!
-                    </p>
+                {stats.completedTranscripts === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="text-slate-500">Upload and analyze your first call to see insights here</p>
                   </div>
-                  <div className="border-l-4 border-l-yellow-500 pl-4">
-                    <p className="font-medium text-slate-900 mb-1">Improve Tailoring</p>
-                    <p className="text-sm text-slate-600">
-                      Consider using more customer-specific examples in your next discovery calls.
-                    </p>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="border-l-4 border-l-blue-500 pl-4">
+                      <p className="font-medium text-slate-900 mb-1">
+                        {stats.averageTeachingScore >= 4 ? 'Strong Teaching Momentum' : 'Building Teaching Skills'}
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        {stats.averageTeachingScore >= 4 
+                          ? 'Your insights are creating strong impact. Keep challenging assumptions!'
+                          : 'Focus on sharing more industry insights and challenging customer thinking.'
+                        }
+                      </p>
+                    </div>
+                    <div className="border-l-4 border-l-green-500 pl-4">
+                      <p className="font-medium text-slate-900 mb-1">Keep Improving</p>
+                      <p className="text-sm text-slate-600">
+                        Regular analysis helps identify patterns and accelerate your sales performance.
+                      </p>
+                    </div>
                   </div>
-                  <div className="border-l-4 border-l-green-500 pl-4">
-                    <p className="font-medium text-slate-900 mb-1">Great Control</p>
-                    <p className="text-sm text-slate-600">
-                      You're effectively managing conversation flow and setting clear next steps.
-                    </p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </div>
 
         {/* Getting Started Guide - Only show if no transcripts */}
-        <Card className="shadow-md bg-white">
-          <CardHeader>
-            <CardTitle className="text-xl text-slate-900">Getting Started with Sales Whisperer</CardTitle>
-            <CardDescription className="text-slate-600">
-              Follow these steps to get the most out of your AI sales coaching platform
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-white">1</span>
+        {stats.totalTranscripts === 0 && !isLoading && (
+          <Card className="shadow-md bg-white">
+            <CardHeader>
+              <CardTitle className="text-xl text-slate-900">Getting Started with Sales Whisperer</CardTitle>
+              <CardDescription className="text-slate-600">
+                Follow these steps to get the most out of your AI sales coaching platform
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-white">1</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">Upload Your First Call</h4>
+                  <p className="text-slate-600 text-sm">
+                    Upload a sales call transcript (text, Word, or VTT format) to get started with AI analysis.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-slate-900">Upload Your First Call</h4>
-                <p className="text-slate-600 text-sm">
-                  Upload a sales call transcript (text, Word, or VTT format) to get started with AI analysis.
-                </p>
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-white">2</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">Review AI Coaching</h4>
+                  <p className="text-slate-600 text-sm">
+                    Get instant Challenger Sales methodology scores and personalized coaching recommendations.
+                  </p>
+                </div>
               </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-white">2</span>
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-xs font-bold text-white">3</span>
+                </div>
+                <div>
+                  <h4 className="font-semibold text-slate-900">Track Your Progress</h4>
+                  <p className="text-slate-600 text-sm">
+                    Monitor your improvement over time and build stronger relationships with prospects.
+                  </p>
+                </div>
               </div>
-              <div>
-                <h4 className="font-semibold text-slate-900">Review AI Coaching</h4>
-                <p className="text-slate-600 text-sm">
-                  Get instant Challenger Sales methodology scores and personalized coaching recommendations.
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start space-x-3">
-              <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                <span className="text-xs font-bold text-white">3</span>
-              </div>
-              <div>
-                <h4 className="font-semibold text-slate-900">Track Your Progress</h4>
-                <p className="text-slate-600 text-sm">
-                  Monitor your improvement over time and build stronger relationships with prospects.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   )
