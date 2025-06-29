@@ -20,6 +20,8 @@ export default function WelcomeDashboard() {
   const [viewMode, setViewMode] = useState<'dashboard' | 'results'>('dashboard')
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
   
+  console.log('🔍 Dashboard Render - View Mode:', viewMode, 'Analysis ID:', currentAnalysisId)
+  
   const {
     currentView,
     transitionState,
@@ -37,14 +39,26 @@ export default function WelcomeDashboard() {
     backToDashboard
   } = useAnalysisFlow()
 
+  console.log('🔍 Analysis Flow State:', {
+    currentView,
+    currentTranscriptId,
+    analysisProgress,
+    transitionState
+  })
+
   // Monitor upload files to trigger flow state changes
   useEffect(() => {
+    console.log('🔍 Upload Files Effect - Files:', uploadFiles.length)
+    
     const activeUploads = uploadFiles.filter(f => 
       f.status === 'uploading' || f.status === 'processing'
     )
     
+    console.log('🔍 Active Uploads:', activeUploads.length)
+    
     if (activeUploads.length > 0 && currentView === 'dashboard') {
       const latestUpload = activeUploads[activeUploads.length - 1]
+      console.log('🔍 Starting upload flow for:', latestUpload.file.name)
       startUpload({
         fileName: latestUpload.file.name,
         fileSize: latestUpload.file.size,
@@ -54,11 +68,18 @@ export default function WelcomeDashboard() {
 
     // Check for completed uploads and trigger automatic results view
     const completedUploads = uploadFiles.filter(f => f.status === 'completed')
+    console.log('🔍 Completed Uploads:', completedUploads.length)
+    
     if (completedUploads.length > 0 && currentView === 'progress') {
       const latestUpload = completedUploads[completedUploads.length - 1]
+      console.log('🔍 Latest completed upload:', latestUpload.transcriptId)
+      
       if (latestUpload.transcriptId) {
+        console.log('🔍 Triggering upload complete with transcript ID:', latestUpload.transcriptId)
         uploadComplete(latestUpload.transcriptId, latestUpload.metadata?.durationMinutes)
+        
         // Automatically set to results view mode
+        console.log('🔍 Setting view mode to results')
         setViewMode('results')
         setCurrentAnalysisId(latestUpload.transcriptId)
       }
@@ -68,12 +89,31 @@ export default function WelcomeDashboard() {
     const errorUploads = uploadFiles.filter(f => f.status === 'error')
     if (errorUploads.length > 0 && currentView !== 'dashboard') {
       const latestError = errorUploads[errorUploads.length - 1]
+      console.log('🔍 Upload error:', latestError.error)
       uploadError(latestError.error || 'Upload failed')
     }
   }, [uploadFiles, currentView, startUpload, uploadComplete, uploadError])
 
+  // Additional debugging for analysis flow changes
+  useEffect(() => {
+    console.log('🔍 Analysis Flow Change Effect:', {
+      currentView,
+      currentTranscriptId,
+      analysisProgress
+    })
+    
+    // Check if analysis is complete and we should show results
+    if (currentView === 'progress' && analysisProgress === 100 && currentTranscriptId) {
+      console.log('🔍 Analysis complete! Switching to results view')
+      console.log('🔍 Setting viewMode to results and currentAnalysisId to:', currentTranscriptId)
+      setViewMode('results')
+      setCurrentAnalysisId(currentTranscriptId)
+    }
+  }, [currentView, currentTranscriptId, analysisProgress])
+
   // Handle back to dashboard navigation
   const handleBackToDashboard = () => {
+    console.log('🔍 Handling back to dashboard')
     setViewMode('dashboard')
     setCurrentAnalysisId(null)
     backToDashboard()
@@ -81,13 +121,16 @@ export default function WelcomeDashboard() {
 
   // Handle upload another navigation
   const handleUploadAnother = () => {
+    console.log('🔍 Handling upload another')
     setViewMode('dashboard')
     setCurrentAnalysisId(null)
     uploadAnother()
   }
 
   // Show results view when analysis is complete
+  console.log('🔍 Should show results?', viewMode === 'results' && currentAnalysisId)
   if (viewMode === 'results' && currentAnalysisId) {
+    console.log('🔍 Rendering AnalysisResultsView with transcript ID:', currentAnalysisId)
     return (
       <AnalysisResultsView 
         transcriptId={currentAnalysisId}
@@ -99,11 +142,13 @@ export default function WelcomeDashboard() {
 
   // Handle celebration transition
   if (transitionState === 'celebrating') {
+    console.log('🔍 Rendering celebration transition')
     return <CelebrationTransition fileName={uploadContext.fileName} />
   }
 
   // Handle progress view
   if (currentView === 'progress') {
+    console.log('🔍 Rendering progress view')
     return (
       <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 transition-all duration-300 ${
         transitionState === 'transitioning' ? 'opacity-0' : 'opacity-100'
@@ -135,6 +180,7 @@ export default function WelcomeDashboard() {
   }
 
   // Main dashboard view
+  console.log('🔍 Rendering main dashboard view')
   return (
     <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 transition-all duration-300 ${
       transitionState === 'transitioning' ? 'opacity-0' : 'opacity-100'
