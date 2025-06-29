@@ -1,4 +1,3 @@
-
 import React, { useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,10 +7,27 @@ import { Badge } from '@/components/ui/badge'
 import { Upload, FileText, AlertCircle, CheckCircle, Clock, RotateCcw } from 'lucide-react'
 import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
 
+console.log('🔍 TranscriptUpload.tsx file loaded')
+
 export function TranscriptUpload() {
+  console.log('🔍 TranscriptUpload component rendering')
+  
   const { uploadFiles, processFiles, removeFile, retryFile, isUploading } = useTranscriptUpload()
 
+  console.log('🔍 TranscriptUpload state:', {
+    uploadFilesCount: uploadFiles.length,
+    isUploading,
+    uploadFiles: uploadFiles.map(f => ({ 
+      name: f.file.name, 
+      status: f.status, 
+      progress: f.progress,
+      transcriptId: f.transcriptId 
+    }))
+  })
+
   const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+    console.log('🔍 Files dropped:', { acceptedFiles: acceptedFiles.length, rejectedFiles: rejectedFiles.length })
+    
     // Handle rejected files
     rejectedFiles.forEach((rejection) => {
       console.warn(`${rejection.file.name}: ${rejection.errors[0]?.message}`)
@@ -19,6 +35,7 @@ export function TranscriptUpload() {
 
     // Process accepted files
     if (acceptedFiles.length > 0) {
+      console.log('🔍 Processing accepted files:', acceptedFiles.map(f => f.name))
       processFiles(acceptedFiles)
     }
   }, [processFiles])
@@ -216,7 +233,7 @@ export function TranscriptUpload() {
                   </div>
                 )}
 
-                {/* Success Message - UPDATED: No longer shows "View results in Recent Transcripts" */}
+                {/* Success Message */}
                 {uploadFile.status === 'completed' && (
                   <div className="flex items-center space-x-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-green-500" />

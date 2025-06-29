@@ -5,6 +5,8 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import mammoth from 'mammoth'
 
+console.log('🔍 useTranscriptUpload.ts file loaded')
+
 interface UploadFile {
   id: string
   file: File
@@ -33,6 +35,8 @@ interface UploadRequest {
 }
 
 export function useTranscriptUpload() {
+  console.log('🔍 useTranscriptUpload hook initialized')
+  
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([])
   const queryClient = useQueryClient()
 
@@ -114,6 +118,7 @@ export function useTranscriptUpload() {
   }
 
   const updateFileStatus = (fileId: string, updates: Partial<UploadFile>) => {
+    console.log('🔍 Updating file status:', fileId, updates)
     setUploadFiles(prev => 
       prev.map(f => 
         f.id === fileId 
@@ -125,6 +130,8 @@ export function useTranscriptUpload() {
 
   const uploadMutation = useMutation({
     mutationFn: async (request: UploadRequest): Promise<string> => {
+      console.log('🔍 Upload mutation started for:', request.file.name)
+      
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
 
@@ -134,7 +141,9 @@ export function useTranscriptUpload() {
         throw new Error('File appears to be empty or contains no readable text')
       }
 
-      // Insert transcript record - removed upload_source field
+      console.log('🔍 Text content extracted, length:', textContent.length)
+
+      // Insert transcript record
       const { data: transcript, error: insertError } = await supabase
         .from('transcripts')
         .insert({
@@ -154,6 +163,8 @@ export function useTranscriptUpload() {
         throw new Error(`Failed to save transcript: ${insertError?.message || 'Unknown error'}`)
       }
 
+      console.log('🔍 Transcript saved with ID:', transcript.id)
+
       // Trigger analysis
       const { error: analysisError } = await supabase.functions.invoke('analyze-transcript', {
         body: {
@@ -168,27 +179,34 @@ export function useTranscriptUpload() {
       if (analysisError) {
         console.warn('Analysis failed to start:', analysisError)
         // Don't throw here - transcript is saved, analysis can be retried
+      } else {
+        console.log('🔍 Analysis triggered for transcript:', transcript.id)
       }
 
       return transcript.id
     },
     onSuccess: (transcriptId, variables) => {
+      console.log('🔍 Upload mutation success, transcript ID:', transcriptId)
       toast.success(`Transcript "${variables.metadata.title}" uploaded successfully`)
       queryClient.invalidateQueries({ queryKey: ['transcripts'] })
     },
     onError: (error) => {
-      console.error('Upload failed:', error)
+      console.error('🔍 Upload mutation failed:', error)
       toast.error(`Upload failed: ${error.message}`)
     }
   })
 
   const processFiles = async (files: File[]) => {
+    console.log('🔍 Processing files:', files.map(f => f.name))
+    
     for (const file of files) {
       const fileId = Math.random().toString(36).substr(2, 9)
+      console.log('🔍 Processing file:', file.name, 'with ID:', fileId)
       
       // Validate file
       const validationError = validateFile(file)
       if (validationError) {
+        console.error('🔍 File validation failed:', file.name, validationError)
         toast.error(`${file.name}: ${validationError}`)
         continue
       }
@@ -203,9 +221,11 @@ export function useTranscriptUpload() {
 
       try {
         // Extract content and metadata
+        console.log('🔍 Starting validation for:', file.name)
         updateFileStatus(fileId, { status: 'validating', progress: 20 })
         const textContent = await extractTextContent(file)
         
+        console.log('🔍 Text extracted, extracting metadata for:', file.name)
         updateFileStatus(fileId, { progress: 40 })
         const extractedMetadata = extractMetadata(textContent, file.name)
         
@@ -216,6 +236,8 @@ export function useTranscriptUpload() {
           durationMinutes: extractedMetadata.durationMinutes
         }
 
+        console.log('🔍 Metadata extracted for:', file.name, metadata)
+
         updateFileStatus(fileId, { 
           status: 'uploading',
           progress: 60,
@@ -223,11 +245,14 @@ export function useTranscriptUpload() {
         })
 
         // Upload and trigger analysis
+        console.log('🔍 Starting upload for:', file.name)
         const transcriptId = await uploadMutation.mutateAsync({
           file,
           metadata,
           accountId: undefined // Will be handled by account association later
         })
+
+        console.log('🔍 Upload completed, transcript ID:', transcriptId)
 
         updateFileStatus(fileId, {
           status: 'processing',
@@ -236,8 +261,8 @@ export function useTranscriptUpload() {
         })
 
         // Mark as completed when upload is done
-        // The analysis status will be tracked separately by useUploadFlow
         setTimeout(() => {
+          console.log('🔍 Marking upload as completed for:', file.name)
           updateFileStatus(fileId, {
             status: 'completed',
             progress: 100
@@ -245,6 +270,7 @@ export function useTranscriptUpload() {
         }, 1000)
 
       } catch (error) {
+        console.error('🔍 File processing failed for:', file.name, error)
         updateFileStatus(fileId, {
           status: 'error',
           progress: 0,
@@ -255,10 +281,12 @@ export function useTranscriptUpload() {
   }
 
   const removeFile = (fileId: string) => {
+    console.log('🔍 Removing file:', fileId)
     setUploadFiles(prev => prev.filter(f => f.id !== fileId))
   }
 
   const retryFile = async (fileId: string) => {
+    console.log('🔍 Retrying file:', fileId)
     const file = uploadFiles.find(f => f.id === fileId)
     if (!file) return
 
@@ -273,6 +301,7 @@ export function useTranscriptUpload() {
   }
 
   const clearFiles = () => {
+    console.log('🔍 Clearing all files')
     setUploadFiles([])
   }
 

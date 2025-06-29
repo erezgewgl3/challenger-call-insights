@@ -8,213 +8,156 @@ import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
 import { AccountSelector } from '@/components/account/AccountSelector'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
-import { useEffect, useState } from 'react'
-import { useAnalysisFlow } from '@/hooks/useAnalysisFlow'
-import { FlowNavigation } from '@/components/flow/FlowNavigation'
-import { CelebrationTransition } from '@/components/flow/CelebrationTransition'
+import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
 import { AnalysisResultsView } from '@/components/analysis/AnalysisResultsView'
+import { useEffect, useState } from 'react'
+
+console.log('🔍 WelcomeDashboard.tsx file loaded')
 
 export default function WelcomeDashboard() {
+  console.log('🔍 WelcomeDashboard component rendering')
+  
   const { stats, isLoading } = useTranscriptData()
-  const { uploadFiles, processFiles } = useTranscriptUpload()
-  const [viewMode, setViewMode] = useState<'dashboard' | 'progress' | 'results'>('dashboard')
-  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null)
+  const { uploadFiles } = useTranscriptUpload()
+  const [currentView, setCurrentView] = useState<'dashboard' | 'progress' | 'results'>('dashboard')
+  const [currentTranscriptId, setCurrentTranscriptId] = useState<string | null>(null)
   const [analysisProgress, setAnalysisProgress] = useState(0)
   
-  console.log('🔍 Dashboard Render - View Mode:', viewMode, 'Analysis ID:', currentAnalysisId)
-  
-  const {
-    currentView,
-    transitionState,
-    currentTranscriptId,
-    analysisProgress: flowAnalysisProgress,
-    error,
-    estimatedTime,
-    uploadContext,
-    startUpload,
-    uploadComplete,
-    uploadError,
-    retryUpload,
-    uploadAnother,
-    viewResults,
-    backToDashboard
-  } = useAnalysisFlow()
+  // Use analysis status hook to track completion
+  const { status: analysisStatus } = useAnalysisStatus(currentTranscriptId || undefined)
 
-  console.log('🔍 Analysis Flow State:', {
+  console.log('🔍 Dashboard State:', {
     currentView,
     currentTranscriptId,
-    analysisProgress: flowAnalysisProgress,
-    transitionState
+    analysisProgress,
+    uploadFilesCount: uploadFiles.length,
+    analysisStatus: analysisStatus?.status
   })
 
-  // CRITICAL FIX: Connect upload files to view state management
+  // Handle upload state changes
   useEffect(() => {
-    console.log('🔍 CRITICAL - Upload Files Effect - Files:', uploadFiles.length)
+    console.log('🔍 Upload files effect triggered - Files:', uploadFiles.length)
     
+    // Find active uploads (uploading or processing)
     const activeUploads = uploadFiles.filter(f => 
       f.status === 'uploading' || f.status === 'processing'
     )
     
-    console.log('🔍 CRITICAL - Active Uploads:', activeUploads.length)
+    // Find completed uploads
+    const completedUploads = uploadFiles.filter(f => f.status === 'completed')
     
-    // Handle upload start
-    if (activeUploads.length > 0 && viewMode === 'dashboard') {
+    console.log('🔍 Active uploads:', activeUploads.length)
+    console.log('🔍 Completed uploads:', completedUploads.length)
+
+    // Handle new uploads starting
+    if (activeUploads.length > 0 && currentView === 'dashboard') {
       const latestUpload = activeUploads[activeUploads.length - 1]
-      console.log('🔍 CRITICAL - Starting upload flow for:', latestUpload.file.name)
+      console.log('🔍 File upload started:', latestUpload.file.name)
       
-      // Switch to progress view immediately when upload starts
-      setViewMode('progress')
-      
-      // If we have a transcript ID, capture it
-      if (latestUpload.transcriptId) {
-        console.log('🔍 CRITICAL - Capturing transcript ID from active upload:', latestUpload.transcriptId)
-        setCurrentAnalysisId(latestUpload.transcriptId)
-      }
-      
-      // Update progress based on upload progress
+      setCurrentView('progress')
       setAnalysisProgress(latestUpload.progress || 0)
       
-      startUpload({
-        fileName: latestUpload.file.name,
-        fileSize: latestUpload.file.size,
-        fileDuration: latestUpload.metadata?.durationMinutes
-      })
+      // If we have a transcript ID from the upload, capture it
+      if (latestUpload.transcriptId) {
+        console.log('🔍 Capturing transcript ID from upload:', latestUpload.transcriptId)
+        setCurrentTranscriptId(latestUpload.transcriptId)
+      }
     }
 
-    // CRITICAL: Handle completed uploads - capture transcript ID and switch to results
-    const completedUploads = uploadFiles.filter(f => f.status === 'completed')
-    console.log('🔍 CRITICAL - Completed Uploads:', completedUploads.length)
-    
-    if (completedUploads.length > 0) {
-      const latestUpload = completedUploads[completedUploads.length - 1]
-      console.log('🔍 CRITICAL - Latest completed upload:', latestUpload.transcriptId)
+    // Handle upload progress updates
+    if (activeUploads.length > 0) {
+      const latestUpload = activeUploads[activeUploads.length - 1]
+      setAnalysisProgress(latestUpload.progress || 0)
       
-      if (latestUpload.transcriptId && viewMode !== 'results') {
-        console.log('🔍 CRITICAL - Upload completed, transcript ID:', latestUpload.transcriptId)
-        console.log('🔍 CRITICAL - Setting currentAnalysisId to:', latestUpload.transcriptId)
-        
-        setCurrentAnalysisId(latestUpload.transcriptId)
+      // Capture transcript ID when it becomes available
+      if (latestUpload.transcriptId && !currentTranscriptId) {
+        console.log('🔍 Transcript ID now available:', latestUpload.transcriptId)
+        setCurrentTranscriptId(latestUpload.transcriptId)
+      }
+    }
+
+    // Handle completed uploads
+    if (completedUploads.length > 0 && currentView !== 'results') {
+      const latestCompleted = completedUploads[completedUploads.length - 1]
+      console.log('🔍 Upload completed for:', latestCompleted.file.name)
+      
+      if (latestCompleted.transcriptId) {
+        console.log('🔍 Transcript ID from completed upload:', latestCompleted.transcriptId)
+        setCurrentTranscriptId(latestCompleted.transcriptId)
         setAnalysisProgress(100)
         
-        // Trigger upload complete in flow
-        uploadComplete(latestUpload.transcriptId, latestUpload.metadata?.durationMinutes)
-        
-        // CRITICAL: Switch to results view automatically
-        console.log('🔍 CRITICAL - Switching to results view')
+        // Brief delay then switch to results
         setTimeout(() => {
-          setViewMode('results')
-        }, 1500) // Brief delay to show completion
+          console.log('🔍 Switching to results view for transcript:', latestCompleted.transcriptId)
+          setCurrentView('results')
+        }, 1500)
       }
     }
+  }, [uploadFiles, currentView, currentTranscriptId])
 
-    // Handle processing uploads - update progress
-    const processingUploads = uploadFiles.filter(f => f.status === 'processing')
-    if (processingUploads.length > 0) {
-      const latestProcessing = processingUploads[processingUploads.length - 1]
-      console.log('🔍 CRITICAL - Processing upload progress:', latestProcessing.progress)
-      
-      if (latestProcessing.transcriptId && !currentAnalysisId) {
-        console.log('🔍 CRITICAL - Capturing transcript ID from processing upload:', latestProcessing.transcriptId)
-        setCurrentAnalysisId(latestProcessing.transcriptId)
-      }
-      
-      setAnalysisProgress(latestProcessing.progress || 0)
-    }
-
-    // Check for errors
-    const errorUploads = uploadFiles.filter(f => f.status === 'error')
-    if (errorUploads.length > 0 && viewMode !== 'dashboard') {
-      const latestError = errorUploads[errorUploads.length - 1]
-      console.log('🔍 CRITICAL - Upload error:', latestError.error)
-      uploadError(latestError.error || 'Upload failed')
-    }
-  }, [uploadFiles, viewMode, currentAnalysisId, startUpload, uploadComplete, uploadError])
-
-  // Additional debugging for analysis flow changes
+  // Handle analysis status changes
   useEffect(() => {
-    console.log('🔍 Analysis Flow Change Effect:', {
-      currentView,
-      currentTranscriptId,
-      analysisProgress: flowAnalysisProgress
-    })
+    console.log('🔍 Analysis status effect:', analysisStatus)
     
-    // Sync flow analysis progress with local state
-    if (flowAnalysisProgress > 0) {
-      setAnalysisProgress(flowAnalysisProgress)
+    if (analysisStatus && currentTranscriptId) {
+      console.log('🔍 Analysis status for transcript:', currentTranscriptId, 'Status:', analysisStatus.status)
+      
+      if (analysisStatus.status === 'completed' && currentView !== 'results') {
+        console.log('🔍 Analysis completed! Switching to results view')
+        setCurrentView('results')
+        setAnalysisProgress(100)
+      } else if (analysisStatus.status === 'processing') {
+        console.log('🔍 Analysis in progress, updating progress')
+        setAnalysisProgress(analysisStatus.progress || 50)
+      }
     }
-    
-    // Check if analysis is complete and we should show results
-    if (currentView === 'progress' && flowAnalysisProgress === 100 && currentTranscriptId) {
-      console.log('🔍 Analysis complete via flow! Switching to results view')
-      console.log('🔍 Setting viewMode to results and currentAnalysisId to:', currentTranscriptId)
-      setViewMode('results')
-      setCurrentAnalysisId(currentTranscriptId)
-    }
-  }, [currentView, currentTranscriptId, flowAnalysisProgress])
+  }, [analysisStatus, currentTranscriptId, currentView])
 
-  // Handle back to dashboard navigation
+  // Handle navigation back to dashboard
   const handleBackToDashboard = () => {
-    console.log('🔍 Handling back to dashboard')
-    setViewMode('dashboard')
-    setCurrentAnalysisId(null)
+    console.log('🔍 Returning to dashboard')
+    setCurrentView('dashboard')
+    setCurrentTranscriptId(null)
     setAnalysisProgress(0)
-    backToDashboard()
   }
 
-  // Handle upload another navigation
+  // Handle upload another
   const handleUploadAnother = () => {
-    console.log('🔍 Handling upload another')
-    setViewMode('dashboard')
-    setCurrentAnalysisId(null)
+    console.log('🔍 Starting new upload')
+    setCurrentView('dashboard')
+    setCurrentTranscriptId(null)
     setAnalysisProgress(0)
-    uploadAnother()
   }
 
-  // Show results view when analysis is complete
-  console.log('🔍 Should show results?', viewMode === 'results' && currentAnalysisId)
-  if (viewMode === 'results' && currentAnalysisId) {
-    console.log('🔍 CRITICAL - Rendering AnalysisResultsView with transcript ID:', currentAnalysisId)
+  // Show results view
+  if (currentView === 'results' && currentTranscriptId) {
+    console.log('🔍 Rendering results view for transcript:', currentTranscriptId)
     return (
       <AnalysisResultsView 
-        transcriptId={currentAnalysisId}
+        transcriptId={currentTranscriptId}
         onBackToDashboard={handleBackToDashboard}
         onUploadAnother={handleUploadAnother}
       />
     )
   }
 
-  // Handle celebration transition
-  if (transitionState === 'celebrating') {
-    console.log('🔍 Rendering celebration transition')
-    return <CelebrationTransition fileName={uploadContext.fileName} />
-  }
-
-  // Handle progress view
-  if (viewMode === 'progress' || currentView === 'progress') {
-    console.log('🔍 CRITICAL - Rendering progress view with analysisProgress:', analysisProgress)
+  // Show progress view
+  if (currentView === 'progress') {
+    console.log('🔍 Rendering progress view with progress:', analysisProgress)
     return (
-      <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 transition-all duration-300 ${
-        transitionState === 'transitioning' ? 'opacity-0' : 'opacity-100'
-      }`}>
-        <FlowNavigation
-          currentView={currentView}
-          onBackToDashboard={handleBackToDashboard}
-          onUploadAnother={handleUploadAnother}
-          showUploadAnother={false}
-        />
-        
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
         <main className="max-w-4xl mx-auto px-4 py-8">
           <div className="flex justify-center">
             <UploadProgress
               uploadStatus="processing"
               analysisProgress={analysisProgress}
-              error={error}
-              estimatedTime={estimatedTime}
-              onRetry={retryUpload}
+              error={null}
+              estimatedTime="Processing..."
+              onRetry={() => {}}
               onUploadAnother={handleUploadAnother}
-              fileName={uploadContext.fileName}
-              fileSize={uploadContext.fileSize}
-              fileDuration={uploadContext.fileDuration}
+              fileName={uploadFiles.find(f => f.transcriptId === currentTranscriptId)?.file.name}
+              fileSize={uploadFiles.find(f => f.transcriptId === currentTranscriptId)?.file.size}
+              fileDuration={uploadFiles.find(f => f.transcriptId === currentTranscriptId)?.metadata?.durationMinutes}
             />
           </div>
         </main>
@@ -225,9 +168,7 @@ export default function WelcomeDashboard() {
   // Main dashboard view
   console.log('🔍 Rendering main dashboard view')
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 transition-all duration-300 ${
-      transitionState === 'transitioning' ? 'opacity-0' : 'opacity-100'
-    }`}>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       {/* Header */}
       <DashboardHeader
         title="Sales Whisperer"
@@ -397,7 +338,7 @@ export default function WelcomeDashboard() {
                   <p className="text-slate-600 text-sm">
                     Get instant Challenger Sales methodology scores and personalized coaching recommendations.
                   </p>
-                  </div>
+                </div>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
