@@ -14,7 +14,10 @@ import {
   MessageSquare,
   Calendar,
   CheckCircle,
-  Clock
+  Clock,
+  AlertTriangle,
+  TrendingUp,
+  DollarSign
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -215,11 +218,11 @@ export function NewAnalysisView({
                     </div>
                   )}
                   
-                  {analysis.call_summary.main_topics && analysis.call_summary.main_topics.length > 0 && (
+                  {analysis.call_summary.mainTopics && analysis.call_summary.mainTopics.length > 0 && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Main Topics Discussed</h4>
                       <ul className="space-y-1">
-                        {analysis.call_summary.main_topics.map((topic: string, index: number) => (
+                        {analysis.call_summary.mainTopics.map((topic: string, index: number) => (
                           <li key={index} className="flex items-start">
                             <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
                             <span className="text-slate-700">{topic}</span>
@@ -229,10 +232,65 @@ export function NewAnalysisView({
                     </div>
                   )}
                   
-                  {analysis.call_summary.client_situation && (
+                  {analysis.call_summary.clientSituation && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Client Situation</h4>
-                      <p className="text-slate-700 leading-relaxed">{analysis.call_summary.client_situation}</p>
+                      <p className="text-slate-700 leading-relaxed">{analysis.call_summary.clientSituation}</p>
+                    </div>
+                  )}
+
+                  {analysis.call_summary.clientConcerns && analysis.call_summary.clientConcerns.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Client Concerns</h4>
+                      <ul className="space-y-1">
+                        {analysis.call_summary.clientConcerns.map((concern: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 mr-2 flex-shrink-0" />
+                            <span className="text-slate-700">{concern}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {analysis.call_summary.positiveSignals && analysis.call_summary.positiveSignals.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Positive Signals</h4>
+                      <ul className="space-y-1">
+                        {analysis.call_summary.positiveSignals.map((signal: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <TrendingUp className="w-4 h-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                            <span className="text-slate-700">{signal}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+
+                  {analysis.call_summary.budget && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Budget Discussion</h4>
+                      <div className="flex items-start p-3 bg-green-50 border-l-4 border-green-400 rounded-r-lg">
+                        <DollarSign className="w-4 h-4 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
+                        <p className="text-slate-700 leading-relaxed">{analysis.call_summary.budget}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {analysis.call_summary.timeline && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Timeline</h4>
+                      <div className="flex items-start p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                        <Calendar className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                        <p className="text-slate-700 leading-relaxed">{analysis.call_summary.timeline}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {analysis.call_summary.competitiveLandscape && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Competitive Landscape</h4>
+                      <p className="text-slate-700 leading-relaxed">{analysis.call_summary.competitiveLandscape}</p>
                     </div>
                   )}
                 </div>
