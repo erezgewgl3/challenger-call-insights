@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { AnalysisResultsView } from '@/components/analysis/AnalysisResultsView'
+import { SalesIntelligenceView } from '@/components/analysis/SalesIntelligenceView'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
 import { ArrowLeft } from 'lucide-react'
@@ -80,7 +80,7 @@ export default function TranscriptAnalysis() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
           <LoadingSpinner />
-          <p className="text-slate-600">Loading your conversation insights...</p>
+          <p className="text-slate-600">Loading sales intelligence...</p>
         </div>
       </div>
     )
@@ -91,9 +91,9 @@ export default function TranscriptAnalysis() {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
         <Card className="w-full max-w-md">
           <CardHeader>
-            <CardTitle className="text-red-600">Analysis Not Found</CardTitle>
+            <CardTitle className="text-red-600">Intelligence Not Found</CardTitle>
             <CardDescription>
-              The transcript analysis could not be loaded.
+              The sales intelligence could not be loaded.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -116,7 +116,7 @@ export default function TranscriptAnalysis() {
             <div className="space-y-2">
               <h1 className="text-3xl font-bold text-slate-900">{transcript.title}</h1>
               <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                Analysis in Progress
+                Intelligence Processing
               </Badge>
             </div>
             
@@ -124,17 +124,17 @@ export default function TranscriptAnalysis() {
               <CardHeader>
                 <CardTitle className="flex items-center justify-center">
                   <LoadingSpinner />
-                  <span className="ml-3">Processing Your Conversation</span>
+                  <span className="ml-3">Generating Sales Intelligence</span>
                 </CardTitle>
                 <CardDescription>
-                  AI is analyzing your sales call using Challenger methodology
+                  AI is analyzing your conversation for actionable insights
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="text-sm text-slate-600">
-                  <p>📊 Evaluating Teaching, Tailoring, and Control dimensions</p>
-                  <p>💡 Identifying key insights and opportunities</p>
-                  <p>✉️ Crafting personalized follow-up recommendations</p>
+                  <p>🎯 Identifying client needs and buying signals</p>
+                  <p>💡 Extracting key intelligence and opportunities</p>
+                  <p>✉️ Creating ready-to-use follow-up content</p>
                 </div>
                 <p className="text-xs text-slate-500">
                   Estimated time: {transcript.duration_minutes <= 30 ? '8 seconds' : 
@@ -148,9 +148,9 @@ export default function TranscriptAnalysis() {
     )
   }
 
-  // Show the immersive results view - pass only transcriptId
+  // Show the sales intelligence view
   return (
-    <AnalysisResultsView
+    <SalesIntelligenceView
       transcriptId={transcriptId!}
       onBackToDashboard={handleBackToDashboard}
       onUploadAnother={handleUploadAnother}

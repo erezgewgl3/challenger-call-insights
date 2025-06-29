@@ -7,7 +7,7 @@ import { UploadProgress } from '@/components/upload/UploadProgress'
 import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
 import { AccountSelector } from '@/components/account/AccountSelector'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
-import { AnalysisResultsView } from '@/components/analysis/AnalysisResultsView'
+import { SalesIntelligenceView } from '@/components/analysis/SalesIntelligenceView'
 import { useState } from 'react'
 
 console.log('🔍 WelcomeDashboard.tsx file loaded')
@@ -17,7 +17,7 @@ export default function WelcomeDashboard() {
   console.log('🔍 Current route:', window.location.pathname)
   
   const { stats, isLoading } = useTranscriptData()
-  const [currentView, setCurrentView] = useState<'dashboard' | 'results'>('dashboard')
+  const [currentView, setCurrentView] = useState<'dashboard' | 'intelligence'>('dashboard')
   const [currentTranscriptId, setCurrentTranscriptId] = useState<string | null>(null)
 
   console.log('🔍 Component states:', { currentView, currentTranscriptId })
@@ -26,7 +26,7 @@ export default function WelcomeDashboard() {
   const handleAnalysisComplete = (transcriptId: string) => {
     console.log('🔍 DASHBOARD RECEIVED COMPLETION:', transcriptId)
     setCurrentTranscriptId(transcriptId)
-    setCurrentView('results')
+    setCurrentView('intelligence')
   }
 
   // Handle navigation back to dashboard
@@ -43,11 +43,11 @@ export default function WelcomeDashboard() {
     setCurrentTranscriptId(null)
   }
 
-  // Show results view
-  if (currentView === 'results' && currentTranscriptId) {
-    console.log('🔍 Rendering results view for transcript:', currentTranscriptId)
+  // Show sales intelligence view
+  if (currentView === 'intelligence' && currentTranscriptId) {
+    console.log('🔍 Rendering sales intelligence view for transcript:', currentTranscriptId)
     return (
-      <AnalysisResultsView 
+      <SalesIntelligenceView 
         transcriptId={currentTranscriptId}
         onBackToDashboard={handleBackToDashboard}
         onUploadAnother={handleUploadAnother}
@@ -62,7 +62,7 @@ export default function WelcomeDashboard() {
       {/* Header */}
       <DashboardHeader
         title="Sales Whisperer"
-        subtitle="AI-Powered Sales Coaching"
+        subtitle="AI-Powered Sales Intelligence"
         iconColor="bg-blue-600"
       />
 
@@ -72,7 +72,7 @@ export default function WelcomeDashboard() {
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome to Sales Whisperer</h2>
           <p className="text-lg text-slate-600">
-            Transform your sales calls with AI-powered Challenger methodology coaching
+            Transform your sales calls into actionable intelligence that wins deals
           </p>
         </div>
 
@@ -164,13 +164,13 @@ export default function WelcomeDashboard() {
                   <span>Recent Insights</span>
                 </CardTitle>
                 <CardDescription className="text-slate-600">
-                  Key coaching recommendations from your latest calls
+                  Key intelligence from your latest analyzed conversations
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {stats.completedTranscripts === 0 ? (
                   <div className="text-center py-4">
-                    <p className="text-slate-500">Upload and analyze your first call to see insights here</p>
+                    <p className="text-slate-500">Upload and analyze your first call to see intelligence here</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -186,9 +186,9 @@ export default function WelcomeDashboard() {
                       </p>
                     </div>
                     <div className="border-l-4 border-l-green-500 pl-4">
-                      <p className="font-medium text-slate-900 mb-1">Keep Improving</p>
+                      <p className="font-medium text-slate-900 mb-1">Sales Intelligence Ready</p>
                       <p className="text-sm text-slate-600">
-                        Regular analysis helps identify patterns and accelerate your sales performance.
+                        Each analyzed call provides actionable intelligence to help you win more deals.
                       </p>
                     </div>
                   </div>
@@ -202,9 +202,9 @@ export default function WelcomeDashboard() {
         {stats.totalTranscripts === 0 && !isLoading && (
           <Card className="shadow-md bg-white">
             <CardHeader>
-              <CardTitle className="text-xl text-slate-900">Getting Started with Sales Whisperer</CardTitle>
+              <CardTitle className="text-xl text-slate-900">Getting Started with Sales Intelligence</CardTitle>
               <CardDescription className="text-slate-600">
-                Follow these steps to get the most out of your AI sales coaching platform
+                Follow these steps to transform your sales conversations into winning intelligence
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -213,9 +213,9 @@ export default function WelcomeDashboard() {
                   <span className="text-xs font-bold text-white">1</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900">Upload Your First Call</h4>
+                  <h4 className="font-semibold text-slate-900">Upload Your Sales Call</h4>
                   <p className="text-slate-600 text-sm">
-                    Upload a sales call transcript (text, Word, or VTT format) to get started with AI analysis.
+                    Upload a sales conversation transcript to get AI-powered intelligence analysis.
                   </p>
                 </div>
               </div>
@@ -224,9 +224,9 @@ export default function WelcomeDashboard() {
                   <span className="text-xs font-bold text-white">2</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900">Review AI Coaching</h4>
+                  <h4 className="font-semibold text-slate-900">Get Sales Intelligence</h4>
                   <p className="text-slate-600 text-sm">
-                    Get instant Challenger Sales methodology scores and personalized coaching recommendations.
+                    Receive detailed client insights, buying signals, and actionable recommendations.
                   </p>
                 </div>
               </div>
@@ -235,9 +235,9 @@ export default function WelcomeDashboard() {
                   <span className="text-xs font-bold text-white">3</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900">Track Your Progress</h4>
+                  <h4 className="font-semibold text-slate-900">Execute & Win Deals</h4>
                   <p className="text-slate-600 text-sm">
-                    Monitor your improvement over time and build stronger relationships with prospects.
+                    Use copy-paste ready follow-ups and strategic recommendations to advance your deals.
                   </p>
                 </div>
               </div>
