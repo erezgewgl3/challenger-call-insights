@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
@@ -7,25 +6,33 @@ import { UploadProgress } from '@/components/upload/UploadProgress'
 import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
 import { AccountSelector } from '@/components/account/AccountSelector'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
-import { useUploadFlow } from '@/hooks/useUploadFlow'
 import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
 import { useEffect } from 'react'
+import { useAnalysisFlow } from '@/hooks/useAnalysisFlow'
+import { FlowNavigation } from '@/components/flow/FlowNavigation'
+import { CelebrationTransition } from '@/components/flow/CelebrationTransition'
+import { AnalysisResultsView } from '@/components/analysis/AnalysisResultsView'
 
 export default function WelcomeDashboard() {
   const { stats, isLoading } = useTranscriptData()
-  const { 
-    uploadStatus, 
-    analysisProgress, 
-    error, 
-    estimatedTime,
+  const { uploadFiles, processFiles } = useTranscriptUpload()
+  
+  const {
+    currentView,
+    transitionState,
     currentTranscriptId,
+    analysisProgress,
+    error,
+    estimatedTime,
+    uploadContext,
     startUpload,
     uploadComplete,
     uploadError,
-    resetFlow 
-  } = useUploadFlow()
-  
-  const { uploadFiles, processFiles } = useTranscriptUpload()
+    retryUpload,
+    uploadAnother,
+    viewResults,
+    backToDashboard
+  } = useAnalysisFlow()
 
   // Monitor upload files to trigger flow state changes
   useEffect(() => {
@@ -33,13 +40,18 @@ export default function WelcomeDashboard() {
       f.status === 'uploading' || f.status === 'processing'
     )
     
-    if (activeUploads.length > 0 && uploadStatus === 'idle') {
-      startUpload()
+    if (activeUploads.length > 0 && currentView === 'dashboard') {
+      const latestUpload = activeUploads[activeUploads.length - 1]
+      startUpload({
+        fileName: latestUpload.file.name,
+        fileSize: latestUpload.file.size,
+        fileDuration: latestUpload.metadata?.durationMinutes
+      })
     }
 
     // Check for completed uploads
     const completedUploads = uploadFiles.filter(f => f.status === 'completed')
-    if (completedUploads.length > 0 && uploadStatus === 'uploading') {
+    if (completedUploads.length > 0 && currentView === 'progress') {
       const latestUpload = completedUploads[completedUploads.length - 1]
       if (latestUpload.transcriptId) {
         uploadComplete(latestUpload.transcriptId, latestUpload.metadata?.durationMinutes)
@@ -48,44 +60,74 @@ export default function WelcomeDashboard() {
 
     // Check for errors
     const errorUploads = uploadFiles.filter(f => f.status === 'error')
-    if (errorUploads.length > 0 && uploadStatus !== 'error') {
+    if (errorUploads.length > 0 && currentView !== 'dashboard') {
       const latestError = errorUploads[errorUploads.length - 1]
       uploadError(latestError.error || 'Upload failed')
     }
-  }, [uploadFiles, uploadStatus, startUpload, uploadComplete, uploadError])
+  }, [uploadFiles, currentView, startUpload, uploadComplete, uploadError])
 
-  const handleRetry = () => {
-    resetFlow()
-    // Clear any error files
-    uploadFiles.forEach(file => {
-      if (file.status === 'error') {
-        // This would need to be implemented in useTranscriptUpload
-        // For now, just reset the flow
-      }
-    })
+  // Handle celebration transition
+  if (transitionState === 'celebrating') {
+    return <CelebrationTransition fileName={uploadContext.fileName} />
   }
 
-  // Get current upload file info for progress display
-  const getCurrentUploadInfo = () => {
-    const activeUpload = uploadFiles.find(f => 
-      f.status === 'uploading' || f.status === 'processing' || f.status === 'completed'
+  // Handle results view
+  if (currentView === 'results' && currentTranscriptId) {
+    // We'll need to fetch the analysis data for this view
+    // For now, we'll show a loading state and navigate to the dedicated analysis page
+    useEffect(() => {
+      if (currentTranscriptId) {
+        viewResults()
+      }
+    }, [currentTranscriptId, viewResults])
+    
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-slate-600">Loading your insights...</p>
+        </div>
+      </div>
     )
-    
-    if (activeUpload) {
-      return {
-        fileName: activeUpload.file.name,
-        fileSize: activeUpload.file.size,
-        fileDuration: activeUpload.metadata?.durationMinutes
-      }
-    }
-    
-    return {}
   }
 
-  const uploadInfo = getCurrentUploadInfo()
+  // Handle progress view
+  if (currentView === 'progress') {
+    return (
+      <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 transition-all duration-300 ${
+        transitionState === 'transitioning' ? 'opacity-0' : 'opacity-100'
+      }`}>
+        <FlowNavigation
+          currentView={currentView}
+          onBackToDashboard={backToDashboard}
+          onUploadAnother={uploadAnother}
+          showUploadAnother={false}
+        />
+        
+        <main className="max-w-4xl mx-auto px-4 py-8">
+          <div className="flex justify-center">
+            <UploadProgress
+              uploadStatus="processing"
+              analysisProgress={analysisProgress}
+              error={error}
+              estimatedTime={estimatedTime}
+              onRetry={retryUpload}
+              onUploadAnother={uploadAnother}
+              fileName={uploadContext.fileName}
+              fileSize={uploadContext.fileSize}
+              fileDuration={uploadContext.fileDuration}
+            />
+          </div>
+        </main>
+      </div>
+    )
+  }
 
+  // Main dashboard view
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
+    <div className={`min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 transition-all duration-300 ${
+      transitionState === 'transitioning' ? 'opacity-0' : 'opacity-100'
+    }`}>
       {/* Header */}
       <DashboardHeader
         title="Sales Whisperer"
@@ -172,33 +214,16 @@ export default function WelcomeDashboard() {
 
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Upload Section - Show either upload or progress */}
+          {/* Upload Section */}
           <div className="space-y-6">
-            {uploadStatus === 'idle' ? (
-              <>
-                <TranscriptUpload />
-                <AccountSelector />
-              </>
-            ) : (
-              <UploadProgress
-                uploadStatus={uploadStatus}
-                analysisProgress={analysisProgress}
-                error={error}
-                estimatedTime={estimatedTime}
-                onRetry={handleRetry}
-                onUploadAnother={resetFlow}
-                fileName={uploadInfo.fileName}
-                fileSize={uploadInfo.fileSize}
-                fileDuration={uploadInfo.fileDuration}
-              />
-            )}
+            <TranscriptUpload />
+            <AccountSelector />
           </div>
 
           {/* Recent Activity */}
           <div className="space-y-6">
             <RecentTranscripts />
             
-            {/* Quick Insights Card */}
             <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-3 text-xl text-slate-900">
@@ -242,8 +267,8 @@ export default function WelcomeDashboard() {
           </div>
         </div>
 
-        {/* Getting Started Guide - Only show if no transcripts and not uploading */}
-        {stats.totalTranscripts === 0 && !isLoading && uploadStatus === 'idle' && (
+        {/* Getting Started Guide - Only show if no transcripts */}
+        {stats.totalTranscripts === 0 && !isLoading && (
           <Card className="shadow-md bg-white">
             <CardHeader>
               <CardTitle className="text-xl text-slate-900">Getting Started with Sales Whisperer</CardTitle>
@@ -272,7 +297,7 @@ export default function WelcomeDashboard() {
                   <p className="text-slate-600 text-sm">
                     Get instant Challenger Sales methodology scores and personalized coaching recommendations.
                   </p>
-                </div>
+                  </div>
               </div>
               <div className="flex items-start space-x-3">
                 <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
