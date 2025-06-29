@@ -10,7 +10,7 @@ import {
   Loader2
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { AnalysisResultsView } from './AnalysisResultsView'
+import { NewAnalysisView } from './NewAnalysisView'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
 
@@ -331,11 +331,12 @@ export function SalesIntelligenceView({
     )
   }
 
-  // Show completed analysis or no analysis available
+  // Show completed analysis with new view
   if (transcript.status === 'completed' && analysis) {
     return (
-      <AnalysisResultsView
-        transcriptId={transcriptId}
+      <NewAnalysisView
+        transcript={transcript}
+        analysis={analysis}
         onBackToDashboard={onBackToDashboard}
         onUploadAnother={onUploadAnother}
       />
