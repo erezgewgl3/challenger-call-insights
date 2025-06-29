@@ -93,6 +93,46 @@ export function NewAnalysisView({
     }
   }
 
+  const renderParticipants = (participants: any) => {
+    if (!participants) return null
+
+    // Handle different data types the AI might return
+    if (typeof participants === 'string') {
+      return <p className="text-slate-700">{participants}</p>
+    }
+
+    if (Array.isArray(participants)) {
+      return (
+        <div className="space-y-2">
+          {participants.map((participant, index) => (
+            <div key={index} className="p-3 bg-slate-50 rounded-lg">
+              <div className="font-medium">
+                {typeof participant === 'object' ? JSON.stringify(participant) : participant}
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    if (typeof participants === 'object') {
+      return (
+        <div className="space-y-2">
+          {Object.entries(participants).map(([key, value], index) => (
+            <div key={index} className="p-3 bg-slate-50 rounded-lg">
+              <div className="font-medium">{key}</div>
+              <div className="text-sm text-slate-600">
+                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+              </div>
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    return <p className="text-slate-700">{String(participants)}</p>
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -134,66 +174,28 @@ export function NewAnalysisView({
 
         <div className="space-y-8">
           
-          {/* 1. Participants */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Users className="w-5 h-5 mr-2" />
-                Participants
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analysis.participants ? (
-                <div className="space-y-4">
-                  {analysis.participants.clientContacts && (
-                    <div>
-                      <h4 className="font-semibold text-slate-900 mb-2">Client Contacts</h4>
-                      <div className="space-y-2">
-                        {analysis.participants.clientContacts.map((contact: any, index: number) => (
-                          <div key={index} className="p-3 bg-slate-50 rounded-lg">
-                            <div className="font-medium">{contact.name}</div>
-                            <div className="text-sm text-slate-600">{contact.role}</div>
-                            {contact.buying_signals && (
-                              <div className="mt-1">
-                                <span className="text-xs font-medium text-green-700">Buying Signals: </span>
-                                <span className="text-xs text-slate-600">{contact.buying_signals}</span>
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  
-                  {analysis.participants.salesRep && (
-                    <div>
-                      <h4 className="font-semibold text-slate-900 mb-2">Sales Representative</h4>
-                      <div className="p-3 bg-blue-50 rounded-lg">
-                        <div className="font-medium">{analysis.participants.salesRep.name}</div>
-                        <div className="text-sm text-slate-600">{analysis.participants.salesRep.role}</div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {transcript.participants.map((participant, index) => (
-                    <div key={index} className="p-3 bg-slate-50 rounded-lg">
-                      <div className="font-medium">{participant}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          {/* 1. Participants - Display exactly as stored */}
+          {analysis.participants && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Users className="w-5 h-5 mr-2" />
+                  Participants
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {renderParticipants(analysis.participants)}
+              </CardContent>
+            </Card>
+          )}
 
           {/* 2. Detailed Call Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Detailed Call Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analysis.call_summary ? (
+          {analysis.call_summary && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Detailed Call Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
                   {analysis.call_summary.overview && (
                     <div>
@@ -223,19 +225,17 @@ export function NewAnalysisView({
                     </div>
                   )}
                 </div>
-              ) : (
-                <p className="text-slate-600">Call summary not available.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 3. Key Takeaways */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Key Takeaways</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analysis.key_takeaways && analysis.key_takeaways.length > 0 ? (
+          {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Key Takeaways</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-3">
                   {analysis.key_takeaways.map((takeaway, index) => (
                     <div key={index} className="flex items-start p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg">
@@ -246,19 +246,17 @@ export function NewAnalysisView({
                     </div>
                   ))}
                 </div>
-              ) : (
-                <p className="text-slate-600">No key takeaways available.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 4. Recommendations */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Recommendations</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analysis.recommendations ? (
+          {analysis.recommendations && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Recommendations</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
                   {analysis.recommendations.competitive_strategy && (
                     <div>
@@ -281,19 +279,17 @@ export function NewAnalysisView({
                     </div>
                   )}
                 </div>
-              ) : (
-                <p className="text-slate-600">No recommendations available.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 5. Here's Why (Reasoning) */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Here's Why</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analysis.reasoning ? (
+          {analysis.reasoning && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Here's Why</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-4">
                   {analysis.reasoning.business_context && (
                     <div>
@@ -323,19 +319,17 @@ export function NewAnalysisView({
                     </div>
                   )}
                 </div>
-              ) : (
-                <p className="text-slate-600">Reasoning not available.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* 6. Proposed Follow-up Plan */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Proposed Follow-up Plan</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {analysis.action_plan ? (
+          {analysis.action_plan && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Proposed Follow-up Plan</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="space-y-6">
                   {analysis.action_plan.key_objectives && (
                     <div>
@@ -392,11 +386,9 @@ export function NewAnalysisView({
                     </div>
                   )}
                 </div>
-              ) : (
-                <p className="text-slate-600">Follow-up plan not available.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
         </div>
       </div>

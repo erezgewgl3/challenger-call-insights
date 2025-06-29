@@ -17,27 +17,12 @@ interface AnalysisRequest {
 }
 
 interface ParsedAnalysis {
-  challengerScores: {
-    teaching: number | null;
-    tailoring: number | null;
-    control: number | null;
-  };
-  guidance: {
-    recommendation: string | null;
-    message: string | null;
-    keyInsights: string[];
-    nextSteps: string[];
-  };
-  emailFollowUp: {
-    subject: string | null;
-    body: string | null;
-    timing: string | null;
-    channel: string | null;
-  };
-  // New fields for Sales Intelligence
+  challengerScores: any;
+  guidance: any;
+  emailFollowUp: any;
   participants?: any;
   callSummary?: any;
-  keyTakeaways?: string[];
+  keyTakeaways?: any;
   recommendations?: any;
   reasoning?: any;
   actionPlan?: any;
@@ -147,12 +132,12 @@ serve(async (req) => {
       challenger_scores: parsedResult.challengerScores,
       guidance: parsedResult.guidance,
       email_followup: parsedResult.emailFollowUp,
-      participants: parsedResult.participants || null,
-      call_summary: parsedResult.callSummary || null,
-      key_takeaways: parsedResult.keyTakeaways || [],
-      recommendations: parsedResult.recommendations || null,
-      reasoning: parsedResult.reasoning || null,
-      action_plan: parsedResult.actionPlan || null
+      participants: parsedResult.participants,
+      call_summary: parsedResult.callSummary,
+      key_takeaways: parsedResult.keyTakeaways,
+      recommendations: parsedResult.recommendations,
+      reasoning: parsedResult.reasoning,
+      action_plan: parsedResult.actionPlan
     };
 
     const { data: analysisData, error: analysisError } = await supabase
@@ -310,77 +295,37 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
     const parsed = JSON.parse(aiResponse);
     console.log('🔍 [PARSE] JSON parsed successfully, keys:', Object.keys(parsed));
     
-    // Extract data using multiple possible paths
+    // Store AI response fields directly without transformation
     const result: ParsedAnalysis = {
-      challengerScores: extractChallengerScores(parsed),
-      guidance: extractGuidance(parsed),
-      emailFollowUp: extractEmailFollowUp(parsed),
-      // New fields for Sales Intelligence
+      challengerScores: parsed.challengerScores || parsed.challenger_scores || null,
+      guidance: parsed.guidance || null,
+      emailFollowUp: parsed.emailFollowUp || parsed.email_followup || null,
       participants: parsed.participants || null,
-      callSummary: parsed.callSummary || null,
-      keyTakeaways: parsed.keyTakeaways || [],
+      callSummary: parsed.callSummary || parsed.call_summary || null,
+      keyTakeaways: parsed.keyTakeaways || parsed.key_takeaways || null,
       recommendations: parsed.recommendations || null,
       reasoning: parsed.reasoning || null,
-      actionPlan: parsed.actionPlan || null
+      actionPlan: parsed.actionPlan || parsed.action_plan || null
     };
     
-    console.log('🔍 [PARSE] Final parsed result:', {
-      hasChallengerScores: !!result.challengerScores,
-      hasGuidance: !!result.guidance,
-      hasEmailFollowUp: !!result.emailFollowUp,
-      hasParticipants: !!result.participants,
-      hasCallSummary: !!result.callSummary,
-      keyTakeawaysCount: result.keyTakeaways?.length || 0,
-      hasRecommendations: !!result.recommendations,
-      hasReasoning: !!result.reasoning,
-      hasActionPlan: !!result.actionPlan
-    });
+    console.log('🔍 [PARSE] Final parsed result stored directly from AI response');
     
     return result;
   } catch (error) {
     console.error('🔍 [ERROR] Failed to parse AI response:', error);
     console.error('🔍 [ERROR] Raw response:', aiResponse?.substring(0, 500));
     
-    // Return empty structure on parse failure
+    // Return null structure on parse failure
     return {
-      challengerScores: { teaching: null, tailoring: null, control: null },
-      guidance: { recommendation: null, message: null, keyInsights: [], nextSteps: [] },
-      emailFollowUp: { subject: null, body: null, timing: null, channel: null },
+      challengerScores: null,
+      guidance: null,
+      emailFollowUp: null,
       participants: null,
       callSummary: null,
-      keyTakeaways: [],
+      keyTakeaways: null,
       recommendations: null,
       reasoning: null,
       actionPlan: null
     };
   }
-}
-
-function extractChallengerScores(data: any) {
-  const scores = data.challengerScores || data.challenger_scores || {};
-  return {
-    teaching: scores.teaching || null,
-    tailoring: scores.tailoring || null,
-    control: scores.control || null
-  };
-}
-
-function extractGuidance(data: any) {
-  const guidance = data.guidance || {};
-  return {
-    recommendation: guidance.recommendation || null,
-    message: guidance.message || null,
-    keyInsights: guidance.keyInsights || guidance.key_insights || [],
-    nextSteps: guidance.nextSteps || guidance.next_steps || []
-  };
-}
-
-function extractEmailFollowUp(data: any) {
-  const email = data.emailFollowUp || data.email_followup || {};
-  return {
-    subject: email.subject || null,
-    body: email.body || null,
-    timing: email.timing || null,
-    channel: email.channel || null
-  };
 }
