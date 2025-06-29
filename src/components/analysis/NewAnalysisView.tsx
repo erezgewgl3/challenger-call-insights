@@ -145,11 +145,11 @@ export function NewAnalysisView({
             <CardContent>
               {analysis.participants ? (
                 <div className="space-y-4">
-                  {analysis.participants.client_contacts && (
+                  {analysis.participants.clientContacts && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Client Contacts</h4>
                       <div className="space-y-2">
-                        {analysis.participants.client_contacts.map((contact: any, index: number) => (
+                        {analysis.participants.clientContacts.map((contact: any, index: number) => (
                           <div key={index} className="p-3 bg-slate-50 rounded-lg">
                             <div className="font-medium">{contact.name}</div>
                             <div className="text-sm text-slate-600">{contact.role}</div>
@@ -165,12 +165,12 @@ export function NewAnalysisView({
                     </div>
                   )}
                   
-                  {analysis.participants.sales_rep && (
+                  {analysis.participants.salesRep && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Sales Representative</h4>
                       <div className="p-3 bg-blue-50 rounded-lg">
-                        <div className="font-medium">{analysis.participants.sales_rep.name}</div>
-                        <div className="text-sm text-slate-600">{analysis.participants.sales_rep.role}</div>
+                        <div className="font-medium">{analysis.participants.salesRep.name}</div>
+                        <div className="text-sm text-slate-600">{analysis.participants.salesRep.role}</div>
                       </div>
                     </div>
                   )}
