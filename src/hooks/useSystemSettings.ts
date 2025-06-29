@@ -51,26 +51,10 @@ export function useDefaultAiProvider() {
         .from('system_settings')
         .select('setting_value')
         .eq('setting_key', 'default_ai_provider')
-        .single()
+        .maybeSingle()
 
       if (error) throw error
-      return data.setting_value as 'openai' | 'claude'
-    }
-  })
-}
-
-export function useDefaultPromptId() {
-  return useQuery({
-    queryKey: ['system-setting', 'default_prompt_id'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('system_settings')
-        .select('setting_value')
-        .eq('setting_key', 'default_prompt_id')
-        .single()
-
-      if (error) throw error
-      return data.setting_value === 'none' ? null : data.setting_value
+      return data?.setting_value as 'openai' | 'claude' | null
     }
   })
 }
@@ -117,40 +101,6 @@ export function useSetDefaultAiProvider() {
     },
     onSuccess: () => {
       toast.success('Default AI provider updated')
-    }
-  })
-}
-
-export function useSetDefaultPrompt() {
-  const updateSetting = useUpdateSystemSetting()
-  const queryClient = useQueryClient()
-
-  return useMutation({
-    mutationFn: async (promptId: string | null) => {
-      await supabase
-        .from('prompts')
-        .update({ is_default: false })
-        .eq('is_default', true)
-
-      if (promptId) {
-        await supabase
-          .from('prompts')
-          .update({ is_default: true })
-          .eq('id', promptId)
-      }
-
-      return updateSetting.mutateAsync({
-        settingKey: 'default_prompt_id',
-        settingValue: promptId || 'none'
-      })
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['prompts'] })
-      toast.success('Default prompt updated')
-    },
-    onError: (error) => {
-      console.error('Failed to set default prompt:', error)
-      toast.error('Failed to set default prompt')
     }
   })
 }

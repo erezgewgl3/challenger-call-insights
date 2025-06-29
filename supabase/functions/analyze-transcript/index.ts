@@ -65,18 +65,7 @@ serve(async (req) => {
       // Don't throw here, continue with analysis
     }
 
-    // Get AI provider setting
-    console.log('🔍 [SYSTEM] Fetching AI provider setting');
-    const { data: providerData, error: providerError } = await supabase
-      .from('system_settings')
-      .select('setting_value')
-      .eq('setting_key', 'default_ai_provider')
-      .maybeSingle();
-
-    const aiProvider = providerData?.setting_value || 'openai'; // Default to openai if not set
-    console.log('🔍 [SYSTEM] AI provider selected:', aiProvider);
-
-    // Get active prompt
+    // Get active prompt directly from prompts table
     console.log('🔍 [PROMPT] Fetching active prompt');
     const { data: promptData, error: promptError } = await supabase
       .rpc('get_active_prompt');
@@ -89,8 +78,10 @@ serve(async (req) => {
 
     const activePrompt = promptData?.[0];
     if (!activePrompt) {
-      await updateTranscriptError(supabase, transcriptId, 'No active prompt found');
-      throw new Error('No active prompt found');
+      const errorMsg = 'No active prompt found. Please ensure an admin has activated a prompt.';
+      console.error('🔍 [ERROR]', errorMsg);
+      await updateTranscriptError(supabase, transcriptId, errorMsg);
+      throw new Error(errorMsg);
     }
 
     console.log('🔍 [PROMPT] Active prompt found:', activePrompt.prompt_name);
@@ -109,14 +100,21 @@ serve(async (req) => {
 
     console.log('🔍 [PROMPT] Prompt built, length:', finalPrompt.length);
 
-    // Call AI based on provider setting
-    console.log('🔍 [AI] Calling AI provider:', aiProvider);
+    // Default to OpenAI if no AI provider is specified or if Claude fails
+    console.log('🔍 [AI] Calling OpenAI (default provider)');
     let aiResponse: string;
     
-    if (aiProvider === 'claude') {
-      aiResponse = await callClaude(finalPrompt);
-    } else {
+    try {
       aiResponse = await callOpenAI(finalPrompt);
+    } catch (openAIError) {
+      console.error('🔍 [ERROR] OpenAI failed, trying Claude fallback:', openAIError);
+      try {
+        aiResponse = await callClaude(finalPrompt);
+      } catch (claudeError) {
+        console.error('🔍 [ERROR] Both AI providers failed:', claudeError);
+        await updateTranscriptError(supabase, transcriptId, `AI analysis failed: ${claudeError.message}`);
+        throw new Error(`AI analysis failed: ${claudeError.message}`);
+      }
     }
     
     console.log('🔍 [AI] AI response received, length:', aiResponse.length);
@@ -169,15 +167,15 @@ serve(async (req) => {
       // Don't throw, analysis is saved successfully
     }
 
-    console.log('🔍 [COMPLETE] Analysis pipeline completed successfully using', aiProvider);
+    console.log('🔍 [COMPLETE] Analysis pipeline completed successfully');
 
     return new Response(JSON.stringify({
       success: true,
       analysisId: analysisData.id,
       transcriptId,
       strategy,
-      aiProvider,
-      message: `Analysis completed successfully using ${aiProvider}`
+      aiProvider: 'openai',
+      message: 'Analysis completed successfully'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
