@@ -62,14 +62,6 @@ export function NewAnalysisView({
     }
   }
 
-  const copyEmailSubject = async (subject: string) => {
-    await copyToClipboard(subject, 'Email subject')
-  }
-
-  const copyEmailBody = async (body: string) => {
-    await copyToClipboard(body, 'Email body')
-  }
-
   const copyFullEmail = async (subject: string, body: string, attachments: string[]) => {
     const attachmentText = attachments && attachments.length > 0 
       ? `\n\nAttachments:\n${attachments.map(att => `- ${att}`).join('\n')}`
@@ -554,28 +546,6 @@ export function NewAnalysisView({
 
                           {/* Action Buttons */}
                           <div className="flex flex-wrap gap-2 pt-4 border-t">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => copyEmailSubject(action.copyPasteContent.subject)}
-                              className="h-8"
-                            >
-                              <Copy className="w-3 h-3 mr-1" />
-                              Copy Subject
-                            </Button>
-                            
-                            {action.copyPasteContent.body && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => copyEmailBody(action.copyPasteContent.body)}
-                                className="h-8"
-                              >
-                                <Copy className="w-3 h-3 mr-1" />
-                                Copy Email
-                              </Button>
-                            )}
-                            
                             {action.copyPasteContent.body && (
                               <Button
                                 size="sm"
