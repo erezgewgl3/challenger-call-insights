@@ -40,7 +40,7 @@ function App() {
                   <AdminDashboard />
                 </AdminGuard>
               } />
-              <Route path="/prompts" element={
+              <Route path="/admin/prompts" element={
                 <AdminGuard>
                   <PromptManagement />
                 </AdminGuard>
