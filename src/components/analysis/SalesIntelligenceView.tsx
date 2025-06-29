@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -91,7 +90,19 @@ export function SalesIntelligenceView({
 
       // Set analysis data if available
       if (transcriptData.conversation_analysis && transcriptData.conversation_analysis.length > 0) {
-        setAnalysis(transcriptData.conversation_analysis[0])
+        const rawAnalysis = transcriptData.conversation_analysis[0]
+        setAnalysis({
+          id: rawAnalysis.id,
+          challenger_scores: rawAnalysis.challenger_scores,
+          guidance: rawAnalysis.guidance,
+          email_followup: rawAnalysis.email_followup,
+          participants: rawAnalysis.participants,
+          call_summary: rawAnalysis.call_summary,
+          key_takeaways: Array.isArray(rawAnalysis.key_takeaways) ? rawAnalysis.key_takeaways as string[] : [],
+          recommendations: rawAnalysis.recommendations,
+          reasoning: rawAnalysis.reasoning,
+          action_plan: rawAnalysis.action_plan
+        })
       }
 
     } catch (err) {
