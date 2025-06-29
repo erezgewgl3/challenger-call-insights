@@ -8,21 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Separator } from '@/components/ui/separator'
 import { VariableInserter } from './VariableInserter'
-
-interface Prompt {
-  id: string
-  version_number: number
-  user_id?: string
-  prompt_text: string
-  prompt_name: string
-  is_default: boolean
-  is_active: boolean
-  change_description?: string
-  activated_at?: string
-  created_at: string
-  updated_at: string
-  created_by?: string
-}
+import { Prompt } from '@/types/prompt'
 
 interface SimplePromptEditorProps {
   prompt?: Prompt | null
@@ -43,7 +29,7 @@ export function SimplePromptEditor({ prompt, isOpen, onClose }: SimplePromptEdit
   useEffect(() => {
     if (isEditing && prompt) {
       setPromptText(prompt.prompt_text)
-      setPromptName(prompt.prompt_name)
+      setPromptName(prompt.prompt_name || '')
       setChangeDescription('')
     } else {
       setPromptText('')
