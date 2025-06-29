@@ -93,6 +93,18 @@ export function NewAnalysisView({
     }
   }
 
+  const formatParticipantDisplay = (participant: any) => {
+    const { name, title, company } = participant
+    
+    if (!name) return null
+    
+    const extras = []
+    if (title) extras.push(title)
+    if (company) extras.push(company)
+    
+    return extras.length > 0 ? `${name} (${extras.join(', ')})` : name
+  }
+
   const renderParticipants = (participants: any) => {
     if (!participants) return null
 
@@ -121,22 +133,15 @@ export function NewAnalysisView({
     if (allParticipants.length === 0) return null
 
     return (
-      <div className="space-y-3">
-        {allParticipants.map((participant, index) => (
-          <div key={index} className="p-3 bg-slate-50 rounded-lg">
-            <div className="space-y-1">
-              {participant.name && (
-                <div className="font-medium text-slate-900">{participant.name}</div>
-              )}
-              {participant.title && (
-                <div className="text-sm text-slate-600">{participant.title}</div>
-              )}
-              {participant.company && (
-                <div className="text-sm text-slate-500">{participant.company}</div>
-              )}
+      <div className="space-y-1">
+        {allParticipants.map((participant, index) => {
+          const displayText = formatParticipantDisplay(participant)
+          return displayText ? (
+            <div key={index} className="text-slate-900">
+              {displayText}
             </div>
-          </div>
-        ))}
+          ) : null
+        })}
       </div>
     )
   }
@@ -182,7 +187,7 @@ export function NewAnalysisView({
 
         <div className="space-y-8">
           
-          {/* 1. Participants - Simplified Display */}
+          {/* 1. Participants - Compact Display */}
           {analysis.participants && (
             <Card>
               <CardHeader>
