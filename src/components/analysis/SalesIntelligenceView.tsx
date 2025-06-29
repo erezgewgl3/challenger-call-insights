@@ -386,6 +386,6 @@ export function SalesIntelligenceView({
           </Card>
         </div>
       </div>
-    )
+    </div>
   )
 }
