@@ -1,7 +1,8 @@
-
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+// @ts-ignore - mammoth types may not be available
+import mammoth from 'mammoth'
 
 type UploadStatus = 'idle' | 'validating' | 'uploading' | 'processing' | 'completed' | 'error'
 
@@ -30,15 +31,29 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
   }, [])
 
   const extractTextFromFile = async (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const content = e.target?.result as string
-        resolve(content)
+    const fileName = file.name.toLowerCase()
+    
+    if (fileName.endsWith('.docx')) {
+      // Handle Word documents using mammoth
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        const result = await mammoth.extractRawText({ arrayBuffer })
+        return result.value
+      } catch (error) {
+        throw new Error('Failed to extract text from Word document')
       }
-      reader.onerror = () => reject(new Error('Failed to read file'))
-      reader.readAsText(file)
-    })
+    } else {
+      // Handle text files (.txt, .vtt) using FileReader
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const content = e.target?.result as string
+          resolve(content)
+        }
+        reader.onerror = () => reject(new Error('Failed to read file'))
+        reader.readAsText(file)
+      })
+    }
   }
 
   const extractMetadataFromText = (text: string, fileName: string) => {
