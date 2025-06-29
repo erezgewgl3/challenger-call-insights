@@ -18,6 +18,7 @@ export default function WelcomeDashboard() {
     analysisProgress, 
     error, 
     estimatedTime,
+    currentTranscriptId,
     startUpload,
     uploadComplete,
     uploadError,
@@ -63,6 +64,25 @@ export default function WelcomeDashboard() {
       }
     })
   }
+
+  // Get current upload file info for progress display
+  const getCurrentUploadInfo = () => {
+    const activeUpload = uploadFiles.find(f => 
+      f.status === 'uploading' || f.status === 'processing' || f.status === 'completed'
+    )
+    
+    if (activeUpload) {
+      return {
+        fileName: activeUpload.file.name,
+        fileSize: activeUpload.file.size,
+        fileDuration: activeUpload.metadata?.durationMinutes
+      }
+    }
+    
+    return {}
+  }
+
+  const uploadInfo = getCurrentUploadInfo()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
@@ -167,6 +187,9 @@ export default function WelcomeDashboard() {
                 estimatedTime={estimatedTime}
                 onRetry={handleRetry}
                 onUploadAnother={resetFlow}
+                fileName={uploadInfo.fileName}
+                fileSize={uploadInfo.fileSize}
+                fileDuration={uploadInfo.fileDuration}
               />
             )}
           </div>
