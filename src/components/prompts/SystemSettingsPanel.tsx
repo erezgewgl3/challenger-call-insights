@@ -1,7 +1,7 @@
 
 import { useState } from 'react'
-import { useDefaultAiProvider, useDefaultPromptId, useSetDefaultAiProvider, useSetDefaultPrompt } from '@/hooks/useSystemSettings'
-import { usePrompts } from '@/hooks/usePrompts'
+import { useDefaultAiProvider, useSetDefaultAiProvider } from '@/hooks/useSystemSettings'
+import { useDefaultPrompt, usePrompts, useSetDefaultPrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -11,7 +11,7 @@ import { Settings, Crown, Zap } from 'lucide-react'
 
 export function SystemSettingsPanel() {
   const { data: currentAiProvider } = useDefaultAiProvider()
-  const { data: currentPromptId } = useDefaultPromptId()
+  const { data: currentPrompt } = useDefaultPrompt()
   const { data: allPrompts } = usePrompts()
   
   const setAiProvider = useSetDefaultAiProvider()
@@ -22,7 +22,6 @@ export function SystemSettingsPanel() {
 
   // Filter for active prompts from all prompts
   const activePrompts = allPrompts?.filter(prompt => prompt.is_active) || []
-  const currentPrompt = activePrompts.find(p => p.id === currentPromptId)
 
   const handleUpdateAiProvider = async () => {
     if (selectedAiProvider) {
@@ -142,7 +141,7 @@ export function SystemSettingsPanel() {
           <div className="space-y-2">
             <Label htmlFor="prompt-select">Select Default Prompt</Label>
             <Select 
-              value={selectedPromptId || currentPromptId || 'none'} 
+              value={selectedPromptId || currentPrompt?.id || 'none'} 
               onValueChange={setSelectedPromptId}
             >
               <SelectTrigger>
@@ -173,7 +172,7 @@ export function SystemSettingsPanel() {
 
           <Button 
             onClick={handleUpdateDefaultPrompt}
-            disabled={!selectedPromptId || selectedPromptId === (currentPromptId || 'none') || setDefaultPrompt.isPending}
+            disabled={!selectedPromptId || selectedPromptId === (currentPrompt?.id || 'none') || setDefaultPrompt.isPending}
             className="w-full"
           >
             {setDefaultPrompt.isPending ? 'Updating...' : 'Update Default Prompt'}

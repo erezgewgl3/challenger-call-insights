@@ -1,7 +1,5 @@
-
 import { useState } from 'react'
-import { useDefaultPrompt, usePrompts } from '@/hooks/usePrompts'
-import { useSetDefaultPrompt } from '@/hooks/useSystemSettings'
+import { useDefaultPrompt, usePrompts, useSetDefaultPrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
