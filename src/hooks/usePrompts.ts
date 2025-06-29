@@ -2,21 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-
-interface Prompt {
-  id: string
-  version_number: number
-  user_id?: string
-  prompt_text: string
-  prompt_name?: string | null
-  is_default: boolean
-  is_active: boolean
-  change_description?: string
-  activated_at?: string
-  created_at: string
-  updated_at: string
-  created_by?: string
-}
+import { Prompt } from '@/types/prompt'
 
 interface CreatePromptData {
   prompt_text: string

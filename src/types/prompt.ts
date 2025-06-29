@@ -2,16 +2,16 @@
 export interface Prompt {
   id: string
   version_number: number
-  user_id: string | null
+  user_id?: string | null  // Made optional to match database schema
   prompt_text: string
-  prompt_name: string | null
+  prompt_name?: string | null
   is_default: boolean
   is_active: boolean
-  change_description: string | null
-  activated_at: string | null
-  created_at: string | null
-  updated_at: string | null
-  created_by: string | null
+  change_description?: string | null
+  activated_at?: string | null
+  created_at: string
+  updated_at: string
+  created_by?: string | null
 }
 
 export interface PromptTestingData {
