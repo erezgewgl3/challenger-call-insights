@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
@@ -19,31 +20,10 @@ interface TranscriptData {
   raw_text?: string
 }
 
-interface AnalysisData {
-  challenger_scores: {
-    teaching: number
-    tailoring: number
-    control: number
-  }
-  guidance: {
-    recommendation: string
-    message: string
-    keyInsights: string[]
-    nextSteps: string[]
-  }
-  email_followup: {
-    subject: string
-    body: string
-    timing: string
-    channel: string
-  }
-}
-
 export default function TranscriptAnalysis() {
   const { transcriptId } = useParams<{ transcriptId: string }>()
   const navigate = useNavigate()
   const [transcript, setTranscript] = useState<TranscriptData | null>(null)
-  const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   
@@ -74,39 +54,6 @@ export default function TranscriptAnalysis() {
           account_id: transcriptData.account_id,
           raw_text: transcriptData.raw_text
         })
-
-        // Fetch analysis results
-        const { data: analysisData, error: analysisError } = await supabase
-          .from('conversation_analysis')
-          .select('*')
-          .eq('transcript_id', transcriptId)
-          .single()
-
-        if (analysisError && analysisError.code !== 'PGRST116') {
-          throw analysisError
-        }
-
-        if (analysisData) {
-          setAnalysis({
-            challenger_scores: analysisData.challenger_scores as {
-              teaching: number
-              tailoring: number
-              control: number
-            },
-            guidance: analysisData.guidance as {
-              recommendation: string
-              message: string
-              keyInsights: string[]
-              nextSteps: string[]
-            },
-            email_followup: analysisData.email_followup as {
-              subject: string
-              body: string
-              timing: string
-              channel: string
-            }
-          })
-        }
 
       } catch (err) {
         console.error('Failed to fetch transcript data:', err)
@@ -161,7 +108,7 @@ export default function TranscriptAnalysis() {
   }
 
   // Show processing state
-  if (status?.status === 'processing' || !analysis) {
+  if (status?.status === 'processing') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-8">
@@ -201,13 +148,10 @@ export default function TranscriptAnalysis() {
     )
   }
 
-  // Show the immersive results view
+  // Show the immersive results view - pass only transcriptId
   return (
     <AnalysisResultsView
-      challengerScores={analysis.challenger_scores}
-      guidance={analysis.guidance}
-      emailFollowUp={analysis.email_followup}
-      transcriptTitle={transcript.title}
+      transcriptId={transcriptId!}
       onBackToDashboard={handleBackToDashboard}
       onUploadAnother={handleUploadAnother}
     />
