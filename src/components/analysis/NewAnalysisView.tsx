@@ -96,41 +96,49 @@ export function NewAnalysisView({
   const renderParticipants = (participants: any) => {
     if (!participants) return null
 
-    // Handle different data types the AI might return
-    if (typeof participants === 'string') {
-      return <p className="text-slate-700">{participants}</p>
+    const allParticipants = []
+
+    // Extract sales rep
+    if (participants.salesRep) {
+      allParticipants.push({
+        name: participants.salesRep.name || '',
+        title: participants.salesRep.title || '',
+        company: participants.salesRep.company || ''
+      })
     }
 
-    if (Array.isArray(participants)) {
-      return (
-        <div className="space-y-2">
-          {participants.map((participant, index) => (
-            <div key={index} className="p-3 bg-slate-50 rounded-lg">
-              <div className="font-medium">
-                {typeof participant === 'object' ? JSON.stringify(participant) : participant}
-              </div>
+    // Extract client contacts
+    if (participants.clientContacts && Array.isArray(participants.clientContacts)) {
+      participants.clientContacts.forEach((contact: any) => {
+        allParticipants.push({
+          name: contact.name || '',
+          title: contact.title || '',
+          company: contact.company || ''
+        })
+      })
+    }
+
+    if (allParticipants.length === 0) return null
+
+    return (
+      <div className="space-y-3">
+        {allParticipants.map((participant, index) => (
+          <div key={index} className="p-3 bg-slate-50 rounded-lg">
+            <div className="space-y-1">
+              {participant.name && (
+                <div className="font-medium text-slate-900">{participant.name}</div>
+              )}
+              {participant.title && (
+                <div className="text-sm text-slate-600">{participant.title}</div>
+              )}
+              {participant.company && (
+                <div className="text-sm text-slate-500">{participant.company}</div>
+              )}
             </div>
-          ))}
-        </div>
-      )
-    }
-
-    if (typeof participants === 'object') {
-      return (
-        <div className="space-y-2">
-          {Object.entries(participants).map(([key, value], index) => (
-            <div key={index} className="p-3 bg-slate-50 rounded-lg">
-              <div className="font-medium">{key}</div>
-              <div className="text-sm text-slate-600">
-                {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-              </div>
-            </div>
-          ))}
-        </div>
-      )
-    }
-
-    return <p className="text-slate-700">{String(participants)}</p>
+          </div>
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -174,7 +182,7 @@ export function NewAnalysisView({
 
         <div className="space-y-8">
           
-          {/* 1. Participants - Display exactly as stored */}
+          {/* 1. Participants - Simplified Display */}
           {analysis.participants && (
             <Card>
               <CardHeader>
