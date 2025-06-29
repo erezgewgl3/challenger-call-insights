@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -63,10 +64,15 @@ export function AnalysisResultsView({
 }: AnalysisResultsViewProps) {
   const [emailCopied, setEmailCopied] = useState(false)
 
+  console.log('🔍 AnalysisResultsView rendering for transcript:', transcriptId);
+  console.log('🔍 Fetching analysis data from database');
+
   // Fetch real analysis data from database
   const { data: analysisData, isLoading, error } = useQuery({
-    queryKey: ['analysis', transcriptId],
+    queryKey: ['conversation-analysis', transcriptId],
     queryFn: async () => {
+      console.log('🔍 Executing database query for:', transcriptId);
+      
       const { data: transcript, error: transcriptError } = await supabase
         .from('transcripts')
         .select(`
@@ -81,10 +87,14 @@ export function AnalysisResultsView({
         .eq('id', transcriptId)
         .single()
 
+      console.log('🔍 Database response - transcript:', transcript, 'error:', transcriptError);
+      
       if (transcriptError) throw transcriptError
 
       if (transcript?.conversation_analysis?.[0]) {
         const analysis = transcript.conversation_analysis[0]
+        console.log('🔍 Found analysis data:', analysis);
+        
         return {
           challengerScores: (analysis.challenger_scores as unknown as ChallengerScores) || { teaching: 3, tailoring: 3, control: 3 },
           guidance: (analysis.guidance as unknown as Guidance) || {
@@ -103,11 +113,13 @@ export function AnalysisResultsView({
         }
       }
 
+      console.log('🔍 No analysis data found for transcript:', transcriptId);
       return null
     }
   })
 
   if (isLoading) {
+    console.log('🔍 Analysis data loading...');
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -119,6 +131,7 @@ export function AnalysisResultsView({
   }
 
   if (error || !analysisData) {
+    console.log('🔍 Analysis data not found or error:', error);
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
@@ -130,6 +143,8 @@ export function AnalysisResultsView({
       </div>
     )
   }
+
+  console.log('🔍 Rendering with real analysis data:', analysisData);
 
   const { challengerScores, guidance, emailFollowUp, transcriptTitle } = analysisData
 
