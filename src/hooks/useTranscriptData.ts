@@ -64,12 +64,16 @@ export function useTranscriptData() {
         const formattedTranscripts: TranscriptSummary[] = transcriptsData.map(t => ({
           id: t.id,
           title: t.title,
-          participants: t.participants || [],
+          participants: Array.isArray(t.participants) ? t.participants as string[] : [],
           duration_minutes: t.duration_minutes || 0,
           created_at: t.created_at,
           status: t.status,
           account_name: (t.accounts as any)?.name,
-          challenger_scores: (t.conversation_analysis as any)?.[0]?.challenger_scores
+          challenger_scores: (t.conversation_analysis as any)?.[0]?.challenger_scores as {
+            teaching: number
+            tailoring: number
+            control: number
+          } | undefined
         }))
 
         setTranscripts(formattedTranscripts)

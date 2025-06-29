@@ -68,7 +68,16 @@ export default function TranscriptAnalysis() {
           .single()
 
         if (transcriptError) throw transcriptError
-        setTranscript(transcriptData)
+        
+        setTranscript({
+          id: transcriptData.id,
+          title: transcriptData.title,
+          participants: Array.isArray(transcriptData.participants) ? transcriptData.participants as string[] : [],
+          duration_minutes: transcriptData.duration_minutes || 0,
+          meeting_date: transcriptData.meeting_date,
+          account_id: transcriptData.account_id,
+          raw_text: transcriptData.raw_text
+        })
 
         // Fetch analysis results
         const { data: analysisData, error: analysisError } = await supabase
@@ -83,9 +92,23 @@ export default function TranscriptAnalysis() {
 
         if (analysisData) {
           setAnalysis({
-            challenger_scores: analysisData.challenger_scores,
-            guidance: analysisData.guidance,
-            email_followup: analysisData.email_followup
+            challenger_scores: analysisData.challenger_scores as {
+              teaching: number
+              tailoring: number
+              control: number
+            },
+            guidance: analysisData.guidance as {
+              recommendation: string
+              message: string
+              keyInsights: string[]
+              nextSteps: string[]
+            },
+            email_followup: analysisData.email_followup as {
+              subject: string
+              body: string
+              timing: string
+              channel: string
+            }
           })
         }
 
