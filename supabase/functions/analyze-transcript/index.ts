@@ -22,24 +22,24 @@ interface AnalysisRequest {
 }
 
 interface ChallengerScores {
-  teaching: number;
-  tailoring: number;
-  control: number;
+  teaching: number | null;
+  tailoring: number | null;
+  control: number | null;
 }
 
 interface AnalysisResult {
   challengerScores: ChallengerScores;
   guidance: {
-    recommendation: string;
-    message: string;
+    recommendation: string | null;
+    message: string | null;
     keyInsights: string[];
     nextSteps: string[];
   };
   emailFollowUp: {
-    subject: string;
-    body: string;
-    timing: string;
-    channel: string;
+    subject: string | null;
+    body: string | null;
+    timing: string | null;
+    channel: string | null;
   };
 }
 
@@ -121,8 +121,7 @@ class HybridAnalysisEngine {
           { role: 'user', content: prompt }
         ],
         response_format: { type: "json_object" },
-        temperature: 0.3,
-        timeout: 60000
+        temperature: 0.3
       }),
     });
 
@@ -171,18 +170,23 @@ class HybridAnalysisEngine {
   }
 
   parseAndValidateResponse(content: string): AnalysisResult {
-    // Multi-layer JSON parsing with fallbacks
+    console.log('🔍 Raw AI response content:', content);
+    
     let parsed;
     
     try {
       parsed = JSON.parse(content);
+      console.log('✅ Successfully parsed AI response as JSON:', parsed);
     } catch (error) {
+      console.error('❌ Failed to parse AI response as JSON:', error);
       // Try to extract JSON from text
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
           parsed = JSON.parse(jsonMatch[0]);
+          console.log('✅ Successfully extracted and parsed JSON from text:', parsed);
         } catch (innerError) {
+          console.error('❌ Failed to parse extracted JSON:', innerError);
           throw new Error('Failed to parse AI response as JSON');
         }
       } else {
@@ -190,33 +194,74 @@ class HybridAnalysisEngine {
       }
     }
 
-    // Validate and fill in missing fields with defaults
+    // Extract and validate scores - NO FALLBACKS
+    const teachingScore = this.validateScore(parsed.challengerScores?.teaching);
+    const tailoringScore = this.validateScore(parsed.challengerScores?.tailoring);
+    const controlScore = this.validateScore(parsed.challengerScores?.control);
+
+    console.log('🔍 Parsed challenger scores:', {
+      teaching: teachingScore,
+      tailoring: tailoringScore,
+      control: controlScore
+    });
+
+    // Extract guidance - NO FALLBACKS
+    const recommendation = parsed.guidance?.recommendation || null;
+    const message = parsed.guidance?.message || null;
+    const keyInsights = Array.isArray(parsed.guidance?.keyInsights) ? parsed.guidance.keyInsights : [];
+    const nextSteps = Array.isArray(parsed.guidance?.nextSteps) ? parsed.guidance.nextSteps : [];
+
+    console.log('🔍 Parsed guidance:', {
+      recommendation,
+      message,
+      keyInsights,
+      nextSteps
+    });
+
+    // Extract email follow-up - NO FALLBACKS
+    const subject = parsed.emailFollowUp?.subject || null;
+    const body = parsed.emailFollowUp?.body || null;
+    const timing = parsed.emailFollowUp?.timing || null;
+    const channel = parsed.emailFollowUp?.channel || null;
+
+    console.log('🔍 Parsed email follow-up:', {
+      subject,
+      body,
+      timing,
+      channel
+    });
+
     const result: AnalysisResult = {
       challengerScores: {
-        teaching: this.validateScore(parsed.challengerScores?.teaching) || 3,
-        tailoring: this.validateScore(parsed.challengerScores?.tailoring) || 3,
-        control: this.validateScore(parsed.challengerScores?.control) || 3,
+        teaching: teachingScore,
+        tailoring: tailoringScore,
+        control: controlScore,
       },
       guidance: {
-        recommendation: parsed.guidance?.recommendation || 'Continue',
-        message: parsed.guidance?.message || 'Analysis completed successfully',
-        keyInsights: Array.isArray(parsed.guidance?.keyInsights) ? parsed.guidance.keyInsights : ['Call analyzed'],
-        nextSteps: Array.isArray(parsed.guidance?.nextSteps) ? parsed.guidance.nextSteps : ['Follow up as planned'],
+        recommendation,
+        message,
+        keyInsights,
+        nextSteps,
       },
       emailFollowUp: {
-        subject: parsed.emailFollowUp?.subject || 'Following up on our conversation',
-        body: parsed.emailFollowUp?.body || 'Thank you for taking the time to speak with me today.',
-        timing: parsed.emailFollowUp?.timing || '24 hours',
-        channel: parsed.emailFollowUp?.channel || 'Email',
+        subject,
+        body,
+        timing,
+        channel,
       }
     };
 
+    console.log('🔍 Final parsed result:', result);
     return result;
   }
 
   validateScore(score: any): number | null {
     const num = parseInt(score);
-    if (isNaN(num) || num < 1 || num > 5) return null;
+    if (isNaN(num) || num < 1 || num > 5) {
+      console.log('🔍 Invalid score detected:', score, '-> returning null');
+      return null;
+    }
+    console.log('🔍 Valid score:', score, '-> returning', num);
     return num;
   }
 
@@ -308,11 +353,15 @@ class HybridAnalysisEngine {
       return analyses[0];
     }
 
-    // Average scores
+    // Average scores - only include valid (non-null) scores
+    const validTeachingScores = analyses.map(a => a.challengerScores.teaching).filter(s => s !== null) as number[];
+    const validTailoringScores = analyses.map(a => a.challengerScores.tailoring).filter(s => s !== null) as number[];
+    const validControlScores = analyses.map(a => a.challengerScores.control).filter(s => s !== null) as number[];
+
     const avgScores = {
-      teaching: Math.round(analyses.reduce((sum, a) => sum + a.challengerScores.teaching, 0) / analyses.length),
-      tailoring: Math.round(analyses.reduce((sum, a) => sum + a.challengerScores.tailoring, 0) / analyses.length),
-      control: Math.round(analyses.reduce((sum, a) => sum + a.challengerScores.control, 0) / analyses.length),
+      teaching: validTeachingScores.length > 0 ? Math.round(validTeachingScores.reduce((sum, s) => sum + s, 0) / validTeachingScores.length) : null,
+      tailoring: validTailoringScores.length > 0 ? Math.round(validTailoringScores.reduce((sum, s) => sum + s, 0) / validTailoringScores.length) : null,
+      control: validControlScores.length > 0 ? Math.round(validControlScores.reduce((sum, s) => sum + s, 0) / validControlScores.length) : null,
     };
 
     // Merge insights and next steps
@@ -323,12 +372,8 @@ class HybridAnalysisEngine {
     const uniqueInsights = [...new Set(allInsights)].slice(0, 5);
     const uniqueNextSteps = [...new Set(allNextSteps)].slice(0, 3);
 
-    // Use guidance from highest scoring analysis
-    const bestAnalysis = analyses.reduce((best, current) => {
-      const bestTotal = best.challengerScores.teaching + best.challengerScores.tailoring + best.challengerScores.control;
-      const currentTotal = current.challengerScores.teaching + current.challengerScores.tailoring + current.challengerScores.control;
-      return currentTotal > bestTotal ? current : best;
-    });
+    // Use guidance from first analysis with valid data
+    const bestAnalysis = analyses.find(a => a.guidance.recommendation && a.guidance.message) || analyses[0];
 
     return {
       challengerScores: avgScores,
@@ -357,6 +402,8 @@ Provide a refined final analysis in JSON format with challengerScores, guidance,
   }
 
   async storeResults(transcriptId: string, result: AnalysisResult, strategy: AnalysisStrategy, processingTime: number): Promise<void> {
+    console.log('🔍 Storing analysis results:', result);
+    
     const { error } = await this.supabase
       .from('conversation_analysis')
       .insert({
@@ -380,6 +427,8 @@ Provide a refined final analysis in JSON format with challengerScores, guidance,
         processed_at: new Date().toISOString()
       })
       .eq('id', transcriptId);
+      
+    console.log('✅ Successfully stored analysis results for transcript:', transcriptId);
   }
 }
 
