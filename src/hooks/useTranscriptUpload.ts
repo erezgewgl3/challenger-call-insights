@@ -145,7 +145,8 @@ export function useTranscriptUpload() {
           meeting_date: request.metadata.meetingDate.toISOString(),
           duration_minutes: request.metadata.durationMinutes,
           raw_text: textContent,
-          status: 'uploaded'
+          status: 'uploaded',
+          upload_source: 'manual_upload'
         })
         .select()
         .single()
@@ -235,13 +236,14 @@ export function useTranscriptUpload() {
           transcriptId
         })
 
-        // Simulate processing completion (in real app, this would be handled by websocket or polling)
+        // Mark as completed when upload is done
+        // The analysis status will be tracked separately by useUploadFlow
         setTimeout(() => {
           updateFileStatus(fileId, {
             status: 'completed',
             progress: 100
           })
-        }, 5000)
+        }, 1000)
 
       } catch (error) {
         updateFileStatus(fileId, {
@@ -271,11 +273,16 @@ export function useTranscriptUpload() {
     processFiles([file.file])
   }
 
+  const clearFiles = () => {
+    setUploadFiles([])
+  }
+
   return {
     uploadFiles,
     processFiles,
     removeFile,
     retryFile,
+    clearFiles,
     isUploading: uploadMutation.isPending
   }
 }

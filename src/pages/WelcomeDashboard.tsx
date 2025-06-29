@@ -1,13 +1,68 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
 import { TranscriptUpload } from '@/components/upload/TranscriptUpload'
+import { UploadProgress } from '@/components/upload/UploadProgress'
 import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
 import { AccountSelector } from '@/components/account/AccountSelector'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
+import { useUploadFlow } from '@/hooks/useUploadFlow'
+import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
+import { useEffect } from 'react'
 
 export default function WelcomeDashboard() {
   const { stats, isLoading } = useTranscriptData()
+  const { 
+    uploadStatus, 
+    analysisProgress, 
+    error, 
+    estimatedTime,
+    startUpload,
+    uploadComplete,
+    uploadError,
+    resetFlow 
+  } = useUploadFlow()
+  
+  const { uploadFiles, processFiles } = useTranscriptUpload()
+
+  // Monitor upload files to trigger flow state changes
+  useEffect(() => {
+    const activeUploads = uploadFiles.filter(f => 
+      f.status === 'uploading' || f.status === 'processing'
+    )
+    
+    if (activeUploads.length > 0 && uploadStatus === 'idle') {
+      startUpload()
+    }
+
+    // Check for completed uploads
+    const completedUploads = uploadFiles.filter(f => f.status === 'completed')
+    if (completedUploads.length > 0 && uploadStatus === 'uploading') {
+      const latestUpload = completedUploads[completedUploads.length - 1]
+      if (latestUpload.transcriptId) {
+        uploadComplete(latestUpload.transcriptId, latestUpload.metadata?.durationMinutes)
+      }
+    }
+
+    // Check for errors
+    const errorUploads = uploadFiles.filter(f => f.status === 'error')
+    if (errorUploads.length > 0 && uploadStatus !== 'error') {
+      const latestError = errorUploads[errorUploads.length - 1]
+      uploadError(latestError.error || 'Upload failed')
+    }
+  }, [uploadFiles, uploadStatus, startUpload, uploadComplete, uploadError])
+
+  const handleRetry = () => {
+    resetFlow()
+    // Clear any error files
+    uploadFiles.forEach(file => {
+      if (file.status === 'error') {
+        // This would need to be implemented in useTranscriptUpload
+        // For now, just reset the flow
+      }
+    })
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
@@ -97,10 +152,23 @@ export default function WelcomeDashboard() {
 
         {/* Main Dashboard Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Upload Section */}
+          {/* Upload Section - Show either upload or progress */}
           <div className="space-y-6">
-            <TranscriptUpload />
-            <AccountSelector />
+            {uploadStatus === 'idle' ? (
+              <>
+                <TranscriptUpload />
+                <AccountSelector />
+              </>
+            ) : (
+              <UploadProgress
+                uploadStatus={uploadStatus}
+                analysisProgress={analysisProgress}
+                error={error}
+                estimatedTime={estimatedTime}
+                onRetry={handleRetry}
+                onUploadAnother={resetFlow}
+              />
+            )}
           </div>
 
           {/* Recent Activity */}
@@ -151,8 +219,8 @@ export default function WelcomeDashboard() {
           </div>
         </div>
 
-        {/* Getting Started Guide - Only show if no transcripts */}
-        {stats.totalTranscripts === 0 && !isLoading && (
+        {/* Getting Started Guide - Only show if no transcripts and not uploading */}
+        {stats.totalTranscripts === 0 && !isLoading && uploadStatus === 'idle' && (
           <Card className="shadow-md bg-white">
             <CardHeader>
               <CardTitle className="text-xl text-slate-900">Getting Started with Sales Whisperer</CardTitle>
