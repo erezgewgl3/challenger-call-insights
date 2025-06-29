@@ -132,16 +132,13 @@ export function NewAnalysisView({
 
     if (allParticipants.length === 0) return null
 
+    const formattedParticipants = allParticipants
+      .map(participant => formatParticipantDisplay(participant))
+      .filter(displayText => displayText !== null)
+
     return (
-      <div className="space-y-1">
-        {allParticipants.map((participant, index) => {
-          const displayText = formatParticipantDisplay(participant)
-          return displayText ? (
-            <div key={index} className="text-slate-900">
-              {displayText}
-            </div>
-          ) : null
-        })}
+      <div className="text-slate-900">
+        {formattedParticipants.join(', ')}
       </div>
     )
   }
