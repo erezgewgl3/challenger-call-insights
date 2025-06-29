@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react'
 import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt, useCreatePrompt } from '@/hooks/usePrompts'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -15,6 +16,7 @@ import { BulkOperationsToolbar } from '@/components/prompts/BulkOperationsToolba
 import { useDefaultAiProvider } from '@/hooks/useSystemSettings'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { toast } from 'sonner'
+import { Prompt, PromptTestingData } from '@/types/prompt'
 
 interface ApiKeyStatus {
   openai: boolean
@@ -22,9 +24,9 @@ interface ApiKeyStatus {
 }
 
 export default function PromptManagement() {
-  const [selectedPrompt, setSelectedPrompt] = useState<any>(null)
+  const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null)
   const [isCreating, setIsCreating] = useState(false)
-  const [testingPrompt, setTestingPrompt] = useState<any>(null)
+  const [testingPrompt, setTestingPrompt] = useState<PromptTestingData | null>(null)
   const [apiKeyStatus, setApiKeyStatus] = useState<ApiKeyStatus>({ openai: false, claude: false })
   const [isValidatingKeys, setIsValidatingKeys] = useState(false)
 
@@ -133,7 +135,7 @@ export default function PromptManagement() {
     }
   }
 
-  const handleEditPrompt = (prompt: any) => {
+  const handleEditPrompt = (prompt: Prompt) => {
     setSelectedPrompt(prompt)
   }
 
