@@ -15,7 +15,7 @@ interface UploadFile {
   metadata?: {
     title: string
     participants: string[]
-    duration?: number
+    durationMinutes?: number
   }
 }
 
