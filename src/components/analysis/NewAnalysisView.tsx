@@ -268,24 +268,45 @@ export function NewAnalysisView({
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {analysis.recommendations.competitive_strategy && (
+                  {analysis.recommendations.competitiveStrategy && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Competitive Strategy</h4>
-                      <p className="text-slate-700 leading-relaxed">{analysis.recommendations.competitive_strategy}</p>
+                      <p className="text-slate-700 leading-relaxed">{analysis.recommendations.competitiveStrategy}</p>
                     </div>
                   )}
                   
-                  {analysis.recommendations.primary_strategy && (
+                  {analysis.recommendations.primaryStrategy && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Primary Strategy</h4>
-                      <p className="text-slate-700 leading-relaxed">{analysis.recommendations.primary_strategy}</p>
+                      <p className="text-slate-700 leading-relaxed">{analysis.recommendations.primaryStrategy}</p>
                     </div>
                   )}
                   
-                  {analysis.recommendations.stakeholder_plan && (
+                  {analysis.recommendations.stakeholderPlan && (
                     <div>
                       <h4 className="font-semibold text-slate-900 mb-2">Stakeholder Plan</h4>
-                      <p className="text-slate-700 leading-relaxed">{analysis.recommendations.stakeholder_plan}</p>
+                      <p className="text-slate-700 leading-relaxed">{analysis.recommendations.stakeholderPlan}</p>
+                    </div>
+                  )}
+
+                  {analysis.recommendations.riskMitigation && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Risk Mitigation</h4>
+                      <p className="text-slate-700 leading-relaxed">{analysis.recommendations.riskMitigation}</p>
+                    </div>
+                  )}
+
+                  {analysis.recommendations.immediateActions && analysis.recommendations.immediateActions.length > 0 && (
+                    <div>
+                      <h4 className="font-semibold text-slate-900 mb-2">Immediate Actions</h4>
+                      <ul className="space-y-1">
+                        {analysis.recommendations.immediateActions.map((action: string, index: number) => (
+                          <li key={index} className="flex items-start">
+                            <CheckCircle className="w-4 h-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                            <span className="text-slate-700">{action}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
                   )}
                 </div>
