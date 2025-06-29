@@ -34,7 +34,7 @@ interface UploadRequest {
   accountId?: string
 }
 
-export function useTranscriptUpload() {
+export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) => void) {
   console.log('🔍 useTranscriptUpload hook initialized')
   
   const [uploadFiles, setUploadFiles] = useState<UploadFile[]>([])
@@ -128,6 +128,49 @@ export function useTranscriptUpload() {
     )
   }
 
+  // Set up real-time subscription to listen for analysis completion
+  const setupAnalysisListener = (transcriptId: string) => {
+    console.log('🔍 Setting up analysis listener for:', transcriptId)
+    
+    const channel = supabase
+      .channel(`transcript-${transcriptId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'transcripts',
+          filter: `id=eq.${transcriptId}`
+        },
+        (payload) => {
+          console.log('🔍 Transcript status update:', payload.new)
+          const updatedTranscript = payload.new as any
+          
+          if (updatedTranscript.status === 'completed') {
+            console.log('🔍 Analysis completed, calling callback')
+            toast.success('Analysis completed! View your sales intelligence now.', {
+              duration: 5000,
+            })
+            
+            // Call the completion callback
+            if (onAnalysisComplete) {
+              onAnalysisComplete(transcriptId)
+            }
+            
+            // Clean up the listener
+            supabase.removeChannel(channel)
+          } else if (updatedTranscript.status === 'error') {
+            console.log('🔍 Analysis failed')
+            toast.error('Analysis failed. Please try again.')
+            supabase.removeChannel(channel)
+          }
+        }
+      )
+      .subscribe()
+
+    return channel
+  }
+
   const uploadMutation = useMutation({
     mutationFn: async (request: UploadRequest): Promise<string> => {
       console.log('🔍 Upload mutation started for:', request.file.name)
@@ -165,6 +208,9 @@ export function useTranscriptUpload() {
 
       console.log('🔍 Transcript saved with ID:', transcript.id)
 
+      // Set up real-time listener for analysis completion
+      setupAnalysisListener(transcript.id)
+
       // Trigger analysis
       const { error: analysisError } = await supabase.functions.invoke('analyze-transcript', {
         body: {
@@ -179,6 +225,7 @@ export function useTranscriptUpload() {
       if (analysisError) {
         console.warn('Analysis failed to start:', analysisError)
         // Don't throw here - transcript is saved, analysis can be retried
+        toast.warning('Analysis failed to start automatically. You can retry from the transcript page.')
       } else {
         console.log('🔍 Analysis triggered for transcript:', transcript.id)
       }
