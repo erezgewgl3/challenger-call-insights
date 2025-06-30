@@ -165,11 +165,10 @@ export function NewAnalysisView({
       dealScore += 2 // Contract readiness boost
     }
     
-    // SURGICAL FIX: Add resistance penalty system
-    const competitiveIntel = analysis.call_summary?.competitiveIntelligence || {}
-    const resistanceLevel = competitiveIntel.resistanceLevel || 'none'
-    const concerns = competitiveIntel.concerns || []
-    const objections = competitiveIntel.objections || []
+    // SURGICAL FIX: Correct resistance data path references
+    const resistanceData = analysis.call_summary?.resistanceAnalysis || {}
+    const resistanceLevel = resistanceData.level || 'none'
+    const resistanceSignals = resistanceData.signals || []
     
     // Apply resistance penalties
     let resistancePenalty = 0
@@ -182,7 +181,7 @@ export function NewAnalysisView({
     }
     
     // Specific resistance signal penalties
-    const allResistanceText = [...concerns, ...objections].join(' ').toLowerCase()
+    const allResistanceText = resistanceSignals.join(' ').toLowerCase()
     
     if (allResistanceText.includes('not actively looking') || 
         allResistanceText.includes('not looking for') ||
@@ -227,7 +226,7 @@ export function NewAnalysisView({
       description = 'Immediate attention needed'
     } else if (
       painLevel === 'medium' || 
-      businessFactors.length >= 1 || 
+      (businessFactors || []).length >= 1 || // Add null safety
       dealScore >= 3 // ENHANCED: Use dealScore instead of urgencyScore
     ) {
       heatLevel = 'MEDIUM'
