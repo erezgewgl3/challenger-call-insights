@@ -197,7 +197,7 @@ export function NewAnalysisView({
             <div className="flex items-center space-x-4 text-sm text-slate-600">
               <span>{formatDate(transcript.meeting_date)}</span>
               <span>•</span>
-              <span>{transcript.duration_minutes} minutes</span>
+              <span>Meeting/Call Duration: {transcript.duration_minutes}</span>
               <span>•</span>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
                 <Star className="w-3 h-3 mr-1" />
