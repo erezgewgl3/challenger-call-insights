@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -322,6 +323,26 @@ export function NewAnalysisView({
                     </ul>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            {/* Intelligence Summary */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-green-400" />
+                <span className="text-gray-300">Multiple stakeholders engaged</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                <span className="text-gray-300">
+                  {analysis.call_summary?.clientConcerns?.length > 0 ? 'Concerns identified' : 'No major concerns'}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Zap className="w-4 h-4 text-blue-400" />
+                <span className="text-gray-300">
+                  {analysis.call_summary?.positiveSignals?.length > 0 ? 'Positive momentum confirmed' : 'Opportunity identified'}
+                </span>
               </div>
             </div>
           </div>
