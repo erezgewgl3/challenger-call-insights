@@ -393,67 +393,30 @@ export function NewAnalysisView({
 
             {/* Participants Section - ADDED BETWEEN 4-CARD GRID AND CALL SUMMARY */}
             <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-3">
                 <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
                   <Users className="w-4 h-4 text-white" />
                 </div>
                 <h3 className="text-base font-semibold text-white">Meeting Participants</h3>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Sales Rep */}
-                <div className="bg-white/5 rounded-lg p-3 border-l-2 border-blue-400">
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-4 h-4 bg-blue-400 rounded-full"></div>
-                    <span className="text-xs font-medium text-blue-200">Sales Rep</span>
-                  </div>
-                  <p className="text-sm font-medium text-white">
-                    {participants?.salesRep?.name || 'Sales Representative'}
-                  </p>
-                  <p className="text-xs text-gray-300">
-                    {participants?.salesRep?.company || 'Your Company'}
-                  </p>
-                </div>
-
-                {/* Client Contacts */}
-                <div className="bg-white/5 rounded-lg p-3 border-l-2 border-green-400">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-4 h-4 bg-green-400 rounded-full"></div>
-                    <span className="text-xs font-medium text-green-200">
-                      Client Contacts ({participants?.clientContacts?.length || 0})
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {participants?.clientContacts?.slice(0, 3).map((contact, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-medium text-white">{contact.name}</p>
-                          <p className="text-xs text-gray-300">{contact.title}</p>
-                        </div>
-                        <div className="text-right">
-                          <span className={`text-xs px-2 py-1 rounded ${
-                            contact.decisionLevel === 'high' 
-                              ? 'bg-red-500/20 text-red-300' 
-                              : contact.decisionLevel === 'medium'
-                              ? 'bg-yellow-500/20 text-yellow-300'
-                              : 'bg-gray-500/20 text-gray-300'
-                          }`}>
-                            {contact.decisionLevel === 'high' ? 'Key' : 
-                             contact.decisionLevel === 'medium' ? 'Inf' : 'Low'}
-                          </span>
-                        </div>
-                      </div>
-                    )) || (
-                      <p className="text-xs text-gray-400 italic">No client contacts identified</p>
-                    )}
-                    
-                    {participants?.clientContacts?.length > 3 && (
-                      <p className="text-xs text-gray-400 italic">
-                        +{participants.clientContacts.length - 3} more participants
-                      </p>
-                    )}
-                  </div>
-                </div>
+              <div className="text-sm text-gray-200">
+                <span className="text-blue-200 font-medium">Sales Rep:</span> {participants?.salesRep?.name || 'Sales Representative'}
+                {participants?.clientContacts && participants.clientContacts.length > 0 && (
+                  <>
+                    {' • '}
+                    <span className="text-green-200 font-medium">Client Contacts:</span> {
+                      participants.clientContacts.map((contact, index) => (
+                        <span key={index}>
+                          {contact.name}
+                          {contact.decisionLevel === 'high' && <span className="text-red-300 ml-1">(Key)</span>}
+                          {contact.decisionLevel === 'medium' && <span className="text-yellow-300 ml-1">(Inf)</span>}
+                          {index < participants.clientContacts.length - 1 ? ', ' : ''}
+                        </span>
+                      ))
+                    }
+                  </>
+                )}
               </div>
             </div>
 
