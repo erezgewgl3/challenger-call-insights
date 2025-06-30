@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { 
   ArrowLeft, 
   Upload, 
@@ -280,10 +281,12 @@ export function NewAnalysisView({
     // Extract timeline display with improved truncation
     let displayTimeline = 'This Month'
     let urgencyLevel = 'LOW'
+    let isTextTruncated = false
     
     if (statedTimeline) {
       // Improved truncation logic with word boundaries and responsive design
       if (statedTimeline.length > 80) {
+        isTextTruncated = true
         // Find the last space within 80 characters to avoid cutting words
         const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 80)
         displayTimeline = lastSpaceIndex > 60 ? 
@@ -313,6 +316,8 @@ export function NewAnalysisView({
     
     return {
       timeline: displayTimeline,
+      originalTimeline: statedTimeline,
+      isTextTruncated,
       urgency: urgencyLevel,
       driver: businessDriver,
       flexibility,
@@ -379,470 +384,485 @@ export function NewAnalysisView({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      <div className="max-w-5xl mx-auto px-4 py-8">
-        
-        {/* Header Navigation */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <Button 
-              variant="ghost" 
-              onClick={onBackToDashboard}
-              className="text-slate-600 hover:text-slate-900"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
+      <TooltipProvider>
+        <div className="max-w-5xl mx-auto px-4 py-8">
+          
+          {/* Header Navigation */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <Button 
+                variant="ghost" 
+                onClick={onBackToDashboard}
+                className="text-slate-600 hover:text-slate-900"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Dashboard
+              </Button>
+              
+              <Button 
+                onClick={onUploadAnother}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload Another
+              </Button>
+            </div>
             
-            <Button 
-              onClick={onUploadAnother}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Upload className="w-4 h-4 mr-2" />
-              Upload Another
-            </Button>
-          </div>
-          
-          <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-slate-900">{transcript.title}</h1>
-            <div className="flex items-center space-x-4 text-sm text-slate-600">
-              <span>{formatDate(transcript.meeting_date)}</span>
-              <span>•</span>
-              <span>Meeting/Call Duration: {transcript.duration_minutes} min</span>
-              <span>•</span>
-              <Badge variant="secondary" className="bg-green-100 text-green-800">
-                <Star className="w-3 h-3 mr-1" />
-                Analysis Complete
-              </Badge>
+            <div className="space-y-2">
+              <h1 className="text-3xl font-bold text-slate-900">{transcript.title}</h1>
+              <div className="flex items-center space-x-4 text-sm text-slate-600">
+                <span>{formatDate(transcript.meeting_date)}</span>
+                <span>•</span>
+                <span>Meeting/Call Duration: {transcript.duration_minutes} min</span>
+                <span>•</span>
+                <Badge variant="secondary" className="bg-green-100 text-green-800">
+                  <Star className="w-3 h-3 mr-1" />
+                  Analysis Complete
+                </Badge>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* ELITE HERO SECTION - "YOUR SALES EDGE" */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-8 rounded-2xl mb-8">
-          {/* Background Effects */}
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.15),transparent_50%)]"></div>
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.1),transparent_50%)]"></div>
-          
-          <div className="relative z-10">
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">Your Sales Edge</h2>
-                <p className="text-blue-200 text-sm">Intelligence extracted from your conversation</p>
-              </div>
-            </div>
-
-            {/* Main Intelligence Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-              
-              {/* Deal Temperature */}
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-8 h-8 ${dealHeat.bgColor} rounded-lg flex items-center justify-center`}>
-                    <Thermometer className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-medium text-red-200">Deal Heat</span>
+          {/* ELITE HERO SECTION - "YOUR SALES EDGE" */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-8 rounded-2xl mb-8">
+            {/* Background Effects */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.15),transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.1),transparent_50%)]"></div>
+            
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
                 </div>
-                <div className={`text-2xl font-bold ${dealHeat.color}`}>{dealHeat.emoji} {dealHeat.level}</div>
-                <p className="text-xs text-gray-300 mt-1">{dealHeat.description}</p>
-              </div>
-
-              {/* Key Contact */}
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <Crown className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-medium text-blue-200">Decision Maker</span>
-                </div>
-                <div className="text-lg font-bold">{decisionMaker.name}</div>
-                <p className="text-xs text-gray-300">{decisionMaker.title} • {decisionMaker.influence}</p>
-              </div>
-
-              {/* Buying Signals */}
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-medium text-green-200">Buying Signals</span>
-                </div>
-                <div className="text-2xl font-bold text-green-300">{buyingSignals.count}/{buyingSignals.total}</div>
-                <p className="text-xs text-gray-300 mt-1">{buyingSignals.strength}</p>
-              </div>
-
-              {/* Timeline */}
-              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                    <Clock className="w-4 h-4 text-white" />
-                  </div>
-                  <span className="text-sm font-medium text-orange-200">Timeline</span>
-                </div>
-                <div className="text-lg font-bold text-orange-300">{timeline.timeline}</div>
-                <p className="text-xs text-gray-300">{timeline.description}</p>
-              </div>
-            </div>
-
-            {/* Ultra Compact Participants Section */}
-            <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
-                  <Users className="w-4 h-4 text-white" />
-                </div>
-                <h3 className="text-base font-semibold text-white">Meeting Participants</h3>
-              </div>
-              
-              <div className="text-sm text-white">
-                <span className="text-blue-200 font-medium">Participants:</span> {participants?.salesRep?.name || 'Sales Representative'}
-                {participants?.clientContacts && participants.clientContacts.length > 0 && (
-                  <>
-                    {', '}
-                    {participants.clientContacts.map((contact: any, index: number) => {
-                      const stakeholder = getStakeholderDisplay(contact);
-                      const displayName = contact.name + (contact.title ? ` (${contact.title})` : '');
-                      
-                      return (
-                        <span key={index}>
-                          {displayName}
-                          <span className={`ml-2 text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
-                            {stakeholder.icon} {stakeholder.label}
-                          </span>
-                          {index < participants.clientContacts.length - 1 && ', '}
-                        </span>
-                      );
-                    })}
-                  </>
-                )}
-                {(!participants?.clientContacts || participants.clientContacts.length === 0) && (
-                  <span className="text-xs text-gray-400 italic"> • No client contacts identified</span>
-                )}
-              </div>
-            </div>
-
-            {/* Call Summary Section */}
-            <div className="mt-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <FileText className="w-4 h-4 text-white" />
-                </div>
-                <h3 className="text-lg font-semibold text-white">Call Summary</h3>
-              </div>
-              
-              <div className="space-y-4">
                 <div>
-                  <p className="text-gray-200 leading-relaxed">
-                    {analysis.call_summary?.overview || 'This conversation provided valuable insights into the client\'s needs and current challenges.'}
-                  </p>
+                  <h2 className="text-2xl font-bold">Your Sales Edge</h2>
+                  <p className="text-blue-200 text-sm">Intelligence extracted from your conversation</p>
+                </div>
+              </div>
+
+              {/* Main Intelligence Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                
+                {/* Deal Temperature */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className={`w-8 h-8 ${dealHeat.bgColor} rounded-lg flex items-center justify-center`}>
+                      <Thermometer className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-red-200">Deal Heat</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${dealHeat.color}`}>{dealHeat.emoji} {dealHeat.level}</div>
+                  <p className="text-xs text-gray-300 mt-1">{dealHeat.description}</p>
+                </div>
+
+                {/* Key Contact */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <Crown className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-200">Decision Maker</span>
+                  </div>
+                  <div className="text-lg font-bold">{decisionMaker.name}</div>
+                  <p className="text-xs text-gray-300">{decisionMaker.title} • {decisionMaker.influence}</p>
+                </div>
+
+                {/* Buying Signals */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-green-200">Buying Signals</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-300">{buyingSignals.count}/{buyingSignals.total}</div>
+                  <p className="text-xs text-gray-300 mt-1">{buyingSignals.strength}</p>
+                </div>
+
+                {/* Timeline */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-orange-200">Timeline</span>
+                  </div>
+                  <div className="text-lg font-bold text-orange-300">
+                    {timeline.isTextTruncated ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-help">{timeline.timeline}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">{timeline.originalTimeline}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      timeline.timeline
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-300">{timeline.description}</p>
+                </div>
+              </div>
+
+              {/* Ultra Compact Participants Section */}
+              <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <Users className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">Meeting Participants</h3>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="text-sm text-white">
+                  <span className="text-blue-200 font-medium">Participants:</span> {participants?.salesRep?.name || 'Sales Representative'}
+                  {participants?.clientContacts && participants.clientContacts.length > 0 && (
+                    <>
+                      {', '}
+                      {participants.clientContacts.map((contact: any, index: number) => {
+                        const stakeholder = getStakeholderDisplay(contact);
+                        const displayName = contact.name + (contact.title ? ` (${contact.title})` : '');
+                        
+                        return (
+                          <span key={index}>
+                            {displayName}
+                            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
+                              {stakeholder.icon} {stakeholder.label}
+                            </span>
+                            {index < participants.clientContacts.length - 1 && ', '}
+                          </span>
+                        );
+                      })}
+                    </>
+                  )}
+                  {(!participants?.clientContacts || participants.clientContacts.length === 0) && (
+                    <span className="text-xs text-gray-400 italic"> • No client contacts identified</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Call Summary Section */}
+              <div className="mt-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Call Summary</h3>
+                </div>
+                
+                <div className="space-y-4">
                   <div>
-                    <h4 className="text-sm font-medium text-gray-300 mb-2">Client Situation</h4>
-                    <p className="text-gray-200 text-sm">
-                      {analysis.call_summary?.clientSituation || 'Client shared their current business context and challenges.'}
+                    <p className="text-gray-200 leading-relaxed">
+                      {analysis.call_summary?.overview || 'This conversation provided valuable insights into the client\'s needs and current challenges.'}
                     </p>
                   </div>
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-300 mb-2">Main Topics</h4>
-                    <ul className="space-y-1">
-                      {(analysis.call_summary?.mainTopics || ['Business needs discussed', 'Solution options explored', 'Next steps identified']).slice(0, 3).map((topic, index) => (
-                        <li key={index} className="flex items-center gap-2">
-                          <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                          <span className="text-gray-200 text-sm">{topic}</span>
-                        </li>
-                      ))}
-                    </ul>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-300 mb-2">Client Situation</h4>
+                      <p className="text-gray-200 text-sm">
+                        {analysis.call_summary?.clientSituation || 'Client shared their current business context and challenges.'}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-300 mb-2">Main Topics</h4>
+                      <ul className="space-y-1">
+                        {(analysis.call_summary?.mainTopics || ['Business needs discussed', 'Solution options explored', 'Next steps identified']).slice(0, 3).map((topic, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                            <span className="text-gray-200 text-sm">{topic}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Intelligence Summary */}
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-green-400" />
-                <span className="text-gray-300">Multiple stakeholders engaged</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                <span className="text-gray-300">
-                  {conversationIntel.concerns.length > 0 ? 'Concerns identified' : 'No major concerns'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-blue-400" />
-                <span className="text-gray-300">
-                  {conversationIntel.positive.length > 0 ? 'Positive momentum confirmed' : 'Opportunity identified'}
-                </span>
+              {/* Intelligence Summary */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span className="text-gray-300">Multiple stakeholders engaged</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  <span className="text-gray-300">
+                    {conversationIntel.concerns.length > 0 ? 'Concerns identified' : 'No major concerns'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-blue-400" />
+                  <span className="text-gray-300">
+                    {conversationIntel.positive.length > 0 ? 'Positive momentum confirmed' : 'Opportunity identified'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* PROGRESSIVE DISCLOSURE SECTION */}
-        <div className="space-y-4">
-          
-          {/* Expandable Intelligence Cards */}
+          {/* PROGRESSIVE DISCLOSURE SECTION */}
           <div className="space-y-4">
             
-            {/* Key Insights Card */}
-            {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
-              <Card className="border-l-4 border-l-yellow-500">
+            {/* Expandable Intelligence Cards */}
+            <div className="space-y-4">
+              
+              {/* Key Insights Card */}
+              {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
+                <Card className="border-l-4 border-l-yellow-500">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Lightbulb className="w-5 h-5 text-yellow-600" />
+                            <CardTitle className="text-lg">Key Insights ({analysis.key_takeaways.length})</CardTitle>
+                          </div>
+                          <ChevronDown className="w-4 h-4" />
+                        </div>
+                        <p className="text-sm text-gray-600">What matters most about this conversation</p>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="space-y-3">
+                          {analysis.key_takeaways.map((takeaway, index) => (
+                            <div key={index} className="flex items-start gap-3">
+                              <div className="w-6 h-6 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-sm font-medium">
+                                {index + 1}
+                              </div>
+                              <p className="text-gray-700">{takeaway}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )}
+
+              {/* Strategic Recommendations Card */}
+              {analysis.recommendations && (
+                <Card className="border-l-4 border-l-blue-500">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Target className="w-5 h-5 text-blue-600" />
+                            <CardTitle className="text-lg">Strategic Approach</CardTitle>
+                          </div>
+                          <ChevronDown className="w-4 h-4" />
+                        </div>
+                        <p className="text-sm text-gray-600">How to win this deal</p>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-4">
+                        {analysis.recommendations.primaryStrategy && (
+                          <div>
+                            <h4 className="font-medium mb-2">Primary Strategy</h4>
+                            <p className="text-gray-700">{analysis.recommendations.primaryStrategy}</p>
+                          </div>
+                        )}
+                        {analysis.recommendations.competitiveStrategy && (
+                          <div>
+                            <h4 className="font-medium mb-2">Competitive Positioning</h4>
+                            <p className="text-gray-700">{analysis.recommendations.competitiveStrategy}</p>
+                          </div>
+                        )}
+                        {analysis.recommendations.stakeholderPlan && (
+                          <div>
+                            <h4 className="font-medium mb-2">Stakeholder Plan</h4>
+                            <p className="text-gray-700">{analysis.recommendations.stakeholderPlan}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )}
+
+              {/* Enhanced Conversation Intel Card - This is the fixed section */}
+              <Card className="border-l-4 border-l-green-500">
                 <Collapsible>
                   <CollapsibleTrigger asChild>
                     <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Lightbulb className="w-5 h-5 text-yellow-600" />
-                          <CardTitle className="text-lg">Key Insights ({analysis.key_takeaways.length})</CardTitle>
+                          <Eye className="w-5 h-5 text-green-600" />
+                          <CardTitle className="text-lg">Conversation Intelligence</CardTitle>
                         </div>
                         <ChevronDown className="w-4 h-4" />
                       </div>
-                      <p className="text-sm text-gray-600">What matters most about this conversation</p>
+                      <p className="text-sm text-gray-600">What they revealed and what it means</p>
                     </CardHeader>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {analysis.key_takeaways.map((takeaway, index) => (
-                          <div key={index} className="flex items-start gap-3">
-                            <div className="w-6 h-6 bg-yellow-100 text-yellow-700 rounded-full flex items-center justify-center text-sm font-medium">
-                              {index + 1}
+                    <CardContent className="space-y-6">
+                      
+                      {/* Buying Signals Analysis */}
+                      {conversationIntel.positive.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-green-600 mb-3 flex items-center gap-2">
+                            <Activity className="w-4 h-4" />
+                            Buying Signals ({conversationIntel.positive.length})
+                          </h4>
+                          <div className="grid gap-2">
+                            {conversationIntel.positive.map((signal: string, index: number) => (
+                              <div key={index} className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+                                <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                <span className="text-gray-700 text-sm">{signal}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pain & Urgency Analysis */}
+                      {conversationIntel.pain.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-red-600 mb-3 flex items-center gap-2">
+                            <Thermometer className="w-4 h-4" />
+                            Pain Indicators ({conversationIntel.pain.length})
+                          </h4>
+                          <div className="grid gap-2">
+                            {conversationIntel.pain.map((pain: string, index: number) => (
+                              <div key={index} className="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
+                                <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                                <span className="text-gray-700 text-sm">{pain}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Concerns & Objections */}
+                      {conversationIntel.concerns.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-orange-600 mb-3 flex items-center gap-2">
+                            <Shield className="w-4 h-4" />
+                            Concerns to Address ({conversationIntel.concerns.length})
+                          </h4>
+                          <div className="grid gap-2">
+                            {conversationIntel.concerns.map((concern: string, index: number) => (
+                              <div key={index} className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg">
+                                <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                                <span className="text-gray-700 text-sm">{concern}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Competitive Intelligence */}
+                      {conversationIntel.competitive.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-purple-600 mb-3 flex items-center gap-2">
+                            <Target className="w-4 h-4" />
+                            Competitive Intelligence ({conversationIntel.competitive.length})
+                          </h4>
+                          <div className="grid gap-2">
+                            {conversationIntel.competitive.map((comp: string, index: number) => (
+                              <div key={index} className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
+                                <ExternalLink className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                                <span className="text-gray-700 text-sm">{comp}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Fallback when no intelligence is available */}
+                      {conversationIntel.positive.length === 0 && 
+                       conversationIntel.concerns.length === 0 && 
+                       conversationIntel.competitive.length === 0 && 
+                       conversationIntel.pain.length === 0 && (
+                        <div className="text-center py-8">
+                          <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                          <h4 className="font-medium text-gray-600 mb-2">Rich Intelligence Processing</h4>
+                          <p className="text-gray-500 text-sm">
+                            Your conversation is being analyzed for deeper insights including buying signals, 
+                            competitive intelligence, pain analysis, and stakeholder mapping.
+                          </p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </CollapsibleContent>
+                </Collapsible>
+              </Card>
+
+              {/* Ready-to-Execute Actions Card */}
+              {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 && (
+                <Card className="border-l-4 border-l-purple-500">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Zap className="w-5 h-5 text-purple-600" />
+                            <CardTitle className="text-lg">Ready-to-Execute Actions</CardTitle>
+                          </div>
+                          <ChevronDown className="w-4 h-4" />
+                        </div>
+                        <p className="text-sm text-gray-600">Copy-paste emails and next steps</p>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        {analysis.action_plan.actions.map((action: any, index: number) => (
+                          <div key={index} className="border rounded-lg p-4 mb-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="font-medium">{action.action}</h4>
+                              <Badge variant="outline">{action.timeline}</Badge>
                             </div>
-                            <p className="text-gray-700">{takeaway}</p>
+                            <p className="text-sm text-gray-600 mb-3">{action.objective}</p>
+                            
+                            {action.copyPasteContent?.subject && (
+                              <div className="bg-gray-50 p-3 rounded mb-2">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs font-medium text-gray-700">Subject Line</span>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => copyToClipboard(action.copyPasteContent.subject, 'Subject line')}
+                                  >
+                                    <Copy className="w-4 h-4 mr-1" />
+                                    Copy
+                                  </Button>
+                                </div>
+                                <p className="text-sm font-mono">{action.copyPasteContent.subject}</p>
+                              </div>
+                            )}
+                            
+                            {action.copyPasteContent?.body && (
+                              <div className="bg-gray-50 p-3 rounded">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="text-xs font-medium text-gray-700">Email Content</span>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => copyToClipboard(action.copyPasteContent.body, 'Email content')}
+                                  >
+                                    <Copy className="w-4 h-4 mr-1" />
+                                    Copy
+                                  </Button>
+                                </div>
+                                <p className="text-sm font-mono whitespace-pre-wrap">{action.copyPasteContent.body}</p>
+                              </div>
+                            )}
                           </div>
                         ))}
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
-
-            {/* Strategic Recommendations Card */}
-            {analysis.recommendations && (
-              <Card className="border-l-4 border-l-blue-500">
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Target className="w-5 h-5 text-blue-600" />
-                          <CardTitle className="text-lg">Strategic Approach</CardTitle>
-                        </div>
-                        <ChevronDown className="w-4 h-4" />
-                      </div>
-                      <p className="text-sm text-gray-600">How to win this deal</p>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="space-y-4">
-                      {analysis.recommendations.primaryStrategy && (
-                        <div>
-                          <h4 className="font-medium mb-2">Primary Strategy</h4>
-                          <p className="text-gray-700">{analysis.recommendations.primaryStrategy}</p>
-                        </div>
-                      )}
-                      {analysis.recommendations.competitiveStrategy && (
-                        <div>
-                          <h4 className="font-medium mb-2">Competitive Positioning</h4>
-                          <p className="text-gray-700">{analysis.recommendations.competitiveStrategy}</p>
-                        </div>
-                      )}
-                      {analysis.recommendations.stakeholderPlan && (
-                        <div>
-                          <h4 className="font-medium mb-2">Stakeholder Plan</h4>
-                          <p className="text-gray-700">{analysis.recommendations.stakeholderPlan}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
-
-            {/* Enhanced Conversation Intel Card - This is the fixed section */}
-            <Card className="border-l-4 border-l-green-500">
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Eye className="w-5 h-5 text-green-600" />
-                        <CardTitle className="text-lg">Conversation Intelligence</CardTitle>
-                      </div>
-                      <ChevronDown className="w-4 h-4" />
-                    </div>
-                    <p className="text-sm text-gray-600">What they revealed and what it means</p>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="space-y-6">
-                    
-                    {/* Buying Signals Analysis */}
-                    {conversationIntel.positive.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-green-600 mb-3 flex items-center gap-2">
-                          <Activity className="w-4 h-4" />
-                          Buying Signals ({conversationIntel.positive.length})
-                        </h4>
-                        <div className="grid gap-2">
-                          {conversationIntel.positive.map((signal: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
-                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
-                              <span className="text-gray-700 text-sm">{signal}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Pain & Urgency Analysis */}
-                    {conversationIntel.pain.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-red-600 mb-3 flex items-center gap-2">
-                          <Thermometer className="w-4 h-4" />
-                          Pain Indicators ({conversationIntel.pain.length})
-                        </h4>
-                        <div className="grid gap-2">
-                          {conversationIntel.pain.map((pain: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
-                              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                              <span className="text-gray-700 text-sm">{pain}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Concerns & Objections */}
-                    {conversationIntel.concerns.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-orange-600 mb-3 flex items-center gap-2">
-                          <Shield className="w-4 h-4" />
-                          Concerns to Address ({conversationIntel.concerns.length})
-                        </h4>
-                        <div className="grid gap-2">
-                          {conversationIntel.concerns.map((concern: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg">
-                              <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0" />
-                              <span className="text-gray-700 text-sm">{concern}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Competitive Intelligence */}
-                    {conversationIntel.competitive.length > 0 && (
-                      <div>
-                        <h4 className="font-medium text-purple-600 mb-3 flex items-center gap-2">
-                          <Target className="w-4 h-4" />
-                          Competitive Intelligence ({conversationIntel.competitive.length})
-                        </h4>
-                        <div className="grid gap-2">
-                          {conversationIntel.competitive.map((comp: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
-                              <ExternalLink className="w-4 h-4 text-purple-500 flex-shrink-0" />
-                              <span className="text-gray-700 text-sm">{comp}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Fallback when no intelligence is available */}
-                    {conversationIntel.positive.length === 0 && 
-                     conversationIntel.concerns.length === 0 && 
-                     conversationIntel.competitive.length === 0 && 
-                     conversationIntel.pain.length === 0 && (
-                      <div className="text-center py-8">
-                        <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <h4 className="font-medium text-gray-600 mb-2">Rich Intelligence Processing</h4>
-                        <p className="text-gray-500 text-sm">
-                          Your conversation is being analyzed for deeper insights including buying signals, 
-                          competitive intelligence, pain analysis, and stakeholder mapping.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-
-            {/* Ready-to-Execute Actions Card */}
-            {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 && (
-              <Card className="border-l-4 border-l-purple-500">
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Zap className="w-5 h-5 text-purple-600" />
-                          <CardTitle className="text-lg">Ready-to-Execute Actions</CardTitle>
-                        </div>
-                        <ChevronDown className="w-4 h-4" />
-                      </div>
-                      <p className="text-sm text-gray-600">Copy-paste emails and next steps</p>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      {analysis.action_plan.actions.map((action: any, index: number) => (
-                        <div key={index} className="border rounded-lg p-4 mb-4">
-                          <div className="flex items-center justify-between mb-3">
-                            <h4 className="font-medium">{action.action}</h4>
-                            <Badge variant="outline">{action.timeline}</Badge>
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">{action.objective}</p>
-                          
-                          {action.copyPasteContent?.subject && (
-                            <div className="bg-gray-50 p-3 rounded mb-2">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-medium text-gray-700">Subject Line</span>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => copyToClipboard(action.copyPasteContent.subject, 'Subject line')}
-                                >
-                                  <Copy className="w-4 h-4 mr-1" />
-                                  Copy
-                                </Button>
-                              </div>
-                              <p className="text-sm font-mono">{action.copyPasteContent.subject}</p>
-                            </div>
-                          )}
-                          
-                          {action.copyPasteContent?.body && (
-                            <div className="bg-gray-50 p-3 rounded">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-xs font-medium text-gray-700">Email Content</span>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => copyToClipboard(action.copyPasteContent.body, 'Email content')}
-                                >
-                                  <Copy className="w-4 h-4 mr-1" />
-                                  Copy
-                                </Button>
-                              </div>
-                              <p className="text-sm font-mono whitespace-pre-wrap">{action.copyPasteContent.body}</p>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </TooltipProvider>
     </div>
   )
 }
