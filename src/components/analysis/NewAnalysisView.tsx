@@ -358,26 +358,6 @@ export function NewAnalysisView({
         {/* PROGRESSIVE DISCLOSURE SECTION */}
         <div className="space-y-4">
           
-          {/* Quick Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-lg border">
-              <div className="text-2xl font-bold text-blue-600">{analysis.participants?.clientContacts?.length || 0}</div>
-              <div className="text-sm text-gray-600">Key Contacts</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border">
-              <div className="text-2xl font-bold text-green-600">{analysis.call_summary?.positiveSignals?.length || 0}</div>
-              <div className="text-sm text-gray-600">Buying Signals</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border">
-              <div className="text-2xl font-bold text-orange-600">{analysis.call_summary?.clientConcerns?.length || 0}</div>
-              <div className="text-sm text-gray-600">Concerns</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border">
-              <div className="text-2xl font-bold text-purple-600">{analysis.action_plan?.actions?.length || 0}</div>
-              <div className="text-sm text-gray-600">Next Actions</div>
-            </div>
-          </div>
-
           {/* Expandable Intelligence Cards */}
           <div className="space-y-4">
             
