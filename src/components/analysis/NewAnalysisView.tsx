@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -137,17 +138,55 @@ export function NewAnalysisView({
                         (businessFactors.length * 2) + 
                         (generalFactors.length * 1)
     
+    // NEW: Add buying signal analysis
+    const buyingSignals = analysis.call_summary?.buyingSignalsAnalysis || {}
+    const commitmentSignals = buyingSignals.commitmentSignals || []
+    const engagementSignals = buyingSignals.engagementSignals || []
+    
+    // NEW: Add timeline analysis
+    const timelineAnalysis = analysis.call_summary?.timelineAnalysis || {}
+    const statedTimeline = timelineAnalysis.statedTimeline || ''
+    const businessDriver = timelineAnalysis.businessDriver || ''
+    
+    // NEW: Enhanced scoring with buying signals and timeline
+    let dealScore = urgencyScore
+    
+    // Buying signal bonuses
+    dealScore += commitmentSignals.length * 2 // Contract/budget discussions
+    dealScore += engagementSignals.length * 1  // Technical engagement
+    
+    // Timeline urgency bonuses
+    const timelineText = (statedTimeline + ' ' + businessDriver).toLowerCase()
+    if (timelineText.includes('friday') || timelineText.includes('this week') || 
+        timelineText.includes('immediate') || timelineText.includes('asap')) {
+      dealScore += 3 // Immediate timeline boost
+    }
+    if (timelineText.includes('contract') || timelineText.includes('execute') || 
+        timelineText.includes('sign') || timelineText.includes('docs')) {
+      dealScore += 2 // Contract readiness boost
+    }
+    
     // Calculate heat based on pain + urgency
     let heatLevel = 'LOW'
     let emoji = '❄️'
     let description = 'Long-term opportunity'
     
-    // ✅ Enhanced logic with same visual results
-    if (painLevel === 'high' || criticalFactors.length >= 1 || urgencyScore >= 6) {
+    // ENHANCED: More comprehensive HIGH heat conditions
+    if (
+      painLevel === 'high' ||                           // Keep: Critical business pain
+      criticalFactors.length >= 1 ||                    // Keep: Critical urgency factors
+      dealScore >= 8 ||                                 // NEW: High combined score with buying signals
+      (commitmentSignals.length >= 2 && dealScore >= 6) || // NEW: Strong commitment + good score
+      (painLevel === 'medium' && commitmentSignals.length >= 2 && dealScore >= 5) // NEW: Medium pain + strong buying signals
+    ) {
       heatLevel = 'HIGH'
       emoji = '🔥'
       description = 'Immediate attention needed'
-    } else if (painLevel === 'medium' || businessFactors.length >= 1 || urgencyScore >= 3) {
+    } else if (
+      painLevel === 'medium' || 
+      businessFactors.length >= 1 || 
+      dealScore >= 3 // ENHANCED: Use dealScore instead of urgencyScore
+    ) {
       heatLevel = 'MEDIUM'
       emoji = '🌡️'
       description = 'Active opportunity'
