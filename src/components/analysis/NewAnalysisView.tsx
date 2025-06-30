@@ -408,7 +408,7 @@ export function NewAnalysisView({
                     <span className="text-green-200 font-medium">Client Contacts:</span> {
                       participants.clientContacts.map((contact, index) => (
                         <span key={index}>
-                          {contact.name}
+                          {contact.name}{contact.title && ` (${contact.title})`}
                           {contact.decisionLevel === 'high' && <span className="text-red-300 ml-1">(Key)</span>}
                           {contact.decisionLevel === 'medium' && <span className="text-yellow-300 ml-1">(Inf)</span>}
                           {index < participants.clientContacts.length - 1 ? ', ' : ''}
