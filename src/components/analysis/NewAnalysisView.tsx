@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -278,14 +277,21 @@ export function NewAnalysisView({
     const flexibility = timelineAnalysis.flexibility || 'medium'
     const consequences = timelineAnalysis.consequences || ''
     
-    // Extract timeline display
+    // Extract timeline display with improved truncation
     let displayTimeline = 'This Month'
     let urgencyLevel = 'LOW'
     
     if (statedTimeline) {
-      // Use actual stated timeline
-      displayTimeline = statedTimeline.length > 20 ? 
-        statedTimeline.substring(0, 20) + '...' : statedTimeline
+      // Improved truncation logic with word boundaries and responsive design
+      if (statedTimeline.length > 80) {
+        // Find the last space within 80 characters to avoid cutting words
+        const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 80)
+        displayTimeline = lastSpaceIndex > 60 ? 
+          statedTimeline.substring(0, lastSpaceIndex) + '...' : 
+          statedTimeline.substring(0, 80) + '...'
+      } else {
+        displayTimeline = statedTimeline
+      }
       
       // Determine urgency from flexibility and consequences
       if (flexibility === 'low' || consequences.toLowerCase().includes('critical')) {
