@@ -639,13 +639,13 @@ export function NewAnalysisView({
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h4 className="text-sm font-bold text-gray-300 mb-2">Client Situation</h4>
+                      <h4 className="text-sm font-bold text-gray-300 mb-2 underline">Client Situation</h4>
                       <p className="text-gray-200 text-sm">
                         {analysis.call_summary?.clientSituation || 'Client shared their current business context and challenges.'}
                       </p>
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-gray-300 mb-2">Main Topics</h4>
+                      <h4 className="text-sm font-bold text-gray-300 mb-2 underline">Main Topics</h4>
                       <ul className="space-y-1">
                         {(analysis.call_summary?.mainTopics || ['Business needs discussed', 'Solution options explored', 'Next steps identified']).slice(0, 3).map((topic, index) => (
                           <li key={index} className="flex items-center gap-2">
