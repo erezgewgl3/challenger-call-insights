@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -26,7 +27,10 @@ import {
   Crown,
   ChevronDown,
   Lightbulb,
-  FileText
+  FileText,
+  Shield,
+  Activity,
+  Eye
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -318,6 +322,55 @@ export function NewAnalysisView({
   // Extract participants data for the new section
   const participants = analysis.participants || {}
 
+  // Helper function to get conversation intelligence signals
+  const getConversationIntelligence = () => {
+    const callSummary = analysis.call_summary || {}
+    
+    // Map new data structure to display format
+    const signals = {
+      positive: [],
+      concerns: [],
+      competitive: [],
+      pain: []
+    }
+    
+    // Extract buying signals
+    const buyingSignalsAnalysis = callSummary.buyingSignalsAnalysis || {}
+    if (buyingSignalsAnalysis.commitmentSignals) {
+      signals.positive.push(...buyingSignalsAnalysis.commitmentSignals.map(s => `🎯 ${s}`))
+    }
+    if (buyingSignalsAnalysis.engagementSignals) {
+      signals.positive.push(...buyingSignalsAnalysis.engagementSignals.map(s => `📈 ${s}`))
+    }
+    if (buyingSignalsAnalysis.interestSignals) {
+      signals.positive.push(...buyingSignalsAnalysis.interestSignals.map(s => `💡 ${s}`))
+    }
+    
+    // Extract concerns from competitive intelligence
+    const competitiveIntelligence = callSummary.competitiveIntelligence || {}
+    if (competitiveIntelligence.concerns) {
+      signals.concerns.push(...competitiveIntelligence.concerns.map(c => `⚠️ ${c}`))
+    }
+    if (competitiveIntelligence.objections) {
+      signals.concerns.push(...competitiveIntelligence.objections.map(o => `❓ ${o}`))
+    }
+    
+    // Extract competitive mentions
+    if (competitiveIntelligence.competitorsMentioned) {
+      signals.competitive.push(...competitiveIntelligence.competitorsMentioned.map(c => `🏢 ${c.name}: ${c.context}`))
+    }
+    
+    // Extract pain indicators
+    const painSeverity = callSummary.painSeverity || {}
+    if (painSeverity.indicators) {
+      signals.pain.push(...painSeverity.indicators.map(p => `🔥 ${p}`))
+    }
+    
+    return signals
+  }
+
+  const conversationIntel = getConversationIntelligence()
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <div className="max-w-5xl mx-auto px-4 py-8">
@@ -511,13 +564,13 @@ export function NewAnalysisView({
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-yellow-400" />
                 <span className="text-gray-300">
-                  {analysis.call_summary?.clientConcerns?.length > 0 ? 'Concerns identified' : 'No major concerns'}
+                  {conversationIntel.concerns.length > 0 ? 'Concerns identified' : 'No major concerns'}
                 </span>
               </div>
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-blue-400" />
                 <span className="text-gray-300">
-                  {analysis.call_summary?.positiveSignals?.length > 0 ? 'Positive momentum confirmed' : 'Opportunity identified'}
+                  {conversationIntel.positive.length > 0 ? 'Positive momentum confirmed' : 'Opportunity identified'}
                 </span>
               </div>
             </div>
@@ -606,55 +659,114 @@ export function NewAnalysisView({
               </Card>
             )}
 
-            {/* Conversation Intel Card */}
-            {analysis.call_summary && (
-              <Card className="border-l-4 border-l-green-500">
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Users className="w-5 h-5 text-green-600" />
-                          <CardTitle className="text-lg">Conversation Intelligence</CardTitle>
-                        </div>
-                        <ChevronDown className="w-4 h-4" />
+            {/* Enhanced Conversation Intel Card - This is the fixed section */}
+            <Card className="border-l-4 border-l-green-500">
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-5 h-5 text-green-600" />
+                        <CardTitle className="text-lg">Conversation Intelligence</CardTitle>
                       </div>
-                      <p className="text-sm text-gray-600">What they revealed and what it means</p>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="space-y-4">
-                      {analysis.call_summary.positiveSignals && analysis.call_summary.positiveSignals.length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-green-600 mb-2">Positive Signals</h4>
-                          <ul className="space-y-1">
-                            {analysis.call_summary.positiveSignals.map((signal: string, index: number) => (
-                              <li key={index} className="flex items-center gap-2">
-                                <CheckCircle className="w-4 h-4 text-green-500" />
-                                <span className="text-gray-700">{signal}</span>
-                              </li>
-                            ))}
-                          </ul>
+                      <ChevronDown className="w-4 h-4" />
+                    </div>
+                    <p className="text-sm text-gray-600">What they revealed and what it means</p>
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <CardContent className="space-y-6">
+                    
+                    {/* Buying Signals Analysis */}
+                    {conversationIntel.positive.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-green-600 mb-3 flex items-center gap-2">
+                          <Activity className="w-4 h-4" />
+                          Buying Signals ({conversationIntel.positive.length})
+                        </h4>
+                        <div className="grid gap-2">
+                          {conversationIntel.positive.map((signal: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2 p-2 bg-green-50 rounded-lg">
+                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                              <span className="text-gray-700 text-sm">{signal}</span>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                      {analysis.call_summary.clientConcerns && analysis.call_summary.clientConcerns.length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-orange-600 mb-2">Concerns to Address</h4>
-                          <ul className="space-y-1">
-                            {analysis.call_summary.clientConcerns.map((concern: string, index: number) => (
-                              <li key={index} className="flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4 text-orange-500" />
-                                <span className="text-gray-700">{concern}</span>
-                              </li>
-                            ))}
-                          </ul>
+                      </div>
+                    )}
+
+                    {/* Pain & Urgency Analysis */}
+                    {conversationIntel.pain.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-red-600 mb-3 flex items-center gap-2">
+                          <Thermometer className="w-4 h-4" />
+                          Pain Indicators ({conversationIntel.pain.length})
+                        </h4>
+                        <div className="grid gap-2">
+                          {conversationIntel.pain.map((pain: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2 p-2 bg-red-50 rounded-lg">
+                              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                              <span className="text-gray-700 text-sm">{pain}</span>
+                            </div>
+                          ))}
                         </div>
-                      )}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
+                      </div>
+                    )}
+
+                    {/* Concerns & Objections */}
+                    {conversationIntel.concerns.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-orange-600 mb-3 flex items-center gap-2">
+                          <Shield className="w-4 h-4" />
+                          Concerns to Address ({conversationIntel.concerns.length})
+                        </h4>
+                        <div className="grid gap-2">
+                          {conversationIntel.concerns.map((concern: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg">
+                              <AlertTriangle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                              <span className="text-gray-700 text-sm">{concern}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Competitive Intelligence */}
+                    {conversationIntel.competitive.length > 0 && (
+                      <div>
+                        <h4 className="font-medium text-purple-600 mb-3 flex items-center gap-2">
+                          <Target className="w-4 h-4" />
+                          Competitive Intelligence ({conversationIntel.competitive.length})
+                        </h4>
+                        <div className="grid gap-2">
+                          {conversationIntel.competitive.map((comp: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2 p-2 bg-purple-50 rounded-lg">
+                              <ExternalLink className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                              <span className="text-gray-700 text-sm">{comp}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Fallback when no intelligence is available */}
+                    {conversationIntel.positive.length === 0 && 
+                     conversationIntel.concerns.length === 0 && 
+                     conversationIntel.competitive.length === 0 && 
+                     conversationIntel.pain.length === 0 && (
+                      <div className="text-center py-8">
+                        <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                        <h4 className="font-medium text-gray-600 mb-2">Rich Intelligence Processing</h4>
+                        <p className="text-gray-500 text-sm">
+                          Your conversation is being analyzed for deeper insights including buying signals, 
+                          competitive intelligence, pain analysis, and stakeholder mapping.
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </CollapsibleContent>
+              </Collapsible>
+            </Card>
 
             {/* Ready-to-Execute Actions Card */}
             {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 && (
