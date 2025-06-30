@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -96,75 +97,187 @@ export function NewAnalysisView({
   }
 
   // Enhanced data mapping functions for hero section
-  const getUrgencyLevel = () => {
-    const timing = analysis.reasoning?.timing || analysis.call_summary?.timeline || ''
-    const lowerTiming = timing.toLowerCase()
+  const getDealHeat = () => {
+    // Use enhanced pain severity analysis
+    const painLevel = analysis.call_summary?.painSeverity?.level || 'low'
+    const indicators = analysis.call_summary?.painSeverity?.indicators || []
+    const businessImpact = analysis.call_summary?.painSeverity?.businessImpact || ''
     
-    if (lowerTiming.includes('promptly') || lowerTiming.includes('quickly') || 
-        lowerTiming.includes('urgent') || lowerTiming.includes('asap') || 
-        lowerTiming.includes('immediately')) {
-      return { level: 'HIGH', color: 'text-red-300', temp: '🔥', bgColor: 'bg-red-500' }
-    } else if (lowerTiming.includes('this month') || lowerTiming.includes('soon') || 
-               lowerTiming.includes('week')) {
-      return { level: 'MEDIUM', color: 'text-orange-300', temp: '🌡️', bgColor: 'bg-orange-500' }
-    } else {
-      return { level: 'LOW', color: 'text-blue-300', temp: '❄️', bgColor: 'bg-blue-500' }
+    const urgencyFactors = analysis.call_summary?.urgencyDrivers?.factors || []
+    
+    // Calculate heat based on pain + urgency
+    let heatLevel = 'LOW'
+    let emoji = '❄️'
+    let description = 'Long-term opportunity'
+    
+    if (painLevel === 'high' || urgencyFactors.length >= 3) {
+      heatLevel = 'HIGH'
+      emoji = '🔥'
+      description = 'Immediate attention needed'
+    } else if (painLevel === 'medium' || urgencyFactors.length >= 2) {
+      heatLevel = 'MEDIUM'
+      emoji = '🌡️'
+      description = 'Active opportunity'
+    }
+    
+    return {
+      level: heatLevel,
+      emoji,
+      description,
+      evidence: indicators.slice(0, 2), // Top 2 pain indicators
+      businessImpact,
+      bgColor: heatLevel === 'HIGH' ? 'bg-red-500' : heatLevel === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500',
+      color: heatLevel === 'HIGH' ? 'text-red-300' : heatLevel === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
     }
   }
 
-  const getPrimaryContact = () => {
-    if (!analysis.participants?.clientContacts || analysis.participants.clientContacts.length === 0) {
-      return { name: 'Key Contact', title: 'Decision Maker', influence: 'High' }
+  const getDecisionMaker = () => {
+    const contacts = analysis.participants?.clientContacts || []
+    
+    if (contacts.length === 0) {
+      return {
+        name: 'Key Contact',
+        title: 'To be identified',
+        influence: 'Unknown',
+        confidence: 'Low',
+        evidence: []
+      }
     }
     
-    // Look for high decision level or senior titles
-    const decisionMakerKeywords = ['ceo', 'president', 'director', 'vp', 'head', 'chief', 'manager', 'lead']
+    // Score contacts based on behavioral evidence
+    const scoredContacts = contacts.map((contact: any) => {
+      const evidence = contact.decisionEvidence || []
+      const decisionLevel = contact.decisionLevel || 'low'
+      
+      let authorityScore = 0
+      
+      // Score based on behavioral evidence
+      evidence.forEach((ev: string) => {
+        const evidence_lower = ev.toLowerCase()
+        if (evidence_lower.includes('budget') || evidence_lower.includes('approval')) {
+          authorityScore += 4
+        } else if (evidence_lower.includes('timeline') || evidence_lower.includes('decision')) {
+          authorityScore += 3
+        } else if (evidence_lower.includes('deferred') || evidence_lower.includes('strategic')) {
+          authorityScore += 2
+        } else {
+          authorityScore += 1
+        }
+      })
+      
+      // Add declared decision level
+      if (decisionLevel === 'high') authorityScore += 3
+      else if (decisionLevel === 'medium') authorityScore += 1
+      
+      const confidence = authorityScore >= 6 ? 'High' : 
+                       authorityScore >= 3 ? 'Medium' : 'Low'
+      
+      return {
+        ...contact,
+        authorityScore,
+        confidence,
+        evidence
+      }
+    })
     
-    const priorityContact = analysis.participants.clientContacts.find((contact: any) => 
-      contact.decisionLevel === 'high'
-    ) || analysis.participants.clientContacts.find((contact: any) => {
-      const title = (contact.title || '').toLowerCase()
-      return decisionMakerKeywords.some(keyword => title.includes(keyword))
-    }) || analysis.participants.clientContacts[0]
+    // Return highest scoring contact
+    const topContact = scoredContacts.sort((a, b) => b.authorityScore - a.authorityScore)[0]
     
     return {
-      name: priorityContact.name || 'Key Contact',
-      title: priorityContact.title || 'Decision Maker',
-      influence: priorityContact.decisionLevel === 'high' ? 'High' : 'Medium'
+      name: topContact.name || 'Key Contact',
+      title: topContact.title || 'Decision Maker',
+      influence: `${topContact.confidence} Influence`,
+      confidence: topContact.confidence,
+      evidence: topContact.evidence.slice(0, 1) // Show top evidence
     }
   }
 
   const getBuyingSignals = () => {
-    const positiveSignals = analysis.call_summary?.positiveSignals || []
+    const signalsAnalysis = analysis.call_summary?.buyingSignalsAnalysis || {}
+    
+    const commitmentSignals = signalsAnalysis.commitmentSignals || []
+    const engagementSignals = signalsAnalysis.engagementSignals || []
+    const interestSignals = signalsAnalysis.interestSignals || []
+    
+    // Calculate weighted score
+    const commitmentScore = commitmentSignals.length * 3 // High value
+    const engagementScore = engagementSignals.length * 2  // Medium value  
+    const interestScore = interestSignals.length * 1      // Low value
+    
+    const totalScore = commitmentScore + engagementScore + interestScore
+    const totalSignals = commitmentSignals.length + engagementSignals.length + interestSignals.length
+    
+    // Determine signal strength
+    let strength = 'Weak'
+    let color = 'red'
+    
+    if (commitmentSignals.length >= 2 || totalScore >= 8) {
+      strength = 'Strong'
+      color = 'green'
+    } else if (commitmentSignals.length >= 1 || totalScore >= 4) {
+      strength = 'Good'
+      color = 'yellow'
+    }
+    
     return {
-      count: positiveSignals.length,
-      total: Math.max(3, positiveSignals.length),
-      status: positiveSignals.length >= 3 ? 'Strong' : positiveSignals.length >= 2 ? 'Good' : 'Weak'
+      count: totalSignals,
+      total: Math.max(totalSignals, 3), // Show at least 3 for display
+      strength: `${strength} positive indicators`,
+      commitmentCount: commitmentSignals.length,
+      qualityScore: totalScore,
+      color
     }
   }
 
-  const getPrimaryAction = () => {
-    if (analysis.action_plan?.actions && analysis.action_plan.actions.length > 0) {
-      const action = analysis.action_plan.actions[0]
-      return {
-        action: action.action || 'Follow Up',
-        objective: action.objective || 'Continue the conversation',
-        timeline: action.timeline || 'Within 24 hours',
-        content: action.content || action.copyPasteContent?.body || ''
+  const getTimeline = () => {
+    const timelineAnalysis = analysis.call_summary?.timelineAnalysis || {}
+    const urgencyDrivers = analysis.call_summary?.urgencyDrivers || {}
+    
+    const statedTimeline = timelineAnalysis.statedTimeline || ''
+    const businessDriver = timelineAnalysis.businessDriver || urgencyDrivers.primary || ''
+    const flexibility = timelineAnalysis.flexibility || 'medium'
+    const consequences = timelineAnalysis.consequences || ''
+    
+    // Extract timeline display
+    let displayTimeline = 'This Month'
+    let urgencyLevel = 'LOW'
+    
+    if (statedTimeline) {
+      // Use actual stated timeline
+      displayTimeline = statedTimeline.length > 20 ? 
+        statedTimeline.substring(0, 20) + '...' : statedTimeline
+      
+      // Determine urgency from flexibility and consequences
+      if (flexibility === 'low' || consequences.toLowerCase().includes('critical')) {
+        urgencyLevel = 'HIGH'
+      } else if (flexibility === 'medium' || businessDriver) {
+        urgencyLevel = 'MEDIUM'
+      }
+    } else {
+      // Fallback to urgency drivers
+      const urgencyFactors = urgencyDrivers.factors || []
+      if (urgencyFactors.length >= 3) {
+        displayTimeline = 'ASAP'
+        urgencyLevel = 'HIGH'
+      } else if (urgencyFactors.length >= 2) {
+        displayTimeline = 'This Week'
+        urgencyLevel = 'MEDIUM'
       }
     }
+    
     return {
-      action: 'Follow Up',
-      objective: 'Continue the conversation', 
-      timeline: 'Within 24 hours',
-      content: ''
+      timeline: displayTimeline,
+      urgency: urgencyLevel,
+      driver: businessDriver,
+      flexibility,
+      description: businessDriver || 'Timeline from analysis'
     }
   }
 
-  const urgency = getUrgencyLevel()
-  const primaryContact = getPrimaryContact()
+  const dealHeat = getDealHeat()
+  const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
-  const primaryAction = getPrimaryAction()
+  const timeline = getTimeline()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
@@ -230,17 +343,13 @@ export function NewAnalysisView({
               {/* Deal Temperature */}
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-8 h-8 ${urgency.bgColor} rounded-lg flex items-center justify-center`}>
+                  <div className={`w-8 h-8 ${dealHeat.bgColor} rounded-lg flex items-center justify-center`}>
                     <Thermometer className="w-4 h-4 text-white" />
                   </div>
                   <span className="text-sm font-medium text-red-200">Deal Heat</span>
                 </div>
-                <div className={`text-2xl font-bold ${urgency.color}`}>{urgency.temp} {urgency.level}</div>
-                <p className="text-xs text-gray-300 mt-1">
-                  {urgency.level === 'HIGH' ? 'Immediate attention needed' : 
-                   urgency.level === 'MEDIUM' ? 'Good momentum building' : 
-                   'Long-term opportunity'}
-                </p>
+                <div className={`text-2xl font-bold ${dealHeat.color}`}>{dealHeat.emoji} {dealHeat.level}</div>
+                <p className="text-xs text-gray-300 mt-1">{dealHeat.description}</p>
               </div>
 
               {/* Key Contact */}
@@ -251,8 +360,8 @@ export function NewAnalysisView({
                   </div>
                   <span className="text-sm font-medium text-blue-200">Decision Maker</span>
                 </div>
-                <div className="text-lg font-bold">{primaryContact.name}</div>
-                <p className="text-xs text-gray-300">{primaryContact.title} • {primaryContact.influence} Influence</p>
+                <div className="text-lg font-bold">{decisionMaker.name}</div>
+                <p className="text-xs text-gray-300">{decisionMaker.title} • {decisionMaker.influence}</p>
               </div>
 
               {/* Buying Signals */}
@@ -264,7 +373,7 @@ export function NewAnalysisView({
                   <span className="text-sm font-medium text-green-200">Buying Signals</span>
                 </div>
                 <div className="text-2xl font-bold text-green-300">{buyingSignals.count}/{buyingSignals.total}</div>
-                <p className="text-xs text-gray-300 mt-1">{buyingSignals.status} positive indicators</p>
+                <p className="text-xs text-gray-300 mt-1">{buyingSignals.strength}</p>
               </div>
 
               {/* Timeline */}
@@ -275,15 +384,8 @@ export function NewAnalysisView({
                   </div>
                   <span className="text-sm font-medium text-orange-200">Timeline</span>
                 </div>
-                <div className="text-lg font-bold text-orange-300">
-                  {urgency.level === 'HIGH' ? 'ASAP' : urgency.level === 'MEDIUM' ? 'This Week' : 'This Month'}
-                </div>
-                <p className="text-xs text-gray-300">
-                  {analysis.call_summary?.timeline ? 
-                    analysis.call_summary.timeline.substring(0, 25) + (analysis.call_summary.timeline.length > 25 ? '...' : '') :
-                    'Timeline from analysis'
-                  }
-                </p>
+                <div className="text-lg font-bold text-orange-300">{timeline.timeline}</div>
+                <p className="text-xs text-gray-300">{timeline.description}</p>
               </div>
             </div>
 
