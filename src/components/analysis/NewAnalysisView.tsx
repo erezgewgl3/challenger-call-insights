@@ -428,49 +428,41 @@ export function NewAnalysisView({
               </div>
             </div>
 
-            {/* Enhanced Participants Section */}
+            {/* Compact Participants Section */}
             <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-4">
+              <div className="flex items-center gap-3 mb-3">
                 <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
                   <Users className="w-4 h-4 text-white" />
                 </div>
                 <h3 className="text-base font-semibold text-white">Meeting Participants</h3>
               </div>
               
-              <div className="space-y-4">
+              <div className="space-y-2">
                 <div className="text-sm text-gray-200">
                   <span className="text-blue-200 font-medium">Sales Rep:</span> {participants?.salesRep?.name || 'Sales Representative'}
                 </div>
                 
                 {participants?.clientContacts && participants.clientContacts.length > 0 && (
                   <div>
-                    <div className="text-sm text-green-200 font-medium mb-3">Client Contacts:</div>
-                    <div className="space-y-3">
-                      {participants.clientContacts.slice(0, 5).map((contact: any, index: number) => {
+                    <div className="text-sm text-green-200 font-medium mb-2">Client Contacts:</div>
+                    <div className="text-sm text-white">
+                      {participants.clientContacts.map((contact: any, index: number) => {
                         const stakeholder = getStakeholderDisplay(contact);
+                        const displayName = contact.name + (contact.title ? ` (${contact.title})` : '');
                         
                         return (
-                          <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
-                            <div>
-                              <p className="text-sm font-medium text-white">
-                                {contact.name}{contact.title && ` (${contact.title})`}
-                              </p>
-                              {contact.title && (
-                                <p className="text-xs text-gray-300">{contact.title}</p>
-                              )}
-                            </div>
-                            <div className="text-right flex items-center gap-2">
-                              <span className="text-sm">{stakeholder.icon}</span>
-                              <span className={`text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
-                                {stakeholder.label}
-                              </span>
-                            </div>
-                          </div>
+                          <span key={index}>
+                            {displayName}
+                            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
+                              {stakeholder.icon} {stakeholder.label}
+                            </span>
+                            {index < participants.clientContacts.length - 1 && ', '}
+                          </span>
                         );
                       })}
                       
                       {participants.clientContacts.length === 0 && (
-                        <p className="text-xs text-gray-400 italic">No client contacts identified</p>
+                        <span className="text-xs text-gray-400 italic">No client contacts identified</span>
                       )}
                     </div>
                   </div>
