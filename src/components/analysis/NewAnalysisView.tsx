@@ -122,23 +122,32 @@ export function NewAnalysisView({
 
   // Enhanced data mapping functions for hero section
   const getDealHeat = () => {
-    // Use enhanced pain severity analysis
+    // ✅ Keep existing pain logic (working perfectly)
     const painLevel = analysis.call_summary?.painSeverity?.level || 'low'
     const indicators = analysis.call_summary?.painSeverity?.indicators || []
     const businessImpact = analysis.call_summary?.painSeverity?.businessImpact || ''
     
-    const urgencyFactors = analysis.call_summary?.urgencyDrivers?.factors || []
+    // 🔧 FIX: Access correct urgency data structure
+    const criticalFactors = analysis.call_summary?.urgencyDrivers?.criticalFactors || []
+    const businessFactors = analysis.call_summary?.urgencyDrivers?.businessFactors || []
+    const generalFactors = analysis.call_summary?.urgencyDrivers?.generalFactors || []
+    
+    // 🔧 ADD: Weighted urgency scoring
+    const urgencyScore = (criticalFactors.length * 3) + 
+                        (businessFactors.length * 2) + 
+                        (generalFactors.length * 1)
     
     // Calculate heat based on pain + urgency
     let heatLevel = 'LOW'
     let emoji = '❄️'
     let description = 'Long-term opportunity'
     
-    if (painLevel === 'high' || urgencyFactors.length >= 3) {
+    // ✅ Enhanced logic with same visual results
+    if (painLevel === 'high' || criticalFactors.length >= 1 || urgencyScore >= 6) {
       heatLevel = 'HIGH'
       emoji = '🔥'
       description = 'Immediate attention needed'
-    } else if (painLevel === 'medium' || urgencyFactors.length >= 2) {
+    } else if (painLevel === 'medium' || businessFactors.length >= 1 || urgencyScore >= 3) {
       heatLevel = 'MEDIUM'
       emoji = '🌡️'
       description = 'Active opportunity'
