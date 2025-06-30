@@ -99,41 +99,25 @@ export function NewAnalysisView({
     })
   }
 
-  // Enhanced stakeholder role mapping function
+  // Enhanced stakeholder role mapping function with NO FALLBACKS
   const getStakeholderDisplay = (contact: any) => {
-    // Primary: Use enhanced challengerRole if available
-    const challengerRole = contact.challengerRole?.toLowerCase();
+    const challengerRole = contact.challengerRole;
     
     if (challengerRole) {
       const roleMap = {
-        'economic': { label: 'Economic', color: 'bg-red-500/20 text-red-300', icon: '🏛️' },
-        'user': { label: 'User', color: 'bg-blue-500/20 text-blue-300', icon: '👤' },
-        'technical': { label: 'Technical', color: 'bg-purple-500/20 text-purple-300', icon: '🔧' },
-        'coach': { label: 'Coach', color: 'bg-green-500/20 text-green-300', icon: '🤝' },
-        'influencer': { label: 'Influencer', color: 'bg-yellow-500/20 text-yellow-300', icon: '📊' },
-        'blocker': { label: 'Blocker', color: 'bg-orange-500/20 text-orange-300', icon: '🚫' }
+        'Economic Buyer': { label: 'Economic Buyer', color: 'bg-red-500/20 text-red-300', icon: '🏛️' },
+        'User Buyer': { label: 'User Buyer', color: 'bg-blue-500/20 text-blue-300', icon: '👤' },
+        'Technical Buyer': { label: 'Technical Buyer', color: 'bg-purple-500/20 text-purple-300', icon: '🔧' },
+        'Coach': { label: 'Coach', color: 'bg-green-500/20 text-green-300', icon: '🤝' },
+        'Influencer': { label: 'Influencer', color: 'bg-yellow-500/20 text-yellow-300', icon: '📊' },
+        'Blocker': { label: 'Blocker', color: 'bg-orange-500/20 text-orange-300', icon: '🚫' }
       };
       
-      return roleMap[challengerRole] || { 
-        label: 'Contact', 
-        color: 'bg-gray-500/20 text-gray-300', 
-        icon: '👥' 
-      };
+      return roleMap[challengerRole] || null;
     }
     
-    // Fallback: Use existing decisionLevel mapping
-    const decisionLevel = contact.decisionLevel?.toLowerCase();
-    const fallbackMap = {
-      'high': { label: 'Key', color: 'bg-red-500/20 text-red-300', icon: '⭐' },
-      'medium': { label: 'Inf', color: 'bg-yellow-500/20 text-yellow-300', icon: '📈' },
-      'low': { label: 'Low', color: 'bg-gray-500/20 text-gray-300', icon: '📋' }
-    };
-    
-    return fallbackMap[decisionLevel] || { 
-      label: 'Contact', 
-      color: 'bg-gray-500/20 text-gray-300', 
-      icon: '👥' 
-    };
+    // NO FALLBACKS - return null if no valid challenger role
+    return null;
   };
 
   // Enhanced data mapping functions for hero section
@@ -506,7 +490,7 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              {/* Ultra Compact Participants Section */}
+              {/* Ultra Compact Participants Section - CONDITIONAL BADGE RENDERING */}
               <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
@@ -527,9 +511,11 @@ export function NewAnalysisView({
                         return (
                           <span key={index}>
                             {displayName}
-                            <span className={`ml-2 text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
-                              {stakeholder.icon} {stakeholder.label}
-                            </span>
+                            {stakeholder && (
+                              <span className={`ml-2 text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
+                                {stakeholder.icon} {stakeholder.label}
+                              </span>
+                            )}
                             {index < participants.clientContacts.length - 1 && ', '}
                           </span>
                         );
