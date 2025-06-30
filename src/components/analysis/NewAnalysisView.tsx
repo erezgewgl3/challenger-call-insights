@@ -95,6 +95,43 @@ export function NewAnalysisView({
     })
   }
 
+  // Enhanced stakeholder role mapping function
+  const getStakeholderDisplay = (contact: any) => {
+    // Primary: Use enhanced challengerRole if available
+    const challengerRole = contact.challengerRole?.toLowerCase();
+    
+    if (challengerRole) {
+      const roleMap = {
+        'economic': { label: 'Economic', color: 'bg-red-500/20 text-red-300', icon: '🏛️' },
+        'user': { label: 'User', color: 'bg-blue-500/20 text-blue-300', icon: '👤' },
+        'technical': { label: 'Technical', color: 'bg-purple-500/20 text-purple-300', icon: '🔧' },
+        'coach': { label: 'Coach', color: 'bg-green-500/20 text-green-300', icon: '🤝' },
+        'influencer': { label: 'Influencer', color: 'bg-yellow-500/20 text-yellow-300', icon: '📊' },
+        'blocker': { label: 'Blocker', color: 'bg-orange-500/20 text-orange-300', icon: '🚫' }
+      };
+      
+      return roleMap[challengerRole] || { 
+        label: 'Contact', 
+        color: 'bg-gray-500/20 text-gray-300', 
+        icon: '👥' 
+      };
+    }
+    
+    // Fallback: Use existing decisionLevel mapping
+    const decisionLevel = contact.decisionLevel?.toLowerCase();
+    const fallbackMap = {
+      'high': { label: 'Key', color: 'bg-red-500/20 text-red-300', icon: '⭐' },
+      'medium': { label: 'Inf', color: 'bg-yellow-500/20 text-yellow-300', icon: '📈' },
+      'low': { label: 'Low', color: 'bg-gray-500/20 text-gray-300', icon: '📋' }
+    };
+    
+    return fallbackMap[decisionLevel] || { 
+      label: 'Contact', 
+      color: 'bg-gray-500/20 text-gray-300', 
+      icon: '👥' 
+    };
+  };
+
   // Enhanced data mapping functions for hero section
   const getDealHeat = () => {
     // Use enhanced pain severity analysis
@@ -391,31 +428,52 @@ export function NewAnalysisView({
               </div>
             </div>
 
-            {/* Participants Section - ADDED BETWEEN 4-CARD GRID AND CALL SUMMARY */}
+            {/* Enhanced Participants Section */}
             <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-              <div className="flex items-center gap-3 mb-3">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
                   <Users className="w-4 h-4 text-white" />
                 </div>
                 <h3 className="text-base font-semibold text-white">Meeting Participants</h3>
               </div>
               
-              <div className="text-sm text-gray-200">
-                <span className="text-blue-200 font-medium">Sales Rep:</span> {participants?.salesRep?.name || 'Sales Representative'}
+              <div className="space-y-4">
+                <div className="text-sm text-gray-200">
+                  <span className="text-blue-200 font-medium">Sales Rep:</span> {participants?.salesRep?.name || 'Sales Representative'}
+                </div>
+                
                 {participants?.clientContacts && participants.clientContacts.length > 0 && (
-                  <>
-                    {' • '}
-                    <span className="text-green-200 font-medium">Client Contacts:</span> {
-                      participants.clientContacts.map((contact, index) => (
-                        <span key={index}>
-                          {contact.name}{contact.title && ` (${contact.title})`}
-                          {contact.decisionLevel === 'high' && <span className="text-red-300 ml-1">(Key)</span>}
-                          {contact.decisionLevel === 'medium' && <span className="text-yellow-300 ml-1">(Inf)</span>}
-                          {index < participants.clientContacts.length - 1 ? ', ' : ''}
-                        </span>
-                      ))
-                    }
-                  </>
+                  <div>
+                    <div className="text-sm text-green-200 font-medium mb-3">Client Contacts:</div>
+                    <div className="space-y-3">
+                      {participants.clientContacts.slice(0, 5).map((contact: any, index: number) => {
+                        const stakeholder = getStakeholderDisplay(contact);
+                        
+                        return (
+                          <div key={index} className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                            <div>
+                              <p className="text-sm font-medium text-white">
+                                {contact.name}{contact.title && ` (${contact.title})`}
+                              </p>
+                              {contact.title && (
+                                <p className="text-xs text-gray-300">{contact.title}</p>
+                              )}
+                            </div>
+                            <div className="text-right flex items-center gap-2">
+                              <span className="text-sm">{stakeholder.icon}</span>
+                              <span className={`text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
+                                {stakeholder.label}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {participants.clientContacts.length === 0 && (
+                        <p className="text-xs text-gray-400 italic">No client contacts identified</p>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
