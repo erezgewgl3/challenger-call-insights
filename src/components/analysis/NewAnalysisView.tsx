@@ -20,7 +20,9 @@ import {
   ExternalLink,
   Target,
   Zap,
-  Star
+  Star,
+  Thermometer,
+  Crown
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -131,7 +133,7 @@ export function NewAnalysisView({
   const getUrgencyLevel = () => {
     const timing = analysis.reasoning?.timing || analysis.call_summary?.timeline || ''
     const urgencyKeywords = {
-      high: ['urgent', 'asap', 'immediately', 'critical', 'emergency', 'deadline'],
+      high: ['urgent', 'asap', 'immediately', 'critical', 'emergency', 'deadline', 'promptly'],
       medium: ['soon', 'week', 'month', 'quarter', 'planning'],
       low: ['future', 'eventually', 'considering', 'exploring']
     }
@@ -139,17 +141,17 @@ export function NewAnalysisView({
     const lowerTiming = timing.toLowerCase()
     
     if (urgencyKeywords.high.some(keyword => lowerTiming.includes(keyword))) {
-      return { level: 'High Urgency', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' }
+      return { level: 'HIGH', color: 'text-red-300', temp: '🔥' }
     } else if (urgencyKeywords.medium.some(keyword => lowerTiming.includes(keyword))) {
-      return { level: 'Medium Priority', color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' }
+      return { level: 'MEDIUM', color: 'text-yellow-300', temp: '🌡️' }
     } else {
-      return { level: 'Standard Timeline', color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' }
+      return { level: 'LOW', color: 'text-green-300', temp: '❄️' }
     }
   }
 
   const getPrimaryContact = () => {
     if (!analysis.participants?.clientContacts || analysis.participants.clientContacts.length === 0) {
-      return null
+      return { name: 'Key Contact', title: 'Decision Maker', influence: 'High' }
     }
     
     // Look for decision-makers based on title keywords
@@ -167,18 +169,44 @@ export function NewAnalysisView({
       return bScore - aScore
     })
     
-    return sortedContacts[0]
+    const contact = sortedContacts[0]
+    return {
+      name: contact.name || 'Key Contact',
+      title: contact.title || 'Decision Maker',
+      influence: 'High'
+    }
+  }
+
+  const getBuyingSignals = () => {
+    const positiveSignals = analysis.call_summary?.positiveSignals || []
+    return {
+      count: positiveSignals.length,
+      total: 3,
+      status: positiveSignals.length >= 3 ? 'Strong' : positiveSignals.length >= 2 ? 'Good' : 'Weak'
+    }
   }
 
   const getPrimaryAction = () => {
     if (analysis.action_plan?.actions && analysis.action_plan.actions.length > 0) {
-      return analysis.action_plan.actions[0]
+      const action = analysis.action_plan.actions[0]
+      return {
+        action: action.action || 'Follow Up',
+        objective: action.objective || 'Continue the conversation',
+        timeline: action.timeline || 'Within 24 hours',
+        content: action.content || ''
+      }
     }
-    return null
+    return {
+      action: 'Follow Up',
+      objective: 'Continue the conversation',
+      timeline: 'Within 24 hours',
+      content: ''
+    }
   }
 
   const urgency = getUrgencyLevel()
   const primaryContact = getPrimaryContact()
+  const buyingSignals = getBuyingSignals()
   const primaryAction = getPrimaryAction()
 
   return (
@@ -223,106 +251,155 @@ export function NewAnalysisView({
 
         <div className="space-y-8">
 
-          {/* HERO SECTION - Sales Intelligence Dashboard */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-lg">
-            <div className="mb-4">
-              <h2 className="text-xl font-bold text-slate-900 mb-2">
-                <Zap className="w-5 h-5 inline mr-2 text-blue-600" />
-                Sales Intelligence Summary
-              </h2>
-              <p className="text-slate-700">Key insights and next actions for this opportunity</p>
-            </div>
+          {/* ELITE HERO SECTION - "YOUR SALES EDGE" */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-8 rounded-2xl mb-8">
+            {/* Background Effects */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.15),transparent_50%)]"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.1),transparent_50%)]"></div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Urgency & Timeline */}
-              <div className={`bg-white p-4 rounded-lg border ${urgency.borderColor} ${urgency.bgColor}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Clock className={`w-5 h-5 ${urgency.color}`} />
-                  <span className={`font-semibold ${urgency.color}`}>{urgency.level}</span>
+            <div className="relative z-10">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-white" />
                 </div>
-                <p className="text-sm text-slate-700">
-                  {analysis.call_summary?.timeline || analysis.reasoning?.timing || 'Timeline information not available'}
-                </p>
+                <div>
+                  <h2 className="text-2xl font-bold">Your Sales Edge</h2>
+                  <p className="text-blue-200 text-sm">Intelligence extracted from your conversation</p>
+                </div>
               </div>
-              
-              {/* Key Contact */}
-              <div className="bg-white p-4 rounded-lg border border-blue-200 bg-blue-50">
-                <div className="flex items-center gap-2 mb-2">
-                  <Users className="w-5 h-5 text-blue-500" />
-                  <span className="font-semibold text-blue-800">Priority Contact</span>
+
+              {/* Main Intelligence Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                
+                {/* Deal Temperature */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+                      <Thermometer className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-red-200">Deal Heat</span>
+                  </div>
+                  <div className="text-2xl font-bold text-red-300">{urgency.temp} {urgency.level}</div>
+                  <p className="text-xs text-gray-300 mt-1">
+                    {urgency.level === 'HIGH' ? 'Immediate attention needed' : 
+                     urgency.level === 'MEDIUM' ? 'Good momentum building' : 
+                     'Long-term opportunity'}
+                  </p>
                 </div>
-                {primaryContact ? (
-                  <>
-                    <p className="font-medium text-slate-900">{primaryContact.name}</p>
-                    <p className="text-sm text-slate-600">
-                      {primaryContact.title && primaryContact.company 
-                        ? `${primaryContact.title} at ${primaryContact.company}`
-                        : primaryContact.title || primaryContact.company || 'Key decision maker'}
-                    </p>
-                  </>
-                ) : (
-                  <p className="text-sm text-slate-600">Contact information available in participants section</p>
-                )}
+
+                {/* Key Contact */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                      <Crown className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-blue-200">Decision Maker</span>
+                  </div>
+                  <div className="text-lg font-bold">{primaryContact.name}</div>
+                  <p className="text-xs text-gray-300">{primaryContact.title} • {primaryContact.influence} Influence</p>
+                </div>
+
+                {/* Buying Signals */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-green-200">Buying Signals</span>
+                  </div>
+                  <div className="text-2xl font-bold text-green-300">{buyingSignals.count}/{buyingSignals.total}</div>
+                  <p className="text-xs text-gray-300 mt-1">{buyingSignals.status} positive indicators</p>
+                </div>
+
+                {/* Timeline */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                      <Clock className="w-4 h-4 text-white" />
+                    </div>
+                    <span className="text-sm font-medium text-orange-200">Timeline</span>
+                  </div>
+                  <div className="text-lg font-bold text-orange-300">
+                    {urgency.level === 'HIGH' ? 'ASAP' : urgency.level === 'MEDIUM' ? 'This Week' : 'This Month'}
+                  </div>
+                  <p className="text-xs text-gray-300">
+                    {analysis.call_summary?.timeline ? 
+                      analysis.call_summary.timeline.substring(0, 25) + (analysis.call_summary.timeline.length > 25 ? '...' : '') :
+                      'Timeline from analysis'
+                    }
+                  </p>
+                </div>
               </div>
-              
-              {/* Primary Action */}
-              <div className="bg-white p-4 rounded-lg border border-green-200 bg-green-50">
-                <div className="flex items-center gap-2 mb-3">
-                  <Target className="w-5 h-5 text-green-600" />
-                  <span className="font-semibold text-green-800">Next Action</span>
-                </div>
-                {primaryAction ? (
-                  <>
-                    <Button className="w-full mb-2 bg-green-600 hover:bg-green-700" size="sm">
-                      {primaryAction.action}
-                    </Button>
-                    <p className="text-xs text-slate-600">
-                      Timeline: {primaryAction.timeline || 'As soon as possible'}
+
+              {/* Primary Action Section */}
+              <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-400/30 rounded-xl p-6">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="w-5 h-5 text-green-300" />
+                      <span className="text-green-200 font-medium">Your Move</span>
+                    </div>
+                    <h3 className="text-xl font-bold mb-2">{primaryAction.action}</h3>
+                    <p className="text-gray-300 text-sm mb-4">
+                      {primaryAction.objective || 'Take the next step to advance this opportunity.'}
                     </p>
-                  </>
-                ) : (
-                  <>
-                    <Button className="w-full mb-2 bg-green-600 hover:bg-green-700" size="sm">
-                      Follow Up
-                    </Button>
-                    <p className="text-xs text-slate-600">See action plan below for details</p>
-                  </>
-                )}
+                    
+                    <div className="flex flex-wrap gap-3">
+                      <Button 
+                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-2"
+                        onClick={() => primaryAction.content && copyToClipboard(primaryAction.content, 'Action content')}
+                      >
+                        <Mail className="w-4 h-4 mr-2" />
+                        Send Email Now
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="border-green-400 text-green-300 hover:bg-green-400/10"
+                        onClick={() => primaryAction.content && copyToClipboard(primaryAction.content, 'Template')}
+                      >
+                        <Copy className="w-4 h-4 mr-2" />
+                        Copy Template
+                      </Button>
+                      <Button variant="outline" className="border-blue-400 text-blue-300 hover:bg-blue-400/10">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        Schedule Follow-up
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="text-right ml-6">
+                    <div className="text-xs text-gray-400 mb-1">Recommended Timing</div>
+                    <div className="text-lg font-bold text-green-300">{primaryAction.timeline}</div>
+                    <div className="w-12 h-1 bg-green-500 rounded-full mt-2"></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Intelligence Summary */}
+              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-green-400" />
+                  <span className="text-gray-300">
+                    {analysis.participants?.clientContacts?.length > 1 ? 'Multiple stakeholders engaged' : 'Key stakeholder identified'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  <span className="text-gray-300">
+                    {analysis.call_summary?.clientConcerns?.length > 0 ? 'Concerns identified' : 'No major concerns'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-blue-400" />
+                  <span className="text-gray-300">
+                    {analysis.call_summary?.positiveSignals?.length > 0 ? 'Positive momentum confirmed' : 'Opportunity identified'}
+                  </span>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Quick Stats Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-white p-4 rounded-lg border text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {analysis.participants?.clientContacts?.length || 0}
-              </div>
-              <div className="text-sm text-slate-600">Client Contacts</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {analysis.call_summary?.positiveSignals?.length || 0}
-              </div>
-              <div className="text-sm text-slate-600">Positive Signals</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border text-center">
-              <div className="text-2xl font-bold text-amber-600">
-                {analysis.call_summary?.clientConcerns?.length || 0}
-              </div>
-              <div className="text-sm text-slate-600">Concerns</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg border text-center">
-              <div className="text-2xl font-bold text-purple-600">
-                {analysis.action_plan?.actions?.length || 0}
-              </div>
-              <div className="text-sm text-slate-600">Action Items</div>
-            </div>
-          </div>
-
-          {/* Rest of existing sections - keep all existing detailed analysis cards */}
-          
           {/* 1. Participants - Compact Display */}
           {analysis.participants && (
             <Card>
@@ -449,8 +526,6 @@ export function NewAnalysisView({
             </Card>
           )}
 
-          
-          
           {/* 3. Key Takeaways */}
           {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
             <Card>
