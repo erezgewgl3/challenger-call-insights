@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -197,7 +196,7 @@ export function NewAnalysisView({
             <div className="flex items-center space-x-4 text-sm text-slate-600">
               <span>{formatDate(transcript.meeting_date)}</span>
               <span>•</span>
-              <span>Meeting/Call Duration: {transcript.duration_minutes}</span>
+              <span>Meeting/Call Duration: {transcript.duration_minutes} min</span>
               <span>•</span>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
                 <Star className="w-3 h-3 mr-1" />
