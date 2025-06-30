@@ -500,10 +500,10 @@ export function NewAnalysisView({
                 </div>
                 
                 <div className="text-sm text-white">
-                  <span className="text-blue-200 font-medium">Participants:</span> {participants?.salesRep?.name || 'Sales Representative'}
+                  <span className="text-blue-200 font-medium">Participants:</span> 
+                  {/* Client contacts first */}
                   {participants?.clientContacts && participants.clientContacts.length > 0 && (
                     <>
-                      {', '}
                       {participants.clientContacts.map((contact: any, index: number) => {
                         const stakeholder = getStakeholderDisplay(contact);
                         const displayName = contact.name + (contact.title ? ` (${contact.title})` : '');
@@ -522,6 +522,9 @@ export function NewAnalysisView({
                       })}
                     </>
                   )}
+                  {/* Sales rep last, with comma if client contacts exist */}
+                  {participants?.clientContacts && participants.clientContacts.length > 0 && ', '}
+                  {participants?.salesRep?.name || 'Sales Representative'}
                   {(!participants?.clientContacts || participants.clientContacts.length === 0) && (
                     <span className="text-xs text-gray-400 italic"> • No client contacts identified</span>
                   )}
