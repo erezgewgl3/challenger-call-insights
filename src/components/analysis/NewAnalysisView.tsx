@@ -17,7 +17,10 @@ import {
   AlertTriangle,
   TrendingUp,
   DollarSign,
-  ExternalLink
+  ExternalLink,
+  Target,
+  Zap,
+  Star
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -124,49 +127,65 @@ export function NewAnalysisView({
     return extras.length > 0 ? `${name} (${extras.join(', ')})` : name
   }
 
-  const renderParticipants = (participants: any) => {
-    if (!participants) return null
-
-    const allParticipants = []
-
-    // Extract sales rep
-    if (participants.salesRep) {
-      allParticipants.push({
-        name: participants.salesRep.name || '',
-        title: participants.salesRep.title || '',
-        company: participants.salesRep.company || ''
-      })
+  // Helper functions to extract key information for hero section
+  const getUrgencyLevel = () => {
+    const timing = analysis.reasoning?.timing || analysis.call_summary?.timeline || ''
+    const urgencyKeywords = {
+      high: ['urgent', 'asap', 'immediately', 'critical', 'emergency', 'deadline'],
+      medium: ['soon', 'week', 'month', 'quarter', 'planning'],
+      low: ['future', 'eventually', 'considering', 'exploring']
     }
-
-    // Extract client contacts
-    if (participants.clientContacts && Array.isArray(participants.clientContacts)) {
-      participants.clientContacts.forEach((contact: any) => {
-        allParticipants.push({
-          name: contact.name || '',
-          title: contact.title || '',
-          company: contact.company || ''
-        })
-      })
+    
+    const lowerTiming = timing.toLowerCase()
+    
+    if (urgencyKeywords.high.some(keyword => lowerTiming.includes(keyword))) {
+      return { level: 'High Urgency', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' }
+    } else if (urgencyKeywords.medium.some(keyword => lowerTiming.includes(keyword))) {
+      return { level: 'Medium Priority', color: 'text-yellow-600', bgColor: 'bg-yellow-50', borderColor: 'border-yellow-200' }
+    } else {
+      return { level: 'Standard Timeline', color: 'text-green-600', bgColor: 'bg-green-50', borderColor: 'border-green-200' }
     }
-
-    if (allParticipants.length === 0) return null
-
-    const formattedParticipants = allParticipants
-      .map(participant => formatParticipantDisplay(participant))
-      .filter(displayText => displayText !== null)
-
-    return (
-      <div className="text-slate-900">
-        {formattedParticipants.join(', ')}
-      </div>
-    )
   }
+
+  const getPrimaryContact = () => {
+    if (!analysis.participants?.clientContacts || analysis.participants.clientContacts.length === 0) {
+      return null
+    }
+    
+    // Look for decision-makers based on title keywords
+    const decisionMakerKeywords = ['ceo', 'president', 'director', 'vp', 'head', 'chief', 'manager', 'lead']
+    
+    const sortedContacts = analysis.participants.clientContacts.sort((a: any, b: any) => {
+      const aTitle = (a.title || '').toLowerCase()
+      const bTitle = (b.title || '').toLowerCase()
+      
+      const aScore = decisionMakerKeywords.reduce((score, keyword) => 
+        aTitle.includes(keyword) ? score + 1 : score, 0)
+      const bScore = decisionMakerKeywords.reduce((score, keyword) => 
+        bTitle.includes(keyword) ? score + 1 : score, 0)
+      
+      return bScore - aScore
+    })
+    
+    return sortedContacts[0]
+  }
+
+  const getPrimaryAction = () => {
+    if (analysis.action_plan?.actions && analysis.action_plan.actions.length > 0) {
+      return analysis.action_plan.actions[0]
+    }
+    return null
+  }
+
+  const urgency = getUrgencyLevel()
+  const primaryContact = getPrimaryContact()
+  const primaryAction = getPrimaryAction()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <div className="max-w-5xl mx-auto px-4 py-8">
         
-        {/* Header */}
+        {/* Header Navigation */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <Button 
@@ -195,6 +214,7 @@ export function NewAnalysisView({
               <span>{transcript.duration_minutes} minutes</span>
               <span>•</span>
               <Badge variant="secondary" className="bg-green-100 text-green-800">
+                <Star className="w-3 h-3 mr-1" />
                 Analysis Complete
               </Badge>
             </div>
@@ -202,6 +222,106 @@ export function NewAnalysisView({
         </div>
 
         <div className="space-y-8">
+
+          {/* HERO SECTION - Sales Intelligence Dashboard */}
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-6 rounded-lg">
+            <div className="mb-4">
+              <h2 className="text-xl font-bold text-slate-900 mb-2">
+                <Zap className="w-5 h-5 inline mr-2 text-blue-600" />
+                Sales Intelligence Summary
+              </h2>
+              <p className="text-slate-700">Key insights and next actions for this opportunity</p>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              
+              {/* Urgency & Timeline */}
+              <div className={`bg-white p-4 rounded-lg border ${urgency.borderColor} ${urgency.bgColor}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Clock className={`w-5 h-5 ${urgency.color}`} />
+                  <span className={`font-semibold ${urgency.color}`}>{urgency.level}</span>
+                </div>
+                <p className="text-sm text-slate-700">
+                  {analysis.call_summary?.timeline || analysis.reasoning?.timing || 'Timeline information not available'}
+                </p>
+              </div>
+              
+              {/* Key Contact */}
+              <div className="bg-white p-4 rounded-lg border border-blue-200 bg-blue-50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Users className="w-5 h-5 text-blue-500" />
+                  <span className="font-semibold text-blue-800">Priority Contact</span>
+                </div>
+                {primaryContact ? (
+                  <>
+                    <p className="font-medium text-slate-900">{primaryContact.name}</p>
+                    <p className="text-sm text-slate-600">
+                      {primaryContact.title && primaryContact.company 
+                        ? `${primaryContact.title} at ${primaryContact.company}`
+                        : primaryContact.title || primaryContact.company || 'Key decision maker'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-600">Contact information available in participants section</p>
+                )}
+              </div>
+              
+              {/* Primary Action */}
+              <div className="bg-white p-4 rounded-lg border border-green-200 bg-green-50">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="w-5 h-5 text-green-600" />
+                  <span className="font-semibold text-green-800">Next Action</span>
+                </div>
+                {primaryAction ? (
+                  <>
+                    <Button className="w-full mb-2 bg-green-600 hover:bg-green-700" size="sm">
+                      {primaryAction.action}
+                    </Button>
+                    <p className="text-xs text-slate-600">
+                      Timeline: {primaryAction.timeline || 'As soon as possible'}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <Button className="w-full mb-2 bg-green-600 hover:bg-green-700" size="sm">
+                      Follow Up
+                    </Button>
+                    <p className="text-xs text-slate-600">See action plan below for details</p>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Stats Bar */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white p-4 rounded-lg border text-center">
+              <div className="text-2xl font-bold text-blue-600">
+                {analysis.participants?.clientContacts?.length || 0}
+              </div>
+              <div className="text-sm text-slate-600">Client Contacts</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border text-center">
+              <div className="text-2xl font-bold text-green-600">
+                {analysis.call_summary?.positiveSignals?.length || 0}
+              </div>
+              <div className="text-sm text-slate-600">Positive Signals</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border text-center">
+              <div className="text-2xl font-bold text-amber-600">
+                {analysis.call_summary?.clientConcerns?.length || 0}
+              </div>
+              <div className="text-sm text-slate-600">Concerns</div>
+            </div>
+            <div className="bg-white p-4 rounded-lg border text-center">
+              <div className="text-2xl font-bold text-purple-600">
+                {analysis.action_plan?.actions?.length || 0}
+              </div>
+              <div className="text-sm text-slate-600">Action Items</div>
+            </div>
+          </div>
+
+          {/* Rest of existing sections - keep all existing detailed analysis cards */}
           
           {/* 1. Participants - Compact Display */}
           {analysis.participants && (
@@ -213,7 +333,23 @@ export function NewAnalysisView({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {renderParticipants(analysis.participants)}
+                
+                <div className="text-slate-900">
+                  {analysis.participants.salesRep && (
+                    <div className="mb-2">
+                      <strong>Sales Rep:</strong> {formatParticipantDisplay(analysis.participants.salesRep)}
+                    </div>
+                  )}
+                  {analysis.participants.clientContacts && analysis.participants.clientContacts.length > 0 && (
+                    <div>
+                      <strong>Client Contacts:</strong>{' '}
+                      {analysis.participants.clientContacts
+                        .map((contact: any) => formatParticipantDisplay(contact))
+                        .filter((display: any) => display !== null)
+                        .join(', ')}
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -313,6 +449,8 @@ export function NewAnalysisView({
             </Card>
           )}
 
+          
+          
           {/* 3. Key Takeaways */}
           {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
             <Card>
