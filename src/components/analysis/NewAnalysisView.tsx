@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -166,12 +165,56 @@ export function NewAnalysisView({
       dealScore += 2 // Contract readiness boost
     }
     
-    // Calculate heat based on pain + urgency
+    // SURGICAL FIX: Add resistance penalty system
+    const competitiveIntel = analysis.call_summary?.competitiveIntelligence || {}
+    const resistanceLevel = competitiveIntel.resistanceLevel || 'none'
+    const concerns = competitiveIntel.concerns || []
+    const objections = competitiveIntel.objections || []
+    
+    // Apply resistance penalties
+    let resistancePenalty = 0
+    
+    // Major resistance level penalties
+    if (resistanceLevel === 'high') {
+      resistancePenalty += 8 // Massive penalty for high resistance
+    } else if (resistanceLevel === 'medium') {
+      resistancePenalty += 4 // Moderate penalty for medium resistance
+    }
+    
+    // Specific resistance signal penalties
+    const allResistanceText = [...concerns, ...objections].join(' ').toLowerCase()
+    
+    if (allResistanceText.includes('not actively looking') || 
+        allResistanceText.includes('not looking for') ||
+        allResistanceText.includes('no immediate need')) {
+      resistancePenalty += 3 // Strong penalty for lack of active interest
+    }
+    
+    if (allResistanceText.includes('budget constraints') || 
+        allResistanceText.includes('budget concerns') ||
+        allResistanceText.includes('cost concerns')) {
+      resistancePenalty += 2 // Penalty for budget issues
+    }
+    
+    if (allResistanceText.includes('satisfied with current') || 
+        allResistanceText.includes('current solution works')) {
+      resistancePenalty += 2 // Penalty for satisfaction with status quo
+    }
+    
+    if (allResistanceText.includes('timing concerns') || 
+        allResistanceText.includes('not the right time')) {
+      resistancePenalty += 1 // Minor penalty for timing issues
+    }
+    
+    // Apply resistance penalty to deal score
+    dealScore = Math.max(0, dealScore - resistancePenalty) // Never go below 0
+    
+    // Calculate heat based on pain + urgency - resistance
     let heatLevel = 'LOW'
     let emoji = '❄️'
     let description = 'Long-term opportunity'
     
-    // ENHANCED: More comprehensive HIGH heat conditions
+    // ENHANCED: More comprehensive HIGH heat conditions (with resistance consideration)
     if (
       painLevel === 'high' ||                           // Keep: Critical business pain
       criticalFactors.length >= 1 ||                    // Keep: Critical urgency factors
