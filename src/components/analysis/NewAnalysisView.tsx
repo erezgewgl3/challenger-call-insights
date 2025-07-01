@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -557,8 +556,8 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              {/* Main Intelligence Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Main Intelligence Grid - CHANGED FROM 4 TO 3 COLUMNS */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 
                 {/* Deal Temperature */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
@@ -595,30 +594,56 @@ export function NewAnalysisView({
                   <div className="text-2xl font-bold text-green-300">{buyingSignals.count}/{buyingSignals.total}</div>
                   <p className="text-xs text-gray-300 mt-1">{buyingSignals.strength}</p>
                 </div>
+              </div>
 
-                {/* Timeline */}
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-white" />
+              {/* NEW HORIZONTAL TIMELINE SECTION */}
+              <div className="mt-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white">Project Timeline</h3>
+                    <p className="text-orange-200 text-sm">{timeline.description}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xl font-bold text-orange-300">
+                      {timeline.isTextTruncated ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">{timeline.timeline}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">{timeline.originalTimeline}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        timeline.timeline
+                      )}
                     </div>
-                    <span className="text-sm font-medium text-orange-200">Timeline</span>
+                    <p className="text-orange-200 text-sm">{timeline.urgency} Priority</p>
                   </div>
-                  <div className="text-lg font-bold text-orange-300">
-                    {timeline.isTextTruncated ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help">{timeline.timeline}</span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">{timeline.originalTimeline}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      timeline.timeline
-                    )}
+                </div>
+                
+                {/* Timeline Visual Progress Bar */}
+                <div className="relative">
+                  <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
+                    <span>Current Stage</span>
+                    <span>Target Completion</span>
                   </div>
-                  <p className="text-xs text-gray-300">{timeline.description}</p>
+                  <div className="w-full bg-white/20 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-orange-400 to-orange-500 h-2 rounded-full transition-all duration-500"
+                      style={{ 
+                        width: timeline.urgency === 'HIGH' ? '75%' : 
+                               timeline.urgency === 'MEDIUM' ? '50%' : '25%' 
+                      }}
+                    ></div>
+                  </div>
+                  <div className="flex items-center justify-between text-xs text-gray-400 mt-1">
+                    <span>Discovery</span>
+                    <span>Decision</span>
+                  </div>
                 </div>
               </div>
 
