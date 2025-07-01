@@ -412,10 +412,38 @@ export function NewAnalysisView({
     }
   }
 
+  // NEW: Conditional Competitive Edge logic
+  const getCompetitiveEdge = () => {
+    const competitiveIntel = analysis.call_summary?.competitiveIntelligence || {}
+    const competitiveStrategy = analysis.recommendations?.competitiveStrategy || ''
+    
+    // Check for actual competitive data
+    const hasCompetitors = competitiveIntel.vendorsKnown && competitiveIntel.vendorsKnown.length > 0
+    const hasEvaluationStage = competitiveIntel.evaluationStage && competitiveIntel.evaluationStage !== 'not_evaluating'
+    const hasCompetitiveAdvantage = competitiveIntel.competitiveAdvantage && 
+      !competitiveIntel.competitiveAdvantage.includes('note barriers')
+    const hasStrategy = competitiveStrategy && competitiveStrategy.length > 50 // Avoid generic responses
+    
+    // Only return data if we have real competitive intelligence
+    if (hasCompetitors || hasEvaluationStage || hasCompetitiveAdvantage || hasStrategy) {
+      return {
+        hasData: true,
+        title: hasCompetitors ? `vs ${competitiveIntel.vendorsKnown[0]}` : 'Strategic Position',
+        description: competitiveIntel.competitiveAdvantage?.substring(0, 80) + '...' || 
+                    competitiveStrategy?.substring(0, 80) + '...' || 
+                    'Competitive advantage identified',
+        stage: competitiveIntel.evaluationStage || 'evaluation'
+      }
+    }
+    
+    return { hasData: false }
+  }
+
   const dealHeat = getDealHeat()
   const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()
+  const competitiveEdge = getCompetitiveEdge()
 
   // Extract participants data for the new section
   const participants = analysis.participants || {}
@@ -564,8 +592,8 @@ export function NewAnalysisView({
                 )}
               </div>
 
-              {/* Enhanced 4-Card Intelligence Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Enhanced Intelligence Grid - CONDITIONAL 3 or 4 cards */}
+              <div className={`grid grid-cols-1 md:grid-cols-2 ${competitiveEdge.hasData ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-6`}>
                 
                 {/* Deal Heat */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
@@ -603,21 +631,23 @@ export function NewAnalysisView({
                   <p className="text-xs text-gray-300">{buyingSignals.strength}</p>
                 </div>
 
-                {/* Competitive Edge */}
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                      <Target className="w-4 h-4 text-white" />
+                {/* Competitive Edge - CONDITIONAL */}
+                {competitiveEdge.hasData && (
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <Target className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-purple-200">Competitive Edge</span>
                     </div>
-                    <span className="text-sm font-medium text-purple-200">Competitive Edge</span>
+                    <div className="text-lg font-bold text-purple-300">
+                      {competitiveEdge.title}
+                    </div>
+                    <p className="text-xs text-gray-300">
+                      {competitiveEdge.description}
+                    </p>
                   </div>
-                  <div className="text-lg font-bold text-purple-300">
-                    {analysis.recommendations?.competitiveStrategy ? "Strategic Advantage" : "Integration Focus"}
-                  </div>
-                  <p className="text-xs text-gray-300">
-                    {timeline.driver || "Positioning opportunity identified"}
-                  </p>
-                </div>
+                )}
               </div>
 
               {/* STRATEGIC POSITIONING BANNER - GAME CHANGER */}
