@@ -1,5 +1,3 @@
-// 🎯 NewAnalysisView.tsx v10.1 - STRATEGIC CONTENT INTEGRATION
-// Enhanced Win Strategy banner with actual strategic recommendations
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -36,7 +34,11 @@ import {
   Trophy,
   TrendingDown,
   Building2,
-  AlertCircle
+  AlertCircle,
+  XCircle,
+  Coffee,
+  Timer,
+  Send
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -133,142 +135,6 @@ export function NewAnalysisView({
     if (role === 'Influencer' || role === 'medium') return '📊'
     if (role === 'Blocker') return '🚫'
     return '👤'
-  }
-
-  // 🚨 ENHANCED: Win Strategy Display Function - STRATEGIC CONTENT INTEGRATION
-  const getWinStrategyDisplay = () => {
-    // 🎯 PRIMARY: Use actual strategic content from analysis
-    const primaryStrategy = analysis.recommendations?.primaryStrategy || ''
-    const competitiveStrategy = analysis.recommendations?.competitiveStrategy || ''
-    
-    // 📊 FALLBACK: Competitive intelligence assessment
-    const competitiveIntelligence = analysis.call_summary?.competitiveIntelligence || {}
-    const competitiveAdvantage = competitiveIntelligence.competitiveAdvantage || ''
-    const vendorsKnown = competitiveIntelligence.vendorsKnown || []
-    const evaluationStage = competitiveIntelligence.evaluationStage || 'not_evaluating'
-    
-    // 🏆 STRATEGY INTELLIGENCE: Extract strategic approach from actual AI recommendations
-    if (primaryStrategy && primaryStrategy.length > 20) {
-      const strategyLower = primaryStrategy.toLowerCase()
-      
-      // Contract/Closing Strategy
-      if (strategyLower.includes('contract') || strategyLower.includes('finalize') || 
-          strategyLower.includes('close') || strategyLower.includes('agreement') ||
-          strategyLower.includes('execute') || strategyLower.includes('complete')) {
-        return {
-          text1: 'Closing',
-          text2: 'Strategy',
-          colorClass: 'text-green-300',
-          description: primaryStrategy.length > 100 ? 
-            primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
-          strategicContent: primaryStrategy
-        }
-      }
-      
-      // Competitive Differentiation Strategy
-      if (strategyLower.includes('differentiate') || strategyLower.includes('unique') || 
-          strategyLower.includes('advantage') || strategyLower.includes('position') ||
-          strategyLower.includes('competitive')) {
-        return {
-          text1: 'Competitive',
-          text2: 'Positioning',
-          colorClass: 'text-blue-300',
-          description: primaryStrategy.length > 100 ? 
-            primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
-          strategicContent: primaryStrategy
-        }
-      }
-      
-      // Stakeholder/Relationship Strategy
-      if (strategyLower.includes('stakeholder') || strategyLower.includes('relationship') || 
-          strategyLower.includes('engage') || strategyLower.includes('alignment') ||
-          strategyLower.includes('coordinate') || strategyLower.includes('involve')) {
-        return {
-          text1: 'Stakeholder',
-          text2: 'Alignment',
-          colorClass: 'text-purple-300',
-          description: primaryStrategy.length > 100 ? 
-            primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
-          strategicContent: primaryStrategy
-        }
-      }
-      
-      // Value/ROI Strategy
-      if (strategyLower.includes('value') || strategyLower.includes('roi') || 
-          strategyLower.includes('benefit') || strategyLower.includes('impact') ||
-          strategyLower.includes('demonstrate') || strategyLower.includes('show')) {
-        return {
-          text1: 'Value',
-          text2: 'Demonstration',
-          colorClass: 'text-emerald-300',
-          description: primaryStrategy.length > 100 ? 
-            primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
-          strategicContent: primaryStrategy
-        }
-      }
-      
-      // Generic Strategic Approach (has strategy content but doesn't match patterns)
-      return {
-        text1: 'Strategic',
-        text2: 'Approach',
-        colorClass: 'text-indigo-300',
-        description: primaryStrategy.length > 100 ? 
-          primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
-        strategicContent: primaryStrategy
-      }
-    }
-    
-    // 🔄 FALLBACK TO COMPETITIVE INTELLIGENCE (existing logic for backward compatibility)
-    const hasSignificantBarriers = competitiveAdvantage.toLowerCase().includes('significant barriers') ||
-                                  competitiveAdvantage.toLowerCase().includes('major obstacles') ||
-                                  competitiveAdvantage.toLowerCase().includes('strong resistance') ||
-                                  competitiveAdvantage.toLowerCase().includes('considerable challenges')
-    
-    const hasVendorLockIn = competitiveAdvantage.toLowerCase().includes('locked in') ||
-                           competitiveAdvantage.toLowerCase().includes('satisfied with current') ||
-                           competitiveAdvantage.toLowerCase().includes('long-term contract')
-    
-    if (hasSignificantBarriers || hasVendorLockIn) {
-      return {
-        text1: 'Competitive',
-        text2: 'Challenge',
-        colorClass: 'text-red-300',
-        description: 'Address barriers and positioning challenges',
-        strategicContent: 'Focus on overcoming competitive challenges and positioning obstacles'
-      }
-    }
-    
-    if (competitiveAdvantage && 
-        !competitiveAdvantage.includes('vs Competitors') && 
-        !competitiveAdvantage.includes('were not explicitly mentioned') &&
-        competitiveAdvantage.length > 50) {
-      return {
-        text1: 'Competitive',
-        text2: 'Advantage',
-        colorClass: 'text-emerald-300',
-        description: 'Leverage positioning strengths',
-        strategicContent: 'Capitalize on competitive advantages and positioning strengths'
-      }
-    }
-    
-    if (vendorsKnown.length > 0 || evaluationStage === 'active' || evaluationStage === 'final') {
-      return {
-        text1: 'Market',
-        text2: 'Position',
-        colorClass: 'text-yellow-300',
-        description: 'Navigate competitive evaluation',
-        strategicContent: 'Navigate competitive evaluation and market positioning'
-      }
-    }
-    
-    // 🎯 DEFAULT: Strategic Focus
-    return {
-      text1: 'Strategic',
-      text2: 'Focus',
-      colorClass: 'text-blue-300',
-      description: 'Execute strategic positioning',
-      strategicContent: 'Focus on strategic positioning and opportunity advancement'
-    }
   }
 
   // Enhanced data mapping functions for hero section
@@ -550,63 +416,105 @@ export function NewAnalysisView({
     }
   }
 
+  // 🚀 NEW: ADAPTIVE DEAL QUALITY LOGIC
+  const getDealQuality = () => {
+    const heat = getDealHeat().level
+    const signals = getBuyingSignals()
+    const resistance = analysis.call_summary?.resistanceAnalysis?.level || 'none'
+    const timeline = getTimeline()
+    
+    // DISQUALIFY MODE: High resistance overrides everything
+    if (resistance === 'high' || 
+        (heat === 'LOW' && signals.strength.includes('Weak') && timeline.urgency === 'LOW')) {
+      return 'DISQUALIFY'
+    }
+    
+    // PURSUE MODE: High heat + good signals OR strong commitment signals
+    if (heat === 'HIGH' || 
+        (heat === 'MEDIUM' && signals.commitmentCount >= 1) ||
+        signals.qualityScore >= 6) {
+      return 'PURSUE'
+    }
+    
+    // NURTURE MODE: Everything else
+    return 'NURTURE'
+  }
+
+  const getCompetitiveEdge = () => {
+    const competitive = analysis.call_summary?.competitiveIntelligence || {}
+    const advantage = competitive.competitiveAdvantage || analysis.recommendations?.competitiveStrategy || ''
+    const vendors = competitive.vendorsKnown || []
+    
+    // Enhanced barrier detection
+    const advantageText = advantage.toLowerCase()
+    const hasSignificantBarriers = advantageText.includes('significant barriers') ||
+                                 advantageText.includes('major obstacles') ||
+                                 advantageText.includes('strong resistance') ||
+                                 advantageText.includes('not actively looking') ||
+                                 advantageText.includes('satisfied with current')
+    
+    // Check for descriptive non-competitor content in vendorsKnown
+    const hasRealCompetitors = vendors.length > 0 && 
+      vendors.some((vendor: string) => 
+        vendor && 
+        !vendor.toLowerCase().includes('vendor') &&
+        !vendor.toLowerCase().includes('solution') &&
+        !vendor.toLowerCase().includes('provider') &&
+        vendor.length < 50 // Avoid long descriptive sentences
+      )
+    
+    // Enhanced competitive intelligence detection
+    const hasCompetitiveContext = hasRealCompetitors || 
+                                advantage.length > 20 ||
+                                competitive.evaluationStage ||
+                                (competitive.decisionCriteria && competitive.decisionCriteria.length > 0)
+    
+    if (!hasCompetitiveContext) {
+      return null // Hide card completely
+    }
+    
+    // Determine competitive status with sales coaching approach
+    if (hasSignificantBarriers) {
+      return {
+        status: 'Competitive Challenge',
+        description: 'Significant barriers identified',
+        color: 'bg-red-500/20 text-red-300 border-red-500/30',
+        icon: '🚫',
+        content: advantage.length > 60 ? advantage.substring(0, 60) + '...' : advantage,
+        fullContent: advantage
+      }
+    }
+    
+    if (hasRealCompetitors) {
+      return {
+        status: 'Active Evaluation',
+        description: `Evaluating vs ${vendors.slice(0, 2).join(', ')}`,
+        color: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30',
+        icon: '⚔️',
+        content: advantage.length > 60 ? advantage.substring(0, 60) + '...' : advantage,
+        fullContent: advantage
+      }
+    }
+    
+    return {
+      status: 'Strategic Advantage',
+      description: 'Positioning opportunity identified',
+      color: 'bg-green-500/20 text-green-300 border-green-500/30',
+      icon: '🎯',
+      content: advantage.length > 60 ? advantage.substring(0, 60) + '...' : advantage,
+      fullContent: advantage
+    }
+  }
+
   const dealHeat = getDealHeat()
   const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()
-  const winStrategyDisplay = getWinStrategyDisplay() // 🚨 NEW: Dynamic win strategy
+  const dealQuality = getDealQuality()
+  const competitiveEdge = getCompetitiveEdge()
 
-  // Extract participants data for the new section
+  // Extract participants data
   const participants = analysis.participants || {}
-
-  // Helper function to get conversation intelligence signals
-  const getConversationIntelligence = () => {
-    const callSummary = analysis.call_summary || {}
-    
-    // Map new data structure to display format
-    const signals = {
-      positive: [],
-      concerns: [],
-      competitive: [],
-      pain: []
-    }
-    
-    // Extract buying signals
-    const buyingSignalsAnalysis = callSummary.buyingSignalsAnalysis || {}
-    if (buyingSignalsAnalysis.commitmentSignals) {
-      signals.positive.push(...buyingSignalsAnalysis.commitmentSignals.map(s => `🎯 ${s}`))
-    }
-    if (buyingSignalsAnalysis.engagementSignals) {
-      signals.positive.push(...buyingSignalsAnalysis.engagementSignals.map(s => `📈 ${s}`))
-    }
-    if (buyingSignalsAnalysis.interestSignals) {
-      signals.positive.push(...buyingSignalsAnalysis.interestSignals.map(s => `💡 ${s}`))
-    }
-    
-    // Extract concerns from competitive intelligence
-    const competitiveIntelligence = callSummary.competitiveIntelligence || {}
-    if (competitiveIntelligence.concerns) {
-      signals.concerns.push(...competitiveIntelligence.concerns.map(c => `⚠️ ${c}`))
-    }
-    if (competitiveIntelligence.objections) {
-      signals.concerns.push(...competitiveIntelligence.objections.map(o => `❓ ${o}`))
-    }
-    
-    // Extract competitive mentions
-    if (competitiveIntelligence.competitorsMentioned) {
-      signals.competitive.push(...competitiveIntelligence.competitorsMentioned.map(c => `🏢 ${c.name}: ${c.context}`))
-    }
-    
-    // Extract pain indicators
-    const painSeverity = callSummary.painSeverity || {}
-    if (painSeverity.indicators) {
-      signals.pain.push(...painSeverity.indicators.map(p => `🔥 ${p}`))
-    }
-    
-    return signals
-  }
-
-  const conversationIntel = getConversationIntelligence()
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
@@ -649,7 +557,7 @@ export function NewAnalysisView({
             </div>
           </div>
 
-          {/* REVOLUTIONARY STRATEGIC INTELLIGENCE HERO */}
+          {/* 🚀 HERO SECTION - UNTOUCHED (PERFECTED) */}
           <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 rounded-2xl p-8 text-white relative overflow-hidden mb-8">
             {/* Background Effects */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.15),transparent_50%)]"></div>
@@ -669,14 +577,13 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              {/* Decision Architecture (Enhanced Participants) */}
+              {/* Decision Architecture */}
               <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
                 <span className="text-slate-300">Decision Architecture:</span>
                 {participants?.clientContacts && participants.clientContacts.length > 0 ? (
                   participants.clientContacts.slice(0, 4).map((contact: any, index: number) => {
                     const stakeholderDisplay = getStakeholderDisplay(contact);
                     if (!stakeholderDisplay) {
-                      // Fallback for contacts without challenger roles
                       const roleColor = contact.decisionLevel === 'high' ? 'bg-red-500/20 text-red-300' : 
                                        contact.decisionLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-300' : 
                                        'bg-gray-500/20 text-gray-300';
@@ -703,8 +610,8 @@ export function NewAnalysisView({
                 )}
               </div>
 
-              {/* Enhanced 4-Card Intelligence Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              {/* Enhanced 4-Card Intelligence Grid with Conditional Competitive Edge */}
+              <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 ${competitiveEdge ? 'lg:grid-cols-4' : 'lg:grid-cols-3'}`}>
                 
                 {/* Deal Heat */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
@@ -742,50 +649,55 @@ export function NewAnalysisView({
                   <p className="text-xs text-gray-300">{buyingSignals.strength}</p>
                 </div>
 
-                {/* Competitive Edge */}
-                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
-                      <Target className="w-4 h-4 text-white" />
+                {/* Competitive Edge - Conditional Display */}
+                {competitiveEdge && (
+                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                        <Target className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-purple-200">Competitive Edge</span>
                     </div>
-                    <span className="text-sm font-medium text-purple-200">Competitive Edge</span>
+                    <div className="text-lg font-bold text-purple-300">
+                      {competitiveEdge.content.length > 60 ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="cursor-help">{competitiveEdge.status}</span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="max-w-xs p-3">
+                            <p className="text-sm">{competitiveEdge.fullContent}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        competitiveEdge.status
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-300">{competitiveEdge.description}</p>
                   </div>
-                  <div className="text-lg font-bold text-purple-300">
-                    {analysis.recommendations?.competitiveStrategy ? "Strategic Advantage" : "Integration Focus"}
-                  </div>
-                  <p className="text-xs text-gray-300">
-                    {timeline.driver || "Positioning opportunity identified"}
-                  </p>
-                </div>
+                )}
               </div>
 
-              {/* STRATEGIC POSITIONING BANNER - ENHANCED WITH ACTUAL STRATEGY */}
-              <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-xl p-6 border border-emerald-400/30 mb-6">
+              {/* Win Strategy Banner */}
+              <div className={`bg-gradient-to-r ${competitiveEdge?.status === 'Competitive Challenge' ? 'from-red-500/20 to-orange-500/20 border-red-400/30' : 
+                                  competitiveEdge?.status === 'Active Evaluation' ? 'from-yellow-500/20 to-orange-500/20 border-yellow-400/30' :
+                                  'from-emerald-500/20 to-blue-500/20 border-emerald-400/30'} rounded-xl p-6 border mb-6`}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <Shield className="w-8 h-8 text-emerald-300" />
-                    <div className="flex-1">
+                    <div>
                       <h4 className="text-xl font-bold text-white">Win Strategy</h4>
-                      <p className="text-emerald-200 text-sm max-w-2xl leading-relaxed">
-                        {winStrategyDisplay.strategicContent || 
+                      <p className="text-emerald-200 text-sm max-w-2xl">
+                        {analysis.recommendations?.primaryStrategy || 
                          "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"}
                       </p>
                     </div>
                   </div>
-                  {/* 🚨 ENHANCED: Dynamic Win Strategy Display with Tooltip */}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <div className={`text-right ${winStrategyDisplay.colorClass} cursor-help`}>
-                        <div className="font-bold text-lg">{winStrategyDisplay.text1}</div>
-                        <div className="text-sm">{winStrategyDisplay.text2}</div>
-                      </div>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="text-sm max-w-xs">
-                        {winStrategyDisplay.description}
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <div className={`text-right ${competitiveEdge?.status === 'Competitive Challenge' ? 'text-red-300' :
+                                    competitiveEdge?.status === 'Active Evaluation' ? 'text-yellow-300' :
+                                    'text-emerald-300'}`}>
+                    <div className="font-bold text-lg">{competitiveEdge?.status || 'Competitive'}</div>
+                    <div className="text-sm">{competitiveEdge?.status === 'Competitive Challenge' ? 'Challenge' : 'Advantage'}</div>
+                  </div>
                 </div>
               </div>
 
@@ -827,7 +739,7 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              {/* Essential Business Context (Integrated, No Redundancy) */}
+              {/* Essential Business Context */}
               <div className="grid md:grid-cols-2 gap-6 text-sm">
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Client Priority</h4>
@@ -849,462 +761,453 @@ export function NewAnalysisView({
             </div>
           </div>
 
-          {/* HYPER-SPECIFIC ACTION COMMAND */}
-          <div className="bg-white rounded-xl p-6 border-l-4 border-red-500 shadow-lg mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <Zap className="h-6 w-6 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">Strike Now</h3>
-                  <p className="text-sm text-red-600">Competitive window + stakeholder alignment</p>
-                </div>
-              </div>
-              <Badge className="bg-red-100 text-red-800 px-3 py-1 text-sm">HIGH PRIORITY</Badge>
-            </div>
-
-            {/* Primary Strategic Action */}
-            {analysis.recommendations?.immediateActions?.slice(0, 1).map((action: any, index: number) => (
-              <div key={index} className="bg-red-50 rounded-lg p-6 mb-4 border border-red-200">
-                <h4 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-red-600" />
-                  {action.action || "Execute Strategic Follow-up"}
-                </h4>
-                
-                {/* Strategic Context */}
-                <div className="space-y-4 mb-6">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
-                    <div>
-                      <p className="font-semibold text-gray-800">Lead with business urgency</p>
-                      <p className="text-gray-600 text-sm">
-                        Reference their specific pain points and timeline pressures discussed
-                      </p>
+          {/* 🚀 ADAPTIVE CONTENT BASED ON DEAL QUALITY */}
+          {dealQuality === 'DISQUALIFY' && (
+            <div className="space-y-6">
+              {/* Honest Assessment Card */}
+              <Card className="border-l-4 border-l-red-500 bg-gradient-to-r from-red-50 to-orange-50">
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-red-100 rounded-lg">
+                      <XCircle className="h-6 w-6 text-red-600" />
                     </div>
+                    <div>
+                      <CardTitle className="text-xl text-red-900">Honest Assessment: Focus Elsewhere</CardTitle>
+                      <p className="text-red-700">High resistance + low urgency = better opportunities exist</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg border border-red-200">
+                    <h4 className="font-semibold text-red-800 mb-2">Why This Deal Isn't Ready</h4>
+                    <ul className="space-y-2 text-sm text-gray-700">
+                      {analysis.call_summary?.resistanceAnalysis?.signals?.map((signal: string, index: number) => (
+                        <li key={index} className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                          <span>{signal}</span>
+                        </li>
+                      )) || [
+                        <li key="default" className="flex items-start gap-2">
+                          <AlertTriangle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                          <span>Low urgency and buying signals indicate this isn't a priority for them right now</span>
+                        </li>
+                      ]}
+                    </ul>
                   </div>
                   
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
-                    <div>
-                      <p className="font-semibold text-gray-800">Position competitive advantages</p>
-                      <p className="text-gray-600 text-sm">
-                        {analysis.recommendations?.competitiveStrategy?.substring(0, 100) + "..." || 
-                         "Highlight unique capabilities that competitors cannot match"}
-                      </p>
-                    </div>
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <h4 className="font-semibold text-yellow-800 mb-2">Recommended Action</h4>
+                    <p className="text-yellow-700 text-sm mb-3">
+                      Add to quarterly nurture sequence and focus on prospects with higher urgency and budget authority
+                    </p>
+                    <Button 
+                      className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                      onClick={() => copyToClipboard(
+                        "Hi [Name],\n\nThanks for our conversation about [topic]. I understand this isn't a current priority.\n\nI'll check back in Q[next quarter] to see if your situation has changed. In the meantime, feel free to reach out if anything urgent comes up.\n\nBest regards,\n[Your name]",
+                        'Quarterly nurture template'
+                      )}
+                    >
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy Quarterly Nurture Template
+                    </Button>
                   </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
-                    <div>
-                      <p className="font-semibold text-gray-800">Create decision momentum</p>
-                      <p className="text-gray-600 text-sm">
-                        {action.objective || "Propose specific next steps that move toward commitment"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* PRESERVE EXACT BUTTON FUNCTIONALITY */}
-                <div className="flex gap-3">
-                  <Button 
-                    className="bg-red-600 hover:bg-red-700 flex-1"
-                    onClick={() => copyToClipboard(action.copyPasteContent?.body || "Action content", 'Action template')}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Full Script
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Follow-up
-                  </Button>
-                </div>
-              </div>
-            )) || (
-              <div className="bg-red-50 rounded-lg p-6 mb-4 border border-red-200">
-                <h4 className="font-bold text-gray-900 mb-4 text-lg">Execute Strategic Follow-up</h4>
-                <p className="text-gray-600 mb-4">
-                  Contact key stakeholders to advance the opportunity based on conversation insights
-                </p>
-                <div className="flex gap-3">
-                  <Button className="bg-red-600 hover:bg-red-700 flex-1">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Action Plan
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Follow-up
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Strategic Why */}
-            <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
-              <div className="flex items-start gap-3">
-                <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <h5 className="font-semibold text-yellow-800 mb-1">Why This Approach Wins</h5>
-                  <p className="text-yellow-700 text-sm">
-                    {analysis.reasoning?.whyTheseRecommendations?.substring(0, 200) + "..." || 
-                     "This approach leverages stakeholder dynamics and competitive positioning to accelerate decision-making while addressing key concerns."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* STAKEHOLDER NAVIGATION MAP */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Users className="h-6 w-6 text-blue-600" />
-              <h3 className="text-lg font-semibold">Stakeholder Navigation Map</h3>
-              <Badge variant="outline" className="text-xs">Strategic Intelligence</Badge>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Economic Buyers */}
-              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                <h4 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
-                  🏛️ Economic Buyers
-                </h4>
-                <div className="space-y-3">
-                  {analysis.participants?.clientContacts?.filter((contact: any) => 
-                    contact.challengerRole === 'Economic Buyer' || contact.decisionLevel === 'high'
-                  ).map((contact: any, index: number) => (
-                    <div key={index}>
-                      <p className="font-medium">{contact.name} ({contact.title})</p>
-                      <p className="text-sm text-gray-600">
-                        {contact.decisionEvidence?.[0] || contact.roleEvidence?.[0] || "Key decision authority"}
-                      </p>
-                      <Badge variant="outline" className="text-xs mt-1">Primary Contact</Badge>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Influencers */}
-              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                <h4 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
-                  📊 Key Influencers
-                </h4>
-                <div className="space-y-3">
-                  {analysis.participants?.clientContacts?.filter((contact: any) => 
-                    contact.challengerRole === 'Influencer' || contact.decisionLevel === 'medium'
-                  ).map((contact: any, index: number) => (
-                    <div key={index}>
-                      <p className="font-medium">{contact.name} ({contact.title})</p>
-                      <p className="text-sm text-gray-600">
-                        {contact.roleEvidence?.[0] || "Influences decision process"}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Navigation Strategy */}
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                  🎯 Navigation Strategy
-                </h4>
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-blue-800">
-                    {analysis.recommendations?.stakeholderPlan || "Multi-stakeholder coordination approach"}
-                  </p>
-                  <ul className="text-sm space-y-2">
-                    <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      Lead with economic buyers
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      Coordinate with influencers
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      Validate with end users
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* ENHANCED EXPANDABLE SECTIONS */}
-          <div className="space-y-4">
-            
-            {/* Deal Acceleration Insights */}
-            {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
-              <Card className="border-l-4 border-l-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 hover:shadow-lg transition-all">
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-yellow-100/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Lightbulb className="w-6 h-6 text-yellow-600" />
-                          <div>
-                            <CardTitle className="text-lg">Deal Acceleration Insights ({analysis.key_takeaways.length})</CardTitle>
-                            <p className="text-sm text-yellow-700 font-normal">What they revealed about decision criteria and competitive positioning</p>
-                          </div>
-                        </div>
-                        <ChevronDown className="w-5 h-5 text-yellow-600" />
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      <div className="space-y-3">
-                        {analysis.key_takeaways.map((takeaway, index) => (
-                          <div key={index} className="flex items-start gap-3 p-4 bg-white rounded-lg border border-yellow-200">
-                            <div className="w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
-                              {index + 1}
-                            </div>
-                            <p className="text-gray-800 leading-relaxed">{takeaway}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
+                </CardContent>
               </Card>
-            )}
+            </div>
+          )}
 
-            {/* Complete Battle Plan */}
-            {analysis.recommendations && (
-              <Card className="border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-lg transition-all">
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-blue-100/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Target className="w-6 h-6 text-blue-600" />
-                          <div>
-                            <CardTitle className="text-lg">Complete Battle Plan</CardTitle>
-                            <p className="text-sm text-blue-700 font-normal">How to position against competitors based on their specific needs</p>
+          {dealQuality === 'NURTURE' && (
+            <div className="space-y-6">
+              {/* Strategic Nurture Card */}
+              <Card className="border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <Coffee className="h-6 w-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-blue-900">Strategic Nurture Approach</CardTitle>
+                      <p className="text-blue-700">Build relationship and stay positioned for when timing improves</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-3">Monthly Touch Points</h4>
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Timer className="w-5 h-5 text-blue-500 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-gray-800">Share relevant industry insights</p>
+                          <p className="text-sm text-gray-600">Keep them informed about trends affecting their business</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Users className="w-5 h-5 text-blue-500 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-gray-800">Maintain stakeholder relationships</p>
+                          <p className="text-sm text-gray-600">Stay connected with key decision makers</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <Eye className="w-5 h-5 text-blue-500 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-gray-800">Monitor for trigger events</p>
+                          <p className="text-sm text-gray-600">Watch for changes that create urgency</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Nurture Email Template */}
+                  {analysis.action_plan?.actions?.[0] && (
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-blue-800">Nurture Email Template</h4>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => copyToClipboard(analysis.action_plan.actions[0].copyPasteContent?.body || "Nurture content", 'Nurture email')}
+                        >
+                          <Copy className="w-4 h-4 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                      <div className="bg-white p-3 rounded border border-blue-200">
+                        <p className="text-sm font-mono whitespace-pre-wrap">
+                          {analysis.action_plan.actions[0].copyPasteContent?.body?.substring(0, 200) + "..." || 
+                           "Hi [Name],\n\nHope you're doing well. I came across this article about [relevant topic] and thought of our conversation...\n\n[Continue nurture content]"}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Key Insights - Condensed */}
+              {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
+                <Card className="border border-gray-200">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Lightbulb className="w-5 h-5 text-yellow-600" />
+                            <CardTitle className="text-lg">Key Insights for Future ({analysis.key_takeaways.length})</CardTitle>
+                          </div>
+                          <ChevronDown className="w-5 h-5 text-gray-500" />
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {analysis.key_takeaways.slice(0, 3).map((takeaway, index) => (
+                            <div key={index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                              <div className="w-5 h-5 bg-yellow-500 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">
+                                {index + 1}
+                              </div>
+                              <p className="text-gray-800 text-sm">{takeaway}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )}
+            </div>
+          )}
+
+          {dealQuality === 'PURSUE' && (
+            <div className="space-y-6">
+              {/* Immediate Action Cards - PROMINENTLY DISPLAYED */}
+              <Card className="border-l-4 border-l-green-500 bg-gradient-to-r from-green-50 to-emerald-50">
+                <CardHeader>
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-green-100 rounded-lg">
+                      <Zap className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-xl text-green-900">Strike While Hot - Execute Immediately</CardTitle>
+                      <p className="text-green-700">High potential deal - maximize momentum with specific actions</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Top 2 Actions with Full Email Templates */}
+                  {analysis.action_plan?.actions?.slice(0, 2).map((action: any, index: number) => (
+                    <div key={index} className="bg-white p-6 rounded-lg border border-green-200">
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="font-bold text-green-900 text-lg flex items-center gap-2">
+                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                            {index + 1}
+                          </div>
+                          {action.action}
+                        </h4>
+                        <Badge className="bg-green-100 text-green-800">
+                          {action.timeline || 'Immediate'}
+                        </Badge>
+                      </div>
+                      
+                      <p className="text-gray-700 mb-4 leading-relaxed">{action.objective}</p>
+                      
+                      {/* Subject Line - Immediately Visible */}
+                      {action.copyPasteContent?.subject && (
+                        <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-semibold text-green-800">Subject Line</span>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => copyToClipboard(action.copyPasteContent.subject, 'Subject line')}
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
+                          <p className="text-sm bg-white p-3 rounded border border-green-200 font-mono">
+                            {action.copyPasteContent.subject}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Email Body - Immediately Visible */}
+                      {action.copyPasteContent?.body && (
+                        <div className="bg-green-50 p-4 rounded-lg mb-4 border border-green-200">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-semibold text-green-800">Email Content</span>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => copyToClipboard(action.copyPasteContent.body, 'Email content')}
+                              >
+                                <Copy className="w-4 h-4 mr-1" />
+                                Copy
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => openInEmailClient(action.copyPasteContent.subject || 'Follow-up', action.copyPasteContent.body)}
+                              >
+                                <Send className="w-4 h-4 mr-1" />
+                                Send
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="bg-white p-3 rounded border border-green-200 max-h-40 overflow-y-auto">
+                            <p className="text-sm font-mono whitespace-pre-wrap">{action.copyPasteContent.body}</p>
                           </div>
                         </div>
-                        <ChevronDown className="w-5 h-5 text-blue-600" />
+                      )}
+                      
+                      {/* Action Buttons */}
+                      <div className="flex gap-3">
+                        <Button className="bg-green-600 hover:bg-green-700 flex-1">
+                          <Phone className="w-4 h-4 mr-2" />
+                          Execute Action
+                        </Button>
+                        <Button variant="outline" className="flex-1">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Schedule Follow-up
+                        </Button>
+                      </div>
+                    </div>
+                  )) || (
+                    <div className="bg-white p-6 rounded-lg border border-green-200">
+                      <h4 className="font-bold text-green-900 mb-4">Execute Strategic Follow-up</h4>
+                      <p className="text-gray-700 mb-4">
+                        Contact key stakeholders immediately to advance this high-potential opportunity
+                      </p>
+                      <div className="flex gap-3">
+                        <Button className="bg-green-600 hover:bg-green-700 flex-1">
+                          <Phone className="w-4 h-4 mr-2" />
+                          Execute Action
+                        </Button>
+                        <Button variant="outline" className="flex-1">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          Schedule Follow-up
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Stakeholder Navigation - Only for Pursue Mode */}
+              {participants?.clientContacts && participants.clientContacts.length > 0 && (
+                <Card className="border border-gray-200">
+                  <CardHeader>
+                    <div className="flex items-center gap-3">
+                      <Users className="w-6 h-6 text-blue-600" />
+                      <CardTitle className="text-lg">Stakeholder Coordination</CardTitle>
+                      <Badge variant="outline" className="text-xs">Multi-thread Strategy</Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {/* Economic Buyers */}
+                      {participants.clientContacts.filter((contact: any) => 
+                        contact.challengerRole === 'Economic Buyer' || contact.decisionLevel === 'high'
+                      ).length > 0 && (
+                        <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                          <h4 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
+                            🏛️ Economic Buyers
+                          </h4>
+                          <div className="space-y-3">
+                            {participants.clientContacts.filter((contact: any) => 
+                              contact.challengerRole === 'Economic Buyer' || contact.decisionLevel === 'high'
+                            ).map((contact: any, index: number) => (
+                              <div key={index}>
+                                <p className="font-medium">{contact.name} ({contact.title})</p>
+                                <p className="text-sm text-gray-600">
+                                  {contact.decisionEvidence?.[0] || contact.roleEvidence?.[0] || "Key decision authority"}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Technical/User Buyers */}
+                      {participants.clientContacts.filter((contact: any) => 
+                        contact.challengerRole === 'Technical Buyer' || contact.challengerRole === 'User Buyer'
+                      ).length > 0 && (
+                        <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                          <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                            🔧 Technical/User Buyers
+                          </h4>
+                          <div className="space-y-3">
+                            {participants.clientContacts.filter((contact: any) => 
+                              contact.challengerRole === 'Technical Buyer' || contact.challengerRole === 'User Buyer'
+                            ).map((contact: any, index: number) => (
+                              <div key={index}>
+                                <p className="font-medium">{contact.name} ({contact.title})</p>
+                                <p className="text-sm text-gray-600">
+                                  {contact.roleEvidence?.[0] || "Implementation stakeholder"}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Coordination Strategy */}
+                      <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                        <h4 className="font-semibold text-green-800 mb-3 flex items-center gap-2">
+                          🎯 Next Steps
+                        </h4>
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            <span>Engage economic buyers on business value</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                            <span>Address technical requirements</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span>Coordinate decision timeline</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Single Expandable for Additional Intelligence */}
+              <Card className="border border-gray-200">
+                <Collapsible>
+                  <CollapsibleTrigger asChild>
+                    <CardHeader className="pb-2 cursor-pointer hover:bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Target className="w-6 h-6 text-green-600" />
+                          <CardTitle className="text-lg">Complete Battle Plan & Intelligence</CardTitle>
+                        </div>
+                        <ChevronDown className="w-5 h-5 text-gray-500" />
                       </div>
                     </CardHeader>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent className="space-y-6">
-                      {analysis.recommendations.primaryStrategy && (
-                        <div className="p-4 bg-white rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                            <Target className="w-4 h-4" />
-                            Primary Strategy
-                          </h4>
-                          <p className="text-gray-800 leading-relaxed">{analysis.recommendations.primaryStrategy}</p>
-                        </div>
-                      )}
-                      {analysis.recommendations.competitiveStrategy && (
-                        <div className="p-4 bg-white rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                            <Shield className="w-4 h-4" />
-                            Competitive Positioning
-                          </h4>
-                          <p className="text-gray-800 leading-relaxed">{analysis.recommendations.competitiveStrategy}</p>
-                        </div>
-                      )}
-                      {analysis.recommendations.stakeholderPlan && (
-                        <div className="p-4 bg-white rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            Stakeholder Plan
-                          </h4>
-                          <p className="text-gray-800 leading-relaxed">{analysis.recommendations.stakeholderPlan}</p>
-                        </div>
-                      )}
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
-
-            {/* Competitive Positioning Arsenal */}
-            <Card className="border-l-4 border-l-green-400 bg-gradient-to-r from-green-50 to-emerald-50 hover:shadow-lg transition-all">
-              <Collapsible>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className="pb-2 cursor-pointer hover:bg-green-100/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Eye className="w-6 h-6 text-green-600" />
+                      {/* Key Takeaways */}
+                      {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
                         <div>
-                          <CardTitle className="text-lg">Competitive Positioning Arsenal</CardTitle>
-                          <p className="text-sm text-green-700 font-normal">What they revealed about evaluation process and decision criteria</p>
-                        </div>
-                      </div>
-                      <ChevronDown className="w-5 h-5 text-green-600" />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="space-y-6">
-                    
-                    {/* Buying Signals Analysis */}
-                    {conversationIntel.positive.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
-                          <Activity className="w-5 h-5" />
-                          Buying Signals ({conversationIntel.positive.length})
-                        </h4>
-                        <div className="grid gap-2">
-                          {conversationIntel.positive.map((signal: string, index: number) => (
-                            <div key={index} className="flex items-center gap-3 p-3 bg-white rounded-lg border border-green-200">
-                              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                              <span className="text-gray-800 text-sm">{signal}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Pain & Urgency Analysis */}
-                    {conversationIntel.pain.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-red-700 mb-3 flex items-center gap-2">
-                          <Thermometer className="w-5 h-5" />
-                          Pain Indicators ({conversationIntel.pain.length})
-                        </h4>
-                        <div className="grid gap-2">
-                          {conversationIntel.pain.map((pain: string, index: number) => (
-                            <div key={index} className="flex items-center gap-3 p-3 bg-red-50 rounded-lg border border-red-200">
-                              <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                              <span className="text-gray-800 text-sm">{pain}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Concerns & Objections */}
-                    {conversationIntel.concerns.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-orange-700 mb-3 flex items-center gap-2">
-                          <Shield className="w-5 h-5" />
-                          Concerns to Address ({conversationIntel.concerns.length})
-                        </h4>
-                        <div className="grid gap-2">
-                          {conversationIntel.concerns.map((concern: string, index: number) => (
-                            <div key={index} className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
-                              <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0" />
-                              <span className="text-gray-800 text-sm">{concern}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Competitive Intelligence */}
-                    {conversationIntel.competitive.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold text-purple-700 mb-3 flex items-center gap-2">
-                          <Target className="w-5 h-5" />
-                          Competitive Intelligence ({conversationIntel.competitive.length})
-                        </h4>
-                        <div className="grid gap-2">
-                          {conversationIntel.competitive.map((comp: string, index: number) => (
-                            <div key={index} className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                              <ExternalLink className="w-5 h-5 text-purple-500 flex-shrink-0" />
-                              <span className="text-gray-800 text-sm">{comp}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Fallback when no intelligence is available */}
-                    {conversationIntel.positive.length === 0 && 
-                     conversationIntel.concerns.length === 0 && 
-                     conversationIntel.competitive.length === 0 && 
-                     conversationIntel.pain.length === 0 && (
-                      <div className="text-center py-8">
-                        <Eye className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                        <h4 className="font-medium text-gray-600 mb-2">Rich Intelligence Processing</h4>
-                        <p className="text-gray-500 text-sm">
-                          Your conversation is being analyzed for deeper insights including buying signals, 
-                          competitive intelligence, pain analysis, and stakeholder mapping.
-                        </p>
-                      </div>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-
-            {/* Ready-to-Execute Playbook */}
-            {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 && (
-              <Card className="border-l-4 border-l-purple-400 bg-gradient-to-r from-purple-50 to-indigo-50 hover:shadow-lg transition-all">
-                <Collapsible>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-purple-100/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Zap className="w-6 h-6 text-purple-600" />
-                          <div>
-                            <CardTitle className="text-lg">Ready-to-Execute Playbook</CardTitle>
-                            <p className="text-sm text-purple-700 font-normal">Email templates and scripts ready to use immediately</p>
-                          </div>
-                        </div>
-                        <ChevronDown className="w-5 h-5 text-purple-600" />
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent>
-                      {analysis.action_plan.actions.map((action: any, index: number) => (
-                        <div key={index} className="border border-purple-200 rounded-lg p-6 mb-4 bg-white">
-                          <div className="flex items-center justify-between mb-4">
-                            <h4 className="font-semibold text-purple-900 text-lg">{action.action}</h4>
-                            <Badge variant="outline" className="border-purple-300 text-purple-700">{action.timeline}</Badge>
-                          </div>
-                          <p className="text-sm text-gray-700 mb-4 leading-relaxed">{action.objective}</p>
-                          
-                          {action.copyPasteContent?.subject && (
-                            <div className="bg-purple-50 p-4 rounded-lg mb-3 border border-purple-200">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-semibold text-purple-800">Subject Line</span>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                                  onClick={() => copyToClipboard(action.copyPasteContent.subject, 'Subject line')}
-                                >
-                                  <Copy className="w-4 h-4 mr-1" />
-                                  Copy
-                                </Button>
+                          <h4 className="font-semibold text-green-700 mb-3">Key Strategic Insights</h4>
+                          <div className="space-y-2">
+                            {analysis.key_takeaways.map((takeaway, index) => (
+                              <div key={index} className="flex items-start gap-3 p-3 bg-green-50 rounded-lg">
+                                <div className="w-5 h-5 bg-green-500 text-white rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0">
+                                  {index + 1}
+                                </div>
+                                <p className="text-gray-800 text-sm">{takeaway}</p>
                               </div>
-                              <p className="text-sm font-mono bg-white p-3 rounded border border-purple-200">{action.copyPasteContent.subject}</p>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Strategic Recommendations */}
+                      {analysis.recommendations && (
+                        <div className="space-y-4">
+                          {analysis.recommendations.primaryStrategy && (
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                              <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+                                <Target className="w-4 h-4" />
+                                Primary Strategy
+                              </h4>
+                              <p className="text-gray-800 leading-relaxed">{analysis.recommendations.primaryStrategy}</p>
                             </div>
                           )}
-                          
-                          {action.copyPasteContent?.body && (
-                            <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-sm font-semibold text-purple-800">Email Content</span>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  className="border-purple-300 text-purple-700 hover:bg-purple-100"
-                                  onClick={() => copyToClipboard(action.copyPasteContent.body, 'Email content')}
-                                >
-                                  <Copy className="w-4 h-4 mr-1" />
-                                  Copy
-                                </Button>
-                              </div>
-                              <p className="text-sm font-mono whitespace-pre-wrap bg-white p-3 rounded border border-purple-200 max-h-32 overflow-y-auto">{action.copyPasteContent.body}</p>
+                          {analysis.recommendations.competitiveStrategy && (
+                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                              <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+                                <Shield className="w-4 h-4" />
+                                Competitive Positioning
+                              </h4>
+                              <p className="text-gray-800 leading-relaxed">{analysis.recommendations.competitiveStrategy}</p>
                             </div>
                           )}
                         </div>
-                      ))}
+                      )}
+
+                      {/* Additional Actions */}
+                      {analysis.action_plan?.actions && analysis.action_plan.actions.length > 2 && (
+                        <div>
+                          <h4 className="font-semibold text-blue-700 mb-3">Additional Follow-up Actions</h4>
+                          <div className="space-y-3">
+                            {analysis.action_plan.actions.slice(2).map((action: any, index: number) => (
+                              <div key={index} className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h5 className="font-medium text-blue-900">{action.action}</h5>
+                                  <Badge variant="outline" className="text-xs">{action.timeline}</Badge>
+                                </div>
+                                <p className="text-sm text-gray-700 mb-3">{action.objective}</p>
+                                {action.copyPasteContent?.body && (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => copyToClipboard(action.copyPasteContent.body, 'Action template')}
+                                  >
+                                    <Copy className="w-4 h-4 mr-1" />
+                                    Copy Template
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </CardContent>
                   </CollapsibleContent>
                 </Collapsible>
               </Card>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </TooltipProvider>
     </div>
