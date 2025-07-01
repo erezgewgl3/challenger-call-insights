@@ -1,4 +1,3 @@
-
 // 🎯 NewAnalysisView.tsx v10.1 - STRATEGIC CONTENT INTEGRATION
 // Enhanced Win Strategy banner with actual strategic recommendations
 import React from 'react'
@@ -904,7 +903,8 @@ export function NewAnalysisView({
               'high': {
                 bgColor: 'bg-gradient-to-r from-green-500/20 to-emerald-500/20',
                 borderColor: 'border-green-400/30',
-                textColor: 'text-green-300',
+                textColor: 'text-green-800',
+                messageColor: 'text-gray-700',
                 icon: '🎯',
                 title: 'HIGH-PROBABILITY OPPORTUNITY',
                 message: 'Strong signals indicate qualified prospect with genuine need and timeline'
@@ -912,7 +912,8 @@ export function NewAnalysisView({
               'medium': {
                 bgColor: 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20',
                 borderColor: 'border-yellow-400/30', 
-                textColor: 'text-yellow-300',
+                textColor: 'text-yellow-700',
+                messageColor: 'text-gray-700',
                 icon: '⚡',
                 title: 'QUALIFICATION REQUIRED',
                 message: 'Mixed signals require strategic qualification before major resource investment'
@@ -920,7 +921,8 @@ export function NewAnalysisView({
               'low': {
                 bgColor: 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20',
                 borderColor: 'border-blue-400/30',
-                textColor: 'text-blue-300', 
+                textColor: 'text-blue-800', 
+                messageColor: 'text-gray-700',
                 icon: '📅',
                 title: 'LONG-TERM NURTURE CANDIDATE',
                 message: 'Current signals suggest timing or fit challenges - maintain relationship for future opportunity'
@@ -928,7 +930,8 @@ export function NewAnalysisView({
               'very-low': {
                 bgColor: 'bg-gradient-to-r from-gray-500/20 to-slate-500/20',
                 borderColor: 'border-gray-400/30',
-                textColor: 'text-gray-300',
+                textColor: 'text-gray-800',
+                messageColor: 'text-gray-700',
                 icon: '🔍',
                 title: 'STRATEGIC EVALUATION NEEDED', 
                 message: 'Multiple resistance indicators suggest reassessing fit and resource allocation priorities'
@@ -944,22 +947,22 @@ export function NewAnalysisView({
                     <div className="text-3xl">{config.icon}</div>
                     <div>
                       <h3 className={`text-xl font-bold ${config.textColor}`}>{config.title}</h3>
-                      <p className="text-gray-200 max-w-2xl">{config.message}</p>
+                      <p className={`${config.messageColor} max-w-2xl`}>{config.message}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className={`font-bold text-lg ${config.textColor}`}>{assessment.assessment}</div>
-                    <div className="text-sm text-gray-300 capitalize">{assessment.strategy}</div>
+                    <div className="text-sm text-gray-600 capitalize">{assessment.strategy}</div>
                   </div>
                 </div>
                 
                 {/* Show resistance signals for low probability deals */}
                 {assessment.probability === 'low' || assessment.probability === 'very-low' ? (
                   <div className="mt-4 pt-4 border-t border-gray-400/20">
-                    <h4 className="text-sm font-semibold text-gray-300 mb-2">Key Resistance Indicators:</h4>
+                    <h4 className="text-sm font-semibold text-gray-600 mb-2">Key Resistance Indicators:</h4>
                     <div className="flex flex-wrap gap-2">
                       {assessment.resistanceSignals.map((signal, index) => (
-                        <span key={index} className="text-xs bg-gray-600/30 px-2 py-1 rounded text-gray-300">
+                        <span key={index} className="text-xs bg-gray-600/30 px-2 py-1 rounded text-gray-700">
                           {signal}
                         </span>
                       ))}
