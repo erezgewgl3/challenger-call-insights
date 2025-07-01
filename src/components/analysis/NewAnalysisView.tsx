@@ -518,7 +518,7 @@ export function NewAnalysisView({
             
             <div className="relative z-10">
               {/* Strategic Context Header */}
-              <div className="flex justify-between items-start mb-6">
+              <div className="flex items-start mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
                     <Trophy className="w-7 h-7" />
@@ -527,12 +527,6 @@ export function NewAnalysisView({
                     <h2 className="text-2xl font-bold">Deal Command Center</h2>
                     <p className="text-blue-200">Strategic intelligence + competitive positioning</p>
                   </div>
-                </div>
-                
-                {/* Win Probability */}
-                <div className="text-right">
-                  <div className="text-3xl font-bold text-green-400">85%</div>
-                  <div className="text-green-200 text-sm">Win Probability</div>
                 </div>
               </div>
 
@@ -646,20 +640,59 @@ export function NewAnalysisView({
                 </div>
               </div>
 
+              {/* Call Summary Section */}
+              <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white">Call Summary</h3>
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-gray-200 leading-relaxed">
+                      {analysis.call_summary?.overview || 'This conversation provided valuable insights into the client\'s needs and current challenges.'}
+                    </p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-300 mb-2 underline">Client Situation</h4>
+                      <p className="text-gray-200 text-sm">
+                        {analysis.call_summary?.clientSituation || 'Client shared their current business context and challenges.'}
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-300 mb-2 underline">Main Topics</h4>
+                      <ul className="space-y-1">
+                        {(analysis.call_summary?.mainTopics || ['Business needs discussed', 'Solution options explored', 'Next steps identified']).slice(0, 3).map((topic, index) => (
+                          <li key={index} className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
+                            <span className="text-gray-200 text-sm">{topic}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Essential Business Context (Integrated, No Redundancy) */}
               <div className="grid md:grid-cols-2 gap-6 text-sm">
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Client Priority</h4>
                   <p className="text-gray-200">
-                    {analysis.call_summary?.clientSituation?.substring(0, 120) + "..." || 
-                     "Strategic business context driving this opportunity"}
+                    {analysis.call_summary?.urgencyDrivers?.primary || 
+                     timeline.driver || 
+                     "Strategic business priority driving this opportunity"}
                   </p>
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Urgency Driver</h4>
                   <p className="text-gray-200">
-                    {analysis.call_summary?.urgencyDrivers?.primary || 
-                     timeline.driver || 
+                    {timeline.driver || 
+                     analysis.call_summary?.urgencyDrivers?.primary || 
                      "Business pressure creating decision timeline"}
                   </p>
                 </div>
