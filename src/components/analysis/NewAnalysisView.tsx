@@ -412,45 +412,92 @@ export function NewAnalysisView({
     }
   }
 
-  // NEW: Conditional Competitive Edge logic
+  // NEW: Sales Coach Competitive Intelligence Logic
   const getCompetitiveEdge = () => {
     const competitiveIntel = analysis.call_summary?.competitiveIntelligence || {}
     const competitiveStrategy = analysis.recommendations?.competitiveStrategy || ''
     
-    // Enhanced barrier detection - exclude negative scenarios
-    const competitiveAdvantageText = (competitiveIntel.competitiveAdvantage || '').toLowerCase()
-    const competitiveStrategyText = competitiveStrategy.toLowerCase()
+    // Smart competitor detection - filter out descriptive text
+    const vendorsKnown = competitiveIntel.vendorsKnown || []
+    const hasRealCompetitors = vendorsKnown.length > 0 && 
+      vendorsKnown.some(vendor => {
+        const v = vendor.toLowerCase()
+        return !v.includes('not mentioned') && 
+               !v.includes('not explicitly') && 
+               !v.includes('competitors') &&
+               !v.includes('space were') &&
+               v.length < 50 && 
+               !v.includes('.')
+      })
     
-    const hasBarriers = competitiveAdvantageText.includes('barrier') ||
-                       competitiveAdvantageText.includes('satisfied') ||
-                       competitiveAdvantageText.includes('not mentioned') ||
-                       competitiveAdvantageText.includes('not explicitly') ||
-                       competitiveAdvantageText.includes('significant barrier') ||
-                       competitiveStrategyText.includes('barrier') ||
-                       competitiveStrategyText.includes('satisfied with current')
+    const realCompetitorName = hasRealCompetitors ? 
+      vendorsKnown.find(vendor => {
+        const v = vendor.toLowerCase()
+        return !v.includes('not mentioned') && !v.includes('not explicitly') && 
+               !v.includes('competitors') && v.length < 50 && !v.includes('.')
+      }) : null
     
-    // Check for actual competitive data
-    const hasCompetitors = competitiveIntel.vendorsKnown && competitiveIntel.vendorsKnown.length > 0
-    const hasEvaluationStage = competitiveIntel.evaluationStage && competitiveIntel.evaluationStage !== 'not_evaluating'
-    const hasCompetitiveAdvantage = competitiveIntel.competitiveAdvantage && 
-      competitiveIntel.competitiveAdvantage.length > 20 && !hasBarriers
-    const hasStrategy = competitiveStrategy && competitiveStrategy.length > 50 && !hasBarriers
+    // Check for meaningful competitive context (NOT advantage/disadvantage)
+    const hasEvaluationStage = competitiveIntel.evaluationStage && 
+      competitiveIntel.evaluationStage !== 'not_evaluating' &&
+      !competitiveIntel.evaluationStage.includes('not ')
+      
+    const hasCompetitiveContent = competitiveIntel.competitiveAdvantage && 
+      competitiveIntel.competitiveAdvantage.length > 20
+      
+    const hasStrategy = competitiveStrategy && competitiveStrategy.length > 30
     
-    // Only return data if we have real competitive intelligence AND no barriers
-    if ((hasCompetitors || hasEvaluationStage || hasCompetitiveAdvantage || hasStrategy) && !hasBarriers) {
-      const advantage = competitiveIntel.competitiveAdvantage || competitiveStrategy
-      const shortDesc = advantage.length > 80 ? advantage.substring(0, 77) + '...' : advantage
+    // Show card if there's ANY competitive context to coach on
+    const hasCompetitiveContext = hasRealCompetitors || hasEvaluationStage || hasCompetitiveContent || hasStrategy
+    
+    if (hasCompetitiveContext) {
+      // Determine competitive strength (like Deal Heat scoring)
+      const competitiveAdvantageText = (competitiveIntel.competitiveAdvantage || '').toLowerCase()
+      const competitiveStrategyText = competitiveStrategy.toLowerCase()
+      
+      const hasBarriers = competitiveAdvantageText.includes('barrier') ||
+                         competitiveAdvantageText.includes('satisfied') ||
+                         competitiveAdvantageText.includes('lock-in') ||
+                         competitiveAdvantageText.includes('significant barrier') ||
+                         competitiveStrategyText.includes('barrier') ||
+                         competitiveStrategyText.includes('satisfied with current')
+      
+      const hasAdvantages = competitiveAdvantageText.includes('advantage') ||
+                           competitiveAdvantageText.includes('superior') ||
+                           competitiveAdvantageText.includes('positions it favorably') ||
+                           competitiveAdvantageText.includes('strength')
+      
+      // Sales coaching message based on competitive reality
+      let title, description, colorScheme
+      
+      if (hasBarriers) {
+        title = hasRealCompetitors ? `vs ${realCompetitorName}` : 'Competitive Challenge'
+        description = 'Significant barriers identified - consider qualification strategy'
+        colorScheme = 'red' // Challenge color
+      } else if (hasAdvantages) {
+        title = hasRealCompetitors ? `vs ${realCompetitorName}` : 'Strategic Advantage'
+        description = competitiveIntel.competitiveAdvantage?.substring(0, 77) + '...' || 'Competitive positioning opportunity'
+        colorScheme = 'green' // Advantage color
+      } else {
+        title = hasRealCompetitors ? `vs ${realCompetitorName}` : 'Active Evaluation'
+        description = 'Competitive situation requires strategic positioning'
+        colorScheme = 'yellow' // Neutral/unknown
+      }
+      
+      const fullText = competitiveIntel.competitiveAdvantage || competitiveStrategy || 'Competitive intelligence available'
       
       return {
         hasData: true,
-        title: hasCompetitors ? `vs ${competitiveIntel.vendorsKnown[0]}` : 'Strategic Position',
-        description: shortDesc || 'Competitive advantage identified',
-        fullDescription: advantage, // For tooltip
-        isLong: advantage.length > 80,
+        title,
+        description,
+        fullDescription: fullText,
+        isLong: fullText.length > 80,
+        colorScheme,
         stage: competitiveIntel.evaluationStage || 'evaluation'
       }
     }
     
+    // Only hide when there's literally no competitive context to coach on
     return { hasData: false }
   }
 
@@ -646,16 +693,30 @@ export function NewAnalysisView({
                   <p className="text-xs text-gray-300">{buyingSignals.strength}</p>
                 </div>
 
-                {/* Competitive Edge - CONDITIONAL */}
+                {/* Competitive Edge - SALES COACHING APPROACH */}
                 {competitiveEdge.hasData && (
                   <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                     <div className="flex items-center gap-2 mb-2">
-                      <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <div className={`w-8 h-8 ${
+                        competitiveEdge.colorScheme === 'green' ? 'bg-green-500' :
+                        competitiveEdge.colorScheme === 'red' ? 'bg-red-500' :
+                        'bg-yellow-500'
+                      } rounded-lg flex items-center justify-center`}>
                         <Target className="w-4 h-4 text-white" />
                       </div>
-                      <span className="text-sm font-medium text-purple-200">Competitive Edge</span>
+                      <span className={`text-sm font-medium ${
+                        competitiveEdge.colorScheme === 'green' ? 'text-green-200' :
+                        competitiveEdge.colorScheme === 'red' ? 'text-red-200' :
+                        'text-yellow-200'
+                      }`}>
+                        {competitiveEdge.colorScheme === 'red' ? 'Competitive Challenge' : 'Competitive Edge'}
+                      </span>
                     </div>
-                    <div className="text-lg font-bold text-purple-300">
+                    <div className={`text-lg font-bold ${
+                      competitiveEdge.colorScheme === 'green' ? 'text-green-300' :
+                      competitiveEdge.colorScheme === 'red' ? 'text-red-300' :
+                      'text-yellow-300'
+                    }`}>
                       {competitiveEdge.title}
                     </div>
                     {competitiveEdge.isLong ? (
