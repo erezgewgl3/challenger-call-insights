@@ -468,19 +468,6 @@ export function NewAnalysisView({
 
   const conversationIntel = getConversationIntelligence()
 
-  // NEW: Generate assessment text based on analysis
-  const generateAssessmentText = (analysis: AnalysisData) => {
-    const signals = getBuyingSignals()
-    const heat = getDealHeat()
-    
-    if (heat.level === 'HIGH' && signals.commitmentCount >= 2) {
-      return 'strong buying signals detected, immediate action recommended'
-    } else if (heat.level === 'MEDIUM' || signals.commitmentCount >= 1) {
-      return 'positive momentum building, strategic follow-up needed'
-    }
-    return 'early stage opportunity, focus on value demonstration'
-  }
-
   // NEW: Get role color for participant cards
   const getRoleColor = (role: string) => {
     if (role === 'high' || role?.toLowerCase().includes('economic')) {
@@ -632,23 +619,6 @@ export function NewAnalysisView({
                     )}
                   </div>
                   <p className="text-xs text-gray-300 mt-1">{timeline.urgency} Priority</p>
-                </div>
-              </div>
-
-              {/* Deal Assessment Banner */}
-              <div className="bg-gradient-to-r from-emerald-500/20 to-green-500/20 rounded-xl p-4 border border-emerald-400/30">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <TrendingUp className="text-emerald-300 text-lg mr-3" />
-                    <div>
-                      <h4 className="text-lg font-bold text-white">Deal Assessment: Ready to Close</h4>
-                      <p className="text-emerald-200 text-sm">All signals align - {generateAssessmentText(analysis)}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-emerald-300">85%</div>
-                    <div className="text-emerald-200 text-sm">Win Probability</div>
-                  </div>
                 </div>
               </div>
 
