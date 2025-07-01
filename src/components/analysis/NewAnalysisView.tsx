@@ -155,23 +155,29 @@ export function NewAnalysisView({
     }
   }
 
+  // NEW: Extract template section helper
+  const getReadyToExecuteTemplates = () => {
+    const actions = analysis.action_plan?.actions || []
+    if (actions.length === 0) return null
+    
+    return actions.filter(action => 
+      action.copyPasteContent?.subject || action.copyPasteContent?.body
+    )
+  }
+
   // 🚨 ENHANCED: Win Strategy Display Function - STRATEGIC CONTENT INTEGRATION
   const getWinStrategyDisplay = () => {
-    // 🎯 PRIMARY: Use actual strategic content from analysis
     const primaryStrategy = analysis.recommendations?.primaryStrategy || ''
     const competitiveStrategy = analysis.recommendations?.competitiveStrategy || ''
     
-    // 📊 FALLBACK: Competitive intelligence assessment
     const competitiveIntelligence = analysis.call_summary?.competitiveIntelligence || {}
     const competitiveAdvantage = competitiveIntelligence.competitiveAdvantage || ''
     const vendorsKnown = competitiveIntelligence.vendorsKnown || []
     const evaluationStage = competitiveIntelligence.evaluationStage || 'not_evaluating'
     
-    // 🏆 STRATEGY INTELLIGENCE: Extract strategic approach from actual AI recommendations
     if (primaryStrategy && primaryStrategy.length > 20) {
       const strategyLower = primaryStrategy.toLowerCase()
       
-      // Contract/Closing Strategy
       if (strategyLower.includes('contract') || strategyLower.includes('finalize') || 
           strategyLower.includes('close') || strategyLower.includes('agreement') ||
           strategyLower.includes('execute') || strategyLower.includes('complete')) {
@@ -185,7 +191,6 @@ export function NewAnalysisView({
         }
       }
       
-      // Competitive Differentiation Strategy
       if (strategyLower.includes('differentiate') || strategyLower.includes('unique') || 
           strategyLower.includes('advantage') || strategyLower.includes('position') ||
           strategyLower.includes('competitive')) {
@@ -199,7 +204,6 @@ export function NewAnalysisView({
         }
       }
       
-      // Stakeholder/Relationship Strategy
       if (strategyLower.includes('stakeholder') || strategyLower.includes('relationship') || 
           strategyLower.includes('engage') || strategyLower.includes('alignment') ||
           strategyLower.includes('coordinate') || strategyLower.includes('involve')) {
@@ -213,7 +217,6 @@ export function NewAnalysisView({
         }
       }
       
-      // Value/ROI Strategy
       if (strategyLower.includes('value') || strategyLower.includes('roi') || 
           strategyLower.includes('benefit') || strategyLower.includes('impact') ||
           strategyLower.includes('demonstrate') || strategyLower.includes('show')) {
@@ -227,7 +230,6 @@ export function NewAnalysisView({
         }
       }
       
-      // Generic Strategic Approach (has strategy content but doesn't match patterns)
       return {
         text1: 'Strategic',
         text2: 'Approach',
@@ -238,7 +240,6 @@ export function NewAnalysisView({
       }
     }
     
-    // 🔄 FALLBACK TO COMPETITIVE INTELLIGENCE (existing logic for backward compatibility)
     const hasSignificantBarriers = competitiveAdvantage.toLowerCase().includes('significant barriers') ||
                                   competitiveAdvantage.toLowerCase().includes('major obstacles') ||
                                   competitiveAdvantage.toLowerCase().includes('strong resistance') ||
@@ -281,7 +282,6 @@ export function NewAnalysisView({
       }
     }
     
-    // 🎯 DEFAULT: Strategic Focus
     return {
       text1: 'Strategic',
       text2: 'Focus',
@@ -293,112 +293,97 @@ export function NewAnalysisView({
 
   // Enhanced data mapping functions for hero section
   const getDealHeat = () => {
-    // ✅ Keep existing pain logic (working perfectly)
     const painLevel = analysis.call_summary?.painSeverity?.level || 'low'
     const indicators = analysis.call_summary?.painSeverity?.indicators || []
     const businessImpact = analysis.call_summary?.painSeverity?.businessImpact || ''
     
-    // 🔧 FIX: Access correct urgency data structure
     const criticalFactors = analysis.call_summary?.urgencyDrivers?.criticalFactors || []
     const businessFactors = analysis.call_summary?.urgencyDrivers?.businessFactors || []
     const generalFactors = analysis.call_summary?.urgencyDrivers?.generalFactors || []
     
-    // 🔧 ADD: Weighted urgency scoring
     const urgencyScore = (criticalFactors.length * 3) + 
                         (businessFactors.length * 2) + 
                         (generalFactors.length * 1)
     
-    // NEW: Add buying signal analysis
     const buyingSignals = analysis.call_summary?.buyingSignalsAnalysis || {}
     const commitmentSignals = buyingSignals.commitmentSignals || []
     const engagementSignals = buyingSignals.engagementSignals || []
     
-    // NEW: Add timeline analysis
     const timelineAnalysis = analysis.call_summary?.timelineAnalysis || {}
     const statedTimeline = timelineAnalysis.statedTimeline || ''
     const businessDriver = timelineAnalysis.businessDriver || ''
     
-    // NEW: Enhanced scoring with buying signals and timeline
     let dealScore = urgencyScore
     
-    // Buying signal bonuses
-    dealScore += commitmentSignals.length * 2 // Contract/budget discussions
-    dealScore += engagementSignals.length * 1  // Technical engagement
+    dealScore += commitmentSignals.length * 2
+    dealScore += engagementSignals.length * 1
     
-    // Timeline urgency bonuses
     const timelineText = (statedTimeline + ' ' + businessDriver).toLowerCase()
     if (timelineText.includes('friday') || timelineText.includes('this week') || 
         timelineText.includes('immediate') || timelineText.includes('asap')) {
-      dealScore += 3 // Immediate timeline boost
+      dealScore += 3
     }
     if (timelineText.includes('contract') || timelineText.includes('execute') || 
         timelineText.includes('sign') || timelineText.includes('docs')) {
-      dealScore += 2 // Contract readiness boost
+      dealScore += 2
     }
     
-    // SURGICAL FIX: Correct resistance data path references
     const resistanceData = analysis.call_summary?.resistanceAnalysis || {}
     const resistanceLevel = resistanceData.level || 'none'
     const resistanceSignals = resistanceData.signals || []
     
-    // Apply resistance penalties
     let resistancePenalty = 0
     
-    // Major resistance level penalties
     if (resistanceLevel === 'high') {
-      resistancePenalty += 8 // Massive penalty for high resistance
+      resistancePenalty += 8
     } else if (resistanceLevel === 'medium') {
-      resistancePenalty += 4 // Moderate penalty for medium resistance
+      resistancePenalty += 4
     }
     
-    // Specific resistance signal penalties
     const allResistanceText = resistanceSignals.join(' ').toLowerCase()
     
     if (allResistanceText.includes('not actively looking') || 
         allResistanceText.includes('not looking for') ||
         allResistanceText.includes('no immediate need')) {
-      resistancePenalty += 3 // Strong penalty for lack of active interest
+      resistancePenalty += 3
     }
     
     if (allResistanceText.includes('budget constraints') || 
         allResistanceText.includes('budget concerns') ||
         allResistanceText.includes('cost concerns')) {
-      resistancePenalty += 2 // Penalty for budget issues
+      resistancePenalty += 2
     }
     
     if (allResistanceText.includes('satisfied with current') || 
         allResistanceText.includes('current solution works')) {
-      resistancePenalty += 2 // Penalty for satisfaction with status quo
+      resistancePenalty += 2
     }
     
     if (allResistanceText.includes('timing concerns') || 
         allResistanceText.includes('not the right time')) {
-      resistancePenalty += 1 // Minor penalty for timing issues
+      resistancePenalty += 1
     }
     
-    // Apply resistance penalty to deal score
-    dealScore = Math.max(0, dealScore - resistancePenalty) // Never go below 0
+    dealScore = Math.max(0, dealScore - resistancePenalty)
     
-    // Calculate heat based on pain + urgency - resistance
     let heatLevel = 'LOW'
     let emoji = '❄️'
     let description = 'Long-term opportunity'
     
-    // ENHANCED: More comprehensive HIGH heat conditions (with resistance consideration)
     if (
-      painLevel === 'high' ||                           // Keep: Critical business pain
-      criticalFactors.length >= 1 ||                    // Keep: Critical urgency factors
-      dealScore >= 8 ||                                 // NEW: High combined score with buying signals
-      (commitmentSignals.length >= 2 && dealScore >= 6) || // NEW: Strong commitment + good score
-      (painLevel === 'medium' && commitmentSignals.length >= 2 && dealScore >= 5) // NEW: Medium pain + strong buying signals
+      painLevel === 'high' ||
+      criticalFactors.length >= 1 ||
+      dealScore >= 8 ||
+      (commitmentSignals.length >= 2 && dealScore >= 6) ||
+      (painLevel === 'medium' && commitmentSignals.length >= 2 && dealScore >= 5)
     ) {
       heatLevel = 'HIGH'
       emoji = '🔥'
       description = 'Immediate attention needed'
     } else if (
       painLevel === 'medium' || 
-      (businessFactors || []).length >= 1 || // Add null safety
-      dealScore >= 3 // ENHANCED: Use dealScore instead of urgencyScore
+      (businessFactors || []).length >= 1 ||
+      dealScore >= 3
     ) {
       heatLevel = 'MEDIUM'
       emoji = '🌡️'
@@ -409,7 +394,7 @@ export function NewAnalysisView({
       level: heatLevel,
       emoji,
       description,
-      evidence: indicators.slice(0, 2), // Top 2 pain indicators
+      evidence: indicators.slice(0, 2),
       businessImpact,
       bgColor: heatLevel === 'HIGH' ? 'bg-red-500' : heatLevel === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500',
       color: heatLevel === 'HIGH' ? 'text-red-300' : heatLevel === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
@@ -429,14 +414,12 @@ export function NewAnalysisView({
       }
     }
     
-    // Score contacts based on behavioral evidence
     const scoredContacts = contacts.map((contact: any) => {
       const evidence = contact.decisionEvidence || []
       const decisionLevel = contact.decisionLevel || 'low'
       
       let authorityScore = 0
       
-      // Score based on behavioral evidence
       evidence.forEach((ev: string) => {
         const evidence_lower = ev.toLowerCase()
         if (evidence_lower.includes('budget') || evidence_lower.includes('approval')) {
@@ -450,7 +433,6 @@ export function NewAnalysisView({
         }
       })
       
-      // Add declared decision level
       if (decisionLevel === 'high') authorityScore += 3
       else if (decisionLevel === 'medium') authorityScore += 1
       
@@ -465,7 +447,6 @@ export function NewAnalysisView({
       }
     })
     
-    // Return highest scoring contact
     const topContact = scoredContacts.sort((a, b) => b.authorityScore - a.authorityScore)[0]
     
     return {
@@ -473,7 +454,7 @@ export function NewAnalysisView({
       title: topContact.title || 'Decision Maker',
       influence: `${topContact.confidence} Influence`,
       confidence: topContact.confidence,
-      evidence: topContact.evidence.slice(0, 1) // Show top evidence
+      evidence: topContact.evidence.slice(0, 1)
     }
   }
 
@@ -484,15 +465,13 @@ export function NewAnalysisView({
     const engagementSignals = signalsAnalysis.engagementSignals || []
     const interestSignals = signalsAnalysis.interestSignals || []
     
-    // Calculate weighted score
-    const commitmentScore = commitmentSignals.length * 3 // High value
-    const engagementScore = engagementSignals.length * 2  // Medium value  
-    const interestScore = interestSignals.length * 1      // Low value
+    const commitmentScore = commitmentSignals.length * 3
+    const engagementScore = engagementSignals.length * 2
+    const interestScore = interestSignals.length * 1
     
     const totalScore = commitmentScore + engagementScore + interestScore
     const totalSignals = commitmentSignals.length + engagementSignals.length + interestSignals.length
     
-    // Determine signal strength
     let strength = 'Weak'
     let color = 'red'
     
@@ -506,7 +485,7 @@ export function NewAnalysisView({
     
     return {
       count: totalSignals,
-      total: Math.max(totalSignals, 3), // Show at least 3 for display
+      total: Math.max(totalSignals, 3),
       strength: `${strength} momentum`,
       commitmentCount: commitmentSignals.length,
       qualityScore: totalScore,
@@ -523,16 +502,13 @@ export function NewAnalysisView({
     const flexibility = timelineAnalysis.flexibility || 'medium'
     const consequences = timelineAnalysis.consequences || ''
     
-    // Extract timeline display with improved truncation
     let displayTimeline = 'This Month'
     let urgencyLevel = 'LOW'
     let isTextTruncated = false
     
     if (statedTimeline) {
-      // Improved truncation logic with word boundaries and responsive design
       if (statedTimeline.length > 80) {
         isTextTruncated = true
-        // Find the last space within 80 characters to avoid cutting words
         const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 80)
         displayTimeline = lastSpaceIndex > 60 ? 
           statedTimeline.substring(0, lastSpaceIndex) + '...' : 
@@ -541,14 +517,12 @@ export function NewAnalysisView({
         displayTimeline = statedTimeline
       }
       
-      // Determine urgency from flexibility and consequences
       if (flexibility === 'low' || consequences.toLowerCase().includes('critical')) {
         urgencyLevel = 'HIGH'
       } else if (flexibility === 'medium' || businessDriver) {
         urgencyLevel = 'MEDIUM'
       }
     } else {
-      // Fallback to urgency drivers
       const urgencyFactors = urgencyDrivers.factors || []
       if (urgencyFactors.length >= 3) {
         displayTimeline = 'ASAP'
@@ -574,7 +548,7 @@ export function NewAnalysisView({
   const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()
-  const winStrategyDisplay = getWinStrategyDisplay() // 🚨 NEW: Dynamic win strategy
+  const winStrategyDisplay = getWinStrategyDisplay()
 
   // Extract participants data for the new section
   const participants = analysis.participants || {}
@@ -583,7 +557,6 @@ export function NewAnalysisView({
   const getConversationIntelligence = () => {
     const callSummary = analysis.call_summary || {}
     
-    // Map new data structure to display format
     const signals = {
       positive: [],
       concerns: [],
@@ -591,7 +564,6 @@ export function NewAnalysisView({
       pain: []
     }
     
-    // Extract buying signals
     const buyingSignalsAnalysis = callSummary.buyingSignalsAnalysis || {}
     if (buyingSignalsAnalysis.commitmentSignals) {
       signals.positive.push(...buyingSignalsAnalysis.commitmentSignals.map(s => `🎯 ${s}`))
@@ -603,7 +575,6 @@ export function NewAnalysisView({
       signals.positive.push(...buyingSignalsAnalysis.interestSignals.map(s => `💡 ${s}`))
     }
     
-    // Extract concerns from competitive intelligence
     const competitiveIntelligence = callSummary.competitiveIntelligence || {}
     if (competitiveIntelligence.concerns) {
       signals.concerns.push(...competitiveIntelligence.concerns.map(c => `⚠️ ${c}`))
@@ -612,12 +583,10 @@ export function NewAnalysisView({
       signals.concerns.push(...competitiveIntelligence.objections.map(o => `❓ ${o}`))
     }
     
-    // Extract competitive mentions
     if (competitiveIntelligence.competitorsMentioned) {
       signals.competitive.push(...competitiveIntelligence.competitorsMentioned.map(c => `🏢 ${c.name}: ${c.context}`))
     }
     
-    // Extract pain indicators
     const painSeverity = callSummary.painSeverity || {}
     if (painSeverity.indicators) {
       signals.pain.push(...painSeverity.indicators.map(p => `🔥 ${p}`))
@@ -671,12 +640,10 @@ export function NewAnalysisView({
 
           {/* REVOLUTIONARY STRATEGIC INTELLIGENCE HERO */}
           <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 rounded-2xl p-8 text-white relative overflow-hidden mb-8">
-            {/* Background Effects */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.15),transparent_50%)]"></div>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.1),transparent_50%)]"></div>
             
             <div className="relative z-10">
-              {/* Strategic Context Header */}
               <div className="flex items-start mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
@@ -689,14 +656,12 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              {/* Decision Architecture (Enhanced Participants) */}
               <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
                 <span className="text-slate-300">Decision Architecture:</span>
                 {participants?.clientContacts && participants.clientContacts.length > 0 ? (
                   participants.clientContacts.slice(0, 4).map((contact: any, index: number) => {
                     const stakeholderDisplay = getStakeholderDisplay(contact);
                     if (!stakeholderDisplay) {
-                      // Fallback for contacts without challenger roles
                       const roleColor = contact.decisionLevel === 'high' ? 'bg-red-500/20 text-red-300' : 
                                        contact.decisionLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-300' : 
                                        'bg-gray-500/20 text-gray-300';
@@ -723,10 +688,8 @@ export function NewAnalysisView({
                 )}
               </div>
 
-              {/* Enhanced 4-Card Intelligence Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 
-                {/* Deal Heat */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`w-8 h-8 ${dealHeat.bgColor} rounded-lg flex items-center justify-center`}>
@@ -738,7 +701,6 @@ export function NewAnalysisView({
                   <p className="text-xs text-gray-300">{dealHeat.description}</p>
                 </div>
 
-                {/* Power Center */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -750,7 +712,6 @@ export function NewAnalysisView({
                   <p className="text-xs text-gray-300">{decisionMaker.title} • {decisionMaker.influence}</p>
                 </div>
 
-                {/* Momentum */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
@@ -762,7 +723,6 @@ export function NewAnalysisView({
                   <p className="text-xs text-gray-300">{buyingSignals.strength}</p>
                 </div>
 
-                {/* Competitive Edge */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
@@ -779,7 +739,6 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              {/* STRATEGIC POSITIONING BANNER - ENHANCED WITH ACTUAL STRATEGY */}
               <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-xl p-6 border border-emerald-400/30 mb-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
@@ -792,7 +751,6 @@ export function NewAnalysisView({
                       </p>
                     </div>
                   </div>
-                  {/* 🚨 ENHANCED: Dynamic Win Strategy Display with Tooltip */}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <div className={`text-right ${winStrategyDisplay.colorClass} cursor-help`}>
@@ -809,7 +767,6 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              {/* Call Summary Section */}
               <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6 mb-6">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
@@ -847,7 +804,6 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              {/* Essential Business Context (Integrated, No Redundancy) */}
               <div className="grid md:grid-cols-2 gap-6 text-sm">
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Client Priority</h4>
@@ -869,6 +825,91 @@ export function NewAnalysisView({
             </div>
           </div>
 
+          {/* PRIORITY TEMPLATES SECTION - Moved up for immediate access */}
+          {(() => {
+            const templates = getReadyToExecuteTemplates()
+            if (!templates || templates.length === 0) return null
+            
+            return (
+              <div className="bg-white rounded-xl p-6 shadow-lg border-l-4 border-l-green-500 mb-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-green-100 rounded-lg">
+                      <Mail className="h-6 w-6 text-green-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">Ready-to-Execute Templates</h3>
+                      <p className="text-sm text-green-600">Copy-paste content ready for immediate use</p>
+                    </div>
+                  </div>
+                  <Badge className="bg-green-100 text-green-800 px-3 py-1 text-sm">PRIORITY ACCESS</Badge>
+                </div>
+
+                <div className="grid gap-4">
+                  {templates.map((action, index) => (
+                    <div key={index} className="border border-green-200 rounded-lg p-4 bg-green-50">
+                      <h4 className="font-semibold text-green-900 mb-3">{action.action}</h4>
+                      
+                      {action.copyPasteContent?.subject && (
+                        <div className="mb-3">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-green-800">Subject Line</span>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="border-green-300 text-green-700 hover:bg-green-100"
+                              onClick={() => copyToClipboard(action.copyPasteContent.subject, 'Subject line')}
+                            >
+                              <Copy className="w-4 h-4 mr-1" />
+                              Copy
+                            </Button>
+                          </div>
+                          <p className="text-sm font-mono bg-white p-2 rounded border border-green-200">
+                            {action.copyPasteContent.subject}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {action.copyPasteContent?.body && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-green-800">Email Content</span>
+                            <div className="flex gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-green-300 text-green-700 hover:bg-green-100"
+                                onClick={() => copyToClipboard(action.copyPasteContent.body, 'Email content')}
+                              >
+                                <Copy className="w-4 h-4 mr-1" />
+                                Copy
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="border-green-300 text-green-700 hover:bg-green-100"
+                                onClick={() => openInEmailClient(action.copyPasteContent.subject, action.copyPasteContent.body)}
+                              >
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                Open
+                              </Button>
+                            </div>
+                          </div>
+                          <p className="text-sm font-mono whitespace-pre-wrap bg-white p-3 rounded border border-green-200 max-h-40 overflow-y-auto">
+                            {action.copyPasteContent.body.length > 300 ? 
+                              action.copyPasteContent.body.substring(0, 300) + '...' : 
+                              action.copyPasteContent.body
+                            }
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
           {/* HYPER-SPECIFIC ACTION COMMAND */}
           <div className="bg-white rounded-xl p-6 border-l-4 border-red-500 shadow-lg mb-8">
             <div className="flex items-center justify-between mb-6">
@@ -884,7 +925,6 @@ export function NewAnalysisView({
               <Badge className="bg-red-100 text-red-800 px-3 py-1 text-sm">HIGH PRIORITY</Badge>
             </div>
 
-            {/* Primary Strategic Action */}
             {analysis.recommendations?.immediateActions?.slice(0, 1).map((action: any, index: number) => (
               <div key={index} className="bg-red-50 rounded-lg p-6 mb-4 border border-red-200">
                 <h4 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
@@ -892,7 +932,6 @@ export function NewAnalysisView({
                   {action.action || "Execute Strategic Follow-up"}
                 </h4>
                 
-                {/* Strategic Context */}
                 <div className="space-y-4 mb-6">
                   <div className="flex items-start gap-3">
                     <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
@@ -926,7 +965,6 @@ export function NewAnalysisView({
                   </div>
                 </div>
 
-                {/* PRESERVE EXACT BUTTON FUNCTIONALITY */}
                 <div className="flex gap-3">
                   <Button 
                     className="bg-red-600 hover:bg-red-700 flex-1"
@@ -960,7 +998,6 @@ export function NewAnalysisView({
               </div>
             )}
 
-            {/* Strategic Why */}
             <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
               <div className="flex items-start gap-3">
                 <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
@@ -989,7 +1026,6 @@ export function NewAnalysisView({
                 </div>
 
                 <div className="grid md:grid-cols-3 gap-6">
-                  {/* Economic Buyers - Only show if data exists */}
                   {stakeholderData.hasEconomicBuyers && (
                     <div className="bg-red-50 rounded-lg p-4 border border-red-200">
                       <h4 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
@@ -1011,7 +1047,6 @@ export function NewAnalysisView({
                     </div>
                   )}
 
-                  {/* Influencers - Only show if data exists */}
                   {stakeholderData.hasInfluencers && (
                     <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
                       <h4 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
@@ -1032,7 +1067,6 @@ export function NewAnalysisView({
                     </div>
                   )}
 
-                  {/* Navigation Strategy - Always show if any stakeholders exist */}
                   <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                     <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
                       🎯 Navigation Strategy
@@ -1178,7 +1212,6 @@ export function NewAnalysisView({
                 <CollapsibleContent>
                   <CardContent className="space-y-6">
                     
-                    {/* Buying Signals Analysis */}
                     {conversationIntel.positive.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2">
@@ -1196,7 +1229,6 @@ export function NewAnalysisView({
                       </div>
                     )}
 
-                    {/* Pain & Urgency Analysis */}
                     {conversationIntel.pain.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-red-700 mb-3 flex items-center gap-2">
@@ -1214,7 +1246,6 @@ export function NewAnalysisView({
                       </div>
                     )}
 
-                    {/* Concerns & Objections */}
                     {conversationIntel.concerns.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-orange-700 mb-3 flex items-center gap-2">
@@ -1232,7 +1263,6 @@ export function NewAnalysisView({
                       </div>
                     )}
 
-                    {/* Competitive Intelligence */}
                     {conversationIntel.competitive.length > 0 && (
                       <div>
                         <h4 className="font-semibold text-purple-700 mb-3 flex items-center gap-2">
@@ -1250,7 +1280,6 @@ export function NewAnalysisView({
                       </div>
                     )}
 
-                    {/* Fallback when no intelligence is available */}
                     {conversationIntel.positive.length === 0 && 
                      conversationIntel.concerns.length === 0 && 
                      conversationIntel.competitive.length === 0 && 
@@ -1289,6 +1318,14 @@ export function NewAnalysisView({
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <CardContent>
+                      {/* Note: Primary templates now shown above for priority access */}
+                      <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                        <p className="text-blue-700 text-sm">
+                          ℹ️ Most important templates are now displayed above for immediate access. 
+                          Additional detailed action plans and context available here.
+                        </p>
+                      </div>
+                      
                       {analysis.action_plan.actions.map((action: any, index: number) => (
                         <div key={index} className="border border-purple-200 rounded-lg p-6 mb-4 bg-white">
                           <div className="flex items-center justify-between mb-4">
