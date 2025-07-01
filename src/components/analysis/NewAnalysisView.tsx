@@ -135,6 +135,26 @@ export function NewAnalysisView({
     return '👤'
   }
 
+  // Enhanced stakeholder detection logic
+  const hasStakeholderData = () => {
+    const contacts = analysis.participants?.clientContacts || []
+    
+    // Check for meaningful stakeholder data
+    const hasEconomicBuyers = contacts.some(contact => 
+      contact.challengerRole === 'Economic Buyer' || contact.decisionLevel === 'high'
+    )
+    const hasInfluencers = contacts.some(contact => 
+      contact.challengerRole === 'Influencer' || contact.decisionLevel === 'medium'
+    )
+    
+    return {
+      hasEconomicBuyers,
+      hasInfluencers,
+      hasAnyStakeholders: contacts.length > 0,
+      stakeholderCount: contacts.length
+    }
+  }
+
   // 🚨 ENHANCED: Win Strategy Display Function - STRATEGIC CONTENT INTEGRATION
   const getWinStrategyDisplay = () => {
     // 🎯 PRIMARY: Use actual strategic content from analysis
@@ -955,81 +975,96 @@ export function NewAnalysisView({
             </div>
           </div>
 
-          {/* STAKEHOLDER NAVIGATION MAP */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
-            <div className="flex items-center gap-3 mb-6">
-              <Users className="h-6 w-6 text-blue-600" />
-              <h3 className="text-lg font-semibold">Stakeholder Navigation Map</h3>
-              <Badge variant="outline" className="text-xs">Strategic Intelligence</Badge>
-            </div>
+          {/* STAKEHOLDER NAVIGATION MAP - Only show if meaningful data exists */}
+          {(() => {
+            const stakeholderData = hasStakeholderData()
+            if (!stakeholderData.hasAnyStakeholders) return null
+            
+            return (
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <Users className="h-6 w-6 text-blue-600" />
+                  <h3 className="text-lg font-semibold">Stakeholder Navigation Map</h3>
+                  <Badge variant="outline" className="text-xs">Strategic Intelligence</Badge>
+                </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Economic Buyers */}
-              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-                <h4 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
-                  🏛️ Economic Buyers
-                </h4>
-                <div className="space-y-3">
-                  {analysis.participants?.clientContacts?.filter((contact: any) => 
-                    contact.challengerRole === 'Economic Buyer' || contact.decisionLevel === 'high'
-                  ).map((contact: any, index: number) => (
-                    <div key={index}>
-                      <p className="font-medium">{contact.name} ({contact.title})</p>
-                      <p className="text-sm text-gray-600">
-                        {contact.decisionEvidence?.[0] || contact.roleEvidence?.[0] || "Key decision authority"}
-                      </p>
-                      <Badge variant="outline" className="text-xs mt-1">Primary Contact</Badge>
+                <div className="grid md:grid-cols-3 gap-6">
+                  {/* Economic Buyers - Only show if data exists */}
+                  {stakeholderData.hasEconomicBuyers && (
+                    <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                      <h4 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
+                        🏛️ Economic Buyers
+                      </h4>
+                      <div className="space-y-3">
+                        {analysis.participants?.clientContacts?.filter((contact: any) => 
+                          contact.challengerRole === 'Economic Buyer' || contact.decisionLevel === 'high'
+                        ).map((contact: any, index: number) => (
+                          <div key={index}>
+                            <p className="font-medium">{contact.name} ({contact.title})</p>
+                            <p className="text-sm text-gray-600">
+                              {contact.decisionEvidence?.[0] || contact.roleEvidence?.[0] || "Key decision authority"}
+                            </p>
+                            <Badge variant="outline" className="text-xs mt-1">Primary Contact</Badge>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  )}
 
-              {/* Influencers */}
-              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
-                <h4 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
-                  📊 Key Influencers
-                </h4>
-                <div className="space-y-3">
-                  {analysis.participants?.clientContacts?.filter((contact: any) => 
-                    contact.challengerRole === 'Influencer' || contact.decisionLevel === 'medium'
-                  ).map((contact: any, index: number) => (
-                    <div key={index}>
-                      <p className="font-medium">{contact.name} ({contact.title})</p>
-                      <p className="text-sm text-gray-600">
-                        {contact.roleEvidence?.[0] || "Influences decision process"}
-                      </p>
+                  {/* Influencers - Only show if data exists */}
+                  {stakeholderData.hasInfluencers && (
+                    <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                      <h4 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
+                        📊 Key Influencers
+                      </h4>
+                      <div className="space-y-3">
+                        {analysis.participants?.clientContacts?.filter((contact: any) => 
+                          contact.challengerRole === 'Influencer' || contact.decisionLevel === 'medium'
+                        ).map((contact: any, index: number) => (
+                          <div key={index}>
+                            <p className="font-medium">{contact.name} ({contact.title})</p>
+                            <p className="text-sm text-gray-600">
+                              {contact.roleEvidence?.[0] || "Influences decision process"}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </div>
+                  )}
 
-              {/* Navigation Strategy */}
-              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-                  🎯 Navigation Strategy
-                </h4>
-                <div className="space-y-3">
-                  <p className="text-sm font-medium text-blue-800">
-                    {analysis.recommendations?.stakeholderPlan || "Multi-stakeholder coordination approach"}
-                  </p>
-                  <ul className="text-sm space-y-2">
-                    <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                      Lead with economic buyers
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                      Coordinate with influencers
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                      Validate with end users
-                    </li>
-                  </ul>
+                  {/* Navigation Strategy - Always show if any stakeholders exist */}
+                  <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                    <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                      🎯 Navigation Strategy
+                    </h4>
+                    <div className="space-y-3">
+                      <p className="text-sm font-medium text-blue-800">
+                        {analysis.recommendations?.stakeholderPlan || "Multi-stakeholder coordination approach"}
+                      </p>
+                      <ul className="text-sm space-y-2">
+                        {stakeholderData.hasEconomicBuyers && (
+                          <li className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                            Lead with economic buyers
+                          </li>
+                        )}
+                        {stakeholderData.hasInfluencers && (
+                          <li className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                            Coordinate with influencers
+                          </li>
+                        )}
+                        <li className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          Validate with end users
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            )
+          })()}
 
           {/* ENHANCED EXPANDABLE SECTIONS */}
           <div className="space-y-4">
