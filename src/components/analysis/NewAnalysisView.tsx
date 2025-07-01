@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -515,6 +516,47 @@ export function NewAnalysisView({
                 </div>
               </div>
 
+              {/* Ultra Compact Participants Section - MOVED ABOVE CARDS */}
+              <div className="mb-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
+                    <Users className="w-4 h-4 text-white" />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">Meeting Participants</h3>
+                </div>
+                
+                <div className="text-sm text-white">
+                  <span className="text-blue-200 font-medium">Participants:</span> 
+                  {/* Client contacts first */}
+                  {participants?.clientContacts && participants.clientContacts.length > 0 && (
+                    <>
+                      {participants.clientContacts.map((contact: any, index: number) => {
+                        const stakeholder = getStakeholderDisplay(contact);
+                        const displayName = contact.name + (contact.title ? ` (${contact.title})` : '');
+                        
+                        return (
+                          <span key={index}>
+                            {displayName}
+                            {stakeholder && (
+                              <span className={`ml-2 text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
+                                {stakeholder.icon} {stakeholder.label}
+                              </span>
+                            )}
+                            {index < participants.clientContacts.length - 1 && ', '}
+                          </span>
+                        );
+                      })}
+                    </>
+                  )}
+                  {/* Sales rep last, with comma if client contacts exist */}
+                  {participants?.clientContacts && participants.clientContacts.length > 0 && ', '}
+                  {participants?.salesRep?.name || 'Sales Representative'}
+                  {(!participants?.clientContacts || participants.clientContacts.length === 0) && (
+                    <span className="text-xs text-gray-400 italic"> • No client contacts identified</span>
+                  )}
+                </div>
+              </div>
+
               {/* Main Intelligence Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 
@@ -577,47 +619,6 @@ export function NewAnalysisView({
                     )}
                   </div>
                   <p className="text-xs text-gray-300">{timeline.description}</p>
-                </div>
-              </div>
-
-              {/* Ultra Compact Participants Section - CONDITIONAL BADGE RENDERING */}
-              <div className="mt-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-6 h-6 bg-purple-500 rounded-lg flex items-center justify-center">
-                    <Users className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="text-base font-semibold text-white">Meeting Participants</h3>
-                </div>
-                
-                <div className="text-sm text-white">
-                  <span className="text-blue-200 font-medium">Participants:</span> 
-                  {/* Client contacts first */}
-                  {participants?.clientContacts && participants.clientContacts.length > 0 && (
-                    <>
-                      {participants.clientContacts.map((contact: any, index: number) => {
-                        const stakeholder = getStakeholderDisplay(contact);
-                        const displayName = contact.name + (contact.title ? ` (${contact.title})` : '');
-                        
-                        return (
-                          <span key={index}>
-                            {displayName}
-                            {stakeholder && (
-                              <span className={`ml-2 text-xs px-2 py-1 rounded-full ${stakeholder.color} font-medium`}>
-                                {stakeholder.icon} {stakeholder.label}
-                              </span>
-                            )}
-                            {index < participants.clientContacts.length - 1 && ', '}
-                          </span>
-                        );
-                      })}
-                    </>
-                  )}
-                  {/* Sales rep last, with comma if client contacts exist */}
-                  {participants?.clientContacts && participants.clientContacts.length > 0 && ', '}
-                  {participants?.salesRep?.name || 'Sales Representative'}
-                  {(!participants?.clientContacts || participants.clientContacts.length === 0) && (
-                    <span className="text-xs text-gray-400 italic"> • No client contacts identified</span>
-                  )}
                 </div>
               </div>
 
