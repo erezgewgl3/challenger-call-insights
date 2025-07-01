@@ -602,10 +602,8 @@ export function NewAnalysisView({
                   <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
                     <Clock className="w-4 h-4 text-white" />
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-white">Project Timeline</h3>
-                    <p className="text-orange-200 text-sm">{timeline.description}</p>
-                  </div>
+                  <h3 className="text-lg font-semibold text-white">Project Timeline</h3>
+                  <div className="flex-1"></div>
                   <div className="text-right">
                     <div className="text-xl font-bold text-orange-300">
                       {timeline.isTextTruncated ? (
@@ -625,25 +623,9 @@ export function NewAnalysisView({
                   </div>
                 </div>
                 
-                {/* Timeline Visual Progress Bar */}
-                <div className="relative">
-                  <div className="flex items-center justify-between text-xs text-gray-300 mb-2">
-                    <span>Current Stage</span>
-                    <span>Target Completion</span>
-                  </div>
-                  <div className="w-full bg-white/20 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-orange-400 to-orange-500 h-2 rounded-full transition-all duration-500"
-                      style={{ 
-                        width: timeline.urgency === 'HIGH' ? '75%' : 
-                               timeline.urgency === 'MEDIUM' ? '50%' : '25%' 
-                      }}
-                    ></div>
-                  </div>
-                  <div className="flex items-center justify-between text-xs text-gray-400 mt-1">
-                    <span>Discovery</span>
-                    <span>Decision</span>
-                  </div>
+                {/* Timeline Description at Bottom */}
+                <div className="mt-4 pt-4 border-t border-white/10">
+                  <p className="text-orange-200 text-sm">{timeline.description}</p>
                 </div>
               </div>
 
