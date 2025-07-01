@@ -1,3 +1,4 @@
+
 // 🎯 NewAnalysisView.tsx v10.1 - STRATEGIC CONTENT INTEGRATION
 // Enhanced Win Strategy banner with actual strategic recommendations
 import React from 'react'
@@ -163,6 +164,76 @@ export function NewAnalysisView({
     return actions.filter(action => 
       action.copyPasteContent?.subject || action.copyPasteContent?.body
     )
+  }
+
+  // NEW: Deal Assessment Logic
+  const getDealAssessment = () => {
+    const dealHeat = getDealHeat()
+    const buyingSignals = getBuyingSignals()
+    
+    // Extract resistance data
+    const resistanceData = analysis.call_summary?.resistanceAnalysis || {}
+    const resistanceLevel = resistanceData.level || 'none'
+    const resistanceSignals = resistanceData.signals || []
+    
+    // Extract timeline reality
+    const timelineAnalysis = analysis.call_summary?.timelineAnalysis || {}
+    const flexibility = timelineAnalysis.flexibility || 'medium'
+    
+    // Calculate deal probability
+    let probability = 'medium'
+    let assessment = 'QUALIFY'
+    let strategy = 'verify'
+    let urgency = 'medium'
+    let color = 'yellow'
+    
+    // High probability conditions
+    if (
+      dealHeat.level === 'HIGH' && 
+      buyingSignals.strength.includes('Strong') &&
+      resistanceLevel !== 'high'
+    ) {
+      probability = 'high'
+      assessment = 'EXECUTE'
+      strategy = 'advance'
+      urgency = 'high'
+      color = 'green'
+    }
+    // Low probability conditions  
+    else if (
+      dealHeat.level === 'LOW' || 
+      resistanceLevel === 'high' ||
+      (resistanceSignals.length >= 2 && buyingSignals.strength === 'Weak')
+    ) {
+      probability = 'low'
+      assessment = 'NURTURE'
+      strategy = 'qualify'
+      urgency = 'low'
+      color = 'blue'
+    }
+    // Very low probability (disqualify consideration)
+    else if (
+      dealHeat.level === 'LOW' && 
+      resistanceLevel === 'high' &&
+      buyingSignals.strength === 'Weak' &&
+      resistanceSignals.length >= 3
+    ) {
+      probability = 'very-low'
+      assessment = 'EVALUATE'
+      strategy = 'reassess'
+      urgency = 'low'
+      color = 'gray'
+    }
+    
+    return {
+      probability,
+      assessment,
+      strategy,
+      urgency,
+      color,
+      resistanceLevel,
+      resistanceSignals: resistanceSignals.slice(0, 2) // Top 2 resistance signals
+    }
   }
 
   // 🚨 ENHANCED: Win Strategy Display Function - STRATEGIC CONTENT INTEGRATION
@@ -825,6 +896,80 @@ export function NewAnalysisView({
             </div>
           </div>
 
+          {/* DEAL REALITY ASSESSMENT BANNER */}
+          {(() => {
+            const assessment = getDealAssessment()
+            
+            const bannerConfig = {
+              'high': {
+                bgColor: 'bg-gradient-to-r from-green-500/20 to-emerald-500/20',
+                borderColor: 'border-green-400/30',
+                textColor: 'text-green-300',
+                icon: '🎯',
+                title: 'HIGH-PROBABILITY OPPORTUNITY',
+                message: 'Strong signals indicate qualified prospect with genuine need and timeline'
+              },
+              'medium': {
+                bgColor: 'bg-gradient-to-r from-yellow-500/20 to-orange-500/20',
+                borderColor: 'border-yellow-400/30', 
+                textColor: 'text-yellow-300',
+                icon: '⚡',
+                title: 'QUALIFICATION REQUIRED',
+                message: 'Mixed signals require strategic qualification before major resource investment'
+              },
+              'low': {
+                bgColor: 'bg-gradient-to-r from-blue-500/20 to-indigo-500/20',
+                borderColor: 'border-blue-400/30',
+                textColor: 'text-blue-300', 
+                icon: '📅',
+                title: 'LONG-TERM NURTURE CANDIDATE',
+                message: 'Current signals suggest timing or fit challenges - maintain relationship for future opportunity'
+              },
+              'very-low': {
+                bgColor: 'bg-gradient-to-r from-gray-500/20 to-slate-500/20',
+                borderColor: 'border-gray-400/30',
+                textColor: 'text-gray-300',
+                icon: '🔍',
+                title: 'STRATEGIC EVALUATION NEEDED', 
+                message: 'Multiple resistance indicators suggest reassessing fit and resource allocation priorities'
+              }
+            }
+            
+            const config = bannerConfig[assessment.probability]
+            
+            return (
+              <div className={`${config.bgColor} rounded-xl p-6 border ${config.borderColor} mb-8`}>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="text-3xl">{config.icon}</div>
+                    <div>
+                      <h3 className={`text-xl font-bold ${config.textColor}`}>{config.title}</h3>
+                      <p className="text-gray-200 max-w-2xl">{config.message}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`font-bold text-lg ${config.textColor}`}>{assessment.assessment}</div>
+                    <div className="text-sm text-gray-300 capitalize">{assessment.strategy}</div>
+                  </div>
+                </div>
+                
+                {/* Show resistance signals for low probability deals */}
+                {assessment.probability === 'low' || assessment.probability === 'very-low' ? (
+                  <div className="mt-4 pt-4 border-t border-gray-400/20">
+                    <h4 className="text-sm font-semibold text-gray-300 mb-2">Key Resistance Indicators:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {assessment.resistanceSignals.map((signal, index) => (
+                        <span key={index} className="text-xs bg-gray-600/30 px-2 py-1 rounded text-gray-300">
+                          {signal}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )
+          })()}
+
           {/* PRIORITY TEMPLATES SECTION - Moved up for immediate access */}
           {(() => {
             const templates = getReadyToExecuteTemplates()
@@ -910,106 +1055,156 @@ export function NewAnalysisView({
             )
           })()}
 
-          {/* HYPER-SPECIFIC ACTION COMMAND */}
+          {/* ENHANCED ACTION COMMAND */}
           <div className="bg-white rounded-xl p-6 border-l-4 border-red-500 shadow-lg mb-8">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-4">
-                <div className="p-3 bg-red-100 rounded-lg">
-                  <Zap className="h-6 w-6 text-red-600" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-gray-900">Strike Now</h3>
-                  <p className="text-sm text-red-600">Competitive window + stakeholder alignment</p>
-                </div>
-              </div>
-              <Badge className="bg-red-100 text-red-800 px-3 py-1 text-sm">HIGH PRIORITY</Badge>
-            </div>
+            {(() => {
+              const assessment = getDealAssessment()
+              
+              const actionConfig = {
+                'high': {
+                  title: 'Strike Now',
+                  subtitle: 'Execute immediate advancement strategy',
+                  priority: 'EXECUTE IMMEDIATELY',
+                  bgColor: 'bg-red-50',
+                  borderColor: 'border-red-200'
+                },
+                'medium': {
+                  title: 'Qualify & Advance',
+                  subtitle: 'Strategic qualification before major investment',
+                  priority: 'QUALIFY FIRST',
+                  bgColor: 'bg-yellow-50', 
+                  borderColor: 'border-yellow-200'
+                },
+                'low': {
+                  title: 'Nurture Strategy',
+                  subtitle: 'Maintain relationship for future opportunity',
+                  priority: 'LONG-TERM NURTURE',
+                  bgColor: 'bg-blue-50',
+                  borderColor: 'border-blue-200'
+                },
+                'very-low': {
+                  title: 'Strategic Evaluation',
+                  subtitle: 'Assess resource allocation priorities', 
+                  priority: 'EVALUATE FIT',
+                  bgColor: 'bg-gray-50',
+                  borderColor: 'border-gray-200'
+                }
+              }
+              
+              const config = actionConfig[assessment.probability]
+              
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-red-100 rounded-lg">
+                        <Zap className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-xl font-bold text-gray-900">{config.title}</h3>
+                        <p className="text-sm text-red-600">{config.subtitle}</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-red-100 text-red-800 px-3 py-1 text-sm">{config.priority}</Badge>
+                  </div>
 
-            {analysis.recommendations?.immediateActions?.slice(0, 1).map((action: any, index: number) => (
-              <div key={index} className="bg-red-50 rounded-lg p-6 mb-4 border border-red-200">
-                <h4 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
-                  <Phone className="h-5 w-5 text-red-600" />
-                  {action.action || "Execute Strategic Follow-up"}
-                </h4>
-                
-                <div className="space-y-4 mb-6">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
-                    <div>
-                      <p className="font-semibold text-gray-800">Lead with business urgency</p>
-                      <p className="text-gray-600 text-sm">
-                        Reference their specific pain points and timeline pressures discussed
+                  {/* Primary Strategic Action with assessment-based guidance */}
+                  {analysis.recommendations?.immediateActions?.slice(0, 1).map((action, index) => (
+                    <div key={index} className={`${config.bgColor} rounded-lg p-6 mb-4 border ${config.borderColor}`}>
+                      <h4 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
+                        <Phone className="h-5 w-5 text-red-600" />
+                        {action.action || `Execute ${assessment.strategy} approach`}
+                      </h4>
+                      
+                      <div className="space-y-4 mb-6">
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                          <div>
+                            <p className="font-semibold text-gray-800">Lead with business urgency</p>
+                            <p className="text-gray-600 text-sm">
+                              Reference their specific pain points and timeline pressures discussed
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                          <div>
+                            <p className="font-semibold text-gray-800">Position competitive advantages</p>
+                            <p className="text-gray-600 text-sm">
+                              {analysis.recommendations?.competitiveStrategy?.substring(0, 100) + "..." || 
+                               "Highlight unique capabilities that competitors cannot match"}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-start gap-3">
+                          <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                          <div>
+                            <p className="font-semibold text-gray-800">Create decision momentum</p>
+                            <p className="text-gray-600 text-sm">
+                              {action.objective || "Propose specific next steps that move toward commitment"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-3">
+                        <Button 
+                          className="bg-red-600 hover:bg-red-700 flex-1"
+                          onClick={() => copyToClipboard(action.copyPasteContent?.body || "Action content", 'Action template')}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Full Script
+                        </Button>
+                        <Button variant="outline" className="flex-1">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Schedule Follow-up
+                        </Button>
+                      </div>
+                    </div>
+                  )) || (
+                    <div className={`${config.bgColor} rounded-lg p-6 mb-4 border ${config.borderColor}`}>
+                      <h4 className="font-bold text-gray-900 mb-4 text-lg">
+                        {assessment.probability === 'high' ? 'Execute Strategic Follow-up' :
+                         assessment.probability === 'medium' ? 'Qualification Strategy' :
+                         assessment.probability === 'low' ? 'Nurture Approach' :
+                         'Strategic Evaluation'}
+                      </h4>
+                      <p className="text-gray-600 mb-4">
+                        {assessment.probability === 'high' ? 'Advance opportunity aggressively based on strong signals' :
+                         assessment.probability === 'medium' ? 'Qualify thoroughly before major resource investment' :
+                         assessment.probability === 'low' ? 'Maintain relationship for future timing when conditions improve' :
+                         'Evaluate whether continued pursuit aligns with resource allocation priorities'}
                       </p>
+                      <div className="flex gap-3">
+                        <Button className="bg-red-600 hover:bg-red-700 flex-1">
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Action Plan
+                        </Button>
+                        <Button variant="outline" className="flex-1">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          Schedule Follow-up
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
+                    <div className="flex items-start gap-3">
+                      <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
+                      <div>
+                        <h5 className="font-semibold text-yellow-800 mb-1">Why This Approach Wins</h5>
+                        <p className="text-yellow-700 text-sm">
+                          {analysis.reasoning?.whyTheseRecommendations?.substring(0, 200) + "..." || 
+                           "This approach leverages stakeholder dynamics and competitive positioning to accelerate decision-making while addressing key concerns."}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
-                    <div>
-                      <p className="font-semibold text-gray-800">Position competitive advantages</p>
-                      <p className="text-gray-600 text-sm">
-                        {analysis.recommendations?.competitiveStrategy?.substring(0, 100) + "..." || 
-                         "Highlight unique capabilities that competitors cannot match"}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
-                    <div>
-                      <p className="font-semibold text-gray-800">Create decision momentum</p>
-                      <p className="text-gray-600 text-sm">
-                        {action.objective || "Propose specific next steps that move toward commitment"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex gap-3">
-                  <Button 
-                    className="bg-red-600 hover:bg-red-700 flex-1"
-                    onClick={() => copyToClipboard(action.copyPasteContent?.body || "Action content", 'Action template')}
-                  >
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Full Script
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Follow-up
-                  </Button>
-                </div>
-              </div>
-            )) || (
-              <div className="bg-red-50 rounded-lg p-6 mb-4 border border-red-200">
-                <h4 className="font-bold text-gray-900 mb-4 text-lg">Execute Strategic Follow-up</h4>
-                <p className="text-gray-600 mb-4">
-                  Contact key stakeholders to advance the opportunity based on conversation insights
-                </p>
-                <div className="flex gap-3">
-                  <Button className="bg-red-600 hover:bg-red-700 flex-1">
-                    <Copy className="h-4 w-4 mr-2" />
-                    Copy Action Plan
-                  </Button>
-                  <Button variant="outline" className="flex-1">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Schedule Follow-up
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
-              <div className="flex items-start gap-3">
-                <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
-                <div>
-                  <h5 className="font-semibold text-yellow-800 mb-1">Why This Approach Wins</h5>
-                  <p className="text-yellow-700 text-sm">
-                    {analysis.reasoning?.whyTheseRecommendations?.substring(0, 200) + "..." || 
-                     "This approach leverages stakeholder dynamics and competitive positioning to accelerate decision-making while addressing key concerns."}
-                  </p>
-                </div>
-              </div>
-            </div>
+                </>
+              )
+            })()}
           </div>
 
           {/* STAKEHOLDER NAVIGATION MAP - Only show if meaningful data exists */}
