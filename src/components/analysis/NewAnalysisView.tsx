@@ -1,3 +1,5 @@
+// 🎯 NewAnalysisView.tsx v10.1 - STRATEGIC CONTENT INTEGRATION
+// Enhanced Win Strategy banner with actual strategic recommendations
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -131,6 +133,142 @@ export function NewAnalysisView({
     if (role === 'Influencer' || role === 'medium') return '📊'
     if (role === 'Blocker') return '🚫'
     return '👤'
+  }
+
+  // 🚨 ENHANCED: Win Strategy Display Function - STRATEGIC CONTENT INTEGRATION
+  const getWinStrategyDisplay = () => {
+    // 🎯 PRIMARY: Use actual strategic content from analysis
+    const primaryStrategy = analysis.recommendations?.primaryStrategy || ''
+    const competitiveStrategy = analysis.recommendations?.competitiveStrategy || ''
+    
+    // 📊 FALLBACK: Competitive intelligence assessment
+    const competitiveIntelligence = analysis.call_summary?.competitiveIntelligence || {}
+    const competitiveAdvantage = competitiveIntelligence.competitiveAdvantage || ''
+    const vendorsKnown = competitiveIntelligence.vendorsKnown || []
+    const evaluationStage = competitiveIntelligence.evaluationStage || 'not_evaluating'
+    
+    // 🏆 STRATEGY INTELLIGENCE: Extract strategic approach from actual AI recommendations
+    if (primaryStrategy && primaryStrategy.length > 20) {
+      const strategyLower = primaryStrategy.toLowerCase()
+      
+      // Contract/Closing Strategy
+      if (strategyLower.includes('contract') || strategyLower.includes('finalize') || 
+          strategyLower.includes('close') || strategyLower.includes('agreement') ||
+          strategyLower.includes('execute') || strategyLower.includes('complete')) {
+        return {
+          text1: 'Closing',
+          text2: 'Strategy',
+          colorClass: 'text-green-300',
+          description: primaryStrategy.length > 100 ? 
+            primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
+          strategicContent: primaryStrategy
+        }
+      }
+      
+      // Competitive Differentiation Strategy
+      if (strategyLower.includes('differentiate') || strategyLower.includes('unique') || 
+          strategyLower.includes('advantage') || strategyLower.includes('position') ||
+          strategyLower.includes('competitive')) {
+        return {
+          text1: 'Competitive',
+          text2: 'Positioning',
+          colorClass: 'text-blue-300',
+          description: primaryStrategy.length > 100 ? 
+            primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
+          strategicContent: primaryStrategy
+        }
+      }
+      
+      // Stakeholder/Relationship Strategy
+      if (strategyLower.includes('stakeholder') || strategyLower.includes('relationship') || 
+          strategyLower.includes('engage') || strategyLower.includes('alignment') ||
+          strategyLower.includes('coordinate') || strategyLower.includes('involve')) {
+        return {
+          text1: 'Stakeholder',
+          text2: 'Alignment',
+          colorClass: 'text-purple-300',
+          description: primaryStrategy.length > 100 ? 
+            primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
+          strategicContent: primaryStrategy
+        }
+      }
+      
+      // Value/ROI Strategy
+      if (strategyLower.includes('value') || strategyLower.includes('roi') || 
+          strategyLower.includes('benefit') || strategyLower.includes('impact') ||
+          strategyLower.includes('demonstrate') || strategyLower.includes('show')) {
+        return {
+          text1: 'Value',
+          text2: 'Demonstration',
+          colorClass: 'text-emerald-300',
+          description: primaryStrategy.length > 100 ? 
+            primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
+          strategicContent: primaryStrategy
+        }
+      }
+      
+      // Generic Strategic Approach (has strategy content but doesn't match patterns)
+      return {
+        text1: 'Strategic',
+        text2: 'Approach',
+        colorClass: 'text-indigo-300',
+        description: primaryStrategy.length > 100 ? 
+          primaryStrategy.substring(0, 100) + '...' : primaryStrategy,
+        strategicContent: primaryStrategy
+      }
+    }
+    
+    // 🔄 FALLBACK TO COMPETITIVE INTELLIGENCE (existing logic for backward compatibility)
+    const hasSignificantBarriers = competitiveAdvantage.toLowerCase().includes('significant barriers') ||
+                                  competitiveAdvantage.toLowerCase().includes('major obstacles') ||
+                                  competitiveAdvantage.toLowerCase().includes('strong resistance') ||
+                                  competitiveAdvantage.toLowerCase().includes('considerable challenges')
+    
+    const hasVendorLockIn = competitiveAdvantage.toLowerCase().includes('locked in') ||
+                           competitiveAdvantage.toLowerCase().includes('satisfied with current') ||
+                           competitiveAdvantage.toLowerCase().includes('long-term contract')
+    
+    if (hasSignificantBarriers || hasVendorLockIn) {
+      return {
+        text1: 'Competitive',
+        text2: 'Challenge',
+        colorClass: 'text-red-300',
+        description: 'Address barriers and positioning challenges',
+        strategicContent: 'Focus on overcoming competitive challenges and positioning obstacles'
+      }
+    }
+    
+    if (competitiveAdvantage && 
+        !competitiveAdvantage.includes('vs Competitors') && 
+        !competitiveAdvantage.includes('were not explicitly mentioned') &&
+        competitiveAdvantage.length > 50) {
+      return {
+        text1: 'Competitive',
+        text2: 'Advantage',
+        colorClass: 'text-emerald-300',
+        description: 'Leverage positioning strengths',
+        strategicContent: 'Capitalize on competitive advantages and positioning strengths'
+      }
+    }
+    
+    if (vendorsKnown.length > 0 || evaluationStage === 'active' || evaluationStage === 'final') {
+      return {
+        text1: 'Market',
+        text2: 'Position',
+        colorClass: 'text-yellow-300',
+        description: 'Navigate competitive evaluation',
+        strategicContent: 'Navigate competitive evaluation and market positioning'
+      }
+    }
+    
+    // 🎯 DEFAULT: Strategic Focus
+    return {
+      text1: 'Strategic',
+      text2: 'Focus',
+      colorClass: 'text-blue-300',
+      description: 'Execute strategic positioning',
+      strategicContent: 'Focus on strategic positioning and opportunity advancement'
+    }
   }
 
   // Enhanced data mapping functions for hero section
@@ -372,13 +510,13 @@ export function NewAnalysisView({
     
     if (statedTimeline) {
       // Improved truncation logic with word boundaries and responsive design
-      if (statedTimeline.length > 60) { // Reduced from 80 to 60 for better mobile display
+      if (statedTimeline.length > 80) {
         isTextTruncated = true
-        // Find the last space within 60 characters to avoid cutting words
-        const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 60)
-        displayTimeline = lastSpaceIndex > 40 ? 
+        // Find the last space within 80 characters to avoid cutting words
+        const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 80)
+        displayTimeline = lastSpaceIndex > 60 ? 
           statedTimeline.substring(0, lastSpaceIndex) + '...' : 
-          statedTimeline.substring(0, 60) + '...'
+          statedTimeline.substring(0, 80) + '...'
       } else {
         displayTimeline = statedTimeline
       }
@@ -412,100 +550,11 @@ export function NewAnalysisView({
     }
   }
 
-  // NEW: Sales Coach Competitive Intelligence Logic
-  const getCompetitiveEdge = () => {
-    const competitiveIntel = analysis.call_summary?.competitiveIntelligence || {}
-    const competitiveStrategy = analysis.recommendations?.competitiveStrategy || ''
-    
-    // Smart competitor detection - filter out descriptive text
-    const vendorsKnown = competitiveIntel.vendorsKnown || []
-    const hasRealCompetitors = vendorsKnown.length > 0 && 
-      vendorsKnown.some(vendor => {
-        const v = vendor.toLowerCase()
-        return !v.includes('not mentioned') && 
-               !v.includes('not explicitly') && 
-               !v.includes('competitors') &&
-               !v.includes('space were') &&
-               v.length < 50 && 
-               !v.includes('.')
-      })
-    
-    const realCompetitorName = hasRealCompetitors ? 
-      vendorsKnown.find(vendor => {
-        const v = vendor.toLowerCase()
-        return !v.includes('not mentioned') && !v.includes('not explicitly') && 
-               !v.includes('competitors') && v.length < 50 && !v.includes('.')
-      }) : null
-    
-    // Check for meaningful competitive context (NOT advantage/disadvantage)
-    const hasEvaluationStage = competitiveIntel.evaluationStage && 
-      competitiveIntel.evaluationStage !== 'not_evaluating' &&
-      !competitiveIntel.evaluationStage.includes('not ')
-      
-    const hasCompetitiveContent = competitiveIntel.competitiveAdvantage && 
-      competitiveIntel.competitiveAdvantage.length > 20
-      
-    const hasStrategy = competitiveStrategy && competitiveStrategy.length > 30
-    
-    // Show card if there's ANY competitive context to coach on
-    const hasCompetitiveContext = hasRealCompetitors || hasEvaluationStage || hasCompetitiveContent || hasStrategy
-    
-    if (hasCompetitiveContext) {
-      // Determine competitive strength (like Deal Heat scoring)
-      const competitiveAdvantageText = (competitiveIntel.competitiveAdvantage || '').toLowerCase()
-      const competitiveStrategyText = competitiveStrategy.toLowerCase()
-      
-      const hasBarriers = competitiveAdvantageText.includes('barrier') ||
-                         competitiveAdvantageText.includes('satisfied') ||
-                         competitiveAdvantageText.includes('lock-in') ||
-                         competitiveAdvantageText.includes('significant barrier') ||
-                         competitiveStrategyText.includes('barrier') ||
-                         competitiveStrategyText.includes('satisfied with current')
-      
-      const hasAdvantages = competitiveAdvantageText.includes('advantage') ||
-                           competitiveAdvantageText.includes('superior') ||
-                           competitiveAdvantageText.includes('positions it favorably') ||
-                           competitiveAdvantageText.includes('strength')
-      
-      // Sales coaching message based on competitive reality
-      let title, description, colorScheme
-      
-      if (hasBarriers) {
-        title = hasRealCompetitors ? `vs ${realCompetitorName}` : 'Competitive Challenge'
-        description = 'Significant barriers identified - consider qualification strategy'
-        colorScheme = 'red' // Challenge color
-      } else if (hasAdvantages) {
-        title = hasRealCompetitors ? `vs ${realCompetitorName}` : 'Strategic Advantage'
-        description = competitiveIntel.competitiveAdvantage?.substring(0, 77) + '...' || 'Competitive positioning opportunity'
-        colorScheme = 'green' // Advantage color
-      } else {
-        title = hasRealCompetitors ? `vs ${realCompetitorName}` : 'Active Evaluation'
-        description = 'Competitive situation requires strategic positioning'
-        colorScheme = 'yellow' // Neutral/unknown
-      }
-      
-      const fullText = competitiveIntel.competitiveAdvantage || competitiveStrategy || 'Competitive intelligence available'
-      
-      return {
-        hasData: true,
-        title,
-        description,
-        fullDescription: fullText,
-        isLong: fullText.length > 80,
-        colorScheme,
-        stage: competitiveIntel.evaluationStage || 'evaluation'
-      }
-    }
-    
-    // Only hide when there's literally no competitive context to coach on
-    return { hasData: false }
-  }
-
   const dealHeat = getDealHeat()
   const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()
-  const competitiveEdge = getCompetitiveEdge()
+  const winStrategyDisplay = getWinStrategyDisplay() // 🚨 NEW: Dynamic win strategy
 
   // Extract participants data for the new section
   const participants = analysis.participants || {}
@@ -654,8 +703,8 @@ export function NewAnalysisView({
                 )}
               </div>
 
-              {/* Enhanced Intelligence Grid - CONDITIONAL 3 or 4 cards */}
-              <div className={`grid grid-cols-1 md:grid-cols-2 ${competitiveEdge.hasData ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-4 mb-6`}>
+              {/* Enhanced 4-Card Intelligence Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 
                 {/* Deal Heat */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
@@ -693,82 +742,50 @@ export function NewAnalysisView({
                   <p className="text-xs text-gray-300">{buyingSignals.strength}</p>
                 </div>
 
-                {/* Competitive Edge - SALES COACHING APPROACH */}
-                {competitiveEdge.hasData && (
-                  <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className={`w-8 h-8 ${
-                        competitiveEdge.colorScheme === 'green' ? 'bg-green-500' :
-                        competitiveEdge.colorScheme === 'red' ? 'bg-red-500' :
-                        'bg-yellow-500'
-                      } rounded-lg flex items-center justify-center`}>
-                        <Target className="w-4 h-4 text-white" />
-                      </div>
-                      <span className={`text-sm font-medium ${
-                        competitiveEdge.colorScheme === 'green' ? 'text-green-200' :
-                        competitiveEdge.colorScheme === 'red' ? 'text-red-200' :
-                        'text-yellow-200'
-                      }`}>
-                        {competitiveEdge.colorScheme === 'red' ? 'Competitive Challenge' : 'Competitive Edge'}
-                      </span>
+                {/* Competitive Edge */}
+                <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <Target className="w-4 h-4 text-white" />
                     </div>
-                    <div className={`text-lg font-bold ${
-                      competitiveEdge.colorScheme === 'green' ? 'text-green-300' :
-                      competitiveEdge.colorScheme === 'red' ? 'text-red-300' :
-                      'text-yellow-300'
-                    }`}>
-                      {competitiveEdge.title}
-                    </div>
-                    {competitiveEdge.isLong ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <p className="text-xs text-gray-300 cursor-help">
-                            {competitiveEdge.description}
-                          </p>
-                        </TooltipTrigger>
-                        <TooltipContent className="max-w-md p-3 bg-gray-900 text-white text-sm">
-                          <p>{competitiveEdge.fullDescription}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      <p className="text-xs text-gray-300">
-                        {competitiveEdge.description}
-                      </p>
-                    )}
+                    <span className="text-sm font-medium text-purple-200">Competitive Edge</span>
                   </div>
-                )}
+                  <div className="text-lg font-bold text-purple-300">
+                    {analysis.recommendations?.competitiveStrategy ? "Strategic Advantage" : "Integration Focus"}
+                  </div>
+                  <p className="text-xs text-gray-300">
+                    {timeline.driver || "Positioning opportunity identified"}
+                  </p>
+                </div>
               </div>
 
-              {/* STRATEGIC POSITIONING BANNER - GAME CHANGER */}
+              {/* STRATEGIC POSITIONING BANNER - ENHANCED WITH ACTUAL STRATEGY */}
               <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-xl p-6 border border-emerald-400/30 mb-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
                     <Shield className="w-8 h-8 text-emerald-300" />
-                    <div>
+                    <div className="flex-1">
                       <h4 className="text-xl font-bold text-white">Win Strategy</h4>
-                      {(analysis.recommendations?.primaryStrategy || "Position as the solution that uniquely addresses their specific business challenges and competitive requirements").length > 150 ? (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <p className="text-emerald-200 text-sm max-w-2xl cursor-help">
-                              {(analysis.recommendations?.primaryStrategy || "Position as the solution that uniquely addresses their specific business challenges and competitive requirements").substring(0, 147) + '...'}
-                            </p>
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-lg p-3 bg-gray-900 text-white text-sm">
-                            <p>{analysis.recommendations?.primaryStrategy || "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      ) : (
-                        <p className="text-emerald-200 text-sm max-w-2xl">
-                          {analysis.recommendations?.primaryStrategy || 
-                           "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"}
-                        </p>
-                      )}
+                      <p className="text-emerald-200 text-sm max-w-2xl leading-relaxed">
+                        {winStrategyDisplay.strategicContent || 
+                         "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"}
+                      </p>
                     </div>
                   </div>
-                  <div className="text-right text-emerald-300">
-                    <div className="font-bold text-lg">Competitive</div>
-                    <div className="text-sm">Advantage</div>
-                  </div>
+                  {/* 🚨 ENHANCED: Dynamic Win Strategy Display with Tooltip */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className={`text-right ${winStrategyDisplay.colorClass} cursor-help`}>
+                        <div className="font-bold text-lg">{winStrategyDisplay.text1}</div>
+                        <div className="text-sm">{winStrategyDisplay.text2}</div>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-sm max-w-xs">
+                        {winStrategyDisplay.description}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
@@ -814,45 +831,19 @@ export function NewAnalysisView({
               <div className="grid md:grid-cols-2 gap-6 text-sm">
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Client Priority</h4>
-                  {(analysis.call_summary?.urgencyDrivers?.primary || timeline.driver || "Strategic business priority driving this opportunity").length > 100 ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p className="text-gray-200 cursor-help">
-                          {(analysis.call_summary?.urgencyDrivers?.primary || timeline.driver || "Strategic business priority driving this opportunity").substring(0, 97) + '...'}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-md p-3 bg-gray-900 text-white text-sm">
-                        <p>{analysis.call_summary?.urgencyDrivers?.primary || timeline.driver || "Strategic business priority driving this opportunity"}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <p className="text-gray-200">
-                      {analysis.call_summary?.urgencyDrivers?.primary || 
-                       timeline.driver || 
-                       "Strategic business priority driving this opportunity"}
-                    </p>
-                  )}
+                  <p className="text-gray-200">
+                    {analysis.call_summary?.urgencyDrivers?.primary || 
+                     timeline.driver || 
+                     "Strategic business priority driving this opportunity"}
+                  </p>
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Urgency Driver</h4>
-                  {(timeline.driver || analysis.call_summary?.urgencyDrivers?.primary || "Business pressure creating decision timeline").length > 100 ? (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <p className="text-gray-200 cursor-help">
-                          {(timeline.driver || analysis.call_summary?.urgencyDrivers?.primary || "Business pressure creating decision timeline").substring(0, 97) + '...'}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent className="max-w-md p-3 bg-gray-900 text-white text-sm">
-                        <p>{timeline.driver || analysis.call_summary?.urgencyDrivers?.primary || "Business pressure creating decision timeline"}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  ) : (
-                    <p className="text-gray-200">
-                      {timeline.driver || 
-                       analysis.call_summary?.urgencyDrivers?.primary || 
-                       "Business pressure creating decision timeline"}
-                    </p>
-                  )}
+                  <p className="text-gray-200">
+                    {timeline.driver || 
+                     analysis.call_summary?.urgencyDrivers?.primary || 
+                     "Business pressure creating decision timeline"}
+                  </p>
                 </div>
               </div>
             </div>
