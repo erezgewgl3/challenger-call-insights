@@ -33,7 +33,8 @@ import {
   Eye,
   Trophy,
   TrendingDown,
-  Building2
+  Building2,
+  AlertCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -124,7 +125,7 @@ export function NewAnalysisView({
   };
 
   const getRoleIcon = (role: string) => {
-    if (role === 'Economic Buyer' || role === 'high') return '💰'
+    if (role === 'Economic Buyer' || role === 'high') return '🏛️'
     if (role === 'Technical Buyer') return '🔧' 
     if (role === 'Coach') return '🤝'
     if (role === 'Influencer' || role === 'medium') return '📊'
@@ -348,7 +349,7 @@ export function NewAnalysisView({
     return {
       count: totalSignals,
       total: Math.max(totalSignals, 3), // Show at least 3 for display
-      strength: `${strength} positive indicators`,
+      strength: `${strength} momentum`,
       commitmentCount: commitmentSignals.length,
       qualityScore: totalScore,
       color
@@ -468,17 +469,6 @@ export function NewAnalysisView({
 
   const conversationIntel = getConversationIntelligence()
 
-  // NEW: Get role color for participant cards
-  const getRoleColor = (role: string) => {
-    if (role === 'high' || role?.toLowerCase().includes('economic')) {
-      return { bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200' }
-    }
-    if (role === 'medium' || role?.toLowerCase().includes('influencer')) {
-      return { bg: 'bg-yellow-50', text: 'text-yellow-700', border: 'border-yellow-200' }
-    }
-    return { bg: 'bg-gray-50', text: 'text-gray-700', border: 'border-gray-200' }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <TooltipProvider>
@@ -520,33 +510,56 @@ export function NewAnalysisView({
             </div>
           </div>
 
-          {/* 1. ENHANCED INTELLIGENCE SECTION (moved to position #1) */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white p-8 rounded-2xl mb-8 shadow-lg">
+          {/* REVOLUTIONARY STRATEGIC INTELLIGENCE HERO */}
+          <div className="bg-gradient-to-br from-slate-900 via-blue-900 to-slate-800 rounded-2xl p-8 text-white relative overflow-hidden mb-8">
             {/* Background Effects */}
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(59,130,246,0.15),transparent_50%)]"></div>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.1),transparent_50%)]"></div>
             
             <div className="relative z-10">
-              {/* Header */}
-              <div className="flex items-center gap-3 mb-6">
-                <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-white" />
+              {/* Strategic Context Header */}
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-blue-500 rounded-xl flex items-center justify-center">
+                    <Trophy className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">Deal Command Center</h2>
+                    <p className="text-blue-200">Strategic intelligence + competitive positioning</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold">Sales Intelligence</h2>
-                  <p className="text-blue-200 text-sm">Key insights extracted from your conversation</p>
+                
+                {/* Win Probability */}
+                <div className="text-right">
+                  <div className="text-3xl font-bold text-green-400">85%</div>
+                  <div className="text-green-200 text-sm">Win Probability</div>
                 </div>
               </div>
 
-              {/* NEW: Condensed Participants Line */}
+              {/* Decision Architecture (Enhanced Participants) */}
               <div className="mb-6 flex flex-wrap items-center gap-3 text-sm">
-                <span className="text-slate-300">Key Players:</span>
+                <span className="text-slate-300">Decision Architecture:</span>
                 {participants?.clientContacts && participants.clientContacts.length > 0 ? (
-                  participants.clientContacts.slice(0, 4).map((contact: any, index: number) => (
-                    <Badge key={index} variant="secondary" className="text-xs bg-white/10 text-white border-white/20">
-                      {contact.name} ({contact.title}) {getRoleIcon(contact.challengerRole || contact.decisionLevel)}
-                    </Badge>
-                  ))
+                  participants.clientContacts.slice(0, 4).map((contact: any, index: number) => {
+                    const stakeholderDisplay = getStakeholderDisplay(contact);
+                    if (!stakeholderDisplay) {
+                      // Fallback for contacts without challenger roles
+                      const roleColor = contact.decisionLevel === 'high' ? 'bg-red-500/20 text-red-300' : 
+                                       contact.decisionLevel === 'medium' ? 'bg-yellow-500/20 text-yellow-300' : 
+                                       'bg-gray-500/20 text-gray-300';
+                      return (
+                        <Badge key={index} variant="secondary" className={`text-xs ${roleColor}`}>
+                          {contact.name} ({contact.title}) {getRoleIcon(contact.decisionLevel)}
+                        </Badge>
+                      );
+                    }
+                    
+                    return (
+                      <Badge key={index} variant="secondary" className={`text-xs ${stakeholderDisplay.color}`}>
+                        {contact.name} ({contact.title}) {stakeholderDisplay.icon}
+                      </Badge>
+                    );
+                  })
                 ) : (
                   <span className="text-slate-400 italic">No client contacts identified</span>
                 )}
@@ -557,10 +570,10 @@ export function NewAnalysisView({
                 )}
               </div>
 
-              {/* Main Intelligence Grid */}
+              {/* Enhanced 4-Card Intelligence Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                 
-                {/* Deal Temperature */}
+                {/* Deal Heat */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                   <div className="flex items-center gap-2 mb-2">
                     <div className={`w-8 h-8 ${dealHeat.bgColor} rounded-lg flex items-center justify-center`}>
@@ -569,241 +582,277 @@ export function NewAnalysisView({
                     <span className="text-sm font-medium text-red-200">Deal Heat</span>
                   </div>
                   <div className={`text-2xl font-bold ${dealHeat.color}`}>{dealHeat.emoji} {dealHeat.level}</div>
-                  <p className="text-xs text-gray-300 mt-1">{dealHeat.description}</p>
+                  <p className="text-xs text-gray-300">{dealHeat.description}</p>
                 </div>
 
-                {/* Key Contact */}
+                {/* Power Center */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
                       <Crown className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-blue-200">Decision Maker</span>
+                    <span className="text-sm font-medium text-blue-200">Power Center</span>
                   </div>
                   <div className="text-lg font-bold">{decisionMaker.name}</div>
                   <p className="text-xs text-gray-300">{decisionMaker.title} • {decisionMaker.influence}</p>
                 </div>
 
-                {/* Buying Signals */}
+                {/* Momentum */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 bg-green-500 rounded-lg flex items-center justify-center">
                       <TrendingUp className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-green-200">Buying Signals</span>
+                    <span className="text-sm font-medium text-green-200">Momentum</span>
                   </div>
                   <div className="text-2xl font-bold text-green-300">{buyingSignals.count}/{buyingSignals.total}</div>
-                  <p className="text-xs text-gray-300 mt-1">{buyingSignals.strength}</p>
+                  <p className="text-xs text-gray-300">{buyingSignals.strength}</p>
                 </div>
 
-                {/* Timeline */}
+                {/* Competitive Edge */}
                 <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-4 hover:bg-white/15 transition-all">
                   <div className="flex items-center gap-2 mb-2">
-                    <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-                      <Clock className="w-4 h-4 text-white" />
+                    <div className="w-8 h-8 bg-purple-500 rounded-lg flex items-center justify-center">
+                      <Target className="w-4 h-4 text-white" />
                     </div>
-                    <span className="text-sm font-medium text-orange-200">Timeline</span>
+                    <span className="text-sm font-medium text-purple-200">Competitive Edge</span>
                   </div>
-                  <div className="text-lg font-bold text-orange-300">
-                    {timeline.isTextTruncated ? (
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-help">{timeline.timeline}</span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p className="max-w-xs">{timeline.originalTimeline}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    ) : (
-                      timeline.timeline
-                    )}
+                  <div className="text-lg font-bold text-purple-300">
+                    {analysis.recommendations?.competitiveStrategy ? "Strategic Advantage" : "Integration Focus"}
                   </div>
-                  <p className="text-xs text-gray-300 mt-1">{timeline.urgency} Priority</p>
+                  <p className="text-xs text-gray-300">
+                    {timeline.driver || "Positioning opportunity identified"}
+                  </p>
                 </div>
               </div>
 
-              {/* Call Summary Section */}
-              <div className="mt-6 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl p-6">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <FileText className="w-4 h-4 text-white" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white">Call Summary</h3>
-                </div>
-                
-                <div className="space-y-4">
-                  <div>
-                    <p className="text-gray-200 leading-relaxed">
-                      {analysis.call_summary?.overview || 'This conversation provided valuable insights into the client\'s needs and current challenges.'}
-                    </p>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* STRATEGIC POSITIONING BANNER - GAME CHANGER */}
+              <div className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 rounded-xl p-6 border border-emerald-400/30 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <Shield className="w-8 h-8 text-emerald-300" />
                     <div>
-                      <h4 className="text-sm font-bold text-gray-300 mb-2 underline">Client Situation</h4>
-                      <p className="text-gray-200 text-sm">
-                        {analysis.call_summary?.clientSituation || 'Client shared their current business context and challenges.'}
+                      <h4 className="text-xl font-bold text-white">Win Strategy</h4>
+                      <p className="text-emerald-200 text-sm max-w-2xl">
+                        {analysis.recommendations?.primaryStrategy || 
+                         "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"}
                       </p>
                     </div>
-                    <div>
-                      <h4 className="text-sm font-bold text-gray-300 mb-2 underline">Main Topics</h4>
-                      <ul className="space-y-1">
-                        {(analysis.call_summary?.mainTopics || ['Business needs discussed', 'Solution options explored', 'Next steps identified']).slice(0, 3).map((topic, index) => (
-                          <li key={index} className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-blue-400 rounded-full"></div>
-                            <span className="text-gray-200 text-sm">{topic}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+                  </div>
+                  <div className="text-right text-emerald-300">
+                    <div className="font-bold text-lg">Competitive</div>
+                    <div className="text-sm">Advantage</div>
                   </div>
                 </div>
               </div>
 
-              {/* Intelligence Summary */}
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 text-green-400" />
-                  <span className="text-gray-300">Multiple stakeholders engaged</span>
+              {/* Essential Business Context (Integrated, No Redundancy) */}
+              <div className="grid md:grid-cols-2 gap-6 text-sm">
+                <div>
+                  <h4 className="font-bold text-gray-300 mb-2 underline">Client Priority</h4>
+                  <p className="text-gray-200">
+                    {analysis.call_summary?.clientSituation?.substring(0, 120) + "..." || 
+                     "Strategic business context driving this opportunity"}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                  <span className="text-gray-300">
-                    {conversationIntel.concerns.length > 0 ? 'Concerns identified' : 'No major concerns'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-blue-400" />
-                  <span className="text-gray-300">
-                    {conversationIntel.positive.length > 0 ? 'Positive momentum confirmed' : 'Opportunity identified'}
-                  </span>
+                <div>
+                  <h4 className="font-bold text-gray-300 mb-2 underline">Urgency Driver</h4>
+                  <p className="text-gray-200">
+                    {analysis.call_summary?.urgencyDrivers?.primary || 
+                     timeline.driver || 
+                     "Business pressure creating decision timeline"}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* 2. ESSENTIAL BUSINESS CONTEXT (refined meeting context moved to position #2) */}
-          <div className="bg-white rounded-xl p-6 border-l-4 border-blue-500 shadow-sm mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <Building2 className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Essential Business Context</h3>
-              <Badge variant="outline" className="text-xs">Critical for Decision</Badge>
+          {/* HYPER-SPECIFIC ACTION COMMAND */}
+          <div className="bg-white rounded-xl p-6 border-l-4 border-red-500 shadow-lg mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-red-100 rounded-lg">
+                  <Zap className="h-6 w-6 text-red-600" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Strike Now</h3>
+                  <p className="text-sm text-red-600">Competitive window + stakeholder alignment</p>
+                </div>
+              </div>
+              <Badge className="bg-red-100 text-red-800 px-3 py-1 text-sm">HIGH PRIORITY</Badge>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Client Situation</h4>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  {analysis.call_summary?.clientSituation || "Business context not available"}
+            {/* Primary Strategic Action */}
+            {analysis.recommendations?.immediateActions?.slice(0, 1).map((action: any, index: number) => (
+              <div key={index} className="bg-red-50 rounded-lg p-6 mb-4 border border-red-200">
+                <h4 className="font-bold text-gray-900 mb-4 text-lg flex items-center gap-2">
+                  <Phone className="h-5 w-5 text-red-600" />
+                  {action.action || "Execute Strategic Follow-up"}
+                </h4>
+                
+                {/* Strategic Context */}
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">1</div>
+                    <div>
+                      <p className="font-semibold text-gray-800">Lead with business urgency</p>
+                      <p className="text-gray-600 text-sm">
+                        Reference their specific pain points and timeline pressures discussed
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">2</div>
+                    <div>
+                      <p className="font-semibold text-gray-800">Position competitive advantages</p>
+                      <p className="text-gray-600 text-sm">
+                        {analysis.recommendations?.competitiveStrategy?.substring(0, 100) + "..." || 
+                         "Highlight unique capabilities that competitors cannot match"}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center text-white text-xs font-bold">3</div>
+                    <div>
+                      <p className="font-semibold text-gray-800">Create decision momentum</p>
+                      <p className="text-gray-600 text-sm">
+                        {action.objective || "Propose specific next steps that move toward commitment"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* PRESERVE EXACT BUTTON FUNCTIONALITY */}
+                <div className="flex gap-3">
+                  <Button 
+                    className="bg-red-600 hover:bg-red-700 flex-1"
+                    onClick={() => copyToClipboard(action.copyPasteContent?.body || "Action content", 'Action template')}
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Full Script
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule Follow-up
+                  </Button>
+                </div>
+              </div>
+            )) || (
+              <div className="bg-red-50 rounded-lg p-6 mb-4 border border-red-200">
+                <h4 className="font-bold text-gray-900 mb-4 text-lg">Execute Strategic Follow-up</h4>
+                <p className="text-gray-600 mb-4">
+                  Contact key stakeholders to advance the opportunity based on conversation insights
                 </p>
-              </div>
-
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Key Business Drivers</h4>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  {(analysis.call_summary?.mainTopics || ['Business needs discussed', 'Solution options explored', 'Next steps identified']).slice(0, 3).map((topic, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 flex-shrink-0"></div>
-                      <span>{topic}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Conversation Metrics */}
-            {analysis.call_summary?.conversationMetrics && (
-              <div className="bg-gray-50 rounded-lg p-4 mt-6">
-                <div className="grid grid-cols-3 gap-4 text-center">
-                  <div>
-                    <CheckCircle className="w-5 h-5 text-green-500 mx-auto mb-1" />
-                    <p className="text-xs text-gray-600">Stakeholder Engagement</p>
-                    <p className="text-sm font-medium">
-                      {analysis.call_summary.conversationMetrics.stakeholderEngagement || 'Good'}
-                    </p>
-                  </div>
-                  <div>
-                    <AlertTriangle className="w-5 h-5 text-yellow-500 mx-auto mb-1" />
-                    <p className="text-xs text-gray-600">Concern Level</p>
-                    <p className="text-sm font-medium">
-                      {analysis.call_summary.conversationMetrics.concernLevel || 'Low'}
-                    </p>
-                  </div>
-                  <div>
-                    <TrendingUp className="w-5 h-5 text-blue-500 mx-auto mb-1" />
-                    <p className="text-xs text-gray-600">Momentum</p>
-                    <p className="text-sm font-medium">
-                      {analysis.call_summary.conversationMetrics.momentum || 'Positive'}
-                    </p>
-                  </div>
+                <div className="flex gap-3">
+                  <Button className="bg-red-600 hover:bg-red-700 flex-1">
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Action Plan
+                  </Button>
+                  <Button variant="outline" className="flex-1">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    Schedule Follow-up
+                  </Button>
                 </div>
               </div>
             )}
-          </div>
 
-          {/* 3. SPECIFIC ACTION REQUIRED (refined action hero moved to position #3) */}
-          <div className="bg-white rounded-xl p-6 border border-red-200 shadow-lg mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <Clock className="h-5 w-5 text-red-600" />
-                </div>
+            {/* Strategic Why */}
+            <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
+              <div className="flex items-start gap-3">
+                <Lightbulb className="h-5 w-5 text-yellow-600 mt-0.5" />
                 <div>
-                  <h3 className="text-lg font-bold text-gray-900">Immediate Action Required</h3>
-                  <p className="text-sm text-red-600">Based on conversation intelligence</p>
+                  <h5 className="font-semibold text-yellow-800 mb-1">Why This Approach Wins</h5>
+                  <p className="text-yellow-700 text-sm">
+                    {analysis.reasoning?.whyTheseRecommendations?.substring(0, 200) + "..." || 
+                     "This approach leverages stakeholder dynamics and competitive positioning to accelerate decision-making while addressing key concerns."}
+                  </p>
                 </div>
               </div>
-              <Badge className="bg-red-100 text-red-800">PRIORITY</Badge>
-            </div>
-
-            <div className="space-y-4">
-              {analysis.recommendations?.immediateActions?.slice(0, 1).map((action: any, index: number) => (
-                <div key={index} className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">
-                    {action.action || "Follow up on key discussion points"}
-                  </h4>
-                  <p className="text-gray-600 text-sm mb-3">
-                    {action.objective || "Maintain momentum based on positive signals detected"}
-                  </p>
-                  
-                  {/* PRESERVE existing button functionality exactly */}
-                  <div className="flex gap-3">
-                    <Button 
-                      className="bg-red-600 hover:bg-red-700"
-                      onClick={() => copyToClipboard(action.copyPasteContent?.body || "Email content", 'Email template')}
-                    >
-                      <Mail className="h-4 w-4 mr-2" />
-                      Copy Email
-                    </Button>
-                    <Button variant="outline">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Schedule Follow-up
-                    </Button>
-                  </div>
-                </div>
-              )) || (
-                <div className="bg-gray-50 rounded-lg p-4">
-                  <h4 className="font-semibold text-gray-900 mb-2">Follow up on key discussion points</h4>
-                  <p className="text-gray-600 text-sm mb-3">Maintain momentum based on positive signals detected</p>
-                  <div className="flex gap-3">
-                    <Button className="bg-red-600 hover:bg-red-700">
-                      <Mail className="h-4 w-4 mr-2" />
-                      Copy Email Template
-                    </Button>
-                    <Button variant="outline">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Schedule Follow-up
-                    </Button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
 
-          {/* 4. ENHANCED EXPANDABLE SECTIONS with improved titles/descriptions */}
+          {/* STAKEHOLDER NAVIGATION MAP */}
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <Users className="h-6 w-6 text-blue-600" />
+              <h3 className="text-lg font-semibold">Stakeholder Navigation Map</h3>
+              <Badge variant="outline" className="text-xs">Strategic Intelligence</Badge>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6">
+              {/* Economic Buyers */}
+              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                <h4 className="font-semibold text-red-800 mb-3 flex items-center gap-2">
+                  🏛️ Economic Buyers
+                </h4>
+                <div className="space-y-3">
+                  {analysis.participants?.clientContacts?.filter((contact: any) => 
+                    contact.challengerRole === 'Economic Buyer' || contact.decisionLevel === 'high'
+                  ).map((contact: any, index: number) => (
+                    <div key={index}>
+                      <p className="font-medium">{contact.name} ({contact.title})</p>
+                      <p className="text-sm text-gray-600">
+                        {contact.decisionEvidence?.[0] || contact.roleEvidence?.[0] || "Key decision authority"}
+                      </p>
+                      <Badge variant="outline" className="text-xs mt-1">Primary Contact</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Influencers */}
+              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                <h4 className="font-semibold text-yellow-800 mb-3 flex items-center gap-2">
+                  📊 Key Influencers
+                </h4>
+                <div className="space-y-3">
+                  {analysis.participants?.clientContacts?.filter((contact: any) => 
+                    contact.challengerRole === 'Influencer' || contact.decisionLevel === 'medium'
+                  ).map((contact: any, index: number) => (
+                    <div key={index}>
+                      <p className="font-medium">{contact.name} ({contact.title})</p>
+                      <p className="text-sm text-gray-600">
+                        {contact.roleEvidence?.[0] || "Influences decision process"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Navigation Strategy */}
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                  🎯 Navigation Strategy
+                </h4>
+                <div className="space-y-3">
+                  <p className="text-sm font-medium text-blue-800">
+                    {analysis.recommendations?.stakeholderPlan || "Multi-stakeholder coordination approach"}
+                  </p>
+                  <ul className="text-sm space-y-2">
+                    <li className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                      Lead with economic buyers
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+                      Coordinate with influencers
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      Validate with end users
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ENHANCED EXPANDABLE SECTIONS */}
           <div className="space-y-4">
             
-            {/* Critical Deal Insights Card */}
+            {/* Deal Acceleration Insights */}
             {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
               <Card className="border-l-4 border-l-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 hover:shadow-lg transition-all">
                 <Collapsible>
@@ -813,7 +862,7 @@ export function NewAnalysisView({
                         <div className="flex items-center gap-3">
                           <Lightbulb className="w-6 h-6 text-yellow-600" />
                           <div>
-                            <CardTitle className="text-lg">Critical Deal Insights ({analysis.key_takeaways.length})</CardTitle>
+                            <CardTitle className="text-lg">Deal Acceleration Insights ({analysis.key_takeaways.length})</CardTitle>
                             <p className="text-sm text-yellow-700 font-normal">What they revealed about decision criteria and competitive positioning</p>
                           </div>
                         </div>
@@ -839,7 +888,7 @@ export function NewAnalysisView({
               </Card>
             )}
 
-            {/* Win Strategy & Positioning Card */}
+            {/* Complete Battle Plan */}
             {analysis.recommendations && (
               <Card className="border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-lg transition-all">
                 <Collapsible>
@@ -849,7 +898,7 @@ export function NewAnalysisView({
                         <div className="flex items-center gap-3">
                           <Target className="w-6 h-6 text-blue-600" />
                           <div>
-                            <CardTitle className="text-lg">Win Strategy & Positioning</CardTitle>
+                            <CardTitle className="text-lg">Complete Battle Plan</CardTitle>
                             <p className="text-sm text-blue-700 font-normal">How to position against competitors based on their specific needs</p>
                           </div>
                         </div>
@@ -892,7 +941,7 @@ export function NewAnalysisView({
               </Card>
             )}
 
-            {/* Competitive Intelligence Card */}
+            {/* Competitive Positioning Arsenal */}
             <Card className="border-l-4 border-l-green-400 bg-gradient-to-r from-green-50 to-emerald-50 hover:shadow-lg transition-all">
               <Collapsible>
                 <CollapsibleTrigger asChild>
@@ -901,7 +950,7 @@ export function NewAnalysisView({
                       <div className="flex items-center gap-3">
                         <Eye className="w-6 h-6 text-green-600" />
                         <div>
-                          <CardTitle className="text-lg">Competitive Intelligence</CardTitle>
+                          <CardTitle className="text-lg">Competitive Positioning Arsenal</CardTitle>
                           <p className="text-sm text-green-700 font-normal">What they revealed about evaluation process and decision criteria</p>
                         </div>
                       </div>
@@ -1003,7 +1052,7 @@ export function NewAnalysisView({
               </Collapsible>
             </Card>
 
-            {/* Copy-Paste Communication Arsenal Card */}
+            {/* Ready-to-Execute Playbook */}
             {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 && (
               <Card className="border-l-4 border-l-purple-400 bg-gradient-to-r from-purple-50 to-indigo-50 hover:shadow-lg transition-all">
                 <Collapsible>
@@ -1013,7 +1062,7 @@ export function NewAnalysisView({
                         <div className="flex items-center gap-3">
                           <Zap className="w-6 h-6 text-purple-600" />
                           <div>
-                            <CardTitle className="text-lg">Copy-Paste Communication Arsenal</CardTitle>
+                            <CardTitle className="text-lg">Ready-to-Execute Playbook</CardTitle>
                             <p className="text-sm text-purple-700 font-normal">Email templates and scripts ready to use immediately</p>
                           </div>
                         </div>
