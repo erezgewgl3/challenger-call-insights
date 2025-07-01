@@ -604,7 +604,7 @@ export function NewAnalysisView({
                   </div>
                   <h3 className="text-lg font-semibold text-white">Project Timeline</h3>
                   <div className="flex-1"></div>
-                  <div className="text-left">
+                  <div className="text-right">
                     <div className="text-xl font-bold text-orange-300">
                       {timeline.isTextTruncated ? (
                         <Tooltip>
@@ -619,13 +619,10 @@ export function NewAnalysisView({
                         timeline.timeline
                       )}
                     </div>
-                    <p className="text-orange-200 text-sm">{timeline.urgency} Priority</p>
+                    <p className="text-orange-200 text-sm">
+                      {timeline.description} - {timeline.urgency} Priority
+                    </p>
                   </div>
-                </div>
-                
-                {/* Timeline Description at Bottom */}
-                <div className="mt-4 pt-4 border-t border-white/10">
-                  <p className="text-orange-200 text-sm">{timeline.description}</p>
                 </div>
               </div>
 
