@@ -372,13 +372,13 @@ export function NewAnalysisView({
     
     if (statedTimeline) {
       // Improved truncation logic with word boundaries and responsive design
-      if (statedTimeline.length > 80) {
+      if (statedTimeline.length > 60) { // Reduced from 80 to 60 for better mobile display
         isTextTruncated = true
-        // Find the last space within 80 characters to avoid cutting words
-        const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 80)
-        displayTimeline = lastSpaceIndex > 60 ? 
+        // Find the last space within 60 characters to avoid cutting words
+        const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 60)
+        displayTimeline = lastSpaceIndex > 40 ? 
           statedTimeline.substring(0, lastSpaceIndex) + '...' : 
-          statedTimeline.substring(0, 80) + '...'
+          statedTimeline.substring(0, 60) + '...'
       } else {
         displayTimeline = statedTimeline
       }
@@ -417,21 +417,36 @@ export function NewAnalysisView({
     const competitiveIntel = analysis.call_summary?.competitiveIntelligence || {}
     const competitiveStrategy = analysis.recommendations?.competitiveStrategy || ''
     
+    // Enhanced barrier detection - exclude negative scenarios
+    const competitiveAdvantageText = (competitiveIntel.competitiveAdvantage || '').toLowerCase()
+    const competitiveStrategyText = competitiveStrategy.toLowerCase()
+    
+    const hasBarriers = competitiveAdvantageText.includes('barrier') ||
+                       competitiveAdvantageText.includes('satisfied') ||
+                       competitiveAdvantageText.includes('not mentioned') ||
+                       competitiveAdvantageText.includes('not explicitly') ||
+                       competitiveAdvantageText.includes('significant barrier') ||
+                       competitiveStrategyText.includes('barrier') ||
+                       competitiveStrategyText.includes('satisfied with current')
+    
     // Check for actual competitive data
     const hasCompetitors = competitiveIntel.vendorsKnown && competitiveIntel.vendorsKnown.length > 0
     const hasEvaluationStage = competitiveIntel.evaluationStage && competitiveIntel.evaluationStage !== 'not_evaluating'
     const hasCompetitiveAdvantage = competitiveIntel.competitiveAdvantage && 
-      !competitiveIntel.competitiveAdvantage.includes('note barriers')
-    const hasStrategy = competitiveStrategy && competitiveStrategy.length > 50 // Avoid generic responses
+      competitiveIntel.competitiveAdvantage.length > 20 && !hasBarriers
+    const hasStrategy = competitiveStrategy && competitiveStrategy.length > 50 && !hasBarriers
     
-    // Only return data if we have real competitive intelligence
-    if (hasCompetitors || hasEvaluationStage || hasCompetitiveAdvantage || hasStrategy) {
+    // Only return data if we have real competitive intelligence AND no barriers
+    if ((hasCompetitors || hasEvaluationStage || hasCompetitiveAdvantage || hasStrategy) && !hasBarriers) {
+      const advantage = competitiveIntel.competitiveAdvantage || competitiveStrategy
+      const shortDesc = advantage.length > 80 ? advantage.substring(0, 77) + '...' : advantage
+      
       return {
         hasData: true,
         title: hasCompetitors ? `vs ${competitiveIntel.vendorsKnown[0]}` : 'Strategic Position',
-        description: competitiveIntel.competitiveAdvantage?.substring(0, 80) + '...' || 
-                    competitiveStrategy?.substring(0, 80) + '...' || 
-                    'Competitive advantage identified',
+        description: shortDesc || 'Competitive advantage identified',
+        fullDescription: advantage, // For tooltip
+        isLong: advantage.length > 80,
         stage: competitiveIntel.evaluationStage || 'evaluation'
       }
     }
@@ -643,9 +658,22 @@ export function NewAnalysisView({
                     <div className="text-lg font-bold text-purple-300">
                       {competitiveEdge.title}
                     </div>
-                    <p className="text-xs text-gray-300">
-                      {competitiveEdge.description}
-                    </p>
+                    {competitiveEdge.isLong ? (
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p className="text-xs text-gray-300 cursor-help">
+                            {competitiveEdge.description}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-md p-3 bg-gray-900 text-white text-sm">
+                          <p>{competitiveEdge.fullDescription}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    ) : (
+                      <p className="text-xs text-gray-300">
+                        {competitiveEdge.description}
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
@@ -657,10 +685,23 @@ export function NewAnalysisView({
                     <Shield className="w-8 h-8 text-emerald-300" />
                     <div>
                       <h4 className="text-xl font-bold text-white">Win Strategy</h4>
-                      <p className="text-emerald-200 text-sm max-w-2xl">
-                        {analysis.recommendations?.primaryStrategy || 
-                         "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"}
-                      </p>
+                      {(analysis.recommendations?.primaryStrategy || "Position as the solution that uniquely addresses their specific business challenges and competitive requirements").length > 150 ? (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <p className="text-emerald-200 text-sm max-w-2xl cursor-help">
+                              {(analysis.recommendations?.primaryStrategy || "Position as the solution that uniquely addresses their specific business challenges and competitive requirements").substring(0, 147) + '...'}
+                            </p>
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-lg p-3 bg-gray-900 text-white text-sm">
+                            <p>{analysis.recommendations?.primaryStrategy || "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"}</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      ) : (
+                        <p className="text-emerald-200 text-sm max-w-2xl">
+                          {analysis.recommendations?.primaryStrategy || 
+                           "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="text-right text-emerald-300">
@@ -712,19 +753,45 @@ export function NewAnalysisView({
               <div className="grid md:grid-cols-2 gap-6 text-sm">
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Client Priority</h4>
-                  <p className="text-gray-200">
-                    {analysis.call_summary?.urgencyDrivers?.primary || 
-                     timeline.driver || 
-                     "Strategic business priority driving this opportunity"}
-                  </p>
+                  {(analysis.call_summary?.urgencyDrivers?.primary || timeline.driver || "Strategic business priority driving this opportunity").length > 100 ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-gray-200 cursor-help">
+                          {(analysis.call_summary?.urgencyDrivers?.primary || timeline.driver || "Strategic business priority driving this opportunity").substring(0, 97) + '...'}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md p-3 bg-gray-900 text-white text-sm">
+                        <p>{analysis.call_summary?.urgencyDrivers?.primary || timeline.driver || "Strategic business priority driving this opportunity"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <p className="text-gray-200">
+                      {analysis.call_summary?.urgencyDrivers?.primary || 
+                       timeline.driver || 
+                       "Strategic business priority driving this opportunity"}
+                    </p>
+                  )}
                 </div>
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Urgency Driver</h4>
-                  <p className="text-gray-200">
-                    {timeline.driver || 
-                     analysis.call_summary?.urgencyDrivers?.primary || 
-                     "Business pressure creating decision timeline"}
-                  </p>
+                  {(timeline.driver || analysis.call_summary?.urgencyDrivers?.primary || "Business pressure creating decision timeline").length > 100 ? (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-gray-200 cursor-help">
+                          {(timeline.driver || analysis.call_summary?.urgencyDrivers?.primary || "Business pressure creating decision timeline").substring(0, 97) + '...'}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-md p-3 bg-gray-900 text-white text-sm">
+                        <p>{timeline.driver || analysis.call_summary?.urgencyDrivers?.primary || "Business pressure creating decision timeline"}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  ) : (
+                    <p className="text-gray-200">
+                      {timeline.driver || 
+                       analysis.call_summary?.urgencyDrivers?.primary || 
+                       "Business pressure creating decision timeline"}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
