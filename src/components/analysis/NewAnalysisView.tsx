@@ -1,259 +1,190 @@
-
-import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { supabase } from '@/lib/supabase'
+import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { ArrowLeft, ChevronDown, Target, Eye, Lightbulb, Zap, Users } from 'lucide-react'
+import { 
+  TrendingUp, 
+  Target, 
+  MessageSquare, 
+  Mail, 
+  CheckCircle, 
+  ArrowRight, 
+  Lightbulb, 
+  Users,
+  Copy,
+  Share2,
+  Upload,
+  ArrowLeft,
+  Star,
+  Zap,
+  Eye,
+  ChevronDown,
+  Phone,
+  Calendar,
+  User,
+  Building,
+  Clock,
+  AlertCircle,
+  ThumbsUp,
+  Shield,
+  Flame,
+  DollarSign,
+  Briefcase,
+  Globe,
+  Award,
+  TrendingDown,
+  Activity,
+  FileText,
+  Heart,
+  Bot
+} from 'lucide-react'
+import { toast } from 'sonner'
 
-interface TranscriptData {
-  id: string
-  title: string
-  participants: string[]
-  duration_minutes: number
-  meeting_date: string
-  account_id?: string
-  raw_text?: string
+interface NewAnalysisViewProps {
+  transcriptId: string
+  onBackToDashboard: () => void
+  onUploadAnother: () => void
 }
 
-interface AnalysisData {
-  id: string
-  key_takeaways?: string[]
-  call_summary?: any
-  recommendations?: any
-  action_plan?: any
-  participants?: any[]
+interface Analysis {
+  key_takeaways: string[]
+  recommendations: Record<string, string[] | string>
+  action_plan?: {
+    actions: {
+      action: string
+      priority: string
+      timeline: string
+      reasoning?: string
+    }[]
+  }
 }
 
-export default function NewAnalysisView() {
-  const { transcriptId } = useParams<{ transcriptId: string }>()
-  const navigate = useNavigate()
-  const [transcript, setTranscript] = useState<TranscriptData | null>(null)
-  const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+interface DealAssessment {
+  probability: 'very-low' | 'low' | 'medium' | 'high'
+  assessment: string
+}
 
-  useEffect(() => {
-    if (!transcriptId) return
+interface StakeholderData {
+  hasAnyStakeholders: boolean
+}
 
-    const fetchData = async () => {
-      try {
-        setIsLoading(true)
-        
-        // Fetch transcript details
-        const { data: transcriptData, error: transcriptError } = await supabase
-          .from('transcripts')
-          .select('*')
-          .eq('id', transcriptId)
-          .single()
+export function NewAnalysisView({ transcriptId, onBackToDashboard, onUploadAnother }: NewAnalysisViewProps) {
+  // Placeholder state and data fetching logic
+  // In real implementation, these would come from hooks or props
+  const [analysis, setAnalysis] = React.useState<Analysis>({
+    key_takeaways: [],
+    recommendations: {},
+    action_plan: { actions: [] }
+  })
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [error, setError] = React.useState<Error | null>(null)
 
-        if (transcriptError) throw transcriptError
-        
-        setTranscript({
-          id: transcriptData.id,
-          title: transcriptData.title,
-          participants: Array.isArray(transcriptData.participants) ? transcriptData.participants as string[] : [],
-          duration_minutes: transcriptData.duration_minutes || 0,
-          meeting_date: transcriptData.meeting_date,
-          account_id: transcriptData.account_id,
-          raw_text: transcriptData.raw_text
-        })
-
-        // Fetch analysis data
-        const { data: analysisData, error: analysisError } = await supabase
-          .from('conversation_analysis')
-          .select('*')
-          .eq('transcript_id', transcriptId)
-          .single()
-
-        if (analysisError) throw analysisError
-        
-        setAnalysis(analysisData as any)
-
-      } catch (err) {
-        console.error('Failed to fetch data:', err)
-        setError(err instanceof Error ? err.message : 'Failed to load analysis')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchData()
-  }, [transcriptId])
-
-  // Helper functions from previous stages
-  const getDealHeat = () => {
-    if (!analysis?.call_summary?.dealHeat) {
-      return { level: 'MEDIUM', score: 50, factors: [] }
-    }
-    return analysis.call_summary.dealHeat
+  // Dummy implementations of helper functions
+  const getDealAssessment = (): DealAssessment => {
+    // Example static return; replace with real logic
+    return { probability: 'medium', assessment: 'Medium Probability' }
   }
 
-  const getBuyingSignals = () => {
-    if (!analysis?.call_summary?.buyingSignals) {
-      return { strength: ['Moderate'], signals: [] }
-    }
-    return analysis.call_summary.buyingSignals
-  }
-
-  const getDealAssessment = () => {
-    const dealHeat = getDealHeat()
-    const buyingSignals = getBuyingSignals()
-    const resistanceData = analysis?.call_summary?.resistanceAnalysis || {}
-    const resistanceLevel = resistanceData.level || 'none'
-    
-    let probability = 'medium'
-    let assessment = 'Qualified Opportunity'
-    let strategy = 'Continue building value and addressing concerns'
-    let urgency = 'Standard timeline'
-    let bgColor = 'bg-yellow-50'
-    let textColor = 'text-yellow-800'
-    let borderColor = 'border-yellow-200'
-    
-    if (dealHeat.level === 'HIGH' && buyingSignals.strength.includes('Strong') && resistanceLevel !== 'high') {
-      probability = 'high'
-      assessment = 'High-Probability Deal'
-      strategy = 'Accelerate to close - strike while conditions are optimal'
-      urgency = 'Move quickly'
-      bgColor = 'bg-green-50'
-      textColor = 'text-green-800'
-      borderColor = 'border-green-200'
-    } else if (dealHeat.level === 'LOW' || resistanceLevel === 'high') {
-      probability = 'low'
-      assessment = 'Early Stage Opportunity'
-      strategy = 'Focus on relationship building and value demonstration'
-      urgency = 'Long-term nurture'
-      bgColor = 'bg-blue-50'
-      textColor = 'text-blue-800'
-      borderColor = 'border-blue-200'
-    }
-    
-    return {
-      probability,
-      assessment,
-      strategy,
-      urgency,
-      bgColor,
-      textColor,
-      borderColor
-    }
-  }
-
-  // Stage 4: Visual Priority Functions
-  const getSectionPriority = () => {
-    const dealHeat = getDealHeat()
-    const buyingSignals = getBuyingSignals()
-    
-    // Extract resistance data for priority assessment
-    const resistanceData = analysis?.call_summary?.resistanceAnalysis || {}
-    const resistanceLevel = resistanceData.level || 'none'
-    
-    // Determine overall deal probability for priority guidance
-    let dealProbability = 'medium'
-    if (dealHeat.level === 'HIGH' && buyingSignals.strength.includes('Strong') && resistanceLevel !== 'high') {
-      dealProbability = 'high'
-    } else if (dealHeat.level === 'LOW' || resistanceLevel === 'high') {
-      dealProbability = 'low'
-    }
-    
-    // Define section priorities based on deal assessment
-    const sectionConfig = {
-      insights: {
-        priority: dealProbability === 'high' ? 1 : dealProbability === 'medium' ? 1 : 2,
-        defaultOpen: dealProbability !== 'low',
-        importance: dealProbability === 'high' ? 'critical' : 'standard',
-        badge: dealProbability === 'high' ? 'KEY INSIGHTS' : null
-      },
-      battleplan: {
-        priority: dealProbability === 'high' ? 2 : dealProbability === 'medium' ? 2 : 4,
-        defaultOpen: dealProbability === 'high',
-        importance: dealProbability === 'high' ? 'critical' : dealProbability === 'medium' ? 'important' : 'standard',
-        badge: dealProbability === 'high' ? 'EXECUTE NOW' : dealProbability === 'medium' ? 'QUALIFY FIRST' : null
-      },
-      competitive: {
-        priority: 3,
-        defaultOpen: dealProbability === 'high',
-        importance: 'standard',
-        badge: null
-      },
-      templates: {
-        priority: dealProbability === 'high' ? 4 : 5,
-        defaultOpen: false, // Templates already prominent above
-        importance: 'standard',
-        badge: 'REFERENCE'
-      }
-    }
-    
-    return {
-      dealProbability,
-      sectionConfig
-    }
-  }
-
-  const getSectionStyling = (sectionId: string) => {
-    const { sectionConfig } = getSectionPriority()
-    const config = sectionConfig[sectionId as keyof typeof sectionConfig]
-    
-    if (!config) return {}
-    
-    const styleMap = {
-      critical: {
-        containerClass: 'shadow-lg ring-2 ring-red-200 bg-gradient-to-r from-red-50 to-pink-50',
-        headerClass: 'bg-red-100/70',
-        badgeClass: 'bg-red-500 text-white',
-        iconColor: 'text-red-600',
-        borderClass: 'border-l-4 border-l-red-500'
-      },
-      important: {
-        containerClass: 'shadow-md ring-1 ring-yellow-200 bg-gradient-to-r from-yellow-50 to-orange-50',
-        headerClass: 'bg-yellow-100/50',
-        badgeClass: 'bg-yellow-500 text-white',
-        iconColor: 'text-yellow-600',
-        borderClass: 'border-l-4 border-l-yellow-400'
-      },
-      standard: {
-        containerClass: 'shadow-sm hover:shadow-md transition-all',
-        headerClass: 'hover:bg-gray-50',
-        badgeClass: 'bg-gray-500 text-white',
-        iconColor: 'text-gray-600',
-        borderClass: 'border-l-4 border-l-gray-300'
-      }
-    }
-    
-    return {
-      ...styleMap[config.importance as keyof typeof styleMap],
-      defaultOpen: config.defaultOpen,
-      badge: config.badge,
-      priority: config.priority
-    }
+  const hasStakeholderData = (): StakeholderData => {
+    // Example static return; replace with real logic
+    return { hasAnyStakeholders: true }
   }
 
   const getConversationIntelligence = () => {
-    const callSummary = analysis?.call_summary || {}
-    
+    // Example static return; replace with real logic
     return {
-      positive: callSummary.positiveSignals || [],
-      concerns: callSummary.concerns || [],
-      competitive: callSummary.competitiveIntel || [],
-      pain: callSummary.painPoints || []
+      positive: ['Positive indicator 1', 'Positive indicator 2'],
+      concerns: ['Concern 1'],
+      competitive: ['Competitive intel 1'],
+      pain: ['Pain point 1']
     }
   }
 
-  const hasStakeholderData = () => {
-    const participants = analysis?.participants || []
-    const hasAnyStakeholders = participants.length > 0
+  // NEW: Section Priority and Relevance Logic
+  const getSectionDisplayPriority = () => {
+    const assessment = getDealAssessment()
+    const hasStakeholders = hasStakeholderData().hasAnyStakeholders
+    
+    // Define sections with priority and relevance logic
+    const sections = [
+      {
+        id: 'insights',
+        component: 'Deal Acceleration Insights',
+        priority: 1,
+        showFor: ['high', 'medium', 'low'],
+        hasData: () => analysis.key_takeaways && analysis.key_takeaways.length > 0,
+        reason: 'Always valuable for understanding client mindset'
+      },
+      {
+        id: 'battleplan', 
+        component: 'Complete Battle Plan',
+        priority: 2,
+        showFor: ['high', 'medium'],
+        hasData: () => analysis.recommendations && Object.keys(analysis.recommendations).length > 0,
+        reason: 'Strategic planning for viable opportunities'
+      },
+      {
+        id: 'competitive',
+        component: 'Competitive Positioning Arsenal', 
+        priority: 3,
+        showFor: ['high', 'medium', 'low'],
+        hasData: () => {
+          const intel = getConversationIntelligence()
+          return intel.positive.length > 0 || intel.concerns.length > 0 || 
+                 intel.competitive.length > 0 || intel.pain.length > 0
+        },
+        reason: 'Intelligence gathering valuable for all deals'
+      },
+      {
+        id: 'templates',
+        component: 'Ready-to-Execute Playbook',
+        priority: 4, 
+        showFor: ['high', 'medium'],
+        hasData: () => analysis.action_plan?.actions && analysis.action_plan.actions.length > 0,
+        reason: 'Detailed execution plans for active opportunities'
+      }
+    ]
+    
+    // Filter sections based on deal assessment and data availability
+    return sections.filter(section => {
+      const hasRelevantData = section.hasData()
+      const isRelevantForDeal = section.showFor.includes(assessment.probability)
+      
+      // Special logic for very-low probability deals
+      if (assessment.probability === 'very-low') {
+        return section.id === 'insights' && hasRelevantData
+      }
+      
+      return hasRelevantData && isRelevantForDeal
+    })
+  }
+
+  // NEW: Smart Section Summary for Hidden Content
+  const getHiddenSectionsContext = () => {
+    const assessment = getDealAssessment()
+    const visibleSections = getSectionDisplayPriority()
+    const totalPossibleSections = 4
+    
+    if (visibleSections.length === totalPossibleSections) {
+      return null // Nothing hidden
+    }
+    
+    const hiddenCount = totalPossibleSections - visibleSections.length
+    
+    let contextMessage = ''
+    if (assessment.probability === 'very-low') {
+      contextMessage = `Focusing on key insights only. Additional strategic analysis available when deal conditions improve.`
+    } else if (assessment.probability === 'low') {
+      contextMessage = `Showing analysis relevant for nurture strategy. Full competitive and execution planning available for active opportunities.`
+    } else {
+      contextMessage = `Showing ${visibleSections.length} relevant analysis sections. Additional context available as needed.`
+    }
     
     return {
-      hasAnyStakeholders,
-      participants: participants.map((p: any) => ({
-        name: p.name || 'Unknown',
-        role: p.role || 'Participant',
-        influence: p.influence || 'Unknown',
-        stance: p.stance || 'Neutral'
-      }))
+      hiddenCount,
+      contextMessage,
+      assessment: assessment.probability
     }
   }
 
@@ -261,479 +192,351 @@ export default function NewAnalysisView() {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
         <div className="text-center space-y-4">
-          <LoadingSpinner />
-          <p className="text-slate-600">Loading sales intelligence...</p>
+          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="text-slate-600">Loading analysis...</p>
         </div>
       </div>
     )
   }
 
-  if (error || !transcript || !analysis) {
+  if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100 flex items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-red-600">Intelligence Not Available</CardTitle>
-            <CardDescription>
-              The sales intelligence could not be loaded.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button onClick={() => navigate('/dashboard')} className="w-full">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="text-center space-y-4">
+          <p className="text-slate-600">Failed to load analysis results</p>
+          <button onClick={onBackToDashboard} className="btn btn-primary">Return to Dashboard</button>
+        </div>
       </div>
     )
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Navigation */}
-        <Button 
-          variant="ghost" 
-          onClick={() => navigate('/dashboard')}
-          className="mb-6 text-slate-600 hover:text-slate-900"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
+      {/* Navigation Header */}
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm border-b">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <button 
+            onClick={onBackToDashboard}
+            className="text-slate-600 hover:text-slate-900 flex items-center"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Dashboard
+          </button>
+          
+          <div className="flex items-center space-x-3">
+            <button className="btn btn-outline btn-sm flex items-center">
+              <Share2 className="w-4 h-4 mr-2" />
+              Share
+            </button>
+            <button onClick={onUploadAnother} className="btn btn-primary flex items-center">
+              <Upload className="w-4 h-4 mr-2" />
+              Analyze Another Call
+            </button>
+          </div>
+        </div>
+      </div>
 
-        {/* STAGE 1: HERO SECTION */}
-        <div className="text-center mb-8">
-          <div className="space-y-2 mb-6">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              Sales Intelligence Report
+      <div className="max-w-7xl mx-auto px-6 py-8 space-y-12">
+        {/* Hero Section */}
+        <div className="text-center space-y-6">
+          <div className="space-y-4">
+            <Badge className="bg-green-100 text-green-800 px-4 py-2 text-lg font-medium inline-flex items-center justify-center">
+              <Star className="w-5 h-5 mr-2" />
+              Analysis Complete
+            </Badge>
+            <h1 className="text-4xl md:text-5xl font-bold text-slate-900 leading-tight">
+              Your Conversation Insights
             </h1>
-            <h2 className="text-2xl font-semibold text-slate-800">{transcript.title}</h2>
-            <p className="text-slate-600">
-              {transcript.participants.join(', ')} • {transcript.duration_minutes} min • {new Date(transcript.meeting_date).toLocaleDateString()}
+            <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+              Analysis complete for your conversation
             </p>
           </div>
+        </div>
 
-          {/* Deal Assessment Banner */}
+        {/* ENHANCED PROGRESSIVE DISCLOSURE SECTIONS */}
+        <div className="space-y-4">
+          
+          {/* Context Banner for Hidden Sections */}
           {(() => {
-            const assessment = getDealAssessment()
+            const hiddenContext = getHiddenSectionsContext()
+            if (!hiddenContext) return null
+            
             return (
-              <div className={`${assessment.bgColor} border ${assessment.borderColor} rounded-xl p-6 max-w-4xl mx-auto mb-8`}>
-                <div className="text-center space-y-3">
-                  <div className="flex items-center justify-center gap-2">
-                    <Target className="w-6 h-6 text-gray-800" />
-                    <h3 className="text-xl font-bold text-gray-800">{assessment.assessment}</h3>
-                  </div>
-                  <p className="text-lg text-gray-700 font-medium">{assessment.strategy}</p>
-                  <div className="flex items-center justify-center gap-4 text-sm text-gray-600">
-                    <span>Priority: {assessment.urgency}</span>
-                    <span>•</span>
-                    <span>Assessment: {assessment.probability.charAt(0).toUpperCase() + assessment.probability.slice(1)} probability</span>
+              <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-3">
+                  <Eye className="w-5 h-5 text-slate-500" />
+                  <div>
+                    <h4 className="font-medium text-slate-700">Focused Analysis View</h4>
+                    <p className="text-sm text-slate-600">{hiddenContext.contextMessage}</p>
                   </div>
                 </div>
               </div>
             )
           })()}
-        </div>
 
-        {/* STAGE 2: READY-TO-USE TEMPLATES SECTION */}
-        {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 && (
-          <div className="mb-8">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Ready-to-Execute Templates</h2>
-              <p className="text-slate-600">Copy, customize, and send immediately</p>
-            </div>
-
-            <div className="grid gap-6 md:grid-cols-2">
-              {analysis.action_plan.actions.slice(0, 4).map((action: any, index: number) => (
-                <Card key={index} className="bg-white shadow-lg hover:shadow-xl transition-all border-l-4 border-l-blue-500">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg text-blue-900">{action.title || `Action ${index + 1}`}</CardTitle>
-                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-                        {action.type || 'Email'}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {action.subject && (
-                      <div>
-                        <h4 className="font-medium text-gray-700 mb-2">Subject Line:</h4>
-                        <div className="bg-gray-50 p-3 rounded-lg border">
-                          <p className="text-sm">{action.subject}</p>
+          {/* Dynamic Section Rendering */}
+          {getSectionDisplayPriority().map((sectionConfig) => {
+            
+            // Deal Acceleration Insights
+            if (sectionConfig.id === 'insights' && analysis.key_takeaways && analysis.key_takeaways.length > 0) {
+              return (
+                <Card key={sectionConfig.id} className="border-l-4 border-l-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 hover:shadow-lg transition-all">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-2 cursor-pointer hover:bg-yellow-100/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Lightbulb className="w-6 h-6 text-yellow-600" />
+                            <div>
+                              <CardTitle className="text-lg">Deal Acceleration Insights ({analysis.key_takeaways.length})</CardTitle>
+                              <p className="text-sm text-yellow-700 font-normal">What they revealed about decision criteria and competitive positioning</p>
+                            </div>
+                          </div>
+                          <ChevronDown className="w-5 h-5 text-yellow-600" />
                         </div>
-                      </div>
-                    )}
-                    {action.content && (
-                      <div>
-                        <h4 className="font-medium text-gray-700 mb-2">Message:</h4>
-                        <div className="bg-gray-50 p-3 rounded-lg border max-h-32 overflow-y-auto">
-                          <p className="text-sm whitespace-pre-wrap">{action.content}</p>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {analysis.key_takeaways.map((takeaway, index) => (
+                            <div key={index} className="bg-white p-4 rounded-lg border shadow-sm">
+                              <div className="flex items-start gap-3">
+                                <div className="p-2 bg-yellow-100 rounded-full flex-shrink-0">
+                                  <Lightbulb className="w-4 h-4 text-yellow-600" />
+                                </div>
+                                <div className="flex-1">
+                                  <p className="text-gray-900 leading-relaxed">{takeaway}</p>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                    )}
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-xs text-gray-500">
-                        {action.timing || 'Send immediately'}
-                      </span>
-                      <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
-                        Copy Template
-                      </Button>
-                    </div>
-                  </CardContent>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </Card>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* STAGE 3: STAKEHOLDER MATRIX */}
-        {(() => {
-          const stakeholderData = hasStakeholderData()
-          if (!stakeholderData.hasAnyStakeholders) return null
-
-          return (
-            <div className="mb-8">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-slate-800 mb-2">Stakeholder Power Map</h2>
-                <p className="text-slate-600">Who influences the decision and how to engage them</p>
-              </div>
-
-              <Card className="bg-white shadow-lg">
-                <CardContent className="p-6">
-                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {stakeholderData.participants.map((participant, index) => (
-                      <div key={index} className="p-4 bg-gray-50 rounded-lg border">
-                        <div className="space-y-2">
-                          <h4 className="font-semibold text-gray-900">{participant.name}</h4>
-                          <p className="text-sm text-gray-600">{participant.role}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-gray-500">Influence:</span>
-                            <Badge variant="outline" className="text-xs">
-                              {participant.influence}
-                            </Badge>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-medium text-gray-500">Stance:</span>
-                            <Badge 
-                              variant="outline" 
-                              className={`text-xs ${
-                                participant.stance === 'Supporter' ? 'bg-green-50 text-green-700' :
-                                participant.stance === 'Neutral' ? 'bg-yellow-50 text-yellow-700' :
-                                'bg-red-50 text-red-700'
-                              }`}
-                            >
-                              {participant.stance}
-                            </Badge>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )
-        })()}
-
-        {/* STAGE 4: PRIORITY GUIDANCE BANNER */}
-        {(() => {
-          const { dealProbability } = getSectionPriority()
-          
-          const guidanceConfig = {
-            high: {
-              icon: '🎯',
-              title: 'High-Priority Analysis',
-              message: 'Focus on execution planning and competitive positioning',
-              bgColor: 'bg-green-50',
-              borderColor: 'border-green-200',
-              textColor: 'text-green-700'
-            },
-            medium: {
-              icon: '⚡',
-              title: 'Qualification-Focused Review',
-              message: 'Prioritize insights and strategic planning sections',
-              bgColor: 'bg-yellow-50',
-              borderColor: 'border-yellow-200', 
-              textColor: 'text-yellow-700'
-            },
-            low: {
-              icon: '📋',
-              title: 'Intelligence Gathering Mode',
-              message: 'Review insights for future opportunity development',
-              bgColor: 'bg-blue-50',
-              borderColor: 'border-blue-200',
-              textColor: 'text-blue-700'
+              )
             }
-          }
-          
-          const config = guidanceConfig[dealProbability as keyof typeof guidanceConfig]
-          
-          return (
-            <div className={`${config.bgColor} border ${config.borderColor} rounded-lg p-4 mb-6`}>
-              <div className="flex items-center gap-3">
-                <span className="text-xl">{config.icon}</span>
-                <div>
-                  <h4 className={`font-semibold ${config.textColor}`}>{config.title}</h4>
-                  <p className={`text-sm ${config.textColor}`}>{config.message}</p>
-                </div>
-              </div>
-            </div>
-          )
-        })()}
-
-        {/* ENHANCED EXPANDABLE SECTIONS WITH VISUAL PRIORITY */}
-        <div className="space-y-4">
-          
-          {/* Deal Acceleration Insights - Enhanced with priority styling */}
-          {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
-            <Card className={`${getSectionStyling('insights').containerClass} ${getSectionStyling('insights').borderClass} transition-all`}>
-              <Collapsible defaultOpen={getSectionStyling('insights').defaultOpen}>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className={`pb-2 cursor-pointer ${getSectionStyling('insights').headerClass} transition-colors rounded-t-lg`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Lightbulb className={`w-6 h-6 ${getSectionStyling('insights').iconColor}`} />
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            Deal Acceleration Insights ({analysis.key_takeaways.length})
-                            {getSectionStyling('insights').badge && (
-                              <Badge className={`text-xs ${getSectionStyling('insights').badgeClass}`}>
-                                {getSectionStyling('insights').badge}
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <p className="text-sm text-yellow-700 font-normal">What they revealed about decision criteria and competitive positioning</p>
-                        </div>
-                      </div>
-                      <ChevronDown className={`w-5 h-5 ${getSectionStyling('insights').iconColor}`} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {analysis.key_takeaways.map((takeaway, index) => (
-                        <div key={index} className="flex items-start gap-3 p-4 bg-white rounded-lg border border-yellow-200">
-                          <div className="w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
-                            {index + 1}
+            
+            // Complete Battle Plan
+            if (sectionConfig.id === 'battleplan' && analysis.recommendations) {
+              return (
+                <Card key={sectionConfig.id} className="border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 hover:shadow-lg transition-all">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-2 cursor-pointer hover:bg-blue-100/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Target className="w-6 h-6 text-blue-600" />
+                            <div>
+                              <CardTitle className="text-lg">Complete Battle Plan</CardTitle>
+                              <p className="text-sm text-blue-700 font-normal">How to position against competitors based on their specific needs</p>
+                            </div>
                           </div>
-                          <p className="text-gray-800 leading-relaxed">{takeaway}</p>
+                          <ChevronDown className="w-5 h-5 text-blue-600" />
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-          )}
-
-          {/* Complete Battle Plan - Enhanced with priority styling */}
-          {analysis.recommendations && (
-            <Card className={`${getSectionStyling('battleplan').containerClass} ${getSectionStyling('battleplan').borderClass} transition-all`}>
-              <Collapsible defaultOpen={getSectionStyling('battleplan').defaultOpen}>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className={`pb-2 cursor-pointer ${getSectionStyling('battleplan').headerClass} transition-colors rounded-t-lg`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Target className={`w-6 h-6 ${getSectionStyling('battleplan').iconColor}`} />
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            Complete Battle Plan
-                            {getSectionStyling('battleplan').badge && (
-                              <Badge className={`text-xs ${getSectionStyling('battleplan').badgeClass}`}>
-                                {getSectionStyling('battleplan').badge}
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <p className="text-sm text-blue-700 font-normal">How to position against competitors based on their specific needs</p>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="grid gap-6">
+                          {Object.entries(analysis.recommendations).map(([category, items]) => (
+                            <div key={category} className="bg-white p-6 rounded-lg border">
+                              <h4 className="text-lg font-semibold text-blue-900 mb-4 capitalize flex items-center gap-2">
+                                <Target className="w-5 h-5" />
+                                {category.replace('_', ' ')} Strategy
+                              </h4>
+                              <div className="space-y-3">
+                                {Array.isArray(items) ? items.map((item, index) => (
+                                  <div key={index} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                                    <ArrowRight className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                    <span className="text-gray-900">{item}</span>
+                                  </div>
+                                )) : (
+                                  <div className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
+                                    <ArrowRight className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                                    <span className="text-gray-900">{items}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      </div>
-                      <ChevronDown className={`w-5 h-5 ${getSectionStyling('battleplan').iconColor}`} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent className="space-y-6">
-                    {analysis.recommendations.primaryStrategy && (
-                      <div className="p-4 bg-white rounded-lg border border-blue-200">
-                        <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                          <Target className="w-4 h-4" />
-                          Primary Strategy
-                        </h4>
-                        <p className="text-gray-800 leading-relaxed">{analysis.recommendations.primaryStrategy}</p>
-                      </div>
-                    )}
-                    {analysis.recommendations.competitiveStrategy && (
-                      <div className="p-4 bg-white rounded-lg border border-blue-200">
-                        <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                          <Eye className="w-4 h-4" />
-                          Competitive Positioning
-                        </h4>
-                        <p className="text-gray-800 leading-relaxed">{analysis.recommendations.competitiveStrategy}</p>
-                      </div>
-                    )}
-                    {analysis.recommendations.stakeholderPlan && (
-                      <div className="p-4 bg-white rounded-lg border border-blue-200">
-                        <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                          <Users className="w-4 h-4" />
-                          Stakeholder Plan
-                        </h4>
-                        <p className="text-gray-800 leading-relaxed">{analysis.recommendations.stakeholderPlan}</p>
-                      </div>
-                    )}
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-          )}
-
-          {/* Competitive Positioning Arsenal - Enhanced with priority styling */}
-          <Card className={`${getSectionStyling('competitive').containerClass} ${getSectionStyling('competitive').borderClass} transition-all`}>
-            <Collapsible defaultOpen={getSectionStyling('competitive').defaultOpen}>
-              <CollapsibleTrigger asChild>
-                <CardHeader className={`pb-2 cursor-pointer ${getSectionStyling('competitive').headerClass} transition-colors rounded-t-lg`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <Eye className={`w-6 h-6 ${getSectionStyling('competitive').iconColor}`} />
-                      <div>
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          Competitive Positioning Arsenal
-                          {getSectionStyling('competitive').badge && (
-                            <Badge className={`text-xs ${getSectionStyling('competitive').badgeClass}`}>
-                              {getSectionStyling('competitive').badge}
-                            </Badge>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )
+            }
+            
+            // Competitive Positioning Arsenal  
+            if (sectionConfig.id === 'competitive') {
+              const intel = getConversationIntelligence()
+              return (
+                <Card key={sectionConfig.id} className="border-l-4 border-l-green-400 bg-gradient-to-r from-green-50 to-emerald-50 hover:shadow-lg transition-all">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-2 cursor-pointer hover:bg-green-100/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Eye className="w-6 h-6 text-green-600" />
+                            <div>
+                              <CardTitle className="text-lg">Competitive Positioning Arsenal</CardTitle>
+                              <p className="text-sm text-green-700 font-normal">What they revealed about evaluation process and decision criteria</p>
+                            </div>
+                          </div>
+                          <ChevronDown className="w-5 h-5 text-green-600" />
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="grid gap-6">
+                          {intel.positive.length > 0 && (
+                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                              <h4 className="font-semibold text-green-900 mb-3 flex items-center gap-2">
+                                <ThumbsUp className="w-5 h-5" />
+                                Positive Indicators ({intel.positive.length})
+                              </h4>
+                              <div className="space-y-2">
+                                {intel.positive.map((item, index) => (
+                                  <div key={index} className="text-green-800 text-sm flex items-start gap-2">
+                                    <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    {item}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
-                        </CardTitle>
-                        <p className="text-sm text-green-700 font-normal">What they revealed about evaluation process and decision criteria</p>
-                      </div>
-                    </div>
-                    <ChevronDown className={`w-5 h-5 ${getSectionStyling('competitive').iconColor}`} />
-                  </div>
-                </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="space-y-6">
-                  {(() => {
-                    const intel = getConversationIntelligence()
-                    return (
-                      <>
-                        {intel.positive.length > 0 && (
-                          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                            <h4 className="font-semibold text-green-900 mb-3">🎯 Positive Signals</h4>
-                            <ul className="space-y-2">
-                              {intel.positive.map((signal, index) => (
-                                <li key={index} className="text-green-800 text-sm flex items-start gap-2">
-                                  <span className="text-green-600 mt-1">•</span>
-                                  {signal}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {intel.concerns.length > 0 && (
-                          <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <h4 className="font-semibold text-yellow-900 mb-3">⚠️ Concerns to Address</h4>
-                            <ul className="space-y-2">
-                              {intel.concerns.map((concern, index) => (
-                                <li key={index} className="text-yellow-800 text-sm flex items-start gap-2">
-                                  <span className="text-yellow-600 mt-1">•</span>
-                                  {concern}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {intel.competitive.length > 0 && (
-                          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                            <h4 className="font-semibold text-blue-900 mb-3">🛡️ Competitive Intelligence</h4>
-                            <ul className="space-y-2">
-                              {intel.competitive.map((item, index) => (
-                                <li key={index} className="text-blue-800 text-sm flex items-start gap-2">
-                                  <span className="text-blue-600 mt-1">•</span>
-                                  {item}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        {intel.pain.length > 0 && (
-                          <div className="p-4 bg-red-50 rounded-lg border border-red-200">
-                            <h4 className="font-semibold text-red-900 mb-3">💥 Pain Points</h4>
-                            <ul className="space-y-2">
-                              {intel.pain.map((pain, index) => (
-                                <li key={index} className="text-red-800 text-sm flex items-start gap-2">
-                                  <span className="text-red-600 mt-1">•</span>
-                                  {pain}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </>
-                    )
-                  })()}
-                </CardContent>
-              </CollapsibleContent>
-            </Collapsible>
-          </Card>
 
-          {/* Ready-to-Execute Playbook (detailed version) - Enhanced with priority styling */}
-          {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 && (
-            <Card className={`${getSectionStyling('templates').containerClass} ${getSectionStyling('templates').borderClass} transition-all`}>
-              <Collapsible defaultOpen={getSectionStyling('templates').defaultOpen}>
-                <CollapsibleTrigger asChild>
-                  <CardHeader className={`pb-2 cursor-pointer ${getSectionStyling('templates').headerClass} transition-colors rounded-t-lg`}>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Zap className={`w-6 h-6 ${getSectionStyling('templates').iconColor}`} />
-                        <div>
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            Detailed Execution Context
-                            {getSectionStyling('templates').badge && (
-                              <Badge className={`text-xs ${getSectionStyling('templates').badgeClass}`}>
-                                {getSectionStyling('templates').badge}
-                              </Badge>
-                            )}
-                          </CardTitle>
-                          <p className="text-sm text-purple-700 font-normal">Additional context and supporting materials for template execution</p>
-                        </div>
-                      </div>
-                      <ChevronDown className={`w-5 h-5 ${getSectionStyling('templates').iconColor}`} />
-                    </div>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent>
-                    <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 mb-4">
-                      <p className="text-purple-700 text-sm">
-                        ℹ️ Ready-to-use templates are displayed above for immediate access. 
-                        This section provides additional context, timing considerations, and supporting materials.
-                      </p>
-                    </div>
-                    <div className="space-y-4">
-                      {analysis.action_plan.actions.map((action: any, index: number) => (
-                        <div key={index} className="p-4 bg-white rounded-lg border border-purple-200">
-                          <h4 className="font-semibold text-purple-900 mb-2">{action.title || `Action ${index + 1}`}</h4>
-                          {action.context && (
-                            <p className="text-sm text-gray-700 mb-2">{action.context}</p>
+                          {intel.concerns.length > 0 && (
+                            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+                              <h4 className="font-semibold text-orange-900 mb-3 flex items-center gap-2">
+                                <AlertCircle className="w-5 h-5" />
+                                Areas of Concern ({intel.concerns.length})
+                              </h4>
+                              <div className="space-y-2">
+                                {intel.concerns.map((item, index) => (
+                                  <div key={index} className="text-orange-800 text-sm flex items-start gap-2">
+                                    <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    {item}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           )}
-                          {action.timing && (
-                            <div className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded">
-                              Timing: {action.timing}
+
+                          {intel.competitive.length > 0 && (
+                            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                              <h4 className="font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                                <Shield className="w-5 h-5" />
+                                Competitive Intelligence ({intel.competitive.length})
+                              </h4>
+                              <div className="space-y-2">
+                                {intel.competitive.map((item, index) => (
+                                  <div key={index} className="text-blue-800 text-sm flex items-start gap-2">
+                                    <Eye className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    {item}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {intel.pain.length > 0 && (
+                            <div className="bg-red-50 p-4 rounded-lg border border-red-200">
+                              <h4 className="font-semibold text-red-900 mb-3 flex items-center gap-2">
+                                <Flame className="w-5 h-5" />
+                                Pain Points & Urgency ({intel.pain.length})
+                              </h4>
+                              <div className="space-y-2">
+                                {intel.pain.map((item, index) => (
+                                  <div key={index} className="text-red-800 text-sm flex items-start gap-2">
+                                    <Flame className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    {item}
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-          )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )
+            }
+            
+            // Ready-to-Execute Playbook (detailed version)
+            if (sectionConfig.id === 'templates' && analysis.action_plan?.actions && analysis.action_plan.actions.length > 0) {
+              return (
+                <Card key={sectionConfig.id} className="border-l-4 border-l-purple-400 bg-gradient-to-r from-purple-50 to-indigo-50 hover:shadow-lg transition-all">
+                  <Collapsible>
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="pb-2 cursor-pointer hover:bg-purple-100/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Zap className="w-6 h-6 text-purple-600" />
+                            <div>
+                              <CardTitle className="text-lg">Detailed Execution Context</CardTitle>
+                              <p className="text-sm text-purple-700 font-normal">Additional context and supporting materials for template execution</p>
+                            </div>
+                          </div>
+                          <ChevronDown className="w-5 h-5 text-purple-600" />
+                        </div>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="bg-purple-50 p-4 rounded-lg border border-purple-200 mb-4">
+                          <p className="text-purple-700 text-sm">
+                            ℹ️ Ready-to-use templates are displayed above for immediate access. 
+                            This section provides additional context, timing considerations, and supporting materials.
+                          </p>
+                        </div>
+                        
+                        <div className="space-y-4">
+                          {analysis.action_plan.actions.map((action, index) => (
+                            <div key={index} className="bg-white p-4 rounded-lg border">
+                              <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                  <span className="text-sm font-bold text-purple-600">{index + 1}</span>
+                                </div>
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900 mb-2">{action.action}</h4>
+                                  <div className="space-y-2 text-sm text-gray-600">
+                                    <div className="flex items-center gap-2">
+                                      <Clock className="w-4 h-4" />
+                                      <span>Priority: {action.priority}</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Target className="w-4 h-4" />
+                                      <span>Timeline: {action.timeline}</span>
+                                    </div>
+                                    {action.reasoning && (
+                                      <div className="mt-2 p-2 bg-purple-50 rounded text-purple-700">
+                                        <strong>Context:</strong> {action.reasoning}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
+              )
+            }
+            
+            return null
+          })}
         </div>
 
-        {/* Deal Assessment Context */}
+        {/* Deal Assessment Context Footer */}
         <div className="mt-8 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 rounded-full text-sm text-slate-600">
             <Target className="w-4 h-4" />
