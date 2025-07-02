@@ -736,112 +736,163 @@ export function NewAnalysisView({
               
               <div className="space-y-4 lg:space-y-5">
                 
-                {/* Discovery Highlights */}
-                <div className="bg-white rounded-lg p-4 border border-indigo-100 shadow-sm">
-                  <h4 className="font-semibold text-indigo-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
-                    <Eye className="w-4 h-4" />
-                    What They Revealed
-                  </h4>
+                {/* Discovery Highlights - ENHANCED VERSION */}
+                <div className="bg-white rounded-xl p-5 lg:p-6 border border-indigo-100 shadow-sm">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="p-2 bg-indigo-100 rounded-lg">
+                      <Eye className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <h4 className="font-bold text-indigo-900 text-lg">What They Revealed</h4>
+                    <div className="h-px flex-1 bg-gradient-to-r from-indigo-200 to-transparent"></div>
+                  </div>
                   
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
-                    {/* Key Stakeholders */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    
+                    {/* Key Stakeholders - Enhanced */}
                     {analysis.participants?.clientContacts && analysis.participants.clientContacts.length > 0 && (
-                      <div>
-                        <span className="font-medium text-indigo-700">Key Players:</span>
-                        <div className="mt-1 space-y-1">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                          <span className="font-bold text-indigo-800 text-sm uppercase tracking-wide">Key Players</span>
+                        </div>
+                        <div className="space-y-3">
                           {analysis.participants.clientContacts.slice(0, 3).map((contact: any, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full flex-shrink-0"></div>
-                              <span className="text-gray-700">
-                                {contact.name} ({contact.title}) 
-                                {contact.challengerRole && (
-                                  <span className="text-indigo-600 font-medium"> - {contact.challengerRole}</span>
-                                )}
-                              </span>
+                            <div key={index} className="group bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg p-3 border border-indigo-100 hover:shadow-md transition-all duration-200">
+                              <div className="flex items-start gap-3">
+                                <div className="w-8 h-8 bg-indigo-500 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                                  {contact.name.charAt(0)}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-semibold text-gray-900 text-sm">{contact.name}</div>
+                                  <div className="text-xs text-gray-600 mb-1">({contact.title})</div>
+                                  {contact.challengerRole && (
+                                    <div className="inline-flex items-center gap-1 px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                                      <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></div>
+                                      {contact.challengerRole}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                     
-                    {/* Critical Pain Points */}
+                    {/* Critical Pain Points - Enhanced */}
                     {analysis.call_summary?.painSeverity?.indicators && analysis.call_summary.painSeverity.indicators.length > 0 && (
-                      <div>
-                        <span className="font-medium text-red-700">Critical Pain:</span>
-                        <div className="mt-1 space-y-1">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                          <span className="font-bold text-red-800 text-sm uppercase tracking-wide">Critical Pain</span>
+                        </div>
+                        <div className="space-y-3">
                           {analysis.call_summary.painSeverity.indicators.slice(0, 2).map((pain: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></div>
-                              <span className="text-gray-700">{pain}</span>
+                            <div key={index} className="group bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-4 border border-red-100 hover:shadow-md transition-all duration-200">
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <AlertTriangle className="w-3 h-3 text-red-600" />
+                                </div>
+                                <p className="text-gray-800 text-sm leading-relaxed font-medium">{pain}</p>
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                     
-                    {/* Decision Criteria */}
+                    {/* Decision Criteria - Enhanced */}
                     {analysis.call_summary?.competitiveIntelligence?.decisionCriteria && analysis.call_summary.competitiveIntelligence.decisionCriteria.length > 0 && (
-                      <div>
-                        <span className="font-medium text-blue-700">Decision Criteria:</span>
-                        <div className="mt-1 space-y-1">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                          <span className="font-bold text-blue-800 text-sm uppercase tracking-wide">Decision Criteria</span>
+                        </div>
+                        <div className="space-y-3">
                           {analysis.call_summary.competitiveIntelligence.decisionCriteria.slice(0, 3).map((criteria: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></div>
-                              <span className="text-gray-700">{criteria}</span>
+                            <div key={index} className="group bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-4 border border-blue-100 hover:shadow-md transition-all duration-200">
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <CheckCircle className="w-3 h-3 text-blue-600" />
+                                </div>
+                                <p className="text-gray-800 text-sm leading-relaxed font-medium">{criteria}</p>
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                     
-                    {/* Competitive Landscape */}
+                    {/* Competitive Landscape - Enhanced */}
                     {analysis.call_summary?.competitiveIntelligence?.vendorsKnown && analysis.call_summary.competitiveIntelligence.vendorsKnown.length > 0 && (
-                      <div>
-                        <span className="font-medium text-purple-700">Competitive Landscape:</span>
-                        <div className="mt-1 space-y-1">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                          <span className="font-bold text-purple-800 text-sm uppercase tracking-wide">Competitive Landscape</span>
+                        </div>
+                        <div className="space-y-3">
                           {analysis.call_summary.competitiveIntelligence.vendorsKnown.slice(0, 3).map((vendor: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
-                              <span className="text-gray-700">{vendor}</span>
+                            <div key={index} className="group bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg p-4 border border-purple-100 hover:shadow-md transition-all duration-200">
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <Building2 className="w-3 h-3 text-purple-600" />
+                                </div>
+                                <p className="text-gray-800 text-sm leading-relaxed font-medium">{vendor}</p>
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                     
-                    {/* Timeline Pressure */}
+                    {/* Timeline Pressure - Enhanced */}
                     {analysis.call_summary?.timelineAnalysis?.statedTimeline && (
-                      <div>
-                        <span className="font-medium text-orange-700">Timeline Driver:</span>
-                        <div className="mt-1">
-                          <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0"></div>
-                            <span className="text-gray-700">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                          <span className="font-bold text-orange-800 text-sm uppercase tracking-wide">Timeline Driver</span>
+                        </div>
+                        <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-lg p-4 border border-orange-100 hover:shadow-md transition-all duration-200">
+                          <div className="flex items-start gap-3">
+                            <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Clock className="w-3 h-3 text-orange-600" />
+                            </div>
+                            <p className="text-gray-800 text-sm leading-relaxed font-medium">
                               {analysis.call_summary.timelineAnalysis.statedTimeline.length > 80 
                                 ? analysis.call_summary.timelineAnalysis.statedTimeline.substring(0, 80) + '...'
                                 : analysis.call_summary.timelineAnalysis.statedTimeline
                               }
-                            </span>
+                            </p>
                           </div>
                         </div>
                       </div>
                     )}
                     
-                    {/* Buying Signals */}
+                    {/* Buying Signals - Enhanced */}
                     {analysis.call_summary?.buyingSignalsAnalysis?.commitmentSignals && analysis.call_summary.buyingSignalsAnalysis.commitmentSignals.length > 0 && (
-                      <div>
-                        <span className="font-medium text-green-700">Strong Signals:</span>
-                        <div className="mt-1 space-y-1">
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2 mb-3">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <span className="font-bold text-green-800 text-sm uppercase tracking-wide">Strong Signals</span>
+                        </div>
+                        <div className="space-y-3">
                           {analysis.call_summary.buyingSignalsAnalysis.commitmentSignals.slice(0, 2).map((signal: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <div className="w-1.5 h-1.5 bg-green-400 rounded-full flex-shrink-0"></div>
-                              <span className="text-gray-700">{signal}</span>
+                            <div key={index} className="group bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-100 hover:shadow-md transition-all duration-200">
+                              <div className="flex items-start gap-3">
+                                <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                  <TrendingUp className="w-3 h-3 text-green-600" />
+                                </div>
+                                <p className="text-gray-800 text-sm leading-relaxed font-medium">{signal}</p>
+                              </div>
                             </div>
                           ))}
                         </div>
                       </div>
                     )}
                   </div>
+                  
+                  {/* Bottom accent line */}
+                  <div className="mt-6 h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent"></div>
                 </div>
 
                 {/* Strategic Assessment - The Critical Bridge */}
