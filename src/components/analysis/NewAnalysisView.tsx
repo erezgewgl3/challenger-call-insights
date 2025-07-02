@@ -350,12 +350,12 @@ export function NewAnalysisView({
     let isTextTruncated = false
     
     if (statedTimeline) {
-      if (statedTimeline.length > 80) {
+      if (statedTimeline.length > 110) {
         isTextTruncated = true
-        const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 80)
-        displayTimeline = lastSpaceIndex > 60 ? 
+        const lastSpaceIndex = statedTimeline.lastIndexOf(' ', 110)
+        displayTimeline = lastSpaceIndex > 90 ? 
           statedTimeline.substring(0, lastSpaceIndex) + '...' : 
-          statedTimeline.substring(0, 80) + '...'
+          statedTimeline.substring(0, 110) + '...'
       } else {
         displayTimeline = statedTimeline
       }
@@ -857,12 +857,24 @@ export function NewAnalysisView({
                             <div className="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                               <Clock className="w-3 h-3 text-orange-600" />
                             </div>
-                            <p className="text-gray-800 text-sm leading-relaxed font-medium">
-                              {analysis.call_summary.timelineAnalysis.statedTimeline.length > 80 
-                                ? analysis.call_summary.timelineAnalysis.statedTimeline.substring(0, 80) + '...'
-                                : analysis.call_summary.timelineAnalysis.statedTimeline
-                              }
-                            </p>
+                            {analysis.call_summary.timelineAnalysis.statedTimeline.length > 110 ? (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <p className="text-gray-800 text-sm leading-relaxed font-medium cursor-help">
+                                    {analysis.call_summary.timelineAnalysis.statedTimeline.substring(0, 110) + '...'}
+                                  </p>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-md p-3">
+                                  <p className="text-sm leading-relaxed">
+                                    {analysis.call_summary.timelineAnalysis.statedTimeline}
+                                  </p>
+                                </TooltipContent>
+                              </Tooltip>
+                            ) : (
+                              <p className="text-gray-800 text-sm leading-relaxed font-medium">
+                                {analysis.call_summary.timelineAnalysis.statedTimeline}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
