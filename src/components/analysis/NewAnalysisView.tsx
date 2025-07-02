@@ -945,12 +945,12 @@ export function NewAnalysisView({
                     <div className="text-3xl">{config.icon}</div>
                     <div>
                       <h3 className={`text-xl font-bold ${config.textColor}`}>{config.title}</h3>
-                      <p className="text-gray-200 max-w-2xl">{config.message}</p>
+                      <p className="text-gray-800 max-w-2xl">{config.message}</p>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className={`font-bold text-lg ${config.textColor}`}>{assessment.assessment}</div>
-                    <div className="text-sm text-gray-300 capitalize">{assessment.strategy}</div>
+                    <div className="text-sm text-gray-700 capitalize">{assessment.strategy}</div>
                   </div>
                 </div>
                 
