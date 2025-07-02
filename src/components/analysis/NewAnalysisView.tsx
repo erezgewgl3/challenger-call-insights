@@ -665,7 +665,7 @@ export function NewAnalysisView({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 text-sm">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 text-sm px-3 lg:px-4">
                 <div>
                   <h4 className="font-bold text-gray-300 mb-2 underline">Client Priority</h4>
                   <p className="text-gray-200 leading-relaxed">
@@ -911,7 +911,7 @@ export function NewAnalysisView({
             </div>
 
             {/* 🎯 WHY THESE SPECIFIC ACTIONS - Standalone Bridge Section */}
-            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200 mt-6">
+            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200 mt-6 mb-6">
               <h4 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
                 <ArrowRight className="w-4 h-4" />
                 Why These Specific Actions
