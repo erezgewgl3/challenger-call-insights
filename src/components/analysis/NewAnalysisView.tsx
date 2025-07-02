@@ -397,10 +397,9 @@ export function NewAnalysisView({
   const isHighPriorityDeal = dealHeat.level === 'HIGH'
   const isMediumPriorityDeal = dealHeat.level === 'MEDIUM'
   
-  // State for collapsible sections with smart defaults
+  // State for collapsible sections with smart defaults - UPDATED: Removed battlePlan
   const [sectionsOpen, setSectionsOpen] = useState({
     insights: isHighPriorityDeal, // Open for high-priority deals
-    battlePlan: isHighPriorityDeal || isMediumPriorityDeal, // Open for high/medium deals
     competitive: false // Progressive disclosure
   })
 
@@ -725,55 +724,205 @@ export function NewAnalysisView({
               )}
             </div>
 
-            {/* Strategic Context Opening */}
-            <div className="bg-blue-50 rounded-lg p-4 lg:p-5 mb-6 border border-blue-200">
-              <div className="flex items-start gap-3">
-                <Target className="w-5 h-5 text-blue-600 mt-1 flex-shrink-0" />
-                <div className="flex-1">
-                  <h4 className="font-semibold text-blue-900 mb-2 text-sm lg:text-base">Strategic Intelligence Summary</h4>
-                  <div className="space-y-2 text-sm text-blue-800">
-                    {/* Stakeholder Intelligence */}
+            {/* 🎯 STRATEGIC INTELLIGENCE & APPROACH - NEW ENHANCED SECTION */}
+            <div className="bg-gradient-to-r from-indigo-50 via-blue-50 to-purple-50 rounded-xl p-4 lg:p-6 border border-indigo-200 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-6 h-6 lg:w-8 lg:h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+                  <Target className="w-3 h-3 lg:w-4 lg:h-4 text-white" />
+                </div>
+                <h3 className="text-base lg:text-lg font-semibold text-indigo-900">Strategic Intelligence & Approach</h3>
+                <Badge variant="outline" className="text-xs border-indigo-300 text-indigo-700">Strategic Context</Badge>
+              </div>
+              
+              <div className="space-y-4 lg:space-y-5">
+                
+                {/* Discovery Highlights */}
+                <div className="bg-white rounded-lg p-4 border border-indigo-100 shadow-sm">
+                  <h4 className="font-semibold text-indigo-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
+                    <Eye className="w-4 h-4" />
+                    What They Revealed
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 text-sm">
+                    {/* Key Stakeholders */}
                     {analysis.participants?.clientContacts && analysis.participants.clientContacts.length > 0 && (
-                      <p>
-                        <span className="font-medium">Key Players:</span> {analysis.participants.clientContacts.slice(0, 2).map(c => c.name).join(', ')}
-                        {analysis.participants.clientContacts.length > 2 && ` +${analysis.participants.clientContacts.length - 2} others`}
-                      </p>
+                      <div>
+                        <span className="font-medium text-indigo-700">Key Players:</span>
+                        <div className="mt-1 space-y-1">
+                          {analysis.participants.clientContacts.slice(0, 3).map((contact: any, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full flex-shrink-0"></div>
+                              <span className="text-gray-700">
+                                {contact.name} ({contact.title}) 
+                                {contact.challengerRole && (
+                                  <span className="text-indigo-600 font-medium"> - {contact.challengerRole}</span>
+                                )}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                     
-                    {/* Pain Points */}
+                    {/* Critical Pain Points */}
                     {analysis.call_summary?.painSeverity?.indicators && analysis.call_summary.painSeverity.indicators.length > 0 && (
-                      <p>
-                        <span className="font-medium">Critical Pain:</span> {analysis.call_summary.painSeverity.indicators.slice(0, 2).join(', ')}
-                      </p>
+                      <div>
+                        <span className="font-medium text-red-700">Critical Pain:</span>
+                        <div className="mt-1 space-y-1">
+                          {analysis.call_summary.painSeverity.indicators.slice(0, 2).map((pain: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 bg-red-400 rounded-full flex-shrink-0"></div>
+                              <span className="text-gray-700">{pain}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                     
                     {/* Decision Criteria */}
                     {analysis.call_summary?.competitiveIntelligence?.decisionCriteria && analysis.call_summary.competitiveIntelligence.decisionCriteria.length > 0 && (
-                      <p>
-                        <span className="font-medium">Decision Criteria:</span> {analysis.call_summary.competitiveIntelligence.decisionCriteria.slice(0, 2).join(', ')}
-                      </p>
+                      <div>
+                        <span className="font-medium text-blue-700">Decision Criteria:</span>
+                        <div className="mt-1 space-y-1">
+                          {analysis.call_summary.competitiveIntelligence.decisionCriteria.slice(0, 3).map((criteria: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 bg-blue-400 rounded-full flex-shrink-0"></div>
+                              <span className="text-gray-700">{criteria}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                     
-                    {/* Competitive Context */}
+                    {/* Competitive Landscape */}
                     {analysis.call_summary?.competitiveIntelligence?.vendorsKnown && analysis.call_summary.competitiveIntelligence.vendorsKnown.length > 0 && (
-                      <p>
-                        <span className="font-medium">Competitive Landscape:</span> Evaluating against {analysis.call_summary.competitiveIntelligence.vendorsKnown.join(', ')}
-                      </p>
+                      <div>
+                        <span className="font-medium text-purple-700">Competitive Landscape:</span>
+                        <div className="mt-1 space-y-1">
+                          {analysis.call_summary.competitiveIntelligence.vendorsKnown.slice(0, 3).map((vendor: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 bg-purple-400 rounded-full flex-shrink-0"></div>
+                              <span className="text-gray-700">{vendor}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                     
                     {/* Timeline Pressure */}
                     {analysis.call_summary?.timelineAnalysis?.statedTimeline && (
-                      <p>
-                        <span className="font-medium">Timeline Pressure:</span> {analysis.call_summary.timelineAnalysis.statedTimeline.substring(0, 100)}
-                        {analysis.call_summary.timelineAnalysis.statedTimeline.length > 100 && '...'}
-                      </p>
+                      <div>
+                        <span className="font-medium text-orange-700">Timeline Driver:</span>
+                        <div className="mt-1">
+                          <div className="flex items-center gap-2">
+                            <div className="w-1.5 h-1.5 bg-orange-400 rounded-full flex-shrink-0"></div>
+                            <span className="text-gray-700">
+                              {analysis.call_summary.timelineAnalysis.statedTimeline.length > 80 
+                                ? analysis.call_summary.timelineAnalysis.statedTimeline.substring(0, 80) + '...'
+                                : analysis.call_summary.timelineAnalysis.statedTimeline
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {/* Buying Signals */}
+                    {analysis.call_summary?.buyingSignalsAnalysis?.commitmentSignals && analysis.call_summary.buyingSignalsAnalysis.commitmentSignals.length > 0 && (
+                      <div>
+                        <span className="font-medium text-green-700">Strong Signals:</span>
+                        <div className="mt-1 space-y-1">
+                          {analysis.call_summary.buyingSignalsAnalysis.commitmentSignals.slice(0, 2).map((signal: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <div className="w-1.5 h-1.5 bg-green-400 rounded-full flex-shrink-0"></div>
+                              <span className="text-gray-700">{signal}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Strategic Assessment - The Critical Bridge */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
+                    <Shield className="w-4 h-4" />
+                    Strategic Assessment
+                  </h4>
+                  
+                  <div className="space-y-3">
+                    {/* Primary Strategy Rationale */}
+                    {analysis.recommendations?.primaryStrategy && (
+                      <div className="bg-white rounded-lg p-3 border border-blue-100">
+                        <span className="font-medium text-blue-700 text-sm">Why This Approach:</span>
+                        <p className="text-gray-700 text-sm mt-1 leading-relaxed">
+                          {analysis.recommendations.primaryStrategy}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Competitive Positioning Logic */}
+                    {analysis.recommendations?.competitiveStrategy && (
+                      <div className="bg-white rounded-lg p-3 border border-blue-100">
+                        <span className="font-medium text-purple-700 text-sm">Competitive Edge:</span>
+                        <p className="text-gray-700 text-sm mt-1 leading-relaxed">
+                          {analysis.recommendations.competitiveStrategy}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Stakeholder Navigation Strategy */}
+                    {analysis.recommendations?.stakeholderPlan && (
+                      <div className="bg-white rounded-lg p-3 border border-blue-100">
+                        <span className="font-medium text-green-700 text-sm">Stakeholder Strategy:</span>
+                        <p className="text-gray-700 text-sm mt-1 leading-relaxed">
+                          {analysis.recommendations.stakeholderPlan}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Execution Rationale */}
+                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
+                  <h4 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
+                    <ArrowRight className="w-4 h-4" />
+                    Why These Specific Actions
+                  </h4>
+                  
+                  <div className="bg-white rounded-lg p-3 border border-emerald-100">
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {analysis.reasoning?.whyTheseRecommendations || 
+                       `Based on the stakeholder dynamics and pain points revealed, these actions are designed to ${
+                         analysis.call_summary?.painSeverity?.level === 'high' ? 'address urgent business needs while' : 
+                         analysis.call_summary?.painSeverity?.level === 'medium' ? 'solve operational challenges while' : 'position for future value while'
+                       } positioning against competitive alternatives through ${
+                         analysis.call_summary?.competitiveIntelligence?.decisionCriteria?.length > 0 ? 'their stated decision criteria' : 'strategic differentiation'
+                       }.`
+                      }
+                    </p>
+                    
+                    {/* Key Strategic Signals */}
+                    {analysis.reasoning?.clientSignalsObserved && analysis.reasoning.clientSignalsObserved.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-emerald-100">
+                        <span className="font-medium text-emerald-700 text-xs uppercase tracking-wider">Supporting Evidence:</span>
+                        <div className="mt-2 space-y-1">
+                          {analysis.reasoning.clientSignalsObserved.slice(0, 2).map((signal: string, index: number) => (
+                            <div key={index} className="flex items-center gap-2">
+                              <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                              <span className="text-gray-600 text-xs italic">"{signal}"</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* EXECUTION TIMELINE FROM ACTION PLAN */}
+            {/* EXECUTION TIMELINE FROM ACTION PLAN - PRESERVE EXACTLY */}
             {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 ? (
               <div className="relative">
                 {/* Timeline Line */}
@@ -1065,71 +1214,6 @@ export function NewAnalysisView({
                           </div>
                         ))}
                       </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
-
-            {/* 🎯 Complete Battle Plan - Medium+ Priority Auto-Open */}
-            {analysis.recommendations && (
-              <Card className={`border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 transition-all ${
-                sectionsOpen.battlePlan ? 'shadow-lg' : 'hover:shadow-md'
-              }`}>
-                <Collapsible open={sectionsOpen.battlePlan} onOpenChange={() => toggleSection('battlePlan')}>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-blue-100/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <Target className="w-5 h-5 lg:w-6 lg:h-6 text-blue-600" />
-                          <div>
-                            <CardTitle className="text-base lg:text-lg flex items-center gap-2">
-                              Complete Battle Plan
-                              {(isHighPriorityDeal || isMediumPriorityDeal) && (
-                                <Badge variant="secondary" className="bg-orange-100 text-orange-800 text-xs">
-                                  AUTO-OPEN
-                                </Badge>
-                              )}
-                            </CardTitle>
-                            <p className="text-sm text-blue-700 font-normal">How to position against competitors based on their specific needs</p>
-                          </div>
-                        </div>
-                        {sectionsOpen.battlePlan ? 
-                          <ChevronUp className="w-5 h-5 text-blue-600" /> : 
-                          <ChevronDown className="w-5 h-5 text-blue-600" />
-                        }
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="space-y-4 lg:space-y-6">
-                      {analysis.recommendations.primaryStrategy && (
-                        <div className="p-3 lg:p-4 bg-white rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2 text-sm lg:text-base">
-                            <Target className="w-4 h-4" />
-                            Primary Strategy
-                          </h4>
-                          <p className="text-gray-800 text-sm lg:text-base leading-relaxed">{analysis.recommendations.primaryStrategy}</p>
-                        </div>
-                      )}
-                      {analysis.recommendations.competitiveStrategy && (
-                        <div className="p-3 lg:p-4 bg-white rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2 text-sm lg:text-base">
-                            <Shield className="w-4 h-4" />
-                            Competitive Positioning
-                          </h4>
-                          <p className="text-gray-800 text-sm lg:text-base leading-relaxed">{analysis.recommendations.competitiveStrategy}</p>
-                        </div>
-                      )}
-                      {analysis.recommendations.stakeholderPlan && (
-                        <div className="p-3 lg:p-4 bg-white rounded-lg border border-blue-200">
-                          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2 text-sm lg:text-base">
-                            <Users className="w-4 h-4" />
-                            Stakeholder Plan
-                          </h4>
-                          <p className="text-gray-800 text-sm lg:text-base leading-relaxed">{analysis.recommendations.stakeholderPlan}</p>
-                        </div>
-                      )}
                     </CardContent>
                   </CollapsibleContent>
                 </Collapsible>
