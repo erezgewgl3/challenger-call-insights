@@ -35,7 +35,8 @@ import {
   Trophy,
   TrendingDown,
   Building2,
-  AlertCircle
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react'
 import { toast } from 'sonner'
 
