@@ -907,41 +907,42 @@ export function NewAnalysisView({
                   </div>
                 </div>
 
-                {/* Execution Rationale - OPTIMIZED */}
-                <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200">
-                  <h4 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
-                    <ArrowRight className="w-4 h-4" />
-                    Why These Specific Actions
-                  </h4>
-                  
-                  <div className="bg-white rounded-lg p-3 border border-emerald-100">
-                    <p className="text-gray-700 text-sm leading-relaxed">
-                      {analysis.reasoning?.whyTheseRecommendations || 
-                       `Based on the stakeholder dynamics and pain points revealed, these actions are designed to ${
-                         analysis.call_summary?.painSeverity?.level === 'high' ? 'address urgent business needs while' : 
-                         analysis.call_summary?.painSeverity?.level === 'medium' ? 'solve operational challenges while' : 'position for future value while'
-                       } positioning against competitive alternatives through ${
-                         analysis.call_summary?.competitiveIntelligence?.decisionCriteria?.length > 0 ? 'their stated decision criteria' : 'strategic differentiation'
-                       }.`
-                      }
-                    </p>
-                    
-                    {/* Key Strategic Signals - OPTIMIZED */}
-                    {analysis.reasoning?.clientSignalsObserved && analysis.reasoning.clientSignalsObserved.length > 0 && (
-                      <div className="mt-3 pt-3 border-t border-emerald-100">
-                        <span className="font-medium text-emerald-700 text-xs uppercase tracking-wider">Supporting Evidence:</span>
-                        <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-1">
-                          {analysis.reasoning.clientSignalsObserved.slice(0, 2).map((signal: string, index: number) => (
-                            <div key={index} className="flex items-center gap-2">
-                              <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                              <span className="text-gray-600 text-xs italic">"{signal}"</span>
-                            </div>
-                          ))}
+              </div>
+            </div>
+
+            {/* 🎯 WHY THESE SPECIFIC ACTIONS - Standalone Bridge Section */}
+            <div className="bg-emerald-50 rounded-lg p-4 border border-emerald-200 mt-6">
+              <h4 className="font-semibold text-emerald-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
+                <ArrowRight className="w-4 h-4" />
+                Why These Specific Actions
+              </h4>
+              
+              <div className="bg-white rounded-lg p-3 border border-emerald-100">
+                <p className="text-gray-700 text-sm leading-relaxed">
+                  {analysis.reasoning?.whyTheseRecommendations || 
+                   `Based on the stakeholder dynamics and pain points revealed, these actions are designed to ${
+                     analysis.call_summary?.painSeverity?.level === 'high' ? 'address urgent business needs while' : 
+                     analysis.call_summary?.painSeverity?.level === 'medium' ? 'solve operational challenges while' : 'position for future value while'
+                   } positioning against competitive alternatives through ${
+                     analysis.call_summary?.competitiveIntelligence?.decisionCriteria?.length > 0 ? 'their stated decision criteria' : 'strategic differentiation'
+                   }.`
+                  }
+                </p>
+                
+                {/* Key Strategic Signals - OPTIMIZED */}
+                {analysis.reasoning?.clientSignalsObserved && analysis.reasoning.clientSignalsObserved.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-emerald-100">
+                    <span className="font-medium text-emerald-700 text-xs uppercase tracking-wider">Supporting Evidence:</span>
+                    <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-1">
+                      {analysis.reasoning.clientSignalsObserved.slice(0, 2).map((signal: string, index: number) => (
+                        <div key={index} className="flex items-center gap-2">
+                          <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                          <span className="text-gray-600 text-xs italic">"{signal}"</span>
                         </div>
-                      </div>
-                    )}
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
 
