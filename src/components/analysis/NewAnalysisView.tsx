@@ -691,12 +691,21 @@ export function NewAnalysisView({
           <div className="bg-white rounded-xl p-4 lg:p-6 border-l-4 border-red-500 shadow-lg mb-6 lg:mb-8">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
               <div className="flex items-center gap-3 lg:gap-4">
-                <div className="p-2 lg:p-3 bg-red-100 rounded-lg">
-                  <Zap className="h-5 w-5 lg:h-6 lg:w-6 text-red-600" />
+                <div className={`p-2 lg:p-3 rounded-lg ${
+                  dealHeat.level === 'HIGH' ? 'bg-red-100' : 
+                  dealHeat.level === 'MEDIUM' ? 'bg-orange-100' : 'bg-blue-100'
+                }`}>
+                  <Zap className={`h-5 w-5 lg:h-6 lg:w-6 ${
+                    dealHeat.level === 'HIGH' ? 'text-red-600' : 
+                    dealHeat.level === 'MEDIUM' ? 'text-orange-600' : 'text-blue-600'
+                  }`} />
                 </div>
                 <div>
                   <h3 className="text-lg lg:text-xl font-bold text-gray-900">Your Battle Plan</h3>
-                  <p className="text-sm text-red-600">Strategic execution based on conversation intelligence</p>
+                  <p className={`text-sm ${
+                    dealHeat.level === 'HIGH' ? 'text-red-600' : 
+                    dealHeat.level === 'MEDIUM' ? 'text-orange-600' : 'text-blue-600'
+                  }`}>Strategic execution based on conversation intelligence</p>
                 </div>
               </div>
               {dealHeat.level === 'HIGH' && (
@@ -785,7 +794,7 @@ export function NewAnalysisView({
                       return 'bg-blue-100 text-blue-800'
                     }
 
-                    const isUrgent = action.timeline.toLowerCase().includes('24 hours') || action.timeline.toLowerCase().includes('immediate')
+                    const isUrgent = (dealHeat.level !== 'LOW') && (action.timeline.toLowerCase().includes('24 hours') || action.timeline.toLowerCase().includes('immediate'))
 
                     return (
                       <div key={index} className="relative">
