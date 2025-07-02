@@ -1005,8 +1005,8 @@ export function NewAnalysisView({
                             </div>
                           </div>
 
-                          {/* Email Template Section */}
-                          {action.copyPasteContent && (
+                          {/* Email Template Section - Conditional */}
+                          {action.copyPasteContent && action.copyPasteContent.subject && action.copyPasteContent.body ? (
                             <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
                               <div className="flex items-center justify-between mb-3">
                                 <h5 className="font-medium text-gray-800 text-sm flex items-center gap-2">
@@ -1037,28 +1037,68 @@ export function NewAnalysisView({
                               </div>
 
                               {/* Subject Line */}
-                              {action.copyPasteContent?.subject && (
-                                <div className="mb-3">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Subject Line</span>
-                                  </div>
-                                  <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono">
-                                    {action.copyPasteContent.subject}
-                                  </div>
+                              <div className="mb-3">
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Subject Line</span>
                                 </div>
-                              )}
+                                <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono">
+                                  {action.copyPasteContent.subject}
+                                </div>
+                              </div>
 
                               {/* Email Body */}
-                              {action.copyPasteContent?.body && (
-                                <div>
-                                  <div className="flex items-center justify-between mb-2">
-                                    <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Email Content</span>
-                                  </div>
-                                  <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                    {action.copyPasteContent.body}
+                              <div>
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Email Content</span>
+                                </div>
+                                <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                  {action.copyPasteContent.body}
+                                </div>
+                              </div>
+                            </div>
+                          ) : (
+                            /* Action Details Section for Non-Email Actions */
+                            <div className="p-4 bg-gradient-to-r from-slate-50 to-gray-50">
+                              <div className="flex items-center justify-between mb-3">
+                                <h5 className="font-medium text-gray-800 text-sm flex items-center gap-2">
+                                  {action.method === 'phone' ? (
+                                    <Phone className="w-4 h-4 text-slate-600" />
+                                  ) : action.method === 'meeting' ? (
+                                    <Calendar className="w-4 h-4 text-slate-600" />
+                                  ) : (
+                                    <MessageSquare className="w-4 h-4 text-slate-600" />
+                                  )}
+                                  Action Required
+                                </h5>
+                                
+                                <Badge variant="outline" className="text-xs border-slate-300 text-slate-700">
+                                  {action.method === 'phone' ? 'Phone Call' : 
+                                   action.method === 'meeting' ? 'Meeting' : 
+                                   action.method || 'Direct Action'}
+                                </Badge>
+                              </div>
+
+                              {/* Enhanced Objective Display */}
+                              <div className="bg-white rounded-lg p-4 border border-slate-200">
+                                <div className="mb-2">
+                                  <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Action Details</span>
+                                </div>
+                                <p className="text-gray-700 text-sm leading-relaxed font-medium">
+                                  {action.objective}
+                                </p>
+                                
+                                {/* Priority Indicator */}
+                                <div className="mt-3 pt-3 border-t border-slate-100">
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-slate-400 rounded-full"></div>
+                                    <span className="text-xs text-slate-600">
+                                      {action.priority === 'high' ? 'High Priority Action' : 
+                                       action.priority === 'medium' ? 'Standard Priority' : 
+                                       'Follow-up Action'}
+                                    </span>
                                   </div>
                                 </div>
-                              )}
+                              </div>
                             </div>
                           )}
                         </div>
