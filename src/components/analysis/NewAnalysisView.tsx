@@ -902,24 +902,6 @@ export function NewAnalysisView({
                     )
                   })}
                 </div>
-
-                {/* Timeline Completion */}
-                <div className="relative mt-6">
-                  <div className="absolute left-6 w-4 h-4 rounded-full bg-green-500 border-2 border-white z-10">
-                    <CheckCircle className="w-3 h-3 text-white absolute inset-0.5" />
-                  </div>
-                  <div className="ml-16">
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
-                      <div className="flex items-center gap-3">
-                        <CheckCircle className="w-6 h-6 text-green-600" />
-                        <div>
-                          <h5 className="font-semibold text-green-800 text-sm">Battle Plan Execution Complete</h5>
-                          <p className="text-xs text-green-700">All strategic actions executed. Monitor for responses and be ready for next steps.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             ) : (
               /* Fallback when no action plan exists */
