@@ -401,8 +401,7 @@ export function NewAnalysisView({
   const [sectionsOpen, setSectionsOpen] = useState({
     insights: isHighPriorityDeal, // Open for high-priority deals
     battlePlan: isHighPriorityDeal || isMediumPriorityDeal, // Open for high/medium deals
-    competitive: false, // Progressive disclosure
-    playbook: true // Always open - most actionable content
+    competitive: false // Progressive disclosure
   })
 
   const toggleSection = (section: keyof typeof sectionsOpen) => {
@@ -765,91 +764,182 @@ export function NewAnalysisView({
               </div>
             </div>
 
-            {/* STRATEGIC ACTION PLAN */}
-            <div className="space-y-4">
-              {/* Primary Action from Analysis */}
-              {analysis.recommendations?.immediateActions && analysis.recommendations.immediateActions.length > 0 ? (
-                analysis.recommendations.immediateActions.slice(0, 1).map((action: any, index: number) => (
-                  <div key={index} className="bg-red-50 rounded-lg p-4 lg:p-5 border border-red-200">
-                    <div className="flex items-start gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-red-100">
-                        <Target className="w-5 h-5 text-red-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-bold text-gray-900 text-base lg:text-lg mb-2">{action.action}</h4>
-                        <p className="text-gray-700 text-sm lg:text-base leading-relaxed mb-3">{action.objective}</p>
-                        
-                        {/* Key Execution Points */}
-                        <div className="space-y-2 mb-4">
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Clock className="w-4 h-4 text-orange-500" />
-                            <span className="font-medium">Execute by:</span> {action.timeline}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Mail className="w-4 h-4 text-blue-500" />
-                            <span className="font-medium">Method:</span> {action.method}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <Star className="w-4 h-4 text-purple-500" />
-                            <span className="font-medium">Priority:</span> {action.priority}
-                          </div>
+            {/* EXECUTION TIMELINE FROM ACTION PLAN */}
+            {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 ? (
+              <div className="relative">
+                {/* Timeline Line */}
+                <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-red-300 to-red-100"></div>
+                
+                <div className="space-y-6">
+                  {analysis.action_plan.actions.map((action: any, index: number) => {
+                    // Priority detection based on timeline text
+                    const getPriorityColor = (timeline: string) => {
+                      if (timeline.toLowerCase().includes('24 hours') || timeline.toLowerCase().includes('immediate')) return 'bg-red-500'
+                      if (timeline.toLowerCase().includes('this week') || timeline.toLowerCase().includes('3 days')) return 'bg-orange-500'
+                      return 'bg-blue-500'
+                    }
+                    
+                    const getPriorityBadge = (timeline: string) => {
+                      if (timeline.toLowerCase().includes('24 hours') || timeline.toLowerCase().includes('immediate')) return 'bg-red-100 text-red-800'
+                      if (timeline.toLowerCase().includes('this week') || timeline.toLowerCase().includes('3 days')) return 'bg-orange-100 text-orange-800'
+                      return 'bg-blue-100 text-blue-800'
+                    }
+
+                    const isUrgent = action.timeline.toLowerCase().includes('24 hours') || action.timeline.toLowerCase().includes('immediate')
+
+                    return (
+                      <div key={index} className="relative">
+                        {/* Timeline Node */}
+                        <div className={`absolute left-6 w-4 h-4 rounded-full border-2 border-white ${getPriorityColor(action.timeline)} z-10`}>
+                          <div className="absolute inset-1 bg-white rounded-full"></div>
                         </div>
                         
-                        {/* Copy/Paste Action Buttons */}
-                        <div className="flex flex-col sm:flex-row gap-3">
-                          {action.copyPasteContent?.body && (
-                            <Button 
-                              className="bg-red-600 hover:bg-red-700 flex-1"
-                              onClick={() => copyToClipboard(action.copyPasteContent.body, 'Action content')}
-                            >
-                              <Copy className="h-4 w-4 mr-2" />
-                              Copy Full Script
-                            </Button>
-                          )}
-                          {action.copyPasteContent?.subject && action.copyPasteContent?.body && (
-                            <Button 
-                              variant="outline" 
-                              className="flex-1"
-                              onClick={() => openInEmailClient(action.copyPasteContent.subject, action.copyPasteContent.body)}
-                            >
-                              <ExternalLink className="h-4 w-4 mr-2" />
-                              Send Email
-                            </Button>
+                        {/* Action Card */}
+                        <div className="ml-16 bg-red-50 rounded-lg border border-red-200 shadow-sm">
+                          {/* Action Header */}
+                          <div className="p-4 border-b border-red-100">
+                            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
+                              <div className="flex items-start gap-3 flex-1">
+                                <div className="p-2 rounded-lg bg-blue-100">
+                                  <Mail className="w-4 h-4 text-blue-600" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="font-semibold text-gray-900 text-base mb-1">{action.action}</h4>
+                                  <p className="text-sm text-gray-600 leading-relaxed">{action.objective}</p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <Badge className={`${getPriorityBadge(action.timeline)} text-xs font-medium`}>
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {action.timeline}
+                                </Badge>
+                                {isUrgent && (
+                                  <Badge className="bg-red-100 text-red-800 text-xs animate-pulse">
+                                    URGENT
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Email Template Section */}
+                          {action.copyPasteContent && (
+                            <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
+                              <div className="flex items-center justify-between mb-3">
+                                <h5 className="font-medium text-gray-800 text-sm flex items-center gap-2">
+                                  <Mail className="w-4 h-4 text-blue-600" />
+                                  Email Template Ready
+                                </h5>
+                                
+                                {/* Main Action Buttons */}
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
+                                    onClick={() => copyFullEmail(action.copyPasteContent.subject, action.copyPasteContent.body, [])}
+                                  >
+                                    <Copy className="w-3 h-3 mr-1" />
+                                    Copy All
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-xs"
+                                    onClick={() => openInEmailClient(action.copyPasteContent.subject, action.copyPasteContent.body)}
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    Send Email
+                                  </Button>
+                                </div>
+                              </div>
+
+                              {/* Subject Line */}
+                              {action.copyPasteContent?.subject && (
+                                <div className="mb-3">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Subject Line</span>
+                                  </div>
+                                  <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono">
+                                    {action.copyPasteContent.subject}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Email Body */}
+                              {action.copyPasteContent?.body && (
+                                <div>
+                                  <div className="flex items-center justify-between mb-2">
+                                    <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Email Content</span>
+                                  </div>
+                                  <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                                    {action.copyPasteContent.body}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
                           )}
                         </div>
+
+                        {/* Connection Arrow to Next Step */}
+                        {index < analysis.action_plan.actions.length - 1 && (
+                          <div className="absolute left-8 -bottom-3 transform -translate-x-1/2 z-20">
+                            <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center border border-red-200">
+                              <ArrowRight className="w-3 h-3 text-red-600" />
+                            </div>
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    )
+                  })}
+                </div>
+
+                {/* Timeline Completion */}
+                <div className="relative mt-6">
+                  <div className="absolute left-6 w-4 h-4 rounded-full bg-green-500 border-2 border-white z-10">
+                    <CheckCircle className="w-3 h-3 text-white absolute inset-0.5" />
                   </div>
-                ))
-              ) : (
-                /* Fallback Strategic Action */
-                <div className="bg-red-50 rounded-lg p-4 lg:p-5 border border-red-200">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-red-100">
-                      <Target className="w-5 h-5 text-red-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-gray-900 text-base lg:text-lg mb-2">Execute Strategic Follow-up</h4>
-                      <p className="text-gray-700 text-sm lg:text-base leading-relaxed mb-4">
-                        {analysis.recommendations?.primaryStrategy || 
-                         "Contact key stakeholders to advance the opportunity based on conversation insights"}
-                      </p>
-                      
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <Button className="bg-red-600 hover:bg-red-700 flex-1">
-                          <Copy className="h-4 w-4 mr-2" />
-                          Copy Action Plan
-                        </Button>
-                        <Button variant="outline" className="flex-1">
-                          <Calendar className="h-4 w-4 mr-2" />
-                          Schedule Follow-up
-                        </Button>
+                  <div className="ml-16">
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-6 h-6 text-green-600" />
+                        <div>
+                          <h5 className="font-semibold text-green-800 text-sm">Battle Plan Execution Complete</h5>
+                          <p className="text-xs text-green-700">All strategic actions executed. Monitor for responses and be ready for next steps.</p>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            ) : (
+              /* Fallback when no action plan exists */
+              <div className="bg-red-50 rounded-lg p-4 lg:p-5 border border-red-200">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 rounded-lg bg-red-100">
+                    <Target className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-bold text-gray-900 text-base lg:text-lg mb-2">Execute Strategic Follow-up</h4>
+                    <p className="text-gray-700 text-sm lg:text-base leading-relaxed mb-4">
+                      {analysis.recommendations?.primaryStrategy || 
+                       "Contact key stakeholders to advance the opportunity based on conversation insights"}
+                    </p>
+                    
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button className="bg-red-600 hover:bg-red-700 flex-1">
+                        <Copy className="h-4 w-4 mr-2" />
+                        Copy Action Plan
+                      </Button>
+                      <Button variant="outline" className="flex-1">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        Schedule Follow-up
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Why This Approach Wins - Preserved */}
             <div className="bg-yellow-50 rounded-lg p-3 lg:p-4 border-l-4 border-yellow-400 mt-6">
@@ -941,209 +1031,6 @@ export function NewAnalysisView({
 
           {/* 🎯 ENHANCED EXPANDABLE SECTIONS - Smart Defaults + Visual Priority */}
           <div className="space-y-4 lg:space-y-6">
-            
-            {/* 🔥 Ready-to-Execute Playbook - TIMELINE DESIGN */}
-            {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 && (
-              <Card className={`border-l-4 border-l-purple-400 bg-gradient-to-r from-purple-50 to-indigo-50 transition-all ${
-                sectionsOpen.playbook ? 'shadow-lg' : 'hover:shadow-md'
-              }`}>
-                <Collapsible open={sectionsOpen.playbook} onOpenChange={() => toggleSection('playbook')}>
-                  <CollapsibleTrigger asChild>
-                    <CardHeader className="pb-2 cursor-pointer hover:bg-purple-100/50 transition-colors">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="relative">
-                            <Zap className="w-5 h-5 lg:w-6 lg:h-6 text-purple-600" />
-                            <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                          </div>
-                          <div>
-                            <CardTitle className="text-base lg:text-lg flex items-center gap-2">
-                              Ready-to-Execute Playbook
-                              <Badge variant="secondary" className="bg-purple-100 text-purple-800 text-xs">
-                                PRIORITY
-                              </Badge>
-                            </CardTitle>
-                            <p className="text-sm text-purple-700 font-normal">Email templates and scripts ready to use immediately</p>
-                          </div>
-                        </div>
-                        {sectionsOpen.playbook ? 
-                          <ChevronUp className="w-5 h-5 text-purple-600" /> : 
-                          <ChevronDown className="w-5 h-5 text-purple-600" />
-                        }
-                      </div>
-                    </CardHeader>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <CardContent className="pt-0">
-                      <div className="relative">
-                        {/* Timeline Line */}
-                        <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-300 to-purple-100"></div>
-                        
-                        <div className="space-y-6">
-                          {analysis.action_plan.actions.map((action: any, index: number) => {
-                            // Priority detection based on timeline text
-                            const getPriorityColor = (timeline: string) => {
-                              if (timeline.toLowerCase().includes('24 hours') || timeline.toLowerCase().includes('immediate')) return 'bg-red-500'
-                              if (timeline.toLowerCase().includes('this week') || timeline.toLowerCase().includes('3 days')) return 'bg-orange-500'
-                              return 'bg-blue-500'
-                            }
-                            
-                            const getPriorityBadge = (timeline: string) => {
-                              if (timeline.toLowerCase().includes('24 hours') || timeline.toLowerCase().includes('immediate')) return 'bg-red-100 text-red-800'
-                              if (timeline.toLowerCase().includes('this week') || timeline.toLowerCase().includes('3 days')) return 'bg-orange-100 text-orange-800'
-                              return 'bg-blue-100 text-blue-800'
-                            }
-
-                            const isUrgent = action.timeline.toLowerCase().includes('24 hours') || action.timeline.toLowerCase().includes('immediate')
-
-                            return (
-                              <div key={index} className="relative">
-                                {/* Timeline Node */}
-                                <div className={`absolute left-6 w-4 h-4 rounded-full border-2 border-white ${getPriorityColor(action.timeline)} z-10`}>
-                                  <div className="absolute inset-1 bg-white rounded-full"></div>
-                                </div>
-                                
-                                {/* Action Card */}
-                                <div className="ml-16 bg-white rounded-lg border border-purple-200 shadow-sm">
-                                  {/* Action Header */}
-                                  <div className="p-4 border-b border-purple-100">
-                                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">
-                                      <div className="flex items-start gap-3 flex-1">
-                                        <div className="p-2 rounded-lg bg-blue-100">
-                                          <Mail className="w-4 h-4 text-blue-600" />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <h4 className="font-semibold text-gray-900 text-base mb-1">{action.action}</h4>
-                                          <p className="text-sm text-gray-600 leading-relaxed">{action.objective}</p>
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="flex items-center gap-2 flex-shrink-0">
-                                        <Badge className={`${getPriorityBadge(action.timeline)} text-xs font-medium`}>
-                                          <Clock className="w-3 h-3 mr-1" />
-                                          {action.timeline}
-                                        </Badge>
-                                        {isUrgent && (
-                                          <Badge className="bg-red-100 text-red-800 text-xs animate-pulse">
-                                            URGENT
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    </div>
-                                  </div>
-
-                                  {/* Email Template Section */}
-                                  {action.copyPasteContent && (
-                                    <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50">
-                                      <div className="flex items-center justify-between mb-3">
-                                        <h5 className="font-medium text-gray-800 text-sm flex items-center gap-2">
-                                          <Mail className="w-4 h-4 text-blue-600" />
-                                          Email Template Ready
-                                        </h5>
-                                        
-                                        {/* 🚀 ENHANCED COPY/SEND BUTTONS */}
-                                        <div className="flex items-center gap-2">
-                                          <Button
-                                            variant="outline"
-                                            size="sm"
-                                            className="text-xs border-blue-300 text-blue-700 hover:bg-blue-100"
-                                            onClick={() => copyFullEmail(action.copyPasteContent.subject, action.copyPasteContent.body, [])}
-                                          >
-                                            <Copy className="w-3 h-3 mr-1" />
-                                            Copy All
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            className="bg-blue-600 hover:bg-blue-700 text-xs"
-                                            onClick={() => openInEmailClient(action.copyPasteContent.subject, action.copyPasteContent.body)}
-                                          >
-                                            <ExternalLink className="w-3 h-3 mr-1" />
-                                            Send Email
-                                          </Button>
-                                        </div>
-                                      </div>
-
-                                      {/* Subject Line */}
-                                      {action.copyPasteContent?.subject && (
-                                        <div className="mb-3">
-                                          <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Subject Line</span>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-6 px-2 text-xs text-blue-600 hover:bg-blue-100"
-                                              onClick={() => copyToClipboard(action.copyPasteContent.subject, 'Subject line')}
-                                            >
-                                              <Copy className="w-3 h-3 mr-1" />
-                                              Copy
-                                            </Button>
-                                          </div>
-                                          <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono">
-                                            {action.copyPasteContent.subject}
-                                          </div>
-                                        </div>
-                                      )}
-
-                                      {/* Email Body */}
-                                      {action.copyPasteContent?.body && (
-                                        <div>
-                                          <div className="flex items-center justify-between mb-2">
-                                            <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Email Content</span>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              className="h-6 px-2 text-xs text-blue-600 hover:bg-blue-100"
-                                              onClick={() => copyToClipboard(action.copyPasteContent.body, 'Email content')}
-                                            >
-                                              <Copy className="w-3 h-3 mr-1" />
-                                              Copy
-                                            </Button>
-                                          </div>
-                                          <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
-                                            {action.copyPasteContent.body}
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-
-                                {/* Connection Arrow to Next Step */}
-                                {index < analysis.action_plan.actions.length - 1 && (
-                                  <div className="absolute left-8 -bottom-3 transform -translate-x-1/2 z-20">
-                                    <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center border border-purple-200">
-                                      <ArrowRight className="w-3 h-3 text-purple-600" />
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-
-                        {/* Timeline Completion */}
-                        <div className="relative mt-6">
-                          <div className="absolute left-6 w-4 h-4 rounded-full bg-green-500 border-2 border-white z-10">
-                            <CheckCircle className="w-3 h-3 text-white absolute inset-0.5" />
-                          </div>
-                          <div className="ml-16">
-                            <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-4 border border-green-200">
-                              <div className="flex items-center gap-3">
-                                <CheckCircle className="w-6 h-6 text-green-600" />
-                                <div>
-                                  <h5 className="font-semibold text-green-800 text-sm">Deal Progression Complete</h5>
-                                  <p className="text-xs text-green-700">All priority actions executed. Monitor for responses and be ready for next steps.</p>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </CollapsibleContent>
-                </Collapsible>
-              </Card>
-            )}
 
             {/* 💡 Deal Acceleration Insights - High Priority Deals Auto-Open */}
             {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
