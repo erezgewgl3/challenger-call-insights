@@ -17,122 +17,196 @@ interface ElementState {
   stateAttribute: string
 }
 
+// 🛡️ GUARDRAILS: Validation utilities
+const validateElementExists = (elementId: string): HTMLElement | null => {
+  const element = document.getElementById(elementId)
+  if (!element) {
+    console.error(`PDF Export: Element with ID "${elementId}" not found`)
+    toast.error('Unable to find content to export')
+    return null
+  }
+  return element
+}
+
+const safeElementOperation = <T>(
+  operation: () => T,
+  errorMessage: string,
+  fallback: T
+): T => {
+  try {
+    return operation()
+  } catch (error) {
+    console.error(`PDF Export: ${errorMessage}`, error)
+    return fallback
+  }
+}
+
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string) => {
     let modifiedElements: ElementState[] = []
+    let originalElementStyles: Record<string, string> = {}
     
     try {
       toast.info('Generating professional PDF with full visual design...', { duration: 3000 })
       
-      const element = document.getElementById(elementId)
-      if (!element) {
-        toast.error('Unable to find content to export')
-        return
-      }
+      // 🛡️ GUARDRAIL: Validate element exists
+      const element = validateElementExists(elementId)
+      if (!element) return
 
+      // 🛡️ GUARDRAIL: Prevent user interactions during export
+      document.body.style.pointerEvents = 'none'
+      
       // Ensure we're at the top and everything is loaded
       window.scrollTo(0, 0)
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // PHASE 1: PRE-PDF PREPARATION - Expand collapsed sections and scrollable content
-      
-      // 🔧 SURGICAL REACT STATE FIX: Only click triggers for CLOSED sections
-      const closedSections = element.querySelectorAll('[data-state="closed"]')
-      closedSections.forEach(section => {
-        // Find the trigger within this specific closed section
-        const trigger = section.querySelector('[data-radix-collapsible-trigger]')
-        if (trigger instanceof HTMLElement) {
-          trigger.click() // Only click triggers for closed sections
-        }
-      })
-      
-      // Wait for React re-render to complete
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Find and expand all collapsed sections
-      const collapsedSections = element.querySelectorAll('[data-state="closed"], [aria-expanded="false"], .collapsed')
-      collapsedSections.forEach(section => {
-        if (section instanceof HTMLElement) {
-          const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
-                           section.hasAttribute('aria-expanded') ? 'aria-expanded' : 'class'
-          
-          modifiedElements.push({
-            element: section,
-            originalState: stateAttr === 'data-state' ? section.getAttribute('data-state') || '' :
-                          stateAttr === 'aria-expanded' ? section.getAttribute('aria-expanded') || '' :
-                          section.className,
-            originalHeight: section.style.height,
-            originalMaxHeight: section.style.maxHeight,
-            originalOverflow: section.style.overflow,
-            originalOverflowY: section.style.overflowY,
-            stateAttribute: stateAttr
-          })
-          
-          // Expand the section
-          if (stateAttr === 'data-state') {
-            section.setAttribute('data-state', 'open')
-          } else if (stateAttr === 'aria-expanded') {
-            section.setAttribute('aria-expanded', 'true')
-          } else {
-            section.className = section.className.replace(/\bcollapsed\b/g, '')
-          }
-        }
-      })
+      // 🛡️ GUARDRAIL: Safe backup of original element styles
+      originalElementStyles = safeElementOperation(
+        () => ({
+          position: element.style.position,
+          width: element.style.width,
+          maxWidth: element.style.maxWidth,
+          minWidth: element.style.minWidth,
+          transform: element.style.transform,
+          overflow: element.style.overflow,
+          backgroundColor: element.style.backgroundColor
+        }),
+        'Failed to backup element styles',
+        {}
+      )
 
-      // Find and expand all scrollable content areas
-      const scrollableElements = element.querySelectorAll('*')
-      Array.from(scrollableElements).forEach(el => {
-        if (el instanceof HTMLElement) {
-          const computedStyle = getComputedStyle(el)
-          const hasScrollableContent = (
-            computedStyle.overflow === 'scroll' || 
-            computedStyle.overflow === 'auto' ||
-            computedStyle.overflowY === 'scroll' || 
-            computedStyle.overflowY === 'auto'
-          ) && (
-            el.scrollHeight > el.clientHeight ||
-            computedStyle.maxHeight !== 'none'
-          )
+      // PHASE 1: PRE-PDF PREPARATION - Expand collapsed sections
+      
+      // 🛡️ GUARDRAIL: Safe collapsible section expansion
+      const expandCollapsibleSections = () => {
+        try {
+          // Find all CollapsibleTrigger elements
+          const allTriggers = element.querySelectorAll('[data-radix-collapsible-trigger]')
           
-          if (hasScrollableContent) {
-            // Store original state if not already stored
-            const alreadyStored = modifiedElements.some(item => item.element === el)
-            if (!alreadyStored) {
-              modifiedElements.push({
-                element: el,
-                originalState: '',
-                originalHeight: el.style.height,
-                originalMaxHeight: el.style.maxHeight,
-                originalOverflow: el.style.overflow,
-                originalOverflowY: el.style.overflowY,
-                stateAttribute: 'overflow'
-              })
+          allTriggers.forEach(trigger => {
+            if (trigger instanceof HTMLElement) {
+              // Find the associated Collapsible container
+              const collapsible = trigger.closest('[data-radix-collapsible-root]') || 
+                                 trigger.parentElement?.querySelector('[data-state]')
+              
+              // Only click if the section is closed
+              if (collapsible && (
+                collapsible.getAttribute('data-state') === 'closed' ||
+                trigger.getAttribute('aria-expanded') === 'false'
+              )) {
+                console.log('PDF Export: Expanding collapsed section via trigger click')
+                trigger.click()
+              }
             }
-            
-            // Make content fully visible
-            el.style.overflow = 'visible'
-            el.style.overflowY = 'visible'
-            el.style.height = 'auto'
-            el.style.maxHeight = 'none'
-          }
+          })
+        } catch (error) {
+          console.warn('PDF Export: Failed to expand some collapsible sections', error)
         }
-      })
-
-      // Wait for all expansions and layout changes to complete
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Store original styles for the main element restoration
-      const originalStyles = {
-        position: element.style.position,
-        width: element.style.width,
-        maxWidth: element.style.maxWidth,
-        minWidth: element.style.minWidth,
-        transform: element.style.transform,
-        overflow: element.style.overflow,
-        backgroundColor: element.style.backgroundColor
       }
 
-      // Temporarily optimize for PDF capture - ensure full visual rendering
+      expandCollapsibleSections()
+      
+      // 🛡️ GUARDRAIL: Wait for React re-render with timeout
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Find and expand all collapsed sections (fallback approach)
+      const expandFallbackSections = () => {
+        try {
+          const collapsedSections = element.querySelectorAll('[data-state="closed"], [aria-expanded="false"], .collapsed')
+          collapsedSections.forEach(section => {
+            if (section instanceof HTMLElement) {
+              const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
+                               section.hasAttribute('aria-expanded') ? 'aria-expanded' : 'class'
+              
+              // 🛡️ GUARDRAIL: Safe state backup
+              const stateBackup = safeElementOperation(
+                () => ({
+                  element: section,
+                  originalState: stateAttr === 'data-state' ? section.getAttribute('data-state') || '' :
+                                stateAttr === 'aria-expanded' ? section.getAttribute('aria-expanded') || '' :
+                                section.className,
+                  originalHeight: section.style.height,
+                  originalMaxHeight: section.style.maxHeight,
+                  originalOverflow: section.style.overflow,
+                  originalOverflowY: section.style.overflowY,
+                  stateAttribute: stateAttr
+                }),
+                'Failed to backup section state',
+                null
+              )
+
+              if (stateBackup) {
+                modifiedElements.push(stateBackup)
+                
+                // Expand the section
+                if (stateAttr === 'data-state') {
+                  section.setAttribute('data-state', 'open')
+                } else if (stateAttr === 'aria-expanded') {
+                  section.setAttribute('aria-expanded', 'true')
+                } else {
+                  section.className = section.className.replace(/\bcollapsed\b/g, '')
+                }
+              }
+            }
+          })
+        } catch (error) {
+          console.warn('PDF Export: Failed to expand fallback sections', error)
+        }
+      }
+
+      expandFallbackSections()
+
+      // Find and expand all scrollable content areas
+      const expandScrollableContent = () => {
+        try {
+          const scrollableElements = element.querySelectorAll('*')
+          Array.from(scrollableElements).forEach(el => {
+            if (el instanceof HTMLElement) {
+              const computedStyle = getComputedStyle(el)
+              const hasScrollableContent = (
+                computedStyle.overflow === 'scroll' || 
+                computedStyle.overflow === 'auto' ||
+                computedStyle.overflowY === 'scroll' || 
+                computedStyle.overflowY === 'auto'
+              ) && (
+                el.scrollHeight > el.clientHeight ||
+                computedStyle.maxHeight !== 'none'
+              )
+              
+              if (hasScrollableContent) {
+                // Store original state if not already stored
+                const alreadyStored = modifiedElements.some(item => item.element === el)
+                if (!alreadyStored) {
+                  modifiedElements.push({
+                    element: el,
+                    originalState: '',
+                    originalHeight: el.style.height,
+                    originalMaxHeight: el.style.maxHeight,
+                    originalOverflow: el.style.overflow,
+                    originalOverflowY: el.style.overflowY,
+                    stateAttribute: 'overflow'
+                  })
+                }
+                
+                // Make content fully visible
+                el.style.overflow = 'visible'
+                el.style.overflowY = 'visible'
+                el.style.height = 'auto'
+                el.style.maxHeight = 'none'
+              }
+            }
+          })
+        } catch (error) {
+          console.warn('PDF Export: Failed to expand scrollable content', error)
+        }
+      }
+
+      expandScrollableContent()
+
+      // 🛡️ GUARDRAIL: Wait for all expansions with timeout
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Temporarily optimize for PDF capture
       element.style.position = 'static'
       element.style.width = '1200px'
       element.style.maxWidth = '1200px'
@@ -144,13 +218,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Wait for layout reflow
       await new Promise(resolve => setTimeout(resolve, 300))
 
-      // Enhanced html2canvas configuration for FULL VISUAL CAPTURE
+      // 🛡️ GUARDRAIL: Enhanced html2canvas with error handling
       const canvas = await html2canvas(element, {
-        scale: 3, // Maximum quality for crisp output
+        scale: 3,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null, // Preserve all backgrounds and gradients
-        foreignObjectRendering: true, // Better CSS support
+        backgroundColor: null,
+        foreignObjectRendering: true,
         imageTimeout: 15000,
         logging: false,
         scrollX: 0,
@@ -160,7 +234,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         windowWidth: 1200,
         windowHeight: element.scrollHeight,
         ignoreElements: (element) => {
-          // Only skip elements explicitly marked for PDF exclusion
           return element.classList?.contains('no-pdf') || false
         },
         onclone: (clonedDoc, clonedElement) => {
@@ -326,44 +399,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 content.style.transform = 'none'
                 content.style.display = 'block'
               }
-            })
-          }
-        }
-      })
-
-      // PHASE 3: POST-PDF RESTORATION - Restore all original states
-      
-      // Restore main element styles immediately
-      Object.entries(originalStyles).forEach(([property, value]) => {
-        element.style[property as any] = value
-      })
-
-      // Restore all modified elements to their original states
-      modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
-        try {
-          if (stateAttribute === 'data-state') {
-            if (originalState) {
-              element.setAttribute('data-state', originalState)
-            } else {
-              element.removeAttribute('data-state')
             }
-          } else if (stateAttribute === 'aria-expanded') {
-            if (originalState) {
-              element.setAttribute('aria-expanded', originalState)
-            } else {
-              element.removeAttribute('aria-expanded')
-            }
-          } else if (stateAttribute === 'class') {
-            element.className = originalState
           }
-          
-          // Restore overflow and sizing properties
-          element.style.height = originalHeight
-          element.style.maxHeight = originalMaxHeight
-          element.style.overflow = originalOverflow
-          element.style.overflowY = originalOverflowY
-        } catch (error) {
-          console.warn('Failed to restore element state:', error)
         }
       })
 
@@ -375,7 +412,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
-        compress: false // Maintain visual quality
+        compress: false
       })
 
       // A4 Portrait dimensions
@@ -481,36 +518,51 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       
     } catch (error) {
       console.error('PDF export failed:', error)
-      
-      // CRITICAL: Always restore states even if PDF generation fails
-      modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
-        try {
-          if (stateAttribute === 'data-state') {
-            if (originalState) {
-              element.setAttribute('data-state', originalState)
-            } else {
-              element.removeAttribute('data-state')
-            }
-          } else if (stateAttribute === 'aria-expanded') {
-            if (originalState) {
-              element.setAttribute('aria-expanded', originalState)
-            } else {
-              element.removeAttribute('aria-expanded')
-            }
-          } else if (stateAttribute === 'class') {
-            element.className = originalState
-          }
-          
-          element.style.height = originalHeight
-          element.style.maxHeight = originalMaxHeight
-          element.style.overflow = originalOverflow
-          element.style.overflowY = originalOverflowY
-        } catch (restoreError) {
-          console.warn('Failed to restore element state after error:', restoreError)
-        }
-      })
-      
       toast.error('Failed to generate professional PDF. Please try again.')
+    } finally {
+      // 🛡️ GUARDRAIL: Always restore states, even if PDF generation fails
+      try {
+        // Re-enable user interactions
+        document.body.style.pointerEvents = ''
+        
+        // Restore main element styles
+        const element = document.getElementById(elementId)
+        if (element && originalElementStyles) {
+          Object.entries(originalElementStyles).forEach(([property, value]) => {
+            element.style[property as any] = value || ''
+          })
+        }
+
+        // Restore all modified elements
+        modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
+          try {
+            if (stateAttribute === 'data-state') {
+              if (originalState) {
+                element.setAttribute('data-state', originalState)
+              } else {
+                element.removeAttribute('data-state')
+              }
+            } else if (stateAttribute === 'aria-expanded') {
+              if (originalState) {
+                element.setAttribute('aria-expanded', originalState)
+              } else {
+                element.removeAttribute('aria-expanded')
+              }
+            } else if (stateAttribute === 'class') {
+              element.className = originalState
+            }
+            
+            element.style.height = originalHeight
+            element.style.maxHeight = originalMaxHeight
+            element.style.overflow = originalOverflow
+            element.style.overflowY = originalOverflowY
+          } catch (restoreError) {
+            console.warn('PDF Export: Failed to restore element state:', restoreError)
+          }
+        })
+      } catch (finalError) {
+        console.error('PDF Export: Failed during cleanup:', finalError)
+      }
     }
   }, [filename])
   
