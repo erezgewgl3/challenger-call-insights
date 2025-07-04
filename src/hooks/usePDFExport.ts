@@ -301,6 +301,19 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 section.style.overflow = 'visible'
               }
             })
+
+            // 🔧 SURGICAL COLLAPSIBLE SECTIONS FIX: Force Radix UI CollapsibleContent to expand
+            const collapsibleContent = clonedElement.querySelectorAll('[data-radix-collapsible-content]')
+            collapsibleContent.forEach(content => {
+              if (content instanceof HTMLElement) {
+                content.setAttribute('data-state', 'open')
+                content.style.height = 'auto'
+                content.style.maxHeight = 'none'
+                content.style.overflow = 'visible'
+                content.style.transform = 'none'
+                content.style.display = 'block'
+              }
+            })
           }
         }
       })
