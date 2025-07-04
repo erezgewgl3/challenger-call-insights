@@ -1,13 +1,44 @@
-
 import React, { useState } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { 
   ArrowLeft, 
-  Upload,
-  Star
+  Upload, 
+  Copy,
+  Users,
+  Phone,
+  Mail,
+  MessageSquare,
+  Calendar,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  TrendingUp,
+  DollarSign,
+  ExternalLink,
+  Target,
+  Zap,
+  Star,
+  Thermometer,
+  Crown,
+  ChevronDown,
+  ChevronUp,
+  Lightbulb,
+  FileText,
+  Shield,
+  Activity,
+  Eye,
+  Trophy,
+  TrendingDown,
+  Building2,
+  AlertCircle,
+  ArrowRight
 } from 'lucide-react'
+import { toast } from 'sonner'
 import { HeroSection } from './HeroSection'
 import { BattlePlanSection } from './BattlePlanSection'
 import { StakeholderNavigation } from './StakeholderNavigation'
@@ -48,10 +79,8 @@ export function NewAnalysisView({
   const copyToClipboard = async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      const { toast } = await import('sonner')
       toast.success(`${type} copied to clipboard!`)
     } catch (error) {
-      const { toast } = await import('sonner')
       toast.error('Failed to copy to clipboard')
     }
   }
@@ -80,6 +109,7 @@ export function NewAnalysisView({
     })
   }
 
+  // Enhanced stakeholder role mapping function with NO FALLBACKS
   const getStakeholderDisplay = (contact: any) => {
     const challengerRole = contact.challengerRole;
     
@@ -108,6 +138,7 @@ export function NewAnalysisView({
     return '👤'
   }
 
+  // Enhanced data mapping functions for hero section
   const getDealHeat = () => {
     const painLevel = analysis.call_summary?.painSeverity?.level || 'low'
     const indicators = analysis.call_summary?.painSeverity?.indicators || []
@@ -366,11 +397,14 @@ export function NewAnalysisView({
   const timeline = getTimeline()
   const participants = analysis.participants || {}
 
+  // 🚀 SMART PRIORITY SYSTEM - Auto-expand based on deal heat
   const isHighPriorityDeal = dealHeat.level === 'HIGH'
+  const isMediumPriorityDeal = dealHeat.level === 'MEDIUM'
   
+  // State for collapsible sections with smart defaults
   const [sectionsOpen, setSectionsOpen] = useState({
-    insights: isHighPriorityDeal,
-    competitive: false
+    insights: isHighPriorityDeal, // Open for high-priority deals
+    competitive: false // Progressive disclosure
   })
 
   const toggleSection = (section: keyof typeof sectionsOpen) => {
@@ -428,6 +462,7 @@ export function NewAnalysisView({
       <TooltipProvider>
         <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
           
+          {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
           <div className="mb-6 lg:mb-8">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
               <Button 
@@ -440,6 +475,7 @@ export function NewAnalysisView({
               </Button>
               
               <div className="flex items-center gap-3">
+                {/* 🚀 PRIORITY INDICATOR */}
                 {dealHeat.level === 'HIGH' && (
                   <Badge className="bg-red-100 text-red-800 px-3 py-1 animate-pulse">
                     🔥 HIGH PRIORITY
@@ -476,6 +512,7 @@ export function NewAnalysisView({
             </div>
           </div>
 
+          {/* 🏆 HERO SECTION */}
           <HeroSection
             transcript={transcript}
             analysis={analysis}
@@ -488,6 +525,7 @@ export function NewAnalysisView({
             getRoleIcon={getRoleIcon}
           />
 
+          {/* 🚀 BATTLE PLAN SECTION */}
           <BattlePlanSection
             analysis={analysis}
             dealHeat={dealHeat}
@@ -496,8 +534,10 @@ export function NewAnalysisView({
             openInEmailClient={openInEmailClient}
           />
 
+          {/* 🎯 STAKEHOLDER NAVIGATION */}
           <StakeholderNavigation analysis={analysis} />
 
+          {/* 🎯 EXPANDABLE SECTIONS */}
           <ExpandableSections
             analysis={analysis}
             dealHeat={dealHeat}
