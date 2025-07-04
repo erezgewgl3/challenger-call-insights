@@ -36,7 +36,8 @@ import {
   TrendingDown,
   Building2,
   AlertCircle,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { HeroSection } from './HeroSection'
@@ -78,9 +79,20 @@ export function NewAnalysisView({
 }: NewAnalysisViewProps) {
   
   const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
+  const [isExporting, setIsExporting] = useState(false)
 
   const handleExportPDF = useCallback(async () => {
-    await exportToPDF('analysis-content', transcript.title)
+    setIsExporting(true)
+    try {
+      // Clean the title for filename
+      const cleanTitle = transcript.title
+        .replace(/[^a-zA-Z0-9_\-\s]/g, '')
+        .trim()
+      
+      await exportToPDF('analysis-content', cleanTitle)
+    } finally {
+      setIsExporting(false)
+    }
   }, [exportToPDF, transcript.title])
   
   const copyToClipboard = async (text: string, type: string) => {
@@ -467,7 +479,7 @@ export function NewAnalysisView({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <TooltipProvider>
-        <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
+        <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
           
           {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
           <div className="mb-6 lg:mb-8">
@@ -496,10 +508,20 @@ export function NewAnalysisView({
                 
                 <Button 
                   onClick={handleExportPDF}
-                  className="bg-green-600 hover:bg-green-700"
+                  disabled={isExporting}
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Export PDF
+                  {isExporting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Generating PDF...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Export PDF
+                    </>
+                  )}
                 </Button>
               </div>
             </div>
