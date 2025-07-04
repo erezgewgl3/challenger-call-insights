@@ -1,5 +1,4 @@
 
-
 import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -17,6 +16,11 @@ interface ElementState {
   originalOverflow: string
   originalOverflowY: string
   stateAttribute: string
+}
+
+interface PDFExportOptions {
+  sectionsOpen?: Record<string, boolean>
+  toggleSection?: (section: string) => void
 }
 
 // 🛡️ GUARDRAILS: Validation utilities
@@ -44,9 +48,14 @@ const safeElementOperation = <T>(
 }
 
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
-  const exportToPDF = useCallback(async (elementId: string, title: string) => {
+  const exportToPDF = useCallback(async (
+    elementId: string, 
+    title: string, 
+    options: PDFExportOptions = {}
+  ) => {
     let modifiedElements: ElementState[] = []
     let originalElementStyles: Record<string, string> = {}
+    let originalSectionsState: Record<string, boolean> = {}
     
     try {
       toast.info('Generating professional PDF with full visual design...', { duration: 3000 })
@@ -61,6 +70,42 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Ensure we're at the top and everything is loaded
       window.scrollTo(0, 0)
       await new Promise(resolve => setTimeout(resolve, 500))
+
+      // 🚀 NEW: React State Control for Collapsible Sections
+      if (options.sectionsOpen && options.toggleSection) {
+        console.log('PDF Export: Managing React state for collapsible sections')
+        
+        // Backup original state
+        originalSectionsState = { ...options.sectionsOpen }
+        
+        // Expand all collapsed sections via React state
+        Object.keys(options.sectionsOpen).forEach(sectionKey => {
+          if (!options.sectionsOpen![sectionKey]) {
+            console.log(`PDF Export: Expanding section: ${sectionKey}`)
+            options.toggleSection!(sectionKey)
+          }
+        })
+        
+        // Wait for React state updates and re-renders
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        
+        // Verify sections are expanded
+        const verifyExpansion = () => {
+          const closedSections = element.querySelectorAll('[data-state="closed"]')
+          console.log(`PDF Export: Found ${closedSections.length} still-closed sections after React state control`)
+          
+          if (closedSections.length > 0) {
+            console.log('PDF Export: Some sections still closed, applying DOM fixes')
+            return false
+          }
+          return true
+        }
+        
+        const expansionSuccessful = verifyExpansion()
+        if (!expansionSuccessful) {
+          console.warn('PDF Export: React state expansion incomplete, proceeding with DOM fallback')
+        }
+      }
 
       // 🛡️ GUARDRAIL: Safe backup of original element styles
       originalElementStyles = safeElementOperation(
@@ -85,30 +130,36 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }
       )
 
-      // PHASE 1: PRE-PDF PREPARATION - Expand collapsed sections
+      // PHASE 1: PRE-PDF PREPARATION - Enhanced Collapsible Section Expansion
       
-      // 🛡️ GUARDRAIL: Safe collapsible section expansion
+      // 🛡️ GUARDRAIL: Enhanced collapsible section expansion with better selectors
       const expandCollapsibleSections = () => {
         try {
-          // Find all CollapsibleTrigger elements
-          const allTriggers = element.querySelectorAll('[data-radix-collapsible-trigger]')
+          console.log('PDF Export: Starting enhanced collapsible section expansion')
           
-          allTriggers.forEach(trigger => {
+          // Target Radix UI Collapsible components specifically
+          const collapsibleRoots = element.querySelectorAll('[data-radix-collapsible-root][data-state="closed"]')
+          console.log(`PDF Export: Found ${collapsibleRoots.length} closed collapsible roots`)
+          
+          collapsibleRoots.forEach((root, index) => {
+            const trigger = root.querySelector('[data-radix-collapsible-trigger]')
             if (trigger instanceof HTMLElement) {
-              // Find the associated Collapsible container
-              const collapsible = trigger.closest('[data-radix-collapsible-root]') || 
-                                 trigger.parentElement?.querySelector('[data-state]')
-              
-              // Only click if the section is closed
-              if (collapsible && (
-                collapsible.getAttribute('data-state') === 'closed' ||
-                trigger.getAttribute('aria-expanded') === 'false'
-              )) {
-                console.log('PDF Export: Expanding collapsed section via trigger click')
-                trigger.click()
-              }
+              console.log(`PDF Export: Clicking trigger ${index + 1} for collapsible section`)
+              trigger.click()
             }
           })
+          
+          // Also find any standalone triggers that might be separate from roots
+          const standaloneTriggers = element.querySelectorAll('[data-radix-collapsible-trigger][aria-expanded="false"]')
+          console.log(`PDF Export: Found ${standaloneTriggers.length} standalone closed triggers`)
+          
+          standaloneTriggers.forEach((trigger, index) => {
+            if (trigger instanceof HTMLElement) {
+              console.log(`PDF Export: Clicking standalone trigger ${index + 1}`)
+              trigger.click()
+            }
+          })
+          
         } catch (error) {
           console.warn('PDF Export: Failed to expand some collapsible sections', error)
         }
@@ -116,15 +167,28 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       expandCollapsibleSections()
       
-      // 🛡️ GUARDRAIL: Wait for React re-render with timeout
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      // 🛡️ GUARDRAIL: Extended wait for React re-render with verification
+      await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Find and expand all collapsed sections (fallback approach)
+      // Enhanced fallback expansion with better targeting
       const expandFallbackSections = () => {
         try {
-          const collapsedSections = element.querySelectorAll('[data-state="closed"], [aria-expanded="false"], .collapsed')
-          collapsedSections.forEach(section => {
+          console.log('PDF Export: Starting fallback section expansion')
+          
+          // Target all remaining closed elements with better selectors
+          const closedElements = element.querySelectorAll(`
+            [data-state="closed"],
+            [aria-expanded="false"],
+            [data-radix-collapsible-content][data-state="closed"],
+            .collapsed
+          `)
+          
+          console.log(`PDF Export: Found ${closedElements.length} elements needing fallback expansion`)
+          
+          closedElements.forEach((section, index) => {
             if (section instanceof HTMLElement) {
+              console.log(`PDF Export: Processing fallback element ${index + 1}`)
+              
               const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
                                section.hasAttribute('aria-expanded') ? 'aria-expanded' : 'class'
               
@@ -156,6 +220,15 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 } else {
                   section.className = section.className.replace(/\bcollapsed\b/g, '')
                 }
+                
+                // Force visibility
+                section.style.display = 'block'
+                section.style.visibility = 'visible'
+                section.style.height = 'auto'
+                section.style.maxHeight = 'none'
+                section.style.overflow = 'visible'
+                
+                console.log(`PDF Export: Expanded fallback element ${index + 1}`)
               }
             }
           })
@@ -170,6 +243,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       const expandScrollableContent = () => {
         try {
           const scrollableElements = element.querySelectorAll('*')
+          let expandedCount = 0
+          
           Array.from(scrollableElements).forEach(el => {
             if (el instanceof HTMLElement) {
               const computedStyle = getComputedStyle(el)
@@ -203,9 +278,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.overflowY = 'visible'
                 el.style.height = 'auto'
                 el.style.maxHeight = 'none'
+                expandedCount++
               }
             }
           })
+          
+          console.log(`PDF Export: Expanded ${expandedCount} scrollable content areas`)
         } catch (error) {
           console.warn('PDF Export: Failed to expand scrollable content', error)
         }
@@ -213,8 +291,16 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       expandScrollableContent()
 
-      // 🛡️ GUARDRAIL: Wait for all expansions with timeout
+      // 🛡️ GUARDRAIL: Final wait for all expansions with verification
       await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Final verification before PDF generation
+      const finalClosedSections = element.querySelectorAll('[data-state="closed"], [aria-expanded="false"]')
+      if (finalClosedSections.length > 0) {
+        console.warn(`PDF Export: ${finalClosedSections.length} sections may still be closed, but proceeding with PDF generation`)
+      } else {
+        console.log('PDF Export: All sections successfully expanded for PDF capture')
+      }
 
       // Temporarily optimize for PDF capture
       element.style.position = 'static'
@@ -386,28 +472,22 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               }
             })
 
-            // SPECIAL HANDLING: Ensure expanded sections stay expanded in clone
-            const expandedSections = clonedElement.querySelectorAll('[data-state="open"], [aria-expanded="true"]')
-            Array.from(expandedSections).forEach(section => {
-              if (section instanceof HTMLElement) {
-                section.style.display = 'block'
-                section.style.visibility = 'visible'
-                section.style.height = 'auto'
-                section.style.maxHeight = 'none'
-                section.style.overflow = 'visible'
-              }
-            })
-
-            // 🔧 SURGICAL COLLAPSIBLE SECTIONS FIX: Force Radix UI CollapsibleContent to expand
-            const collapsibleContent = clonedElement.querySelectorAll('[data-radix-collapsible-content]')
+            // 🔧 CRITICAL: Force all collapsible content to be visible in the clone
+            const collapsibleContent = clonedElement.querySelectorAll(`
+              [data-radix-collapsible-content],
+              [data-state="closed"],
+              [aria-expanded="false"]
+            `)
             collapsibleContent.forEach(content => {
               if (content instanceof HTMLElement) {
                 content.setAttribute('data-state', 'open')
+                content.setAttribute('aria-expanded', 'true')
                 content.style.height = 'auto'
                 content.style.maxHeight = 'none'
                 content.style.overflow = 'visible'
                 content.style.transform = 'none'
                 content.style.display = 'block'
+                content.style.visibility = 'visible'
               }
             })
           }
@@ -524,7 +604,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Save the PDF
       pdf.save(pdfFilename)
       
-      toast.success('Professional PDF with full content exported successfully!', { duration: 4000 })
+      toast.success('Professional PDF with all sections exported successfully!', { duration: 4000 })
       
     } catch (error) {
       console.error('PDF export failed:', error)
@@ -534,6 +614,20 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       try {
         // Re-enable user interactions
         document.body.style.pointerEvents = ''
+        
+        // 🚀 CRITICAL: Restore React state first
+        if (Object.keys(originalSectionsState).length > 0 && options.toggleSection) {
+          console.log('PDF Export: Restoring original React state')
+          Object.entries(originalSectionsState).forEach(([sectionKey, originalValue]) => {
+            if (options.sectionsOpen![sectionKey] !== originalValue) {
+              console.log(`PDF Export: Restoring section ${sectionKey} to ${originalValue}`)
+              options.toggleSection!(sectionKey)
+            }
+          })
+          
+          // Wait for React state restoration
+          await new Promise(resolve => setTimeout(resolve, 500))
+        }
         
         // Restore main element styles
         const element = document.getElementById(elementId)
@@ -570,6 +664,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             console.warn('PDF Export: Failed to restore element state:', restoreError)
           }
         })
+        
+        console.log('PDF Export: All states restored successfully')
       } catch (finalError) {
         console.error('PDF Export: Failed during cleanup:', finalError)
       }
@@ -578,4 +674,3 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
   
   return { exportToPDF }
 }
-

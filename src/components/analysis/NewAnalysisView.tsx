@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -82,15 +81,36 @@ export function NewAnalysisView({
   const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
   const [isExporting, setIsExporting] = useState(false)
 
+  // 🚀 SMART PRIORITY SYSTEM - Auto-expand based on deal heat
+  const isHighPriorityDeal = getDealHeat().level === 'HIGH'
+  const isMediumPriorityDeal = getDealHeat().level === 'MEDIUM'
+  
+  // State for collapsible sections with smart defaults
+  const [sectionsOpen, setSectionsOpen] = useState({
+    insights: isHighPriorityDeal, // Open for high-priority deals
+    competitive: false // Progressive disclosure
+  })
+
+  const toggleSection = (section: keyof typeof sectionsOpen) => {
+    setSectionsOpen(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
   const handleExportPDF = useCallback(async () => {
     setIsExporting(true)
     try {
       const cleanTitle = transcript.title.trim()
-      await exportToPDF('analysis-content', cleanTitle)
+      // 🚀 NEW: Pass React state control to PDF export
+      await exportToPDF('analysis-content', cleanTitle, {
+        sectionsOpen,
+        toggleSection
+      })
     } finally {
       setIsExporting(false)
     }
-  }, [exportToPDF, transcript.title])
+  }, [exportToPDF, transcript.title, sectionsOpen, toggleSection])
   
   const copyToClipboard = async (text: string, type: string) => {
     try {
@@ -412,65 +432,6 @@ export function NewAnalysisView({
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()
   const participants = analysis.participants || {}
-
-  // 🚀 SMART PRIORITY SYSTEM - Auto-expand based on deal heat
-  const isHighPriorityDeal = dealHeat.level === 'HIGH'
-  const isMediumPriorityDeal = dealHeat.level === 'MEDIUM'
-  
-  // State for collapsible sections with smart defaults
-  const [sectionsOpen, setSectionsOpen] = useState({
-    insights: isHighPriorityDeal, // Open for high-priority deals
-    competitive: false // Progressive disclosure
-  })
-
-  const toggleSection = (section: keyof typeof sectionsOpen) => {
-    setSectionsOpen(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
-  }
-
-  const getConversationIntelligence = () => {
-    const callSummary = analysis.call_summary || {}
-    
-    const signals = {
-      positive: [],
-      concerns: [],
-      competitive: [],
-      pain: []
-    }
-    
-    const buyingSignalsAnalysis = callSummary.buyingSignalsAnalysis || {}
-    if (buyingSignalsAnalysis.commitmentSignals) {
-      signals.positive.push(...buyingSignalsAnalysis.commitmentSignals.map(s => `🎯 ${s}`))
-    }
-    if (buyingSignalsAnalysis.engagementSignals) {
-      signals.positive.push(...buyingSignalsAnalysis.engagementSignals.map(s => `📈 ${s}`))
-    }
-    if (buyingSignalsAnalysis.interestSignals) {
-      signals.positive.push(...buyingSignalsAnalysis.interestSignals.map(s => `💡 ${s}`))
-    }
-    
-    const competitiveIntelligence = callSummary.competitiveIntelligence || {}
-    if (competitiveIntelligence.concerns) {
-      signals.concerns.push(...competitiveIntelligence.concerns.map(c => `⚠️ ${c}`))
-    }
-    if (competitiveIntelligence.objections) {
-      signals.concerns.push(...competitiveIntelligence.objections.map(o => `❓ ${o}`))
-    }
-    
-    if (competitiveIntelligence.competitorsMentioned) {
-      signals.competitive.push(...competitiveIntelligence.competitorsMentioned.map(c => `🏢 ${c.name}: ${c.context}`))
-    }
-    
-    const painSeverity = callSummary.painSeverity || {}
-    if (painSeverity.indicators) {
-      signals.pain.push(...painSeverity.indicators.map(p => `🔥 ${p}`))
-    }
-    
-    return signals
-  }
-
   const conversationIntel = getConversationIntelligence()
 
   return (
