@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -7,7 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { 
   ArrowLeft, 
-  Upload, 
+  Download,
   Copy,
   Users,
   Phone,
@@ -43,6 +43,7 @@ import { HeroSection } from './HeroSection'
 import { BattlePlanSection } from './BattlePlanSection'
 import { StakeholderNavigation } from './StakeholderNavigation'
 import { ExpandableSections } from './ExpandableSections'
+import { usePDFExport } from '@/hooks/usePDFExport'
 
 interface AnalysisData {
   id: string
@@ -75,6 +76,12 @@ export function NewAnalysisView({
   onBackToDashboard, 
   onUploadAnother 
 }: NewAnalysisViewProps) {
+  
+  const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
+
+  const handleExportPDF = useCallback(async () => {
+    await exportToPDF('analysis-content', transcript.title)
+  }, [exportToPDF, transcript.title])
   
   const copyToClipboard = async (text: string, type: string) => {
     try {
@@ -460,7 +467,7 @@ export function NewAnalysisView({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <TooltipProvider>
-        <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
+        <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
           
           {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
           <div className="mb-6 lg:mb-8">
@@ -488,11 +495,11 @@ export function NewAnalysisView({
                 )}
                 
                 <Button 
-                  onClick={onUploadAnother}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  onClick={handleExportPDF}
+                  className="bg-green-600 hover:bg-green-700"
                 >
-                  <Upload className="w-4 h-4 mr-2" />
-                  Upload Another
+                  <Download className="w-4 h-4 mr-2" />
+                  Export PDF
                 </Button>
               </div>
             </div>
