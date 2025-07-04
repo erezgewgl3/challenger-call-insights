@@ -7,20 +7,8 @@ interface UsePDFExportProps {
   filename?: string
 }
 
-interface ElementState {
-  element: HTMLElement
-  originalState: string
-  originalHeight: string
-  originalMaxHeight: string
-  originalOverflow: string
-  originalOverflowY: string
-  stateAttribute: string
-}
-
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string) => {
-    let modifiedElements: ElementState[] = []
-    
     try {
       toast.info('Generating professional PDF with full visual design...', { duration: 3000 })
       
@@ -34,81 +22,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       window.scrollTo(0, 0)
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // PHASE 1: PRE-PDF PREPARATION - Expand collapsed sections and scrollable content
-      
-      // Find and expand all collapsed sections
-      const collapsedSections = element.querySelectorAll('[data-state="closed"], [aria-expanded="false"], .collapsed')
-      collapsedSections.forEach(section => {
-        if (section instanceof HTMLElement) {
-          const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
-                           section.hasAttribute('aria-expanded') ? 'aria-expanded' : 'class'
-          
-          modifiedElements.push({
-            element: section,
-            originalState: stateAttr === 'data-state' ? section.getAttribute('data-state') || '' :
-                          stateAttr === 'aria-expanded' ? section.getAttribute('aria-expanded') || '' :
-                          section.className,
-            originalHeight: section.style.height,
-            originalMaxHeight: section.style.maxHeight,
-            originalOverflow: section.style.overflow,
-            originalOverflowY: section.style.overflowY,
-            stateAttribute: stateAttr
-          })
-          
-          // Expand the section
-          if (stateAttr === 'data-state') {
-            section.setAttribute('data-state', 'open')
-          } else if (stateAttr === 'aria-expanded') {
-            section.setAttribute('aria-expanded', 'true')
-          } else {
-            section.className = section.className.replace(/\bcollapsed\b/g, '')
-          }
-        }
-      })
-
-      // Find and expand all scrollable content areas
-      const scrollableElements = element.querySelectorAll('*')
-      Array.from(scrollableElements).forEach(el => {
-        if (el instanceof HTMLElement) {
-          const computedStyle = getComputedStyle(el)
-          const hasScrollableContent = (
-            computedStyle.overflow === 'scroll' || 
-            computedStyle.overflow === 'auto' ||
-            computedStyle.overflowY === 'scroll' || 
-            computedStyle.overflowY === 'auto'
-          ) && (
-            el.scrollHeight > el.clientHeight ||
-            computedStyle.maxHeight !== 'none'
-          )
-          
-          if (hasScrollableContent) {
-            // Store original state if not already stored
-            const alreadyStored = modifiedElements.some(item => item.element === el)
-            if (!alreadyStored) {
-              modifiedElements.push({
-                element: el,
-                originalState: '',
-                originalHeight: el.style.height,
-                originalMaxHeight: el.style.maxHeight,
-                originalOverflow: el.style.overflow,
-                originalOverflowY: el.style.overflowY,
-                stateAttribute: 'overflow'
-              })
-            }
-            
-            // Make content fully visible
-            el.style.overflow = 'visible'
-            el.style.overflowY = 'visible'
-            el.style.height = 'auto'
-            el.style.maxHeight = 'none'
-          }
-        }
-      })
-
-      // Wait for all expansions and layout changes to complete
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Store original styles for the main element restoration
+      // Store original styles for restoration
       const originalStyles = {
         position: element.style.position,
         width: element.style.width,
@@ -160,6 +74,32 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             clonedElement.style.transform = 'none'
             clonedElement.style.overflow = 'visible'
             
+            // 🔧 COLLAPSED SECTIONS FIX: Force all Radix UI collapsed sections to expand in PDF
+            const collapsibleContent = clonedElement.querySelectorAll('[data-state="closed"]')
+            collapsibleContent.forEach(content => {
+              if (content instanceof HTMLElement) {
+                // Force the content to be visible in PDF
+                content.setAttribute('data-state', 'open')
+                content.style.display = 'block'
+                content.style.visibility = 'visible' 
+                content.style.opacity = '1'
+                content.style.height = 'auto'
+                content.style.maxHeight = 'none'
+                content.style.overflow = 'visible'
+                content.style.transform = 'none'
+              }
+            })
+
+            // Also ensure Radix collapsible containers are properly sized
+            const collapsibleContainers = clonedElement.querySelectorAll('[data-radix-collapsible-content], [data-radix-collapsible-root]')
+            collapsibleContainers.forEach(container => {
+              if (container instanceof HTMLElement) {
+                container.style.height = 'auto'
+                container.style.maxHeight = 'none'
+                container.style.overflow = 'visible'
+              }
+            })
+
             // Force render all gradients and backgrounds
             const allElements = clonedElement.querySelectorAll('*')
             Array.from(allElements).forEach(el => {
@@ -199,15 +139,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.alignItems = computedStyle.alignItems
                 el.style.justifyContent = computedStyle.justifyContent
                 el.style.gap = computedStyle.gap
-                
-                // CRITICAL: Force all previously scrollable content to be fully visible
-                if (computedStyle.overflow === 'scroll' || computedStyle.overflow === 'auto' ||
-                    computedStyle.overflowY === 'scroll' || computedStyle.overflowY === 'auto') {
-                  el.style.overflow = 'visible'
-                  el.style.overflowY = 'visible'
-                  el.style.height = 'auto'
-                  el.style.maxHeight = 'none'
-                }
                 
                 // Enhanced font smoothing for crisp text (TypeScript-safe)
                 el.style.setProperty('-webkit-font-smoothing', 'antialiased')
@@ -289,56 +220,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 }
               }
             })
-
-            // SPECIAL HANDLING: Ensure expanded sections stay expanded in clone
-            const expandedSections = clonedElement.querySelectorAll('[data-state="open"], [aria-expanded="true"]')
-            Array.from(expandedSections).forEach(section => {
-              if (section instanceof HTMLElement) {
-                section.style.display = 'block'
-                section.style.visibility = 'visible'
-                section.style.height = 'auto'
-                section.style.maxHeight = 'none'
-                section.style.overflow = 'visible'
-              }
-            })
           }
         }
       })
 
-      // PHASE 3: POST-PDF RESTORATION - Restore all original states
-      
-      // Restore main element styles immediately
+      // Restore original styles immediately
       Object.entries(originalStyles).forEach(([property, value]) => {
         element.style[property as any] = value
-      })
-
-      // Restore all modified elements to their original states
-      modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
-        try {
-          if (stateAttribute === 'data-state') {
-            if (originalState) {
-              element.setAttribute('data-state', originalState)
-            } else {
-              element.removeAttribute('data-state')
-            }
-          } else if (stateAttribute === 'aria-expanded') {
-            if (originalState) {
-              element.setAttribute('aria-expanded', originalState)
-            } else {
-              element.removeAttribute('aria-expanded')
-            }
-          } else if (stateAttribute === 'class') {
-            element.className = originalState
-          }
-          
-          // Restore overflow and sizing properties
-          element.style.height = originalHeight
-          element.style.maxHeight = originalMaxHeight
-          element.style.overflow = originalOverflow
-          element.style.overflowY = originalOverflowY
-        } catch (error) {
-          console.warn('Failed to restore element state:', error)
-        }
       })
 
       // Convert to high-quality image data
@@ -451,39 +339,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Save the PDF
       pdf.save(pdfFilename)
       
-      toast.success('Professional PDF with full content exported successfully!', { duration: 4000 })
+      toast.success('Professional PDF with full visual design exported successfully!', { duration: 4000 })
       
     } catch (error) {
       console.error('PDF export failed:', error)
-      
-      // CRITICAL: Always restore states even if PDF generation fails
-      modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
-        try {
-          if (stateAttribute === 'data-state') {
-            if (originalState) {
-              element.setAttribute('data-state', originalState)
-            } else {
-              element.removeAttribute('data-state')
-            }
-          } else if (stateAttribute === 'aria-expanded') {
-            if (originalState) {
-              element.setAttribute('aria-expanded', originalState)
-            } else {
-              element.removeAttribute('aria-expanded')
-            }
-          } else if (stateAttribute === 'class') {
-            element.className = originalState
-          }
-          
-          element.style.height = originalHeight
-          element.style.maxHeight = originalMaxHeight
-          element.style.overflow = originalOverflow
-          element.style.overflowY = originalOverflowY
-        } catch (restoreError) {
-          console.warn('Failed to restore element state after error:', restoreError)
-        }
-      })
-      
       toast.error('Failed to generate professional PDF. Please try again.')
     }
   }, [filename])
