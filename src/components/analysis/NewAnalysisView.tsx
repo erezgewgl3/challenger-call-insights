@@ -84,11 +84,7 @@ export function NewAnalysisView({
   const handleExportPDF = useCallback(async () => {
     setIsExporting(true)
     try {
-      // Clean the title for filename
-      const cleanTitle = transcript.title
-        .replace(/[^a-zA-Z0-9_\-\s]/g, '')
-        .trim()
-      
+      const cleanTitle = transcript.title.trim()
       await exportToPDF('analysis-content', cleanTitle)
     } finally {
       setIsExporting(false)
@@ -479,7 +475,7 @@ export function NewAnalysisView({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <TooltipProvider>
-        <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
+        <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
           
           {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
           <div className="mb-6 lg:mb-8">
