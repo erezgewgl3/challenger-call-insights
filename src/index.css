@@ -103,13 +103,25 @@
   }
 }
 
-/* PDF Export Optimizations */
+/* Enhanced PDF Export Optimizations - CRITICAL for Visual Capture */
 @media print, (prefers-color-scheme: pdf) {
   * {
     -webkit-font-smoothing: antialiased !important;
     -moz-osx-font-smoothing: grayscale !important;
     text-rendering: optimizeLegibility !important;
     font-feature-settings: "liga", "kern" !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Force all backgrounds and gradients to render */
+  *[class*="bg-"], 
+  *[class*="gradient"], 
+  *[style*="background"] {
+    background-attachment: local !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
   
   /* Ensure badges render perfectly in PDF */
@@ -122,6 +134,8 @@
     white-space: nowrap !important;
     vertical-align: middle !important;
     flex-shrink: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
   /* Prevent content cutoff in cards */
@@ -131,6 +145,8 @@
     height: auto !important;
     min-height: auto !important;
     max-height: none !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   
   /* Ensure all text is fully visible */
@@ -148,8 +164,62 @@
     display: grid !important;
   }
   
-  /* Ensure gradients render properly */
-  [class*="gradient"] {
+  /* Force render all gradients and colors */
+  [class*="gradient"],
+  [class*="bg-red"],
+  [class*="bg-blue"], 
+  [class*="bg-green"],
+  [class*="bg-purple"],
+  [class*="bg-orange"],
+  [class*="bg-yellow"],
+  [class*="bg-teal"],
+  [class*="bg-slate"] {
     background-attachment: local !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
   }
+  
+  /* Force text colors */
+  [class*="text-red"],
+  [class*="text-blue"], 
+  [class*="text-green"],
+  [class*="text-purple"],
+  [class*="text-orange"],
+  [class*="text-yellow"],
+  [class*="text-teal"],
+  [class*="text-slate"],
+  [class*="text-white"] {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+}
+
+/* Enhanced visual rendering for PDF capture */
+.pdf-optimized {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga", "kern";
+}
+
+/* Force gradient rendering during PDF capture */
+.pdf-optimized [class*="gradient"],
+.pdf-optimized [style*="gradient"] {
+  background-attachment: local;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Ensure proper badge alignment during PDF capture */
+.pdf-optimized [class*="badge"],
+.pdf-optimized [class*="Badge"],
+.pdf-optimized .inline-flex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  flex-shrink: 0;
 }

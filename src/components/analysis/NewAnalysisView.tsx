@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -475,7 +476,8 @@ export function NewAnalysisView({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <TooltipProvider>
-        <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
+        {/* ENHANCED: Add pdf-optimized class to main content container */}
+        <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
           
           {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
           <div className="mb-6 lg:mb-8">
@@ -510,7 +512,7 @@ export function NewAnalysisView({
                   {isExporting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating Report...
+                      Generating Professional PDF...
                     </>
                   ) : (
                     <>
