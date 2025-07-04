@@ -74,8 +74,19 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             clonedElement.style.transform = 'none'
             clonedElement.style.overflow = 'visible'
             
+            // 🔧 EMAIL CONTENT EXPANSION FIX: Remove height constraints from scrollable email containers
+            const scrollableEmails = clonedElement.querySelectorAll('.max-h-32.overflow-y-auto')
+            scrollableEmails.forEach(container => {
+              if (container instanceof HTMLElement) {
+                container.classList.remove('max-h-32')
+                container.style.maxHeight = 'none'
+                container.style.height = 'auto'
+                container.style.overflow = 'visible'
+              }
+            })
+
             // 🔧 COLLAPSED SECTIONS FIX: Force all Radix UI collapsed sections to expand in PDF
-            const collapsibleContent = clonedElement.querySelectorAll('[data-state="closed"]')
+            const collapsibleContent = clonedElement.querySelectorAll('[data-state="closed"], [data-radix-collapsible-content]')
             collapsibleContent.forEach(content => {
               if (content instanceof HTMLElement) {
                 // Force the content to be visible in PDF
@@ -87,16 +98,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 content.style.maxHeight = 'none'
                 content.style.overflow = 'visible'
                 content.style.transform = 'none'
-              }
-            })
-
-            // Also ensure Radix collapsible containers are properly sized
-            const collapsibleContainers = clonedElement.querySelectorAll('[data-radix-collapsible-content], [data-radix-collapsible-root]')
-            collapsibleContainers.forEach(container => {
-              if (container instanceof HTMLElement) {
-                container.style.height = 'auto'
-                container.style.maxHeight = 'none'
-                container.style.overflow = 'visible'
               }
             })
 
