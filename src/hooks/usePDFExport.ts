@@ -194,20 +194,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 }
               }
             })
-
-            // 🔧 MINIMAL ADDITION: Only add collapsed sections fix, don't touch working email logic
-            const collapsibleContent = clonedElement.querySelectorAll('[data-state="closed"]')
-            collapsibleContent.forEach(content => {
-              if (content instanceof HTMLElement) {
-                content.setAttribute('data-state', 'open')
-                content.style.display = 'block'
-                content.style.visibility = 'visible'
-                content.style.opacity = '1'
-                content.style.height = 'auto'
-                content.style.maxHeight = 'none'
-                content.style.overflow = 'visible'
-              }
-            })
           }
         }
       })
