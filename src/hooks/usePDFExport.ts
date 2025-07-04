@@ -74,33 +74,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             clonedElement.style.transform = 'none'
             clonedElement.style.overflow = 'visible'
             
-            // 🔧 EMAIL CONTENT EXPANSION FIX: Remove height constraints from scrollable email containers
-            const scrollableEmails = clonedElement.querySelectorAll('.max-h-32.overflow-y-auto')
-            scrollableEmails.forEach(container => {
-              if (container instanceof HTMLElement) {
-                container.classList.remove('max-h-32')
-                container.style.maxHeight = 'none'
-                container.style.height = 'auto'
-                container.style.overflow = 'visible'
-              }
-            })
-
-            // 🔧 COLLAPSED SECTIONS FIX: Force all Radix UI collapsed sections to expand in PDF
-            const collapsibleContent = clonedElement.querySelectorAll('[data-state="closed"], [data-radix-collapsible-content]')
-            collapsibleContent.forEach(content => {
-              if (content instanceof HTMLElement) {
-                // Force the content to be visible in PDF
-                content.setAttribute('data-state', 'open')
-                content.style.display = 'block'
-                content.style.visibility = 'visible' 
-                content.style.opacity = '1'
-                content.style.height = 'auto'
-                content.style.maxHeight = 'none'
-                content.style.overflow = 'visible'
-                content.style.transform = 'none'
-              }
-            })
-
             // Force render all gradients and backgrounds
             const allElements = clonedElement.querySelectorAll('*')
             Array.from(allElements).forEach(el => {
@@ -219,6 +192,20 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                   container.style.gridTemplateColumns = computedStyle.gridTemplateColumns
                   container.style.gap = computedStyle.gap
                 }
+              }
+            })
+
+            // 🔧 MINIMAL ADDITION: Only add collapsed sections fix, don't touch working email logic
+            const collapsibleContent = clonedElement.querySelectorAll('[data-state="closed"]')
+            collapsibleContent.forEach(content => {
+              if (content instanceof HTMLElement) {
+                content.setAttribute('data-state', 'open')
+                content.style.display = 'block'
+                content.style.visibility = 'visible'
+                content.style.opacity = '1'
+                content.style.height = 'auto'
+                content.style.maxHeight = 'none'
+                content.style.overflow = 'visible'
               }
             })
           }
