@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -399,7 +400,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 content.style.transform = 'none'
                 content.style.display = 'block'
               }
-            }
+            })
           }
         }
       })
@@ -529,7 +530,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         const element = document.getElementById(elementId)
         if (element && originalElementStyles) {
           Object.entries(originalElementStyles).forEach(([property, value]) => {
-            element.style[property as any] = value || ''
+            (element.style as any)[property] = value || ''
           })
         }
 
