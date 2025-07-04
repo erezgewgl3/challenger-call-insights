@@ -36,6 +36,17 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       // PHASE 1: PRE-PDF PREPARATION - Expand collapsed sections and scrollable content
       
+      // 🔧 REACT STATE FIX: Click CollapsibleTrigger buttons to properly update React state
+      const collapsibleTriggers = element.querySelectorAll('[data-radix-collapsible-trigger]')
+      collapsibleTriggers.forEach(trigger => {
+        if (trigger instanceof HTMLElement) {
+          trigger.click() // Properly update React state to open sections
+        }
+      })
+      
+      // Wait for React re-render to complete
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
       // Find and expand all collapsed sections
       const collapsedSections = element.querySelectorAll('[data-state="closed"], [aria-expanded="false"], .collapsed')
       collapsedSections.forEach(section => {
