@@ -505,17 +505,17 @@ export function NewAnalysisView({
                 <Button 
                   onClick={handleExportPDF}
                   disabled={isExporting}
-                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                  className="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   {isExporting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating PDF...
+                      Generating Report...
                     </>
                   ) : (
                     <>
                       <Download className="w-4 h-4 mr-2" />
-                      Export PDF
+                      Export Professional PDF
                     </>
                   )}
                 </Button>

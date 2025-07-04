@@ -102,3 +102,54 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* PDF Export Optimizations */
+@media print, (prefers-color-scheme: pdf) {
+  * {
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    text-rendering: optimizeLegibility !important;
+    font-feature-settings: "liga", "kern" !important;
+  }
+  
+  /* Ensure badges render perfectly in PDF */
+  [class*="badge"], 
+  [class*="Badge"],
+  .inline-flex {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+    flex-shrink: 0 !important;
+  }
+  
+  /* Prevent content cutoff in cards */
+  [class*="card"], 
+  [class*="Card"] {
+    overflow: visible !important;
+    height: auto !important;
+    min-height: auto !important;
+    max-height: none !important;
+  }
+  
+  /* Ensure all text is fully visible */
+  * {
+    overflow: visible !important;
+    text-overflow: clip !important;
+  }
+  
+  /* Fix flex and grid layouts */
+  [class*="flex"] {
+    display: flex !important;
+  }
+  
+  .grid {
+    display: grid !important;
+  }
+  
+  /* Ensure gradients render properly */
+  [class*="gradient"] {
+    background-attachment: local !important;
+  }
+}
