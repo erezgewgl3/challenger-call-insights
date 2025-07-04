@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -115,9 +114,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.justifyContent = computedStyle.justifyContent
                 el.style.gap = computedStyle.gap
                 
-                // Enhanced font smoothing for crisp text
-                el.style.webkitFontSmoothing = 'antialiased'
-                el.style.mozOsxFontSmoothing = 'grayscale'
+                // Enhanced font smoothing for crisp text (TypeScript-safe)
+                el.style.setProperty('-webkit-font-smoothing', 'antialiased')
+                el.style.setProperty('-moz-osx-font-smoothing', 'grayscale')
                 el.style.textRendering = 'optimizeLegibility'
               }
             })
