@@ -1,4 +1,5 @@
 
+
 import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -64,16 +65,24 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // 🛡️ GUARDRAIL: Safe backup of original element styles
       originalElementStyles = safeElementOperation(
         () => ({
-          position: element.style.position,
-          width: element.style.width,
-          maxWidth: element.style.maxWidth,
-          minWidth: element.style.minWidth,
-          transform: element.style.transform,
-          overflow: element.style.overflow,
-          backgroundColor: element.style.backgroundColor
+          position: element.style.position || '',
+          width: element.style.width || '',
+          maxWidth: element.style.maxWidth || '',
+          minWidth: element.style.minWidth || '',
+          transform: element.style.transform || '',
+          overflow: element.style.overflow || '',
+          backgroundColor: element.style.backgroundColor || ''
         }),
         'Failed to backup element styles',
-        {}
+        {
+          position: '',
+          width: '',
+          maxWidth: '',
+          minWidth: '',
+          transform: '',
+          overflow: '',
+          backgroundColor: ''
+        }
       )
 
       // PHASE 1: PRE-PDF PREPARATION - Expand collapsed sections
@@ -569,3 +578,4 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
   
   return { exportToPDF }
 }
+
