@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -81,100 +82,7 @@ export function NewAnalysisView({
   const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
   const [isExporting, setIsExporting] = useState(false)
 
-  // 🚀 SMART PRIORITY SYSTEM - Auto-expand based on deal heat
-  const isHighPriorityDeal = getDealHeat().level === 'HIGH'
-  const isMediumPriorityDeal = getDealHeat().level === 'MEDIUM'
-  
-  // State for collapsible sections with smart defaults
-  const [sectionsOpen, setSectionsOpen] = useState({
-    insights: isHighPriorityDeal, // Open for high-priority deals
-    competitive: false // Progressive disclosure
-  })
-
-  const toggleSection = (section: keyof typeof sectionsOpen) => {
-    setSectionsOpen(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
-  }
-
-  const handleExportPDF = useCallback(async () => {
-    setIsExporting(true)
-    try {
-      const cleanTitle = transcript.title.trim()
-      // 🚀 NEW: Pass React state control to PDF export
-      await exportToPDF('analysis-content', cleanTitle, {
-        sectionsOpen,
-        toggleSection
-      })
-    } finally {
-      setIsExporting(false)
-    }
-  }, [exportToPDF, transcript.title, sectionsOpen, toggleSection])
-  
-  const copyToClipboard = async (text: string, type: string) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      toast.success(`${type} copied to clipboard!`)
-    } catch (error) {
-      toast.error('Failed to copy to clipboard')
-    }
-  }
-
-  const copyFullEmail = async (subject: string, body: string, attachments: string[]) => {
-    const attachmentText = attachments && attachments.length > 0 
-      ? `\n\nAttachments:\n${attachments.map(att => `- ${att}`).join('\n')}`
-      : ''
-    const fullEmail = `Subject: ${subject}\n\n${body}${attachmentText}`
-    await copyToClipboard(fullEmail, 'Complete email')
-  }
-
-  const openInEmailClient = (subject: string, body: string) => {
-    const encodedSubject = encodeURIComponent(subject)
-    const encodedBody = encodeURIComponent(body)
-    const mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`
-    window.open(mailtoUrl, '_blank')
-  }
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
-
-  // Enhanced stakeholder role mapping function with NO FALLBACKS
-  const getStakeholderDisplay = (contact: any) => {
-    const challengerRole = contact.challengerRole;
-    
-    if (challengerRole) {
-      const roleMap = {
-        'Economic Buyer': { label: 'Economic Buyer', color: 'bg-red-500/20 text-red-300', icon: '🏛️' },
-        'User Buyer': { label: 'User Buyer', color: 'bg-blue-500/20 text-blue-300', icon: '👤' },
-        'Technical Buyer': { label: 'Technical Buyer', color: 'bg-purple-500/20 text-purple-300', icon: '🔧' },
-        'Coach': { label: 'Coach', color: 'bg-green-500/20 text-green-300', icon: '🤝' },
-        'Influencer': { label: 'Influencer', color: 'bg-yellow-500/20 text-yellow-300', icon: '📊' },
-        'Blocker': { label: 'Blocker', color: 'bg-orange-500/20 text-orange-300', icon: '🚫' }
-      };
-      
-      return roleMap[challengerRole] || null;
-    }
-    
-    return null;
-  };
-
-  const getRoleIcon = (role: string) => {
-    if (role === 'Economic Buyer' || role === 'high') return '🏛️'
-    if (role === 'Technical Buyer') return '🔧' 
-    if (role === 'Coach') return '🤝'
-    if (role === 'Influencer' || role === 'medium') return '📊'
-    if (role === 'Blocker') return '🚫'
-    return '👤'
-  }
-
-  // Enhanced data mapping functions for hero section
+  // Enhanced data mapping functions - moved before usage
   const getDealHeat = () => {
     const painLevel = analysis.call_summary?.painSeverity?.level || 'low'
     const indicators = analysis.call_summary?.painSeverity?.indicators || []
@@ -282,6 +190,118 @@ export function NewAnalysisView({
       bgColor: heatLevel === 'HIGH' ? 'bg-red-500' : heatLevel === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500',
       color: heatLevel === 'HIGH' ? 'text-red-300' : heatLevel === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
     }
+  }
+
+  const getConversationIntelligence = () => {
+    // Extract conversation intelligence from analysis data
+    const callSummary = analysis.call_summary || {}
+    const buyingSignals = callSummary.buyingSignalsAnalysis || {}
+    const painAnalysis = callSummary.painSeverity || {}
+    const resistanceAnalysis = callSummary.resistanceAnalysis || {}
+    
+    return {
+      positive: [
+        ...(buyingSignals.commitmentSignals || []),
+        ...(buyingSignals.engagementSignals || []),
+        ...(buyingSignals.interestSignals || [])
+      ],
+      pain: painAnalysis.indicators || [],
+      concerns: resistanceAnalysis.signals || [],
+      competitive: [] // Add competitive intelligence if available in analysis
+    }
+  }
+
+  // 🚀 SMART PRIORITY SYSTEM - Auto-expand based on deal heat
+  const isHighPriorityDeal = getDealHeat().level === 'HIGH'
+  const isMediumPriorityDeal = getDealHeat().level === 'MEDIUM'
+  
+  // State for collapsible sections with smart defaults
+  const [sectionsOpen, setSectionsOpen] = useState({
+    insights: isHighPriorityDeal, // Open for high-priority deals
+    competitive: false // Progressive disclosure
+  })
+
+  const toggleSection = (section: keyof typeof sectionsOpen) => {
+    setSectionsOpen(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }))
+  }
+
+  const handleExportPDF = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const cleanTitle = transcript.title.trim()
+      // 🚀 NEW: Pass React state control to PDF export
+      await exportToPDF('analysis-content', cleanTitle, {
+        sectionsOpen,
+        toggleSection
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }, [exportToPDF, transcript.title, sectionsOpen, toggleSection])
+  
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      toast.success(`${type} copied to clipboard!`)
+    } catch (error) {
+      toast.error('Failed to copy to clipboard')
+    }
+  }
+
+  const copyFullEmail = async (subject: string, body: string, attachments: string[]) => {
+    const attachmentText = attachments && attachments.length > 0 
+      ? `\n\nAttachments:\n${attachments.map(att => `- ${att}`).join('\n')}`
+      : ''
+    const fullEmail = `Subject: ${subject}\n\n${body}${attachmentText}`
+    await copyToClipboard(fullEmail, 'Complete email')
+  }
+
+  const openInEmailClient = (subject: string, body: string) => {
+    const encodedSubject = encodeURIComponent(subject)
+    const encodedBody = encodeURIComponent(body)
+    const mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`
+    window.open(mailtoUrl, '_blank')
+  }
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  // Enhanced stakeholder role mapping function with NO FALLBACKS
+  const getStakeholderDisplay = (contact: any) => {
+    const challengerRole = contact.challengerRole;
+    
+    if (challengerRole) {
+      const roleMap = {
+        'Economic Buyer': { label: 'Economic Buyer', color: 'bg-red-500/20 text-red-300', icon: '🏛️' },
+        'User Buyer': { label: 'User Buyer', color: 'bg-blue-500/20 text-blue-300', icon: '👤' },
+        'Technical Buyer': { label: 'Technical Buyer', color: 'bg-purple-500/20 text-purple-300', icon: '🔧' },
+        'Coach': { label: 'Coach', color: 'bg-green-500/20 text-green-300', icon: '🤝' },
+        'Influencer': { label: 'Influencer', color: 'bg-yellow-500/20 text-yellow-300', icon: '📊' },
+        'Blocker': { label: 'Blocker', color: 'bg-orange-500/20 text-orange-300', icon: '🚫' }
+      };
+      
+      return roleMap[challengerRole] || null;
+    }
+    
+    return null;
+  };
+
+  const getRoleIcon = (role: string) => {
+    if (role === 'Economic Buyer' || role === 'high') return '🏛️'
+    if (role === 'Technical Buyer') return '🔧' 
+    if (role === 'Coach') return '🤝'
+    if (role === 'Influencer' || role === 'medium') return '📊'
+    if (role === 'Blocker') return '🚫'
+    return '👤'
   }
 
   const getDecisionMaker = () => {
