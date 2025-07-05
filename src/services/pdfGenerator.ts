@@ -37,7 +37,7 @@ export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: str
 }
 
 /**
- * SIMPLIFIED Multi-page PDF with basic sequential slicing - NO COMPLEX LOGIC
+ * FIXED Multi-page PDF with direct pixel slicing - NO MM/PIXEL MIXING
  */
 export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title: string): void {
   const { scale, scaledHeight, contentWidth, pdfWidth, pdfHeight } = calculatePDFDimensions(canvas)
@@ -45,45 +45,44 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
   // Create header for first page
   const contentStartY = createPDFHeader(pdf, title)
   
-  // SIMPLE: Calculate available heights without complex logic
-  const firstPageAvailableHeight = pdfHeight - contentStartY - 10
-  const subsequentPageAvailableHeight = pdfHeight - 30
+  // FIXED: Calculate available heights in MM (for PDF layout)
+  const firstPageAvailableHeightMM = pdfHeight - contentStartY - 10
+  const subsequentPageAvailableHeightMM = pdfHeight - 30
   
-  console.log('SIMPLIFIED Multi-page PDF - Basic Sequential Slicing:', {
-    totalContentHeight: scaledHeight,
-    firstPageAvailableHeight,
-    subsequentPageAvailableHeight,
-    canvasHeight: canvas.height,
-    scale
-  })
-  
-  // SIMPLE: Calculate exact number of pages needed
+  // FIXED: Calculate how many pages we need based on MM measurements
   let totalPagesNeeded = 1
-  let remainingAfterFirstPage = Math.max(0, scaledHeight - firstPageAvailableHeight)
+  let remainingContentMM = Math.max(0, scaledHeight - firstPageAvailableHeightMM)
   
-  if (remainingAfterFirstPage > 0) {
-    totalPagesNeeded += Math.ceil(remainingAfterFirstPage / subsequentPageAvailableHeight)
+  if (remainingContentMM > 0) {
+    totalPagesNeeded += Math.ceil(remainingContentMM / subsequentPageAvailableHeightMM)
   }
   
-  console.log(`SIMPLIFIED: Will create exactly ${totalPagesNeeded} pages for all content`)
+  console.log('FIXED Multi-page PDF - Direct Pixel Slicing:', {
+    totalContentHeightMM: scaledHeight,
+    firstPageAvailableHeightMM,
+    subsequentPageAvailableHeightMM,
+    totalPagesNeeded,
+    canvasPixelHeight: canvas.height,
+    canvasPixelWidth: canvas.width
+  })
   
-  // SIMPLE: Process each page with basic sequential slicing
-  let contentProcessed = 0
+  // FIXED: Process each page with direct pixel coordinates
+  let contentProcessedMM = 0
   
   for (let pageIndex = 0; pageIndex < totalPagesNeeded; pageIndex++) {
     const isFirstPage = pageIndex === 0
-    const availableHeight = isFirstPage ? firstPageAvailableHeight : subsequentPageAvailableHeight
+    const availableHeightMM = isFirstPage ? firstPageAvailableHeightMM : subsequentPageAvailableHeightMM
     const contentY = isFirstPage ? contentStartY : 25
     
-    // SIMPLE: Calculate how much content to put on this page
-    const remainingContent = scaledHeight - contentProcessed
-    const contentForThisPage = Math.min(remainingContent, availableHeight)
+    // Calculate how much content (in MM) to put on this page
+    const remainingContentMM = scaledHeight - contentProcessedMM
+    const contentForThisPageMM = Math.min(remainingContentMM, availableHeightMM)
     
-    console.log(`SIMPLIFIED: Page ${pageIndex + 1}/${totalPagesNeeded}:`, {
-      contentProcessed,
-      remainingContent,
-      availableHeight,
-      contentForThisPage
+    console.log(`FIXED: Page ${pageIndex + 1}/${totalPagesNeeded}:`, {
+      contentProcessedMM,
+      remainingContentMM,
+      availableHeightMM,
+      contentForThisPageMM
     })
     
     // Add new page (except for first page)
@@ -99,38 +98,38 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
       pdf.line(10, 20, pdfWidth - 10, 20)
     }
     
-    // SIMPLE: Create page canvas with basic slicing - NO COMPLEX LOGIC
-    const pageCanvas = createSimplePageCanvas(canvas, contentProcessed, contentForThisPage, scale)
+    // FIXED: Create page canvas with direct pixel calculations
+    const pageCanvas = createFixedPageCanvas(canvas, contentProcessedMM, contentForThisPageMM, scale)
     
     if (pageCanvas.width > 1 && pageCanvas.height > 1) {
       const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
       
-      console.log(`SIMPLIFIED: Adding page ${pageIndex + 1} content:`, {
+      console.log(`FIXED: Adding page ${pageIndex + 1} content:`, {
         pageCanvasWidth: pageCanvas.width,
         pageCanvasHeight: pageCanvas.height,
         contentY,
-        contentForThisPage
+        contentForThisPageMM
       })
       
-      pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, contentForThisPage, '', 'FAST')
+      pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, contentForThisPageMM, '', 'FAST')
     }
     
-    contentProcessed += contentForThisPage
+    contentProcessedMM += contentForThisPageMM
     
-    // SIMPLE: Stop when all content is processed
-    if (contentProcessed >= scaledHeight) {
-      console.log(`SIMPLIFIED: All content processed after ${pageIndex + 1} pages`)
+    // Stop when all content is processed
+    if (contentProcessedMM >= scaledHeight) {
+      console.log(`FIXED: All content processed after ${pageIndex + 1} pages`)
       break
     }
   }
   
-  console.log(`SIMPLIFIED: Multi-page PDF complete - ${totalPagesNeeded} pages created`)
+  console.log(`FIXED: Multi-page PDF complete - ${totalPagesNeeded} pages created`)
 }
 
 /**
- * SIMPLIFIED canvas slicing - NO COMPLEX THRESHOLDS OR BOUNDARIES
+ * FIXED canvas slicing - Direct pixel coordinates, no MM conversion mixing
  */
-function createSimplePageCanvas(
+function createFixedPageCanvas(
   sourceCanvas: HTMLCanvasElement,
   startHeightMM: number,
   pageHeightMM: number,
@@ -143,38 +142,44 @@ function createSimplePageCanvas(
     throw new Error('Failed to get 2D context for page canvas')
   }
   
-  // SIMPLE: Convert MM to pixels using the same scale as the source
-  const startPixels = (startHeightMM / scale)
-  const heightPixels = (pageHeightMM / scale)
+  // FIXED: Convert MM to pixels using the correct scale relationship
+  // The scale is already calculated as (190 / (canvas.width * 0.264583))
+  // So to convert MM back to pixels: pixels = MM / 0.264583 / scale
+  const mmToPixelFactor = 1 / (0.264583 * scale)
   
-  // SIMPLE: Basic bounds checking
+  const startPixels = Math.round(startHeightMM * mmToPixelFactor)
+  const heightPixels = Math.round(pageHeightMM * mmToPixelFactor)
+  
+  // FIXED: Bounds checking with proper pixel coordinates
   if (startPixels >= sourceCanvas.height) {
     pageCanvas.width = 1
     pageCanvas.height = 1
     return pageCanvas
   }
   
-  // SIMPLE: Calculate actual slice dimensions
-  const actualHeight = Math.min(heightPixels, sourceCanvas.height - startPixels)
+  // FIXED: Calculate actual slice dimensions in pixels
+  const actualHeightPixels = Math.min(heightPixels, sourceCanvas.height - startPixels)
   
-  console.log(`SIMPLIFIED Canvas Slice:`, {
+  console.log(`FIXED Canvas Slice - Direct Pixel Math:`, {
     startHeightMM,
     pageHeightMM,
+    mmToPixelFactor,
     startPixels,
     heightPixels,
-    actualHeight,
-    sourceHeight: sourceCanvas.height
+    actualHeightPixels,
+    sourceCanvasHeight: sourceCanvas.height,
+    sourceCanvasWidth: sourceCanvas.width
   })
   
-  // SIMPLE: Set canvas size and slice
+  // FIXED: Set canvas size to actual pixel dimensions
   pageCanvas.width = sourceCanvas.width
-  pageCanvas.height = actualHeight
+  pageCanvas.height = actualHeightPixels
   
-  // SIMPLE: Draw the slice - NO COMPLEX LOGIC
+  // FIXED: Draw the slice using direct pixel coordinates
   pageCtx.drawImage(
     sourceCanvas,
-    0, startPixels, sourceCanvas.width, actualHeight,  // Source rectangle
-    0, 0, sourceCanvas.width, actualHeight             // Destination rectangle
+    0, startPixels, sourceCanvas.width, actualHeightPixels,  // Source rectangle (pixels)
+    0, 0, sourceCanvas.width, actualHeightPixels             // Destination rectangle (pixels)
   )
   
   return pageCanvas

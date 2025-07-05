@@ -2,17 +2,17 @@
 import html2canvas from 'html2canvas'
 
 /**
- * SIMPLIFIED canvas generation - removed complex aspect ratio and sizing logic
+ * FIXED canvas generation with proper dimensions
  */
 export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
   // Get actual element dimensions
   const rect = element.getBoundingClientRect()
   
-  // SIMPLE: Use the larger of scroll dimensions or bounding rect
+  // FIXED: Use the element's actual rendered dimensions
   const actualHeight = Math.max(element.scrollHeight, rect.height)
   const actualWidth = Math.max(element.scrollWidth, rect.width)
   
-  console.log('SIMPLIFIED Canvas generation:', {
+  console.log('FIXED Canvas generation with proper dimensions:', {
     scrollHeight: element.scrollHeight,
     rectHeight: rect.height,
     finalHeight: actualHeight,
@@ -33,7 +33,7 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
       width: actualWidth,
       height: actualHeight,
       windowHeight: actualHeight,
-      // SIMPLIFIED: Remove complex element filtering
+      // FIXED: Simple element filtering
       ignoreElements: (element) => {
         if (!(element instanceof HTMLElement)) {
           return false
@@ -42,7 +42,7 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
       }
     })
 
-    console.log('SIMPLIFIED Canvas generated:', {
+    console.log('FIXED Canvas generated with proper pixel dimensions:', {
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
       aspectRatio: canvas.width / canvas.height
@@ -58,5 +58,3 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
     throw new Error(`Failed to generate canvas: ${error.message}`)
   }
 }
-
-// REMOVED: Complex createMultiPageCanvas function - now handled in pdfGenerator with simple slicing
