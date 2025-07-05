@@ -1,4 +1,3 @@
-
 import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -20,9 +19,9 @@ interface ElementState {
 
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   
-  // Typography preservation functions
-  const injectPDFStyles = () => {
-    const styleId = 'pdf-export-typography-lock'
+  // Surgical text preservation function - targets only problematic elements
+  const injectSurgicalTextFixes = () => {
+    const styleId = 'pdf-surgical-text-fixes'
     
     // Remove existing style if present
     const existingStyle = document.getElementById(styleId)
@@ -30,21 +29,28 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       existingStyle.remove()
     }
     
-    // Create and inject typography preservation styles
+    // Create surgical CSS fixes for specific text elements that break incorrectly
     const style = document.createElement('style')
     style.id = styleId
     style.textContent = `
-      .pdf-export-lock * { 
-        white-space: nowrap !important; 
-        word-break: keep-all !important; 
-        line-height: inherit !important;
-        text-overflow: clip !important;
-        overflow: visible !important;
+      /* Only target bullet points and list items that tend to break */
+      .pdf-export-lock ul li,
+      .pdf-export-lock ol li {
+        white-space: normal !important;
+        word-break: normal !important;
+        min-width: max-content;
       }
-      .pdf-export-lock li,
+      
+      /* Prevent badge containers from shrinking */
+      .pdf-export-lock .inline-flex {
+        white-space: nowrap !important;
+        flex-shrink: 0 !important;
+      }
+      
+      /* Keep text containers at their natural width */
+      .pdf-export-lock [class*="text-"],
       .pdf-export-lock p,
       .pdf-export-lock span {
-        white-space: normal !important;
         word-break: normal !important;
       }
     `
@@ -163,33 +169,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Wait for all expansions and layout changes to complete
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-      // PHASE 2: TYPOGRAPHY PRESERVATION - Inject CSS to prevent text reflow
-      injectedStyleId = injectPDFStyles()
+      // PHASE 2: SURGICAL TEXT PRESERVATION - Apply minimal targeted fixes
+      injectedStyleId = injectSurgicalTextFixes()
       element.classList.add('pdf-export-lock')
 
-      // Store original styles for the main element restoration
-      const originalStyles = {
-        position: element.style.position,
-        width: element.style.width,
-        maxWidth: element.style.maxWidth,
-        minWidth: element.style.minWidth,
-        transform: element.style.transform,
-        overflow: element.style.overflow,
-        backgroundColor: element.style.backgroundColor
-      }
-
-      // Get natural element dimensions to prevent text reflow
-      const naturalWidth = Math.max(element.scrollWidth, element.offsetWidth, 1200)
+      // STAGE 1 RECOVERY: Use element's natural dimensions without forcing width
+      const naturalWidth = element.scrollWidth
       const naturalHeight = element.scrollHeight
-
-      // Temporarily optimize for PDF capture - use natural dimensions
-      element.style.position = 'static'
-      element.style.width = `${naturalWidth}px`
-      element.style.maxWidth = `${naturalWidth}px`
-      element.style.minWidth = `${naturalWidth}px`
-      element.style.transform = 'none'
-      element.style.overflow = 'visible'
-      element.style.backgroundColor = 'transparent'
 
       // Wait for layout reflow
       await new Promise(resolve => setTimeout(resolve, 300))
@@ -215,14 +201,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         },
         onclone: (clonedDoc, clonedElement) => {
           if (clonedElement) {
-            // CRITICAL: Force all visual elements to render properly
-            clonedElement.style.position = 'static'
-            clonedElement.style.width = `${naturalWidth}px`
-            clonedElement.style.maxWidth = `${naturalWidth}px`
-            clonedElement.style.minWidth = `${naturalWidth}px`
-            clonedElement.style.transform = 'none'
-            clonedElement.style.overflow = 'visible'
-            
             // Ensure typography lock is applied in clone
             clonedElement.classList.add('pdf-export-lock')
             
@@ -233,14 +211,17 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 // Preserve all computed styles for visual fidelity
                 const computedStyle = getComputedStyle(el)
                 
-                // CRITICAL: Text protection - prevent artificial line breaks
+                // STAGE 2: SURGICAL text protection - preserve natural text width
                 const isTextContainer = el.tagName.match(/^(P|SPAN|DIV|LI|H[1-6])$/)
                 if (isTextContainer) {
+                  // Use clientWidth to maintain natural text container width
+                  const containerWidth = el.clientWidth
+                  if (containerWidth > 0) {
+                    el.style.width = `${containerWidth}px`
+                    el.style.minWidth = `${containerWidth}px`
+                  }
                   el.style.whiteSpace = computedStyle.whiteSpace || 'normal'
                   el.style.wordBreak = computedStyle.wordBreak || 'normal'
-                  el.style.width = computedStyle.width
-                  el.style.minWidth = computedStyle.minWidth
-                  el.style.maxWidth = computedStyle.maxWidth
                 }
                 
                 // Force background rendering
@@ -268,7 +249,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.margin = computedStyle.margin
                 
                 // Force positioning and sizing
-                el.style.width = computedStyle.width
                 el.style.height = computedStyle.height
                 el.style.display = computedStyle.display
                 el.style.flexDirection = computedStyle.flexDirection
@@ -401,11 +381,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       if (injectedStyleId) {
         removePDFStyles(injectedStyleId)
       }
-      
-      // Restore main element styles immediately
-      Object.entries(originalStyles).forEach(([property, value]) => {
-        element.style[property as any] = value
-      })
 
       // Restore all modified elements to their original states
       modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
@@ -439,7 +414,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Convert to high-quality image data
       const imgData = canvas.toDataURL('image/png', 1.0)
       
-      // Professional Portrait A4 PDF Configuration
+      // Professional Portrait A4 PDF Configuration - STAGE 1 RECOVERY: Back to Portrait
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -546,7 +521,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Save the PDF
       pdf.save(pdfFilename)
       
-      toast.success('Professional PDF with full content exported successfully!', { duration: 4000 })
+      toast.success('Professional PDF exported successfully in portrait format!', { duration: 4000 })
       
     } catch (error) {
       console.error('PDF export failed:', error)
