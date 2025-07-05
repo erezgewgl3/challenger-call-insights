@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -231,11 +232,15 @@ export function NewAnalysisView({
     setIsExporting(true)
     try {
       const cleanTitle = transcript.title.trim()
-      await exportToPDF('analysis-content', cleanTitle)
+      // 🚀 NEW: Pass React state control to PDF export
+      await exportToPDF('analysis-content', cleanTitle, {
+        sectionsOpen,
+        toggleSection
+      })
     } finally {
       setIsExporting(false)
     }
-  }, [exportToPDF, transcript.title])
+  }, [exportToPDF, transcript.title, sectionsOpen, toggleSection])
   
   const copyToClipboard = async (text: string, type: string) => {
     try {
