@@ -333,7 +333,7 @@ function expandNestedContent(container: HTMLElement, modifiedElements: ElementSt
 
 /**
  * Force expands a single element by removing all height constraints
- * ENHANCED: Now properly handles white-space properties for PDF text rendering
+ * SIMPLIFIED: Focus only on height/overflow expansion, not text styling
  */
 function forceExpandElement(element: HTMLElement, existingModified: ElementState[], logPrefix: string): ElementState | null {
   // Check if already processed
@@ -369,32 +369,12 @@ function forceExpandElement(element: HTMLElement, existingModified: ElementState
   // Add expansion classes
   element.classList.add('max-h-none', 'overflow-visible')
   
-  // Force inline styles with !important
+  // Force inline styles with !important - SIMPLIFIED VERSION
   element.style.setProperty('max-height', 'none', 'important')
   element.style.setProperty('height', 'auto', 'important')
   element.style.setProperty('overflow', 'visible', 'important')
   element.style.setProperty('overflow-y', 'visible', 'important')
   element.style.setProperty('overflow-x', 'visible', 'important')
-  
-  // ENHANCED: Fix white-space handling for PDF text rendering
-  const isEmailBody = element.classList.contains('font-mono') || 
-                     element.classList.contains('whitespace-pre-wrap') ||
-                     element.querySelector('.font-mono.whitespace-pre-wrap')
-  
-  if (isEmailBody) {
-    console.log(`📧 ${logPrefix}: Applying enhanced text rendering for email body`)
-    // Force proper white-space behavior for PDF rendering
-    element.style.setProperty('white-space', 'pre-wrap', 'important')
-    element.style.setProperty('word-break', 'break-word', 'important')
-    element.style.setProperty('overflow-wrap', 'break-word', 'important')
-    element.style.setProperty('hyphens', 'auto', 'important')
-    element.style.setProperty('line-height', '1.5', 'important')
-    
-    // Ensure proper width constraints to prevent text overflow
-    element.style.setProperty('width', '100%', 'important')
-    element.style.setProperty('max-width', '100%', 'important')
-    element.style.setProperty('box-sizing', 'border-box', 'important')
-  }
   
   // Special handling for different display types
   const computedStyle = getComputedStyle(element)
@@ -415,8 +395,7 @@ function forceExpandElement(element: HTMLElement, existingModified: ElementState
   console.log(`✅ ${logPrefix}: Expansion complete`, {
     newScrollHeight: element.scrollHeight,
     newClientHeight: element.clientHeight,
-    newOffsetHeight: element.offsetHeight,
-    isEmailBodyEnhanced: isEmailBody
+    newOffsetHeight: element.offsetHeight
   })
   
   return {
@@ -515,7 +494,6 @@ export function restoreElementStates(modifiedElements: ElementState[]): void {
 
 /**
  * Stores original styles for restoration
- * ENHANCED: Now captures white-space and text rendering properties
  */
 function storeOriginalStyles(element: HTMLElement): Record<string, string> {
   return {
@@ -542,7 +520,6 @@ function storeOriginalStyles(element: HTMLElement): Record<string, string> {
     visibility: element.style.visibility,
     alignContent: element.style.alignContent,
     alignItems: element.style.alignItems,
-    // ENHANCED: Store text rendering properties for proper restoration
     overflowWrap: element.style.overflowWrap,
     lineHeight: element.style.lineHeight,
     boxSizing: element.style.boxSizing

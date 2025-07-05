@@ -21,6 +21,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let sectionsToRestore: string[] = []
     let modifiedElements: ElementState[] = []
     let originalStyles: any = null
+    let textElementsWithStyles: Array<{ element: HTMLElement, originalStyles: Record<string, string> }> = []
     
     try {
       toast.info('🎯 Preparing Battle Plan PDF export...', { duration: 3000 })
@@ -31,7 +32,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         return
       }
 
-      console.log('🎯 ENHANCED Battle Plan PDF Export - Phase 3 Process')
+      console.log('🎯 ENHANCED Battle Plan PDF Export - Restored Text Optimization')
       console.log('📊 Initial element state:', {
         elementId,
         scrollHeight: element.scrollHeight,
@@ -56,96 +57,83 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       }
 
       // Phase 2: ENHANCED Battle Plan content expansion
-      console.log('⚔️ Phase 2: ENHANCED Battle Plan expansion with timing fix')
+      console.log('⚔️ Phase 2: ENHANCED Battle Plan expansion')
       const sectionModifiedElements = expandCollapsedSections(element)
       modifiedElements.push(...sectionModifiedElements)
       
       console.log('📜 Phase 3: Final scrollable content check')
       expandScrollableContent(element, modifiedElements)
       
-      // CRITICAL TIMING FIX: Extended wait for DOM updates
+      // Phase 4: RESTORED TEXT OPTIMIZATION - Target Deal Acceleration Insights
+      console.log('📝 Phase 4: RESTORED text optimization for Deal Insights')
+      
+      // Target paragraphs with specific classes in flex containers (as per your working fix)
+      const dealInsightSections = element.querySelectorAll('.space-y-4')
+      dealInsightSections.forEach((section, index) => {
+        if (section instanceof HTMLElement) {
+          // Look for text elements within these sections
+          const textElements = section.querySelectorAll('p, div, span')
+          textElements.forEach((textEl, tIndex) => {
+            if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.length > 50) {
+              console.log(`📝 Optimizing text element ${tIndex + 1} in section ${index + 1}`)
+              const originalTextStyles = storeElementStyles(textEl)
+              optimizeElementForPDF(textEl, 'text')
+              textElementsWithStyles.push({ element: textEl, originalStyles: originalTextStyles })
+            }
+          })
+          
+          // Also optimize parent containers
+          const originalSectionStyles = storeElementStyles(section)
+          optimizeElementForPDF(section, 'container')
+          textElementsWithStyles.push({ element: section, originalStyles: originalSectionStyles })
+        }
+      })
+      
+      console.log(`📝 Optimized ${textElementsWithStyles.length} text elements for PDF`)
+
+      // CRITICAL TIMING: Extended wait for DOM updates
       await document.fonts.ready
       console.log('⏳ CRITICAL: Extended DOM update wait for expansion to take effect...')
-      await new Promise(resolve => setTimeout(resolve, 5000)) // Increased from 3s to 5s
+      await new Promise(resolve => setTimeout(resolve, 5000))
 
-      // Phase 4: ENHANCED validation with element bounds checking
-      console.log('🔍 Phase 4: ENHANCED expansion validation with bounds checking')
+      // Phase 5: ENHANCED validation
+      console.log('🔍 Phase 5: ENHANCED expansion validation')
       const battlePlanContainers = element.querySelectorAll('.border-l-4.border-red-500')
       
       let totalContentCaptured = 0
-      let expandedElementsValidation = []
       
       battlePlanContainers.forEach((container, index) => {
         if (container instanceof HTMLElement) {
           const containerRect = container.getBoundingClientRect()
-          console.log(`📊 Battle Plan ${index + 1} validation with bounds:`, {
+          console.log(`📊 Battle Plan ${index + 1} validation:`, {
             scrollHeight: container.scrollHeight,
             clientHeight: container.clientHeight,
             offsetHeight: container.offsetHeight,
             boundingRect: {
-              top: containerRect.top,
               height: containerRect.height,
               width: containerRect.width
             },
-            isFullyExpanded: container.scrollHeight <= Math.max(container.clientHeight, container.offsetHeight) + 10,
-            isVisible: containerRect.height > 0 && containerRect.width > 0
+            isFullyExpanded: container.scrollHeight <= Math.max(container.clientHeight, container.offsetHeight) + 10
           })
           
           totalContentCaptured += container.scrollHeight
-          
-          // ENHANCED: Validate specific critical sections
-          const strategicSections = container.querySelectorAll('.bg-gradient-to-r.from-indigo-50.via-blue-50.to-purple-50, .bg-gradient-to-r.from-blue-50.to-indigo-50')
-          const whyActionsSections = container.querySelectorAll('.bg-emerald-50')
-          const emailBodies = container.querySelectorAll('.font-mono.whitespace-pre-wrap')
-          
-          strategicSections.forEach((section, sIndex) => {
-            if (section instanceof HTMLElement) {
-              const sectionRect = section.getBoundingClientRect()
-              const isExpanded = section.scrollHeight <= Math.max(section.clientHeight, section.offsetHeight) + 5
-              expandedElementsValidation.push({
-                type: 'Strategic Section',
-                index: sIndex + 1,
-                expanded: isExpanded,
-                visible: sectionRect.height > 0,
-                scrollHeight: section.scrollHeight,
-                clientHeight: section.clientHeight
-              })
-            }
-          })
-          
-          emailBodies.forEach((email, eIndex) => {
-            if (email instanceof HTMLElement) {
-              const emailRect = email.getBoundingClientRect()
-              const isExpanded = email.scrollHeight <= Math.max(email.clientHeight, email.offsetHeight) + 5
-              expandedElementsValidation.push({
-                type: 'Email Body',
-                index: eIndex + 1,
-                expanded: isExpanded,
-                visible: emailRect.height > 0,
-                scrollHeight: email.scrollHeight,
-                clientHeight: email.clientHeight,
-                textLength: email.textContent?.length || 0
-              })
-            }
-          })
         }
       })
 
-      console.log('📊 Element expansion validation results:', expandedElementsValidation)
-
-      // Phase 5: Optimize for PDF rendering with timing
+      // Phase 6: Optimize main element for PDF rendering
       toast.info('🎨 Optimizing for PDF capture...', { duration: 2000 })
       originalStyles = storeElementStyles(element)
       optimizeElementForPDF(element, 'main')
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Phase 6: Generate canvas with enhanced timing and validation
-      toast.info('📸 Generating high-quality canvas with enhanced timing...', { duration: 3000 })
+      // Phase 7: Generate canvas
+      toast.info('📸 Generating high-quality canvas...', { duration: 3000 })
       console.log('📸 Pre-canvas generation - Final element state:', {
         totalScrollHeight: element.scrollHeight,
         totalClientHeight: element.clientHeight,
         totalOffsetHeight: element.offsetHeight,
-        modifiedElementsCount: modifiedElements.length
+        modifiedElementsCount: modifiedElements.length,
+        textOptimizedElements: textElementsWithStyles.length
       })
       
       const canvas = await generateCanvas(element)
@@ -156,21 +144,20 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         canvasHeightMM: canvas.height * 0.264583
       })
 
-      // Phase 7: Create PDF with FIXED multi-page logic
+      // Phase 8: Create PDF
       const pdf = createPDFDocument()
       const contentHeightMM = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
       const availableHeightFirstPage = 297 - 45 - 10
 
-      console.log('📄 PDF creation with FIXED multi-page logic:', {
+      console.log('📄 PDF creation:', {
         canvasWidth: canvas.width,
         canvasHeight: canvas.height,
         contentHeightMM,
         availableHeightFirstPage,
-        willUseMultiPage: contentHeightMM > availableHeightFirstPage,
-        totalModifiedElements: modifiedElements.length
+        willUseMultiPage: contentHeightMM > availableHeightFirstPage
       })
 
-      toast.info('📋 Creating comprehensive PDF with fixed page logic...', { duration: 2000 })
+      toast.info('📋 Creating comprehensive PDF...', { duration: 2000 })
 
       if (contentHeightMM <= availableHeightFirstPage) {
         addCanvasToPDF(pdf, canvas, title)
@@ -180,16 +167,21 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       
       const pdfFilename = generateCleanFilename(title)
       
-      // CRITICAL FIX: Restore styles BEFORE saving PDF (but after canvas generation)
+      // CRITICAL: Restore styles BEFORE saving PDF
       if (originalStyles) {
         restoreElementStyles(element, originalStyles)
       }
+      
+      // Restore text element styles
+      textElementsWithStyles.forEach(({ element, originalStyles }) => {
+        restoreElementStyles(element, originalStyles)
+      })
       
       pdf.save(pdfFilename)
       
       toast.success('✅ Battle Plan PDF exported successfully!', { 
         duration: 4000,
-        description: `Complete content captured: ${modifiedElements.length} sections expanded, ${totalContentCaptured}px content height`
+        description: `Complete content captured: ${modifiedElements.length} sections expanded, ${textElementsWithStyles.length} text elements optimized`
       })
       
     } catch (error) {
@@ -198,12 +190,16 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         description: 'Check console for detailed error information'
       })
     } finally {
-      // Phase 8: DELAYED Comprehensive cleanup and restoration
+      // Phase 9: DELAYED Comprehensive cleanup and restoration
       console.log('🔄 DELAYED Comprehensive cleanup and restoration')
       
-      // CRITICAL: Delay the element restoration to ensure PDF generation is complete
       setTimeout(() => {
         restoreElementStates(modifiedElements)
+        
+        // Restore text elements
+        textElementsWithStyles.forEach(({ element, originalStyles }) => {
+          restoreElementStyles(element, originalStyles)
+        })
         
         if (options?.toggleSection && sectionsToRestore.length > 0) {
           sectionsToRestore.forEach(sectionKey => {
@@ -213,7 +209,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }
         
         console.log('✅ Battle Plan PDF export process complete with delayed cleanup')
-      }, 1000) // 1 second delay to ensure PDF save is complete
+      }, 1000)
     }
   }, [filename])
   
