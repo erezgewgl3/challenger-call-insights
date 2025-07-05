@@ -23,7 +23,7 @@ export interface ElementState {
 export function expandCollapsedSections(element: HTMLElement): ElementState[] {
   const modifiedElements: ElementState[] = []
 
-  console.log('🎯 Starting Battle Plan PDF expansion - comprehensive approach')
+  console.log('🎯 Starting Battle Plan PDF expansion - Phase 2 Enhanced')
 
   // Phase 1: Force expand ALL Battle Plan containers
   console.log('⚔️ Phase 1: Force expanding Battle Plan containers')
@@ -39,8 +39,11 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
       const containerState = forceExpandElement(container, modifiedElements, 'Battle Plan Container')
       if (containerState) modifiedElements.push(containerState)
       
-      // Target specific Battle Plan sub-sections
+      // Target specific Battle Plan sub-sections with CORRECT selectors
       expandBattlePlanSubSections(container, modifiedElements)
+      
+      // RECURSIVE BRUTE FORCE: Expand ALL child elements regardless of selectors
+      forceExpandAllChildren(container, modifiedElements)
     }
   })
 
@@ -56,8 +59,8 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
     })
   }
 
-  // Phase 3: Comprehensive height constraint removal
-  console.log('📏 Phase 3: Comprehensive height constraint removal')
+  // Phase 3: Global height constraint removal with enhanced detection
+  console.log('📏 Phase 3: Global height constraint removal')
   removeAllHeightConstraints(element, modifiedElements)
 
   console.log(`✅ Total elements modified for PDF: ${modifiedElements.length}`)
@@ -65,114 +68,48 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
 }
 
 /**
- * Expands specific Battle Plan sub-sections with targeted logic
+ * RECURSIVE BRUTE FORCE: Expands ALL child elements within a container
+ * This ensures nothing is missed regardless of CSS selector matching
  */
-function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedElements: ElementState[]): void {
-  console.log('🎯 Expanding Battle Plan sub-sections')
-
-  // 1. Strategic Assessment Section (gradient background)
-  const strategicSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-indigo-50')
-  console.log('📊 Strategic Assessment sections found:', strategicSections.length)
+function forceExpandAllChildren(container: HTMLElement, modifiedElements: ElementState[]): void {
+  console.log('🔥 BRUTE FORCE: Expanding all children in Battle Plan container')
   
-  strategicSections.forEach((section, index) => {
-    if (section instanceof HTMLElement) {
-      console.log(`📊 Expanding Strategic Assessment ${index + 1}`)
-      const sectionState = forceExpandElement(section, modifiedElements, `Strategic Assessment ${index + 1}`)
-      if (sectionState) modifiedElements.push(sectionState)
+  const allChildren = container.querySelectorAll('*')
+  let childExpansions = 0
+  
+  Array.from(allChildren).forEach((child, index) => {
+    if (child instanceof HTMLElement) {
+      // Skip if already processed
+      const alreadyProcessed = modifiedElements.some(item => item.element === child)
+      if (alreadyProcessed) return
       
-      // Expand all nested grid items and content
-      expandNestedContent(section, modifiedElements, 'Strategic Assessment Child')
+      // Force expand ANY element with potential height constraints
+      if (hasAnyHeightConstraint(child)) {
+        console.log(`🔥 Brute force expanding child ${index + 1}:`, {
+          element: child.tagName,
+          classes: child.className.substring(0, 50),
+          scrollHeight: child.scrollHeight,
+          clientHeight: child.clientHeight
+        })
+        
+        const childState = forceExpandElement(child, modifiedElements, `Brute Force Child ${index + 1}`)
+        if (childState) {
+          modifiedElements.push(childState)
+          childExpansions++
+        }
+      }
     }
   })
-
-  // 2. "Why These Specific Actions" Section (emerald background)
-  const whyActionsSections = battlePlanContainer.querySelectorAll('.bg-emerald-50')
-  console.log('💡 Why These Actions sections found:', whyActionsSections.length)
   
-  whyActionsSections.forEach((section, index) => {
-    if (section instanceof HTMLElement) {
-      console.log(`💡 Expanding Why These Actions ${index + 1}`)
-      const sectionState = forceExpandElement(section, modifiedElements, `Why These Actions ${index + 1}`)
-      if (sectionState) modifiedElements.push(sectionState)
-      
-      // Expand nested content
-      expandNestedContent(section, modifiedElements, 'Why Actions Child')
-    }
-  })
-
-  // 3. Email Template Sections (specific targeting)
-  const emailSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50')
-  console.log('📧 Email template sections found:', emailSections.length)
-  
-  emailSections.forEach((section, index) => {
-    if (section instanceof HTMLElement) {
-      console.log(`📧 Expanding email section ${index + 1}`)
-      const sectionState = forceExpandElement(section, modifiedElements, `Email Section ${index + 1}`)
-      if (sectionState) modifiedElements.push(sectionState)
-      
-      // Specifically target email content areas
-      expandEmailContent(section, modifiedElements)
-    }
-  })
-
-  // 4. Timeline sections (red background)
-  const timelineSections = battlePlanContainer.querySelectorAll('.bg-red-50')
-  console.log('⏰ Timeline sections found:', timelineSections.length)
-  
-  timelineSections.forEach((section, index) => {
-    if (section instanceof HTMLElement) {
-      console.log(`⏰ Expanding timeline section ${index + 1}`)
-      const sectionState = forceExpandElement(section, modifiedElements, `Timeline Section ${index + 1}`)
-      if (sectionState) modifiedElements.push(sectionState)
-      
-      expandNestedContent(section, modifiedElements, 'Timeline Child')
-    }
-  })
+  console.log(`🔥 Brute force expanded ${childExpansions} additional elements`)
 }
 
 /**
- * Force expands email content with specific height constraints 
+ * Enhanced detection for ANY height constraint
  */
-function expandEmailContent(container: HTMLElement, modifiedElements: ElementState[]): void {
-  // Target email bodies with specific classes
-  const emailBodies = container.querySelectorAll('.font-mono.whitespace-pre-wrap, .max-h-32, .max-h-40, .overflow-y-auto')
-  
-  console.log('📧 Email body elements found:', emailBodies.length)
-  
-  emailBodies.forEach((emailEl, index) => {
-    if (emailEl instanceof HTMLElement) {
-      console.log(`📧 Force expanding email body ${index + 1}:`, {
-        classes: emailEl.className,
-        scrollHeight: emailEl.scrollHeight,
-        clientHeight: emailEl.clientHeight,
-        offsetHeight: emailEl.offsetHeight
-      })
-      
-      const emailState = forceExpandElement(emailEl, modifiedElements, `Email Body ${index + 1}`)
-      if (emailState) modifiedElements.push(emailState)
-    }
-  })
-}
-
-/**
- * Expands nested content within a container
- */
-function expandNestedContent(container: HTMLElement, modifiedElements: ElementState[], prefix: string): void {
-  const nestedElements = container.querySelectorAll('*')
-  
-  Array.from(nestedElements).forEach((el, index) => {
-    if (el instanceof HTMLElement && needsExpansion(el)) {
-      const nestedState = forceExpandElement(el, modifiedElements, `${prefix} ${index + 1}`)
-      if (nestedState) modifiedElements.push(nestedState)
-    }
-  })
-}
-
-/**
- * Determines if an element needs expansion based on height constraints
- */
-function needsExpansion(element: HTMLElement): boolean {
+function hasAnyHeightConstraint(element: HTMLElement): boolean {
   const classList = element.classList
+  const computedStyle = getComputedStyle(element)
   
   // Check for constraining classes
   const hasMaxHeightClass = Array.from(classList).some(cls => 
@@ -187,11 +124,137 @@ function needsExpansion(element: HTMLElement): boolean {
   const hasInlineConstraints = element.style.maxHeight && 
                                !['none', 'unset', 'auto'].includes(element.style.maxHeight)
   
-  // Check if content is actually constrained
-  const rect = element.getBoundingClientRect()
-  const hasScrollableContent = element.scrollHeight > Math.max(element.clientHeight, element.offsetHeight, rect.height) + 2
+  // Check computed styles
+  const hasComputedMaxHeight = computedStyle.maxHeight && 
+                               !['none', 'unset', 'auto'].includes(computedStyle.maxHeight)
   
-  return hasMaxHeightClass || hasOverflowClass || hasInlineConstraints || hasScrollableContent
+  // Check if content is actually constrained (more lenient detection)
+  const hasScrollableContent = element.scrollHeight > Math.max(element.clientHeight, element.offsetHeight) + 1
+  
+  // Special detection for empty or zero-height elements that might expand
+  const mightHaveHiddenContent = element.children.length > 0 && element.clientHeight < 50
+  
+  return hasMaxHeightClass || hasOverflowClass || hasInlineConstraints || 
+         hasComputedMaxHeight || hasScrollableContent || mightHaveHiddenContent
+}
+
+/**
+ * Expands specific Battle Plan sub-sections with CORRECTED selectors
+ */
+function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedElements: ElementState[]): void {
+  console.log('🎯 Expanding Battle Plan sub-sections with corrected selectors')
+
+  // 1. Strategic Assessment Section - CORRECTED SELECTOR
+  const strategicSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-indigo-50.via-blue-50.to-purple-50')
+  console.log('📊 Strategic Assessment sections found:', strategicSections.length)
+  
+  strategicSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`📊 Expanding Strategic Assessment ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Strategic Assessment ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      // Expand all nested grid items and content
+      expandNestedContent(section, modifiedElements, 'Strategic Assessment Child')
+    }
+  })
+
+  // 2. "Why These Specific Actions" Section - EXACT MATCH
+  const whyActionsSections = battlePlanContainer.querySelectorAll('.bg-emerald-50')
+  console.log('💡 Why These Actions sections found:', whyActionsSections.length)
+  
+  whyActionsSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`💡 Expanding Why These Actions ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Why These Actions ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      // Expand nested content
+      expandNestedContent(section, modifiedElements, 'Why Actions Child')
+    }
+  })
+
+  // 3. Email Template Sections - MULTIPLE SELECTORS
+  const emailSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50, .bg-gradient-to-r.from-slate-50.to-gray-50')
+  console.log('📧 Email template sections found:', emailSections.length)
+  
+  emailSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`📧 Expanding email section ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Email Section ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      // Specifically target email content areas
+      expandEmailContent(section, modifiedElements)
+    }
+  })
+
+  // 4. Timeline sections
+  const timelineSections = battlePlanContainer.querySelectorAll('.bg-red-50')
+  console.log('⏰ Timeline sections found:', timelineSections.length)
+  
+  timelineSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`⏰ Expanding timeline section ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Timeline Section ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      expandNestedContent(section, modifiedElements, 'Timeline Child')
+    }
+  })
+
+  // 5. CRITICAL: Email bodies with specific constraints
+  const emailBodies = battlePlanContainer.querySelectorAll('.font-mono.whitespace-pre-wrap')
+  console.log('📧 Email body elements found:', emailBodies.length)
+  
+  emailBodies.forEach((emailEl, index) => {
+    if (emailEl instanceof HTMLElement) {
+      console.log(`📧 Force expanding email body ${index + 1}`)
+      const emailState = forceExpandElement(emailEl, modifiedElements, `Email Body ${index + 1}`)
+      if (emailState) modifiedElements.push(emailState)
+    }
+  })
+}
+
+/**
+ * Force expands email content with enhanced targeting
+ */
+function expandEmailContent(container: HTMLElement, modifiedElements: ElementState[]): void {
+  // Target email bodies with ALL possible selectors
+  const emailSelectors = [
+    '.font-mono.whitespace-pre-wrap',
+    '.max-h-32',
+    '.max-h-40', 
+    '.overflow-y-auto',
+    '[class*="max-h-"]',
+    '[class*="overflow-"]'
+  ]
+  
+  emailSelectors.forEach(selector => {
+    const emailElements = container.querySelectorAll(selector)
+    console.log(`📧 Email elements found with selector "${selector}":`, emailElements.length)
+    
+    emailElements.forEach((emailEl, index) => {
+      if (emailEl instanceof HTMLElement) {
+        const emailState = forceExpandElement(emailEl, modifiedElements, `Email Content ${selector} ${index + 1}`)
+        if (emailState) modifiedElements.push(emailState)
+      }
+    })
+  })
+}
+
+/**
+ * Expands nested content within a container
+ */
+function expandNestedContent(container: HTMLElement, modifiedElements: ElementState[], prefix: string): void {
+  const nestedElements = container.querySelectorAll('*')
+  
+  Array.from(nestedElements).forEach((el, index) => {
+    if (el instanceof HTMLElement && hasAnyHeightConstraint(el)) {
+      const nestedState = forceExpandElement(el, modifiedElements, `${prefix} ${index + 1}`)
+      if (nestedState) modifiedElements.push(nestedState)
+    }
+  })
 }
 
 /**
@@ -216,9 +279,14 @@ function forceExpandElement(element: HTMLElement, existingModified: ElementState
   const originalClasses = element.className
   const originalStyles = storeOriginalStyles(element)
   
-  // Remove ALL height constraining classes
-  const heightClasses = ['max-h-32', 'max-h-40', 'max-h-20', 'max-h-24', 'max-h-48', 'max-h-16', 'max-h-12', 'max-h-64', 'max-h-96']
-  const overflowClasses = ['overflow-y-auto', 'overflow-auto', 'overflow-y-scroll', 'overflow-hidden', 'overflow-y-hidden']
+  // Remove ALL height constraining classes (comprehensive list)
+  const heightClasses = [
+    'max-h-0', 'max-h-1', 'max-h-2', 'max-h-3', 'max-h-4', 'max-h-5', 'max-h-6', 'max-h-7', 'max-h-8', 'max-h-9',
+    'max-h-10', 'max-h-11', 'max-h-12', 'max-h-14', 'max-h-16', 'max-h-20', 'max-h-24', 'max-h-28', 'max-h-32',
+    'max-h-36', 'max-h-40', 'max-h-44', 'max-h-48', 'max-h-52', 'max-h-56', 'max-h-60', 'max-h-64', 'max-h-72',
+    'max-h-80', 'max-h-96', 'max-h-px'
+  ]
+  const overflowClasses = ['overflow-y-auto', 'overflow-auto', 'overflow-y-scroll', 'overflow-hidden', 'overflow-y-hidden', 'overflow-x-hidden']
   
   heightClasses.forEach(cls => element.classList.remove(cls))
   overflowClasses.forEach(cls => element.classList.remove(cls))
@@ -226,24 +294,34 @@ function forceExpandElement(element: HTMLElement, existingModified: ElementState
   // Add expansion classes
   element.classList.add('max-h-none', 'overflow-visible')
   
-  // Force inline styles
-  element.style.maxHeight = 'none'
-  element.style.height = 'auto'
-  element.style.overflow = 'visible'
-  element.style.overflowY = 'visible'
-  element.style.overflowX = 'visible'
+  // Force inline styles with !important
+  element.style.setProperty('max-height', 'none', 'important')
+  element.style.setProperty('height', 'auto', 'important')
+  element.style.setProperty('overflow', 'visible', 'important')
+  element.style.setProperty('overflow-y', 'visible', 'important')
+  element.style.setProperty('overflow-x', 'visible', 'important')
   
-  // Special handling for grid containers
-  if (element.classList.contains('grid')) {
-    element.style.gridAutoRows = 'auto'
+  // Special handling for different display types
+  const computedStyle = getComputedStyle(element)
+  if (element.classList.contains('grid') || computedStyle.display.includes('grid')) {
+    element.style.setProperty('grid-auto-rows', 'auto', 'important')
+    element.style.setProperty('align-content', 'start', 'important')
   }
   
-  // Special handling for flex containers
-  if (getComputedStyle(element).display.includes('flex')) {
-    element.style.flexShrink = '0'
+  if (computedStyle.display.includes('flex')) {
+    element.style.setProperty('flex-shrink', '0', 'important')
+    element.style.setProperty('align-items', 'start', 'important')
   }
   
-  console.log(`✅ ${logPrefix}: Expansion complete`)
+  // Force visibility
+  element.style.setProperty('visibility', 'visible', 'important')
+  element.style.setProperty('display', element.style.display || computedStyle.display, 'important')
+  
+  console.log(`✅ ${logPrefix}: Expansion complete`, {
+    newScrollHeight: element.scrollHeight,
+    newClientHeight: element.clientHeight,
+    newOffsetHeight: element.offsetHeight
+  })
   
   return {
     element,
@@ -260,7 +338,7 @@ function removeAllHeightConstraints(element: HTMLElement, modifiedElements: Elem
   let additionalExpansions = 0
   
   Array.from(allElements).forEach((el) => {
-    if (el instanceof HTMLElement && needsExpansion(el)) {
+    if (el instanceof HTMLElement && hasAnyHeightConstraint(el)) {
       const expandState = forceExpandElement(el, modifiedElements, 'Global Constraint Removal')
       if (expandState) {
         modifiedElements.push(expandState)
@@ -276,7 +354,7 @@ function removeAllHeightConstraints(element: HTMLElement, modifiedElements: Elem
  * Expands scrollable content areas for complete PDF capture
  */
 export function expandScrollableContent(element: HTMLElement, modifiedElements: ElementState[]): void {
-  console.log('🔍 Final scrollable content check')
+  console.log('🔍 Final scrollable content check with enhanced detection')
   
   const remainingScrollable = element.querySelectorAll('*')
   let additionalExpansions = 0
@@ -285,12 +363,13 @@ export function expandScrollableContent(element: HTMLElement, modifiedElements: 
     if (el instanceof HTMLElement) {
       const isAlreadyProcessed = modifiedElements.some(item => item.element === el)
       
-      if (!isAlreadyProcessed && el.scrollHeight > el.clientHeight + 10) {
+      if (!isAlreadyProcessed && (el.scrollHeight > el.clientHeight + 1 || hasAnyHeightConstraint(el))) {
         console.log('🔍 Found missed scrollable content:', {
           element: el.tagName,
           classes: el.className.substring(0, 50),
           scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight
+          clientHeight: el.clientHeight,
+          offsetHeight: el.offsetHeight
         })
         
         const scrollState = forceExpandElement(el, modifiedElements, 'Final Scrollable Check')
@@ -362,6 +441,9 @@ function storeOriginalStyles(element: HTMLElement): Record<string, string> {
     whiteSpace: element.style.whiteSpace,
     flexWrap: element.style.flexWrap,
     display: element.style.display,
-    gridAutoRows: element.style.gridAutoRows
+    gridAutoRows: element.style.gridAutoRows,
+    visibility: element.style.visibility,
+    alignContent: element.style.alignContent,
+    alignItems: element.style.alignItems
   }
 }
