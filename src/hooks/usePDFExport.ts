@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -18,8 +19,49 @@ interface ElementState {
 }
 
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
-  const exportToPDF = useCallback(async (elementId: string, title: string) => {
+  
+  // Typography preservation functions
+  const injectPDFStyles = () => {
+    const styleId = 'pdf-export-typography-lock'
+    
+    // Remove existing style if present
+    const existingStyle = document.getElementById(styleId)
+    if (existingStyle) {
+      existingStyle.remove()
+    }
+    
+    // Create and inject typography preservation styles
+    const style = document.createElement('style')
+    style.id = styleId
+    style.textContent = `
+      .pdf-export-lock * { 
+        white-space: nowrap !important; 
+        word-break: keep-all !important; 
+        line-height: inherit !important;
+        text-overflow: clip !important;
+        overflow: visible !important;
+      }
+      .pdf-export-lock li,
+      .pdf-export-lock p,
+      .pdf-export-lock span {
+        white-space: normal !important;
+        word-break: normal !important;
+      }
+    `
+    document.head.appendChild(style)
+    return styleId
+  }
+  
+  const removePDFStyles = (styleId: string) => {
+    const style = document.getElementById(styleId)
+    if (style) {
+      style.remove()
+    }
+  }
+
+  const exportToPDF = useCallback(async (elementId: string, title: string, reactControls?: any) => {
     let modifiedElements: ElementState[] = []
+    let injectedStyleId: string | null = null
     
     try {
       toast.info('Generating professional PDF with full visual design...', { duration: 3000 })
@@ -121,6 +163,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Wait for all expansions and layout changes to complete
       await new Promise(resolve => setTimeout(resolve, 1000))
 
+      // PHASE 2: TYPOGRAPHY PRESERVATION - Inject CSS to prevent text reflow
+      injectedStyleId = injectPDFStyles()
+      element.classList.add('pdf-export-lock')
+
       // Store original styles for the main element restoration
       const originalStyles = {
         position: element.style.position,
@@ -132,11 +178,15 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         backgroundColor: element.style.backgroundColor
       }
 
-      // Temporarily optimize for PDF capture - ensure full visual rendering
+      // Get natural element dimensions to prevent text reflow
+      const naturalWidth = Math.max(element.scrollWidth, element.offsetWidth, 1200)
+      const naturalHeight = element.scrollHeight
+
+      // Temporarily optimize for PDF capture - use natural dimensions
       element.style.position = 'static'
-      element.style.width = '1200px'
-      element.style.maxWidth = '1200px'
-      element.style.minWidth = '1200px'
+      element.style.width = `${naturalWidth}px`
+      element.style.maxWidth = `${naturalWidth}px`
+      element.style.minWidth = `${naturalWidth}px`
       element.style.transform = 'none'
       element.style.overflow = 'visible'
       element.style.backgroundColor = 'transparent'
@@ -155,10 +205,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         logging: false,
         scrollX: 0,
         scrollY: 0,
-        width: 1200,
-        height: element.scrollHeight,
-        windowWidth: 1200,
-        windowHeight: element.scrollHeight,
+        width: naturalWidth,
+        height: naturalHeight,
+        windowWidth: naturalWidth,
+        windowHeight: naturalHeight,
         ignoreElements: (element) => {
           // Only skip elements explicitly marked for PDF exclusion
           return element.classList?.contains('no-pdf') || false
@@ -167,11 +217,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           if (clonedElement) {
             // CRITICAL: Force all visual elements to render properly
             clonedElement.style.position = 'static'
-            clonedElement.style.width = '1200px'
-            clonedElement.style.maxWidth = '1200px'
-            clonedElement.style.minWidth = '1200px'
+            clonedElement.style.width = `${naturalWidth}px`
+            clonedElement.style.maxWidth = `${naturalWidth}px`
+            clonedElement.style.minWidth = `${naturalWidth}px`
             clonedElement.style.transform = 'none'
             clonedElement.style.overflow = 'visible'
+            
+            // Ensure typography lock is applied in clone
+            clonedElement.classList.add('pdf-export-lock')
             
             // Force render all gradients and backgrounds
             const allElements = clonedElement.querySelectorAll('*')
@@ -179,6 +232,16 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               if (el instanceof HTMLElement) {
                 // Preserve all computed styles for visual fidelity
                 const computedStyle = getComputedStyle(el)
+                
+                // CRITICAL: Text protection - prevent artificial line breaks
+                const isTextContainer = el.tagName.match(/^(P|SPAN|DIV|LI|H[1-6])$/)
+                if (isTextContainer) {
+                  el.style.whiteSpace = computedStyle.whiteSpace || 'normal'
+                  el.style.wordBreak = computedStyle.wordBreak || 'normal'
+                  el.style.width = computedStyle.width
+                  el.style.minWidth = computedStyle.minWidth
+                  el.style.maxWidth = computedStyle.maxWidth
+                }
                 
                 // Force background rendering
                 if (computedStyle.background || computedStyle.backgroundColor || computedStyle.backgroundImage) {
@@ -333,6 +396,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       // PHASE 3: POST-PDF RESTORATION - Restore all original states
       
+      // Remove typography lock and clean up styles
+      element.classList.remove('pdf-export-lock')
+      if (injectedStyleId) {
+        removePDFStyles(injectedStyleId)
+      }
+      
       // Restore main element styles immediately
       Object.entries(originalStyles).forEach(([property, value]) => {
         element.style[property as any] = value
@@ -483,6 +552,15 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       console.error('PDF export failed:', error)
       
       // CRITICAL: Always restore states even if PDF generation fails
+      if (injectedStyleId) {
+        removePDFStyles(injectedStyleId)
+      }
+      
+      const element = document.getElementById(elementId)
+      if (element) {
+        element.classList.remove('pdf-export-lock')
+      }
+      
       modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
         try {
           if (stateAttribute === 'data-state') {
