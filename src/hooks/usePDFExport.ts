@@ -1,7 +1,7 @@
 
 import { useCallback } from 'react'
 import { toast } from 'sonner'
-import { generateCleanFilename, calculatePDFDimensions } from '@/utils/pdfUtils'
+import { generateCleanFilename } from '@/utils/pdfUtils'
 import { storeElementStyles, restoreElementStyles, optimizeElementForPDF } from '@/utils/elementStyleUtils'
 import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
 import { generateCanvas } from '@/services/canvasGenerator'
@@ -19,19 +19,19 @@ interface PDFExportOptions {
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let sectionsToRestore: string[] = []
-    let sectionModifiedElements: ElementState[] = []
-    let contentModifiedElements: ElementState[] = []
+    let modifiedElements: ElementState[] = []
     
     try {
       toast.info('Generating professional PDF...', { duration: 3000 })
       
+      // 1. Get target element
       const element = document.getElementById(elementId)
       if (!element) {
         toast.error('Unable to find content to export')
         return
       }
 
-      // Open closed sections for PDF using existing options
+      // 2. Expand sections using options
       if (options?.sectionsOpen && options?.toggleSection) {
         Object.entries(options.sectionsOpen).forEach(([sectionKey, isOpen]) => {
           if (!isOpen) {
@@ -39,152 +39,43 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             options.toggleSection!(sectionKey)
           }
         })
-
         if (sectionsToRestore.length > 0) {
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
 
-      // Expand any remaining collapsed sections using utility
-      sectionModifiedElements = expandCollapsedSections(element)
-
-      // Expand scrollable content areas using utility
-      expandScrollableContent(element, contentModifiedElements)
+      // 3. Expand collapsed content using utilities
+      const sectionModifiedElements = expandCollapsedSections(element)
+      expandScrollableContent(element, modifiedElements)
+      modifiedElements.push(...sectionModifiedElements)
 
       await document.fonts.ready
 
-      // DIRECT DOM MODIFICATION APPROACH
-      console.log('🔧 Starting direct DOM modification for PDF optimization...')
-      
-      // Find and modify elements directly in the actual DOM
-      const allElements = element.querySelectorAll('*')
-      Array.from(allElements).forEach((el) => {
-        if (el instanceof HTMLElement) {
-          const computedStyle = getComputedStyle(el)
-          
-          // Check if this is an email content container
-          const isEmailContainer = 
-            el.classList.contains('max-h-32') ||
-            (computedStyle.fontFamily.includes('mono') && el.textContent && el.textContent.length > 50) ||
-            computedStyle.maxHeight === '128px' ||
-            computedStyle.maxHeight === '8rem'
-
-          // Check if this is a Deal Acceleration Insights text container
-          const isDealInsightsText = 
-            el.tagName === 'P' &&
-            el.classList.contains('text-gray-800') &&
-            el.classList.contains('leading-relaxed') &&
-            el.parentElement?.classList.contains('flex') &&
-            el.parentElement?.classList.contains('items-start') &&
-            el.parentElement?.classList.contains('gap-3')
-
-          // Check if this is a Competitive Positioning Arsenal text container
-          const isCompetitivePositioningText = 
-            el.tagName === 'SPAN' &&
-            el.classList.contains('text-gray-800') &&
-            (el.classList.contains('text-sm') || el.classList.contains('lg:text-base')) &&
-            el.parentElement?.classList.contains('flex') &&
-            el.parentElement?.classList.contains('items-center') &&
-            el.parentElement?.classList.contains('gap-3')
-
-          if (isEmailContainer) {
-            console.log(`📧 Directly modifying email container: ${el.className}`)
-            
-            // Store original state for restoration using utility
-            const originalClasses = el.className
-            const originalStyles = storeElementStyles(el)
-            
-            contentModifiedElements.push({
-              element: el,
-              originalClasses,
-              originalStyles
-            })
-            
-            // Remove problematic classes directly from the actual DOM
-            el.classList.remove('max-h-32')
-            el.classList.remove('overflow-y-auto')
-            el.classList.remove('overflow-hidden')
-            
-            // Apply PDF optimization using utility
-            optimizeElementForPDF(el, 'email')
-          }
-
-          if (isDealInsightsText || isCompetitivePositioningText) {
-            const sectionType = isDealInsightsText ? 'Deal Insights' : 'Competitive Positioning'
-            console.log(`📝 Optimizing ${sectionType} text for PDF: ${el.textContent?.substring(0, 50)}...`)
-            
-            // Store original state for restoration using utility
-            const originalClasses = el.className
-            const originalStyles = storeElementStyles(el)
-            
-            contentModifiedElements.push({
-              element: el,
-              originalClasses,
-              originalStyles
-            })
-            
-            // Apply PDF-optimized text styles using utility
-            optimizeElementForPDF(el, 'text')
-            
-            // Also optimize the parent container if it's the flex container
-            const parentContainer = el.parentElement
-            if (parentContainer && parentContainer.classList.contains('flex')) {
-              const parentOriginalStyles = storeElementStyles(parentContainer)
-              
-              contentModifiedElements.push({
-                element: parentContainer,
-                originalClasses: parentContainer.className,
-                originalStyles: parentOriginalStyles
-              })
-              
-              optimizeElementForPDF(parentContainer, 'container')
-            }
-          }
-        }
-      })
-
-      console.log(`✅ Modified ${contentModifiedElements.length} elements for PDF optimization`)
-
-      // Wait for DOM changes to take effect
-      await new Promise(resolve => setTimeout(resolve, 1000))
-
-      // Store original styles for main element restoration using utility
+      // 4. Optimize element for PDF capture
       const originalStyles = storeElementStyles(element)
-
-      // Optimize main element for PDF capture using utility
       optimizeElementForPDF(element, 'main')
-
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Generate canvas using utility
+      // 5. Generate canvas using service
       const canvas = await generateCanvas(element)
 
-      // Restore original styles immediately using utility
+      // 6. Restore element styles immediately
       restoreElementStyles(element, originalStyles)
 
-      // Restore modified elements using utilities
-      restoreElementStates(contentModifiedElements)
-      restoreElementStates(sectionModifiedElements)
-
-      console.log('✅ Restored all modified elements')
-
-      // Create PDF using new service
+      // 7. Create PDF using service
       const pdf = createPDFDocument()
       
-      // Calculate dimensions to determine single or multi-page layout
-      const { scaledHeight, pdfHeight } = calculatePDFDimensions(canvas)
-      const contentStartY = 45
-      const availableHeight = pdfHeight - contentStartY - 10
+      // 8. Determine layout strategy and add content
+      const canvasHeight = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
+      const availableHeight = 297 - 45 - 10 // A4 height - header - margin
       
-      if (scaledHeight <= availableHeight) {
-        // Single page
+      if (canvasHeight <= availableHeight) {
         addCanvasToPDF(pdf, canvas, title)
       } else {
-        // Multi-page layout
         addMultiPageContent(pdf, canvas, title)
       }
       
-      // Generate filename and save using utility
+      // 9. Save PDF with clean filename
       const pdfFilename = generateCleanFilename(title)
       pdf.save(pdfFilename)
       
@@ -194,7 +85,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       console.error('PDF export failed:', error)
       toast.error('Failed to generate PDF. Please try again.')
     } finally {
-      // Restore section states using original options logic
+      // Restore all modified states
+      restoreElementStates(modifiedElements)
+      
+      // Restore section states
       if (options?.toggleSection && sectionsToRestore.length > 0) {
         setTimeout(() => {
           sectionsToRestore.forEach(sectionKey => {
@@ -202,10 +96,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           })
         }, 500)
       }
-      
-      // Ensure all element states are restored using utilities
-      restoreElementStates(contentModifiedElements)
-      restoreElementStates(sectionModifiedElements)
     }
   }, [filename])
   
