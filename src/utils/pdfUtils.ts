@@ -3,6 +3,22 @@ import jsPDF from 'jspdf'
 
 /**
  * Generates a clean filename for PDF export with timestamp
+ * 
+ * Creates SEO-friendly filenames by:
+ * - Removing special characters and symbols
+ * - Converting spaces to underscores
+ * - Converting to lowercase
+ * - Adding current date stamp
+ * - Appending descriptive suffix
+ * 
+ * @param title - Original title/name for the document
+ * @returns Clean filename with .pdf extension ready for download
+ * 
+ * @example
+ * ```typescript
+ * const filename = generateCleanFilename('Sales Analysis Report!');
+ * // Returns: "sales_analysis_report_sales_analysis_2024-01-15.pdf"
+ * ```
  */
 export function generateCleanFilename(title: string): string {
   const timestamp = new Date().toISOString().slice(0, 10)
@@ -16,6 +32,20 @@ export function generateCleanFilename(title: string): string {
 
 /**
  * Calculates PDF dimensions and scaling for optimal layout
+ * 
+ * Computes scaling factors to fit canvas content within A4 page boundaries
+ * while maintaining aspect ratio. Accounts for page margins and ensures
+ * professional document layout.
+ * 
+ * @param canvas - HTML canvas containing the content to be placed in PDF
+ * @returns Object containing calculated dimensions and scaling factors
+ * 
+ * @example
+ * ```typescript
+ * const canvas = await generateCanvas(element);
+ * const { scale, scaledHeight, contentWidth } = calculatePDFDimensions(canvas);
+ * // Use dimensions for PDF layout...
+ * ```
  */
 export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
   // A4 dimensions in mm
@@ -28,16 +58,38 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
   const scaledHeight = (canvas.height * 0.264583) * scale
   
   return {
+    /** Scaling factor to fit content within page width */
     scale,
+    /** Height of scaled content in mm */
     scaledHeight,
+    /** Available content width in mm (with margins) */
     contentWidth,
+    /** Full PDF page width in mm */
     pdfWidth,
+    /** Full PDF page height in mm */
     pdfHeight
   }
 }
 
 /**
  * Creates a professional PDF header with title and metadata
+ * 
+ * Adds formatted header section containing:
+ * - Document title (formatted and styled)
+ * - Document type indicator
+ * - Generation timestamp
+ * - Professional separator line
+ * 
+ * @param pdf - jsPDF instance to add header to
+ * @param title - Document title to display in header
+ * @returns Y-coordinate where main content should start (below header)
+ * 
+ * @example
+ * ```typescript
+ * const pdf = createPDFDocument();
+ * const contentStartY = createPDFHeader(pdf, 'sales_analysis_report');
+ * // Add main content starting at contentStartY...
+ * ```
  */
 export function createPDFHeader(pdf: jsPDF, title: string): number {
   // Professional header

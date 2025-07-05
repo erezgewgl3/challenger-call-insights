@@ -5,6 +5,18 @@ import { createMultiPageCanvas } from './canvasGenerator'
 
 /**
  * Creates and initializes a new PDF document with standard configuration
+ * 
+ * Uses A4 portrait format with no compression for maximum quality.
+ * Standard configuration suitable for professional reports and documents.
+ * 
+ * @returns Configured jsPDF instance ready for content addition
+ * 
+ * @example
+ * ```typescript
+ * const pdf = createPDFDocument();
+ * // Add content to pdf...
+ * pdf.save('document.pdf');
+ * ```
  */
 export function createPDFDocument(): jsPDF {
   return new jsPDF({
@@ -16,7 +28,21 @@ export function createPDFDocument(): jsPDF {
 }
 
 /**
- * Adds a single canvas to PDF as one page
+ * Adds a single canvas to PDF as one page with professional header
+ * 
+ * Optimizes canvas scaling to fit A4 page width while maintaining aspect ratio.
+ * Automatically adds professional header with title and generation date.
+ * 
+ * @param pdf - The jsPDF instance to add content to
+ * @param canvas - HTML canvas element containing the content to add
+ * @param title - Title for the document header
+ * 
+ * @example
+ * ```typescript
+ * const pdf = createPDFDocument();
+ * const canvas = await generateCanvas(element);
+ * addCanvasToPDF(pdf, canvas, 'Sales Analysis Report');
+ * ```
  */
 export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: string): void {
   const imgData = canvas.toDataURL('image/png', 1.0)
@@ -31,6 +57,25 @@ export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: str
 
 /**
  * Handles multi-page PDF content with proper headers and pagination
+ * 
+ * Automatically splits long content across multiple pages while maintaining:
+ * - Consistent headers on each page
+ * - Proper page numbering
+ * - Optimal content distribution
+ * - Professional formatting throughout
+ * 
+ * @param pdf - The jsPDF instance to add content to
+ * @param canvas - HTML canvas element containing the full content
+ * @param title - Base title for headers (page numbers will be appended)
+ * 
+ * @throws Will log warnings for pages that fail to render but continue processing
+ * 
+ * @example
+ * ```typescript
+ * const pdf = createPDFDocument();
+ * const canvas = await generateCanvas(longElement);
+ * addMultiPageContent(pdf, canvas, 'Comprehensive Sales Report');
+ * ```
  */
 export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title: string): void {
   const imgData = canvas.toDataURL('image/png', 1.0)
