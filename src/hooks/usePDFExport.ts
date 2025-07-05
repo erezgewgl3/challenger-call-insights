@@ -7,11 +7,6 @@ interface UsePDFExportProps {
   filename?: string
 }
 
-interface PDFExportOptions {
-  sectionsOpen?: any
-  toggleSection?: any
-}
-
 interface ElementState {
   element: HTMLElement
   originalState: string
@@ -23,7 +18,7 @@ interface ElementState {
 }
 
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
-  const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
+  const exportToPDF = useCallback(async (elementId: string, title: string) => {
     let modifiedElements: ElementState[] = []
     
     try {
@@ -178,10 +173,26 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.fontWeight = computedStyle.fontWeight
                 el.style.lineHeight = computedStyle.lineHeight
                 
-                // MINIMAL TEXT WRAPPING FIX: Only this addition
-                if (el.textContent && el.textContent.length > 30 && (el.tagName === 'P' || el.tagName === 'SPAN')) {
-                  el.style.whiteSpace = 'nowrap'
-                  el.style.overflow = 'visible'
+                // Target numbered list items specifically to prevent line breaks
+                const isNumberedListItem = el.closest('[class*="space-y"] li, [class*="gap"] li') ||
+                                         (el.tagName === 'LI' && el.textContent && el.textContent.match(/^\d+\./))
+                
+                if (isNumberedListItem) {
+                  // Use scrollWidth to prevent content shrinking
+                  const naturalWidth = el.scrollWidth
+                  if (naturalWidth > el.clientWidth) {
+                    el.style.width = naturalWidth + 'px'
+                    el.style.minWidth = naturalWidth + 'px'
+                  }
+                  
+                  // Prevent text wrapping in list items
+                  const textElements = el.querySelectorAll('p, span, div')
+                  textElements.forEach(textEl => {
+                    if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.trim().length > 20) {
+                      textEl.style.whiteSpace = 'nowrap'
+                      textEl.style.overflow = 'visible'
+                    }
+                  })
                 }
                 
                 // Preserve backgrounds and styling
