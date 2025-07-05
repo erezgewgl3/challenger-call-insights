@@ -7,6 +7,15 @@ interface UsePDFExportProps {
   filename?: string
 }
 
+interface PDFExportOptions {
+  sectionsOpen?: {
+    insights?: boolean
+    competitive?: boolean
+    [key: string]: boolean | undefined
+  }
+  toggleSection?: (section: string) => void
+}
+
 interface ElementState {
   element: HTMLElement
   originalState: string
@@ -18,11 +27,15 @@ interface ElementState {
 }
 
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
-  const exportToPDF = useCallback(async (elementId: string, title: string) => {
+  const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
+    // Enhanced PDF export with intelligent section expansion
+    // - If options.sectionsOpen provided: respects current UI state (exports what user sees)
+    // - If no options provided: expands all sections (backward compatible)
     let modifiedElements: ElementState[] = []
     
     try {
-      toast.info('Generating professional PDF...', { duration: 3000 })
+      const exportType = options?.sectionsOpen ? 'current view' : 'complete analysis'
+      toast.info(`Generating professional PDF with ${exportType}...`, { duration: 3000 })
       
       const element = document.getElementById(elementId)
       if (!element) {
@@ -34,42 +47,66 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       await document.fonts.ready
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Expand collapsed sections
+      // Expand collapsed sections (intelligent expansion based on current UI state)
       const collapsedSections = element.querySelectorAll(
         '[data-state="closed"], [aria-expanded="false"], .collapsed, details:not([open])'
       )
       
       collapsedSections.forEach(section => {
         if (section instanceof HTMLElement) {
-          const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
-                           section.hasAttribute('aria-expanded') ? 'aria-expanded' : 'class'
+          // Determine if this section should be expanded based on options
+          let shouldExpand = true // Default: expand all sections
           
-          modifiedElements.push({
-            element: section,
-            originalState: stateAttr === 'data-state' ? section.getAttribute('data-state') || '' :
-                          stateAttr === 'aria-expanded' ? section.getAttribute('aria-expanded') || '' :
-                          section.className,
-            originalHeight: section.style.height,
-            originalMaxHeight: section.style.maxHeight,
-            originalOverflow: section.style.overflow,
-            originalOverflowY: section.style.overflowY,
-            stateAttribute: stateAttr
-          })
-          
-          // Expand the section
-          if (stateAttr === 'data-state') {
-            section.setAttribute('data-state', 'open')
-          } else if (stateAttr === 'aria-expanded') {
-            section.setAttribute('aria-expanded', 'true')
-          } else {
-            section.className = section.className.replace(/\bcollapsed\b/g, '')
+          if (options?.sectionsOpen) {
+            // Smart expansion: only expand sections that are currently open in UI
+            const sectionElement = section.closest('[data-section]')
+            if (sectionElement) {
+              const sectionName = sectionElement.getAttribute('data-section')
+              shouldExpand = sectionName ? (options.sectionsOpen[sectionName] ?? true) : true
+            } else {
+              // For insights and competitive sections, check by class names
+              const isInsightsSection = section.closest('[class*="insight"], [class*="takeaway"]')
+              const isCompetitiveSection = section.closest('[class*="competitive"], [class*="positioning"]')
+              
+              if (isInsightsSection) {
+                shouldExpand = options.sectionsOpen.insights ?? true
+              } else if (isCompetitiveSection) {
+                shouldExpand = options.sectionsOpen.competitive ?? true
+              }
+            }
           }
           
-          section.style.display = 'block'
-          section.style.visibility = 'visible'
-          section.style.height = 'auto'
-          section.style.maxHeight = 'none'
-          section.style.overflow = 'visible'
+          if (shouldExpand) {
+            const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
+                             section.hasAttribute('aria-expanded') ? 'aria-expanded' : 'class'
+            
+            modifiedElements.push({
+              element: section,
+              originalState: stateAttr === 'data-state' ? section.getAttribute('data-state') || '' :
+                            stateAttr === 'aria-expanded' ? section.getAttribute('aria-expanded') || '' :
+                            section.className,
+              originalHeight: section.style.height,
+              originalMaxHeight: section.style.maxHeight,
+              originalOverflow: section.style.overflow,
+              originalOverflowY: section.style.overflowY,
+              stateAttribute: stateAttr
+            })
+            
+            // Expand the section
+            if (stateAttr === 'data-state') {
+              section.setAttribute('data-state', 'open')
+            } else if (stateAttr === 'aria-expanded') {
+              section.setAttribute('aria-expanded', 'true')
+            } else {
+              section.className = section.className.replace(/\bcollapsed\b/g, '')
+            }
+            
+            section.style.display = 'block'
+            section.style.visibility = 'visible'
+            section.style.height = 'auto'
+            section.style.maxHeight = 'none'
+            section.style.overflow = 'visible'
+          }
         }
       })
 
@@ -356,7 +393,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       const pdfFilename = `${cleanFilename}_sales_analysis_${timestamp}.pdf`
       pdf.save(pdfFilename)
       
-      toast.success('Professional PDF exported successfully!', { duration: 4000 })
+      // Success message based on export options
+      const exportType = options?.sectionsOpen ? 'current view' : 'complete content'
+      toast.success(`Professional PDF exported successfully with ${exportType}!`, { duration: 4000 })
       
     } catch (error) {
       console.error('PDF export failed:', error)
