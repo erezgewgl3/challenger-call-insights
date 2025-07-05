@@ -1,4 +1,3 @@
-
 /**
  * Represents the stored state of a modified DOM element for restoration
  */
@@ -139,10 +138,10 @@ function hasAnyHeightConstraint(element: HTMLElement): boolean {
 }
 
 /**
- * Expands specific Battle Plan sub-sections with CORRECTED selectors matching BattlePlanSection.tsx
+ * PHASE 2: Enhanced Battle Plan sub-sections expansion with aggressive text optimization
  */
 function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedElements: ElementState[]): void {
-  console.log('🎯 Expanding Battle Plan sub-sections with CORRECTED selectors')
+  console.log('🎯 PHASE 2: Enhanced Battle Plan expansion with aggressive text optimization')
 
   // 1. Strategic Intelligence & Approach Section - CORRECTED SELECTOR
   const strategicIntelligenceSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-indigo-50.via-blue-50.to-purple-50')
@@ -228,26 +227,162 @@ function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedE
     }
   })
 
-  // 6. CRITICAL: Email bodies with specific constraints - ENHANCED TARGETING
-  const emailBodies = battlePlanContainer.querySelectorAll('.font-mono.whitespace-pre-wrap')
-  console.log('📧 Email body elements found:', emailBodies.length)
+  // PHASE 2: CRITICAL - Enhanced email bodies and text containers with aggressive optimization
+  const textContainerSelectors = [
+    '.font-mono.whitespace-pre-wrap',
+    '.max-h-32',
+    '.max-h-40', 
+    '.overflow-y-auto',
+    '[class*="max-h-"]',
+    '[class*="overflow-"]',
+    // PHASE 2: Additional selectors for concern/signal containers
+    '.border-l-4 .space-y-4',
+    '.space-y-4 > div',
+    '.flex.flex-col.space-y-2'
+  ]
   
-  emailBodies.forEach((emailEl, index) => {
-    if (emailEl instanceof HTMLElement) {
-      console.log(`📧 Force expanding email body ${index + 1}:`, {
-        scrollHeight: emailEl.scrollHeight,
-        clientHeight: emailEl.clientHeight,
-        hasMaxHeight: emailEl.classList.contains('max-h-32'),
-        hasOverflow: emailEl.classList.contains('overflow-y-auto')
-      })
-      const emailState = forceExpandElement(emailEl, modifiedElements, `Email Body ${index + 1}`)
-      if (emailState) modifiedElements.push(emailState)
+  textContainerSelectors.forEach(selector => {
+    const elements = battlePlanContainer.querySelectorAll(selector)
+    console.log(`📧 PHASE 2: Text containers found with selector "${selector}":`, elements.length)
+    
+    elements.forEach((element, index) => {
+      if (element instanceof HTMLElement) {
+        console.log(`📧 PHASE 2: Aggressively optimizing text container ${index + 1}:`, {
+          selector,
+          scrollHeight: element.scrollHeight,
+          clientHeight: element.clientHeight,
+          textContent: element.textContent?.substring(0, 50) + '...'
+        })
+        
+        const containerState = forceExpandElementWithTextOptimization(element, modifiedElements, `Text Container ${selector} ${index + 1}`)
+        if (containerState) modifiedElements.push(containerState)
+      }
+    })
+  })
+
+  // PHASE 2: Specific targeting for "Concerns to Address" and similar sections
+  const concernSections = battlePlanContainer.querySelectorAll('[class*="border-l-4"]')
+  console.log('🎯 PHASE 2: Concern/Signal sections found:', concernSections.length)
+  
+  concernSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      // Look for text content that suggests this is a concerns section
+      const textContent = section.textContent || ''
+      if (textContent.includes('Concerns to Address') || 
+          textContent.includes('Buying Signals') || 
+          textContent.includes('Pain Points')) {
+        
+        console.log(`🎯 PHASE 2: Processing section with concerns/signals ${index + 1}`)
+        
+        // Aggressively expand the section container
+        const sectionState = forceExpandElementWithTextOptimization(section, modifiedElements, `Concerns Section ${index + 1}`)
+        if (sectionState) modifiedElements.push(sectionState)
+        
+        // Target all child text elements within this section
+        const childTextElements = section.querySelectorAll('div, p, span')
+        childTextElements.forEach((child, cIndex) => {
+          if (child instanceof HTMLElement && child.textContent && child.textContent.trim().length > 0) {
+            const childState = forceExpandElementWithTextOptimization(child, modifiedElements, `Concerns Child ${index + 1}-${cIndex + 1}`)
+            if (childState) modifiedElements.push(childState)
+          }
+        })
+      }
     }
   })
 
-  // 7. FALLBACK: Content-based detection for missed elements
+  // Fallback: Find elements by text content when CSS selectors fail
   console.log('🔍 Running content-based fallback detection')
   findElementsByContent(battlePlanContainer, modifiedElements)
+}
+
+/**
+ * PHASE 2: Enhanced element expansion with aggressive text optimization for section preservation
+ */
+function forceExpandElementWithTextOptimization(element: HTMLElement, existingModified: ElementState[], logPrefix: string): ElementState | null {
+  // Check if already processed
+  const alreadyProcessed = existingModified.some(item => item.element === element)
+  if (alreadyProcessed) {
+    console.log(`⚠️ ${logPrefix}: Already processed, skipping`)
+    return null
+  }
+  
+  console.log(`🔧 PHASE 2: Force expanding with text optimization`, {
+    element: element.tagName,
+    classes: element.className.substring(0, 100),
+    scrollHeight: element.scrollHeight,
+    clientHeight: element.clientHeight,
+    offsetHeight: element.offsetHeight,
+    hasTextContent: (element.textContent?.length || 0) > 0
+  })
+  
+  const originalClasses = element.className
+  const originalStyles = storeOriginalStyles(element)
+  
+  // PHASE 1: Remove ALL height constraining classes (comprehensive list)
+  const heightClasses = [
+    'max-h-0', 'max-h-1', 'max-h-2', 'max-h-3', 'max-h-4', 'max-h-5', 'max-h-6', 'max-h-7', 'max-h-8', 'max-h-9',
+    'max-h-10', 'max-h-11', 'max-h-12', 'max-h-14', 'max-h-16', 'max-h-20', 'max-h-24', 'max-h-28', 'max-h-32',
+    'max-h-36', 'max-h-40', 'max-h-44', 'max-h-48', 'max-h-52', 'max-h-56', 'max-h-60', 'max-h-64', 'max-h-72',
+    'max-h-80', 'max-h-96', 'max-h-px'
+  ]
+  const overflowClasses = ['overflow-y-auto', 'overflow-auto', 'overflow-y-scroll', 'overflow-hidden', 'overflow-y-hidden', 'overflow-x-hidden']
+  
+  heightClasses.forEach(cls => element.classList.remove(cls))
+  overflowClasses.forEach(cls => element.classList.remove(cls))
+  
+  // Add expansion classes
+  element.classList.add('max-h-none', 'overflow-visible')
+  
+  // PHASE 2: AGGRESSIVE text optimization with enhanced CSS properties
+  element.style.setProperty('max-height', 'none', 'important')
+  element.style.setProperty('height', 'auto', 'important')
+  element.style.setProperty('overflow', 'visible', 'important')
+  element.style.setProperty('overflow-y', 'visible', 'important')
+  element.style.setProperty('overflow-x', 'visible', 'important')
+  
+  // PHASE 2: Aggressive text wrapping and spacing optimization
+  element.style.setProperty('white-space', 'normal', 'important')
+  element.style.setProperty('word-wrap', 'break-word', 'important')
+  element.style.setProperty('overflow-wrap', 'break-word', 'important')
+  element.style.setProperty('hyphens', 'auto', 'important')
+  element.style.setProperty('line-height', '1.5', 'important')
+  
+  // PHASE 2: Enhanced width management for text containers
+  if (element.textContent && element.textContent.length > 50) {
+    element.style.setProperty('max-width', '100%', 'important')
+    element.style.setProperty('width', 'auto', 'important')
+    element.style.setProperty('min-width', '0', 'important')
+  }
+  
+  // Special handling for different display types
+  const computedStyle = getComputedStyle(element)
+  if (element.classList.contains('grid') || computedStyle.display.includes('grid')) {
+    element.style.setProperty('grid-auto-rows', 'auto', 'important')
+    element.style.setProperty('align-content', 'start', 'important')
+  }
+  
+  if (computedStyle.display.includes('flex')) {
+    element.style.setProperty('flex-shrink', '0', 'important')
+    element.style.setProperty('align-items', 'start', 'important')
+    element.style.setProperty('flex-wrap', 'wrap', 'important')
+  }
+  
+  // PHASE 2: Force visibility and proper display
+  element.style.setProperty('visibility', 'visible', 'important')
+  element.style.setProperty('display', element.style.display || computedStyle.display, 'important')
+  
+  console.log(`✅ PHASE 2: Text-optimized expansion complete`, {
+    newScrollHeight: element.scrollHeight,
+    newClientHeight: element.clientHeight,
+    newOffsetHeight: element.offsetHeight,
+    textOptimizationApplied: true
+  })
+  
+  return {
+    element,
+    originalClasses,
+    originalStyles
+  }
 }
 
 /**

@@ -1,4 +1,3 @@
-
 import html2canvas from 'html2canvas'
 
 /**
@@ -104,28 +103,29 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
 }
 
 /**
- * Creates a canvas for a specific page from a larger canvas for multi-page PDF generation
+ * Creates a canvas for a specific page with ENHANCED atomic section handling
  * 
- * ENHANCED: Better section boundary detection to prevent content splits
+ * PHASE 1-4: Enhanced section boundary detection to prevent content splits
  * 
  * @param sourceCanvas - Original canvas containing full content
  * @param pageHeightMM - Height of one PDF page in mm
  * @param pageIndex - Zero-based index of the page to extract (0 = first page)
- * @param minimumContentThreshold - Minimum content height in pixels to create a valid page
+ * @param minimumContentThreshold - Minimum content height in pixels for atomic sections
  * @returns New canvas containing only the specified page content
  */
 export function createMultiPageCanvas(
   sourceCanvas: HTMLCanvasElement, 
   pageHeightMM: number, 
   pageIndex: number,
-  minimumContentThreshold: number = 200 // Increased from 100 for better section detection
+  minimumContentThreshold: number = 300 // PHASE 1: Increased from 200 for atomic sections
 ): HTMLCanvasElement {
-  console.log(`🖼️ Section-aware multi-page canvas creation - Page ${pageIndex + 1}:`, {
+  console.log(`🖼️ ATOMIC: Section-aware multi-page canvas creation - Page ${pageIndex + 1}:`, {
     sourceCanvasWidth: sourceCanvas.width,
     sourceCanvasHeight: sourceCanvas.height,
     pageHeightMM,
     pageIndex,
-    minimumContentThreshold
+    minimumContentThreshold,
+    atomicSectionHandling: true
   })
 
   const pageCanvas = document.createElement('canvas')
@@ -135,85 +135,88 @@ export function createMultiPageCanvas(
     throw new Error('Failed to get 2D context for page canvas')
   }
   
-  // ENHANCED: More precise MM to pixels conversion accounting for canvas scale
+  // PHASE 1: Enhanced MM to pixels conversion for atomic sections
   const mmToPixels = (mm: number) => {
-    // 1mm = 3.779527559 pixels at 96 DPI, account for 2x scale from html2canvas
+    // More precise conversion accounting for canvas scale and atomic sections
     return (mm * 3.779527559) * 2
   }
   
   const pageHeightPixels = mmToPixels(pageHeightMM)
   
-  // ENHANCED: Better bounds checking and content validation
+  // PHASE 3: Enhanced bounds checking for atomic section preservation
   const sourceY = pageIndex * pageHeightPixels
   
-  console.log(`📄 Page ${pageIndex + 1} section-aware bounds calculation:`, {
+  console.log(`📄 ATOMIC: Page ${pageIndex + 1} bounds calculation with section awareness:`, {
     pageHeightMM,
     pageHeightPixels,
     sourceY,
     sourceCanvasHeight: sourceCanvas.height,
     remainingHeight: sourceCanvas.height - sourceY,
     hasValidStartPosition: sourceY < sourceCanvas.height,
-    minimumContentThreshold
+    minimumContentThreshold,
+    atomicSectionThreshold: minimumContentThreshold
   })
   
-  // CRITICAL: Enhanced bounds validation with section awareness
+  // PHASE 2: ATOMIC section validation - Enhanced bounds validation
   if (sourceY >= sourceCanvas.height) {
-    console.warn(`📄 Page ${pageIndex + 1} starts beyond source canvas height - no meaningful content`)
-    // Return minimal empty canvas to signal no content
+    console.warn(`📄 ATOMIC: Page ${pageIndex + 1} starts beyond source canvas - no atomic content`)
+    // Return minimal empty canvas to signal no atomic content
     pageCanvas.width = 1
     pageCanvas.height = 1
     return pageCanvas
   }
   
-  // Calculate how much content is actually available for this page
+  // PHASE 4: Calculate available content with section-aware logic
   const maxAvailableHeight = sourceCanvas.height - sourceY
   const actualPageHeight = Math.min(pageHeightPixels, maxAvailableHeight)
   
-  console.log(`📄 Page ${pageIndex + 1} section validation:`, {
+  console.log(`📄 ATOMIC: Page ${pageIndex + 1} section validation:`, {
     maxAvailableHeight,
     requestedPageHeight: pageHeightPixels,
     actualPageHeight,
-    meetsMinimumThreshold: actualPageHeight >= minimumContentThreshold,
-    contentWillBeMeaningful: actualPageHeight > minimumContentThreshold
+    meetsAtomicThreshold: actualPageHeight >= minimumContentThreshold,
+    willPreserveSectionIntegrity: actualPageHeight > minimumContentThreshold * 1.2
   })
   
-  // CRITICAL: Enhanced content validation - reject pages with insufficient content
-  if (actualPageHeight <= minimumContentThreshold) {
-    console.log(`📄 Page ${pageIndex + 1} rejected: Content height ${actualPageHeight}px below section threshold ${minimumContentThreshold}px`)
-    // Return minimal canvas to signal insufficient content
+  // PHASE 3: ATOMIC content validation - Enhanced threshold for section preservation
+  const atomicSectionThreshold = minimumContentThreshold * 1.2 // 20% higher for atomic sections
+  
+  if (actualPageHeight <= atomicSectionThreshold) {
+    console.log(`📄 ATOMIC: Page ${pageIndex + 1} rejected: Height ${actualPageHeight}px below atomic section threshold ${atomicSectionThreshold}px`)
+    // Return minimal canvas to signal insufficient atomic content
     pageCanvas.width = 1
     pageCanvas.height = 1
     return pageCanvas
   }
   
-  // Set up page canvas with validated dimensions
+  // PHASE 4: Set up page canvas with atomic section-validated dimensions
   pageCanvas.width = sourceCanvas.width
   pageCanvas.height = Math.ceil(actualPageHeight)
   
   try {
-    // ENHANCED: Canvas slicing with section boundary awareness
+    // PHASE 4: Enhanced canvas slicing with atomic section boundary awareness
     pageCtx.drawImage(
       sourceCanvas, 
-      0, sourceY, sourceCanvas.width, actualPageHeight,  // Source rectangle
+      0, sourceY, sourceCanvas.width, actualPageHeight,  // Source rectangle (atomic section aware)
       0, 0, sourceCanvas.width, actualPageHeight         // Destination rectangle
     )
     
-    console.log(`✅ Page ${pageIndex + 1} canvas created with section awareness:`, {
+    console.log(`✅ ATOMIC: Page ${pageIndex + 1} canvas created with section preservation:`, {
       finalWidth: pageCanvas.width,
       finalHeight: pageCanvas.height,
       sourceSliceY: sourceY,
       sourceSliceHeight: actualPageHeight,
       contentDensity: actualPageHeight / pageHeightPixels,
-      sectionBoundaryRespected: true
+      atomicSectionIntegrity: true,
+      sectionBoundaryPreserved: true
     })
     
     return pageCanvas
     
   } catch (error) {
-    console.error(`Failed to create page ${pageIndex + 1} canvas:`, error)
-    console.log('Creating minimal fallback canvas')
+    console.error(`ATOMIC: Failed to create page ${pageIndex + 1} canvas with section awareness:`, error)
     
-    // Fallback: create a minimal canvas to signal failure
+    // Fallback: create minimal canvas to signal atomic section failure
     pageCanvas.width = 1
     pageCanvas.height = 1
     

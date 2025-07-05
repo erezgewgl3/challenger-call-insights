@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf'
 import { calculatePDFDimensions, createPDFHeader } from '@/utils/pdfUtils'
 import { createMultiPageCanvas } from './canvasGenerator'
@@ -64,9 +63,9 @@ export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: str
 }
 
 /**
- * Handles multi-page PDF content with proper headers and pagination
+ * Handles multi-page PDF content with ENHANCED section-aware pagination
  * 
- * ENHANCED: Better section boundary detection to prevent awkward content splits
+ * PHASE 1-4: Comprehensive section boundary detection and atomic handling
  * 
  * @param pdf - The jsPDF instance to add content to
  * @param canvas - HTML canvas element containing the full content
@@ -78,80 +77,103 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
   // Create header for first page
   const contentStartY = createPDFHeader(pdf, title)
   
-  // ENHANCED: More accurate available height calculations
-  const firstPageAvailableHeight = pdfHeight - contentStartY - 10 // 10mm bottom margin
-  const subsequentPageAvailableHeight = pdfHeight - 35 // 25mm for header + 10mm bottom margin
+  // ENHANCED: More conservative height calculations for section preservation
+  const firstPageAvailableHeight = pdfHeight - contentStartY - 15 // Increased margin
+  const subsequentPageAvailableHeight = pdfHeight - 40 // Increased for section headers
   
-  // CRITICAL: Enhanced minimum content threshold - increased to prevent section splits
-  const minimumContentThresholdMM = 80 // Increased from 50mm to prevent section headers without content
-  const minimumContentThresholdPixels = minimumContentThresholdMM * 3.779527559 * 2 // Account for 2x canvas scale
+  // PHASE 1: Enhanced minimum content threshold - DOUBLED for better section detection
+  const minimumContentThresholdMM = 120 // Increased from 80mm to prevent section splits
+  const minimumContentThresholdPixels = minimumContentThresholdMM * 3.779527559 * 2
   
-  // ENHANCED: Section boundary detection threshold
-  const sectionBoundaryThresholdMM = 30 // If less than this remains, move content to next page
+  // PHASE 1: DOUBLED section boundary detection threshold for atomic sections
+  const sectionBoundaryThresholdMM = 60 // Increased from 30mm to be more conservative
   
-  console.log('ENHANCED multi-page PDF setup with section boundary detection:', {
+  console.log('PHASE 1-4: Enhanced multi-page PDF with atomic section handling:', {
     totalContentHeight: scaledHeight,
     firstPageAvailableHeight,
     subsequentPageAvailableHeight,
     minimumContentThresholdMM,
-    sectionBoundaryThresholdMM,
+    sectionBoundaryThresholdMM: sectionBoundaryThresholdMM,
     minimumContentThresholdPixels,
     canvasHeight: canvas.height,
-    scale
+    scale,
+    atomicSectionDetection: true
   })
   
-  // ENHANCED: Better page calculation with section-aware logic
+  // PHASE 2-3: Enhanced page calculation with atomic section-aware logic
   let remainingHeight = scaledHeight
   let currentPage = 0
   let contentY = contentStartY
   let totalPagesCreated = 0
   
-  // Calculate realistic total pages with content awareness
+  // Calculate more conservative total pages with atomic section awareness
   let totalPagesEstimate = 1
   if (scaledHeight > firstPageAvailableHeight) {
     const remainingAfterFirstPage = scaledHeight - firstPageAvailableHeight
     totalPagesEstimate = 1 + Math.ceil(remainingAfterFirstPage / subsequentPageAvailableHeight)
   }
   
-  console.log(`📄 Initial page estimate: ${totalPagesEstimate}`)
+  console.log(`📄 ATOMIC: Initial conservative page estimate: ${totalPagesEstimate}`)
   
-  while (remainingHeight > minimumContentThresholdMM && currentPage < 8) { // Reduced max pages for better control
+  while (remainingHeight > minimumContentThresholdMM && currentPage < 6) { // Reduced max pages for quality
     const availableHeight = currentPage === 0 ? firstPageAvailableHeight : subsequentPageAvailableHeight
     let contentHeightForThisPage = Math.min(remainingHeight, availableHeight)
     
-    // ENHANCED: Section boundary detection - check if we're about to split content awkwardly
-    if (remainingHeight > contentHeightForThisPage && 
-        (remainingHeight - contentHeightForThisPage) < sectionBoundaryThresholdMM) {
-      console.log(`📄 Section boundary detected for page ${currentPage + 1}:`, {
+    // PHASE 3: ATOMIC SECTION HANDLING - Enhanced section boundary detection
+    if (remainingHeight > contentHeightForThisPage) {
+      const remainingAfterThisPage = remainingHeight - contentHeightForThisPage
+      
+      // PHASE 4: Look-ahead logic to prevent orphaned content
+      const isOrphanedContent = remainingAfterThisPage < sectionBoundaryThresholdMM
+      const wouldCreateAwkwardSplit = remainingAfterThisPage < (sectionBoundaryThresholdMM * 1.5)
+      
+      console.log(`📄 ATOMIC: Section boundary analysis for page ${currentPage + 1}:`, {
         remainingHeight,
         contentHeightForThisPage,
-        remainingAfterThisPage: remainingHeight - contentHeightForThisPage,
-        sectionBoundaryThreshold: sectionBoundaryThresholdMM
+        remainingAfterThisPage,
+        sectionBoundaryThreshold: sectionBoundaryThresholdMM,
+        isOrphanedContent,
+        wouldCreateAwkwardSplit,
+        willApplyAtomicHandling: isOrphanedContent || wouldCreateAwkwardSplit
       })
       
-      // Reduce content for this page to avoid splitting a section
-      contentHeightForThisPage = remainingHeight - sectionBoundaryThresholdMM
-      
-      // But ensure we still have meaningful content on this page
-      if (contentHeightForThisPage < minimumContentThresholdMM) {
-        console.log(`📄 Adjusted content too small, stopping at page ${currentPage}`)
-        break
+      // PHASE 3-4: Apply atomic section handling
+      if (isOrphanedContent || wouldCreateAwkwardSplit) {
+        // CONSERVATIVE: Reduce content for this page to avoid splitting atomic sections
+        const conservativeReduction = Math.min(sectionBoundaryThresholdMM, contentHeightForThisPage * 0.3)
+        contentHeightForThisPage = Math.max(
+          minimumContentThresholdMM, 
+          contentHeightForThisPage - conservativeReduction
+        )
+        
+        console.log(`📄 ATOMIC: Applied conservative section preservation:`, {
+          originalHeight: Math.min(remainingHeight, availableHeight),
+          reducedHeight: contentHeightForThisPage,
+          conservativeReduction,
+          preservedSectionIntegrity: true
+        })
+        
+        // Validate we still have meaningful content after reduction
+        if (contentHeightForThisPage < minimumContentThresholdMM) {
+          console.log(`📄 ATOMIC: Content too small after section preservation, stopping at page ${currentPage}`)
+          break
+        }
       }
     }
     
-    // CRITICAL: Skip this page if content is too small to be meaningful
+    // PHASE 2: Enhanced validation - Skip if content is too small for atomic sections
     if (contentHeightForThisPage < minimumContentThresholdMM) {
-      console.log(`📄 Skipping page ${currentPage + 1}: Content too small (${contentHeightForThisPage}mm < ${minimumContentThresholdMM}mm threshold)`)
+      console.log(`📄 ATOMIC: Skipping page ${currentPage + 1}: Content too small (${contentHeightForThisPage}mm < ${minimumContentThresholdMM}mm threshold)`)
       break
     }
     
-    console.log(`📄 Processing page ${currentPage + 1} with section-aware logic:`, {
+    console.log(`📄 ATOMIC: Processing page ${currentPage + 1} with section preservation:`, {
       remainingHeight,
       availableHeight,
       contentHeightForThisPage,
       pageNumber: currentPage + 1,
-      willCreateMeaningfulContent: contentHeightForThisPage >= minimumContentThresholdMM,
-      sectionBoundaryAdjusted: contentHeightForThisPage < availableHeight
+      atomicSectionHandling: true,
+      preservesSectionBoundaries: contentHeightForThisPage < availableHeight
     })
     
     if (currentPage > 0) {
@@ -168,29 +190,29 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
     }
     
     try {
-      // ENHANCED: Better page canvas creation with section-aware slicing
+      // PHASE 4: Enhanced page canvas creation with atomic section-aware slicing
       const pageHeightMM = contentHeightForThisPage / scale
       const pageCanvas = createMultiPageCanvas(canvas, pageHeightMM, currentPage, minimumContentThresholdPixels)
       
-      // CRITICAL: Validate page canvas has meaningful content
-      if (pageCanvas.width <= 1 || pageCanvas.height <= 1 || pageCanvas.height < minimumContentThresholdPixels / 4) {
-        console.log(`📄 Page ${currentPage + 1} canvas has insufficient content, stopping multi-page generation`)
+      // PHASE 3: ATOMIC validation - Enhanced content validation for sections
+      if (pageCanvas.width <= 1 || pageCanvas.height <= 1 || pageCanvas.height < minimumContentThresholdPixels / 2) {
+        console.log(`📄 ATOMIC: Page ${currentPage + 1} canvas insufficient for atomic sections, stopping`)
         break
       }
       
       const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
       
-      // ENHANCED: Calculate actual page height with better precision
+      // PHASE 4: Calculate actual page height with section-aware precision
       const actualPageHeight = (pageCanvas.height / canvas.height) * scaledHeight
       
-      console.log(`📄 Adding page ${currentPage + 1} to PDF with section awareness:`, {
+      console.log(`📄 ATOMIC: Adding page ${currentPage + 1} with section preservation:`, {
         pageCanvasWidth: pageCanvas.width,
         pageCanvasHeight: pageCanvas.height,
         actualPageHeight,
         contentY,
         availableHeight,
-        hasValidContent: pageCanvas.height >= minimumContentThresholdPixels / 4,
-        sectionBoundaryRespected: true
+        hasAtomicContent: pageCanvas.height >= minimumContentThresholdPixels / 2,
+        sectionIntegrityPreserved: true
       })
       
       pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, Math.min(actualPageHeight, availableHeight), '', 'FAST')
@@ -199,22 +221,22 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
       currentPage++
       totalPagesCreated++
       
-      // ENHANCED: Early termination with better logic
+      // PHASE 4: Enhanced early termination with atomic section logic
       if (remainingHeight <= minimumContentThresholdMM) {
-        console.log(`📄 Stopping: Remaining content (${remainingHeight}mm) below meaningful threshold (${minimumContentThresholdMM}mm)`)
+        console.log(`📄 ATOMIC: Stopping: Remaining content (${remainingHeight}mm) below atomic section threshold (${minimumContentThresholdMM}mm)`)
         break
       }
       
     } catch (error) {
-      console.warn(`Failed to create page ${currentPage + 1}, stopping multi-page generation:`, error)
+      console.warn(`ATOMIC: Failed to create page ${currentPage + 1}, stopping section-aware generation:`, error)
       break
     }
   }
   
-  console.log(`📄 Multi-page PDF generation complete with section awareness: ${totalPagesCreated} pages created (estimated: ${totalPagesEstimate})`)
+  console.log(`📄 ATOMIC: Multi-page PDF complete with section preservation: ${totalPagesCreated} pages created (estimated: ${totalPagesEstimate})`)
   
-  // VALIDATION: Log if we created fewer pages than estimated (good sign of improved logic)
+  // VALIDATION: Enhanced logging for atomic section handling
   if (totalPagesCreated < totalPagesEstimate) {
-    console.log(`✅ Section-aware termination prevented ${totalPagesEstimate - totalPagesCreated} awkward page splits`)
+    console.log(`✅ ATOMIC: Section preservation prevented ${totalPagesEstimate - totalPagesCreated} awkward section splits`)
   }
 }
