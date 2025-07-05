@@ -1,11 +1,11 @@
 
 import { useCallback } from 'react'
-import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { toast } from 'sonner'
 import { generateCleanFilename, calculatePDFDimensions, createPDFHeader } from '@/utils/pdfUtils'
 import { storeElementStyles, restoreElementStyles, optimizeElementForPDF } from '@/utils/elementStyleUtils'
 import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
+import { generateCanvas, createMultiPageCanvas } from '@/services/canvasGenerator'
 
 interface UsePDFExportProps {
   filename?: string
@@ -156,22 +156,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Generate canvas with simplified configuration
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: null,
-        foreignObjectRendering: true,
-        imageTimeout: 15000,
-        logging: false,
-        scrollX: 0,
-        scrollY: 0,
-        width: 1200,
-        height: element.scrollHeight,
-        windowWidth: 1200,
-        windowHeight: element.scrollHeight
-      })
+      // Generate canvas using utility
+      const canvas = await generateCanvas(element)
 
       // Restore original styles immediately using utility
       restoreElementStyles(element, originalStyles)
@@ -224,23 +210,15 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           const currentPageStartY = page === 0 ? contentStartY : 25
           const currentAvailableHeight = page === 0 ? availableHeight : (pdfHeight - 25 - 10)
           
-          const sourceY = page * (pageContentHeight / scale) / 0.264583
-          const sourceHeight = Math.min((currentAvailableHeight / scale) / 0.264583, canvas.height - sourceY)
-          
-          if (sourceHeight > 0) {
-            const pageCanvas = document.createElement('canvas')
-            const pageCtx = pageCanvas.getContext('2d')
+          try {
+            // Use utility for multi-page canvas creation
+            const pageCanvas = createMultiPageCanvas(canvas, currentAvailableHeight, page)
+            const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
             
-            if (pageCtx) {
-              pageCanvas.width = canvas.width
-              pageCanvas.height = sourceHeight
-              
-              pageCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight)
-              const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
-              
-              const pageScaledHeight = (sourceHeight * 0.264583) * scale
-              pdf.addImage(pageImgData, 'PNG', 10, currentPageStartY, contentWidth, pageScaledHeight, '', 'FAST')
-            }
+            const pageScaledHeight = (pageCanvas.height * 0.264583) * scale
+            pdf.addImage(pageImgData, 'PNG', 10, currentPageStartY, contentWidth, pageScaledHeight, '', 'FAST')
+          } catch (error) {
+            console.warn(`Failed to create page ${page + 1}, skipping:`, error)
           }
         }
       }
