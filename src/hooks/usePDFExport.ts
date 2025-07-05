@@ -34,6 +34,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let modifiedElements: ElementState[] = []
     
     try {
+      // Determine export type for user feedback
       const exportType = options?.sectionsOpen ? 'current view' : 'complete analysis'
       toast.info(`Generating professional PDF with ${exportType}...`, { duration: 3000 })
       
@@ -393,8 +394,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       const pdfFilename = `${cleanFilename}_sales_analysis_${timestamp}.pdf`
       pdf.save(pdfFilename)
       
-      // Success message based on export options
-      const exportType = options?.sectionsOpen ? 'current view' : 'complete content'
+      // Success message using the exportType defined earlier
       toast.success(`Professional PDF exported successfully with ${exportType}!`, { duration: 4000 })
       
     } catch (error) {
