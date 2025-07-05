@@ -40,8 +40,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       // PHASE 1: PRE-PDF PREPARATION - Expand collapsed sections and scrollable content
       
-      // Find and expand all collapsed sections
-      const collapsedSections = element.querySelectorAll('[data-state="closed"], [aria-expanded="false"], .collapsed')
+      // 🎯 ENHANCED: Find and expand all collapsed sections with better selectors
+      const collapsedSections = element.querySelectorAll(
+        '[data-state="closed"], [aria-expanded="false"], .collapsed, ' +
+        'details:not([open]), summary + *, ' +
+        '[class*="collaps"]:not([data-state="open"]), ' +
+        '[class*="Collaps"]:not([data-state="open"])'
+      )
+      
       collapsedSections.forEach(section => {
         if (section instanceof HTMLElement) {
           const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
@@ -67,6 +73,21 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           } else {
             section.className = section.className.replace(/\bcollapsed\b/g, '')
           }
+          
+          // Force visibility and height
+          section.style.display = 'block'
+          section.style.visibility = 'visible'
+          section.style.height = 'auto'
+          section.style.maxHeight = 'none'
+          section.style.overflow = 'visible'
+        }
+      })
+      
+      // 🎯 ENHANCED: Click any collapsible triggers to force expansion
+      const triggers = element.querySelectorAll('[data-collapsible="trigger"], [role="button"][aria-expanded="false"]')
+      triggers.forEach(trigger => {
+        if (trigger instanceof HTMLElement) {
+          trigger.click()
         }
       })
 
@@ -110,7 +131,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       })
 
       // Wait for all expansions and layout changes to complete
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 2000)) // Increased from 1000ms to 2000ms
 
       // Store original styles for the main element restoration
       const originalStyles = {
@@ -189,14 +210,39 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.lineHeight = computedStyle.lineHeight
                 el.style.textAlign = computedStyle.textAlign
                 
-                // 🎯 SURGICAL FIX: Prevent unwanted text wrapping for content items
-                if (el.textContent && el.textContent.length > 30) {
-                  const parentHasListClass = el.closest('[class*="space-y"], [class*="gap"], .grid, .flex')
-                  if (parentHasListClass) {
+                // 🎯 ENHANCED FIX: Prevent unwanted text wrapping for content elements
+                const tagName = el.tagName.toLowerCase()
+                const hasLongText = el.textContent && el.textContent.trim().length > 20
+                
+                // Target paragraphs, spans, divs with substantial text content
+                if (hasLongText && (tagName === 'p' || tagName === 'span' || tagName === 'div')) {
+                  // Check if it's in a content area (not a title or header)
+                  const isInContentArea = el.closest('[class*="space-y"], [class*="gap"], .grid, .flex, [class*="card"], [class*="Card"]')
+                  const isNotHeader = !el.closest('h1, h2, h3, h4, h5, h6, [class*="title"], [class*="Title"]')
+                  
+                  if (isInContentArea && isNotHeader) {
                     el.style.whiteSpace = 'nowrap'
                     el.style.overflow = 'visible'
                     el.style.textOverflow = 'clip'
                     el.style.minWidth = 'max-content'
+                    el.style.width = 'max-content'
+                  }
+                }
+                
+                // 🎯 TARGETED FIX: Specific elements that commonly wrap incorrectly
+                if (el.textContent && (
+                  el.textContent.includes('ProspectCorp') ||
+                  el.textContent.includes('actively seeking') ||
+                  el.textContent.includes('particularly interested') ||
+                  el.textContent.includes('volume-based pricing') ||
+                  el.textContent.length > 50
+                )) {
+                  const parentElement = el.parentElement
+                  if (parentElement && !el.closest('h1, h2, h3, h4, h5, h6')) {
+                    el.style.whiteSpace = 'nowrap'
+                    el.style.overflow = 'visible'
+                    el.style.minWidth = 'max-content'
+                    el.style.width = 'max-content'
                   }
                 }
                 
@@ -314,6 +360,62 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 section.style.height = 'auto'
                 section.style.maxHeight = 'none'
                 section.style.overflow = 'visible'
+              }
+            })
+            
+            // SPECIAL HANDLING: Ensure expanded sections stay expanded in clone
+            const expandedSections = clonedElement.querySelectorAll('[data-state="open"], [aria-expanded="true"]')
+            Array.from(expandedSections).forEach(section => {
+              if (section instanceof HTMLElement) {
+                section.style.display = 'block'
+                section.style.visibility = 'visible'
+                section.style.height = 'auto'
+                section.style.maxHeight = 'none'
+                section.style.overflow = 'visible'
+              }
+            })
+            
+            // 🎯 ENHANCED: Force expand ANY remaining collapsed content in clone
+            const stillCollapsed = clonedElement.querySelectorAll(
+              '[data-state="closed"], [aria-expanded="false"], [style*="display: none"], [style*="height: 0"]'
+            )
+            Array.from(stillCollapsed).forEach(section => {
+              if (section instanceof HTMLElement) {
+                section.setAttribute('data-state', 'open')
+                section.setAttribute('aria-expanded', 'true')
+                section.style.display = 'block'
+                section.style.visibility = 'visible'
+                section.style.height = 'auto'
+                section.style.maxHeight = 'none'
+                section.style.overflow = 'visible'
+              }
+            })
+            
+            // 🎯 FINAL FIX: Target bullet points and list items specifically
+            const listItems = clonedElement.querySelectorAll('li, [class*="bullet"], [class*="list-item"], [class*="items-start"]')
+            Array.from(listItems).forEach(item => {
+              if (item instanceof HTMLElement && item.textContent && item.textContent.trim().length > 20) {
+                const textElements = item.querySelectorAll('p, span, div')
+                textElements.forEach(textEl => {
+                  if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.trim().length > 20) {
+                    textEl.style.whiteSpace = 'nowrap'
+                    textEl.style.overflow = 'visible'
+                    textEl.style.minWidth = 'max-content'
+                    textEl.style.width = 'max-content'
+                  }
+                })
+              }
+            })
+            
+            // 🎯 AGGRESSIVE FIX: Prevent any text wrapping in content areas
+            const contentAreas = clonedElement.querySelectorAll('[class*="space-y"] p, [class*="space-y"] span, [class*="space-y"] div, [class*="gap"] p, [class*="gap"] span, [class*="gap"] div')
+            Array.from(contentAreas).forEach(textEl => {
+              if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.trim().length > 30) {
+                textEl.style.whiteSpace = 'nowrap'
+                textEl.style.overflow = 'visible'
+                textEl.style.textOverflow = 'clip'
+                textEl.style.minWidth = 'max-content'
+                textEl.style.width = 'max-content'
               }
             })
           }
