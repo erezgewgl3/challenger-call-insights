@@ -8,12 +8,8 @@ interface UsePDFExportProps {
 }
 
 interface PDFExportOptions {
-  sectionsOpen?: {
-    insights?: boolean
-    competitive?: boolean
-    [key: string]: boolean | undefined
-  }
-  toggleSection?: (section: string) => void
+  sectionsOpen?: any
+  toggleSection?: any
 }
 
 interface ElementState {
@@ -43,7 +39,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       await document.fonts.ready
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // SIMPLE APPROACH: Expand ALL collapsed sections (like the working version)
+      // Expand collapsed sections
       const collapsedSections = element.querySelectorAll(
         '[data-state="closed"], [aria-expanded="false"], .collapsed, details:not([open])'
       )
@@ -65,7 +61,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             stateAttribute: stateAttr
           })
           
-          // Expand the section (ALWAYS - no conditional logic)
+          // Expand the section
           if (stateAttr === 'data-state') {
             section.setAttribute('data-state', 'open')
           } else if (stateAttr === 'aria-expanded') {
@@ -182,28 +178,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.fontWeight = computedStyle.fontWeight
                 el.style.lineHeight = computedStyle.lineHeight
                 
-                // 🎯 ENHANCED TEXT WRAPPING FIX: More aggressive and targeted
-                const tagName = el.tagName.toLowerCase()
-                const textContent = el.textContent?.trim() || ''
-                
-                // Target paragraphs and spans with substantial text
-                if (textContent.length > 20 && (tagName === 'p' || tagName === 'span' || tagName === 'div')) {
-                  // Apply to content areas but not headers/titles
-                  const isNotHeader = !el.closest('h1, h2, h3, h4, h5, h6, [class*="title"], [class*="Title"], [class*="heading"]')
-                  const isInContent = el.closest('[class*="space-y"], [class*="gap"], [class*="card"], [class*="Card"], [class*="bg-"], li')
-                  
-                  if (isNotHeader && isInContent) {
-                    el.style.whiteSpace = 'nowrap'
-                    el.style.overflow = 'visible'
-                    el.style.minWidth = 'max-content'
-                    
-                    // Force the parent to accommodate
-                    const parent = el.parentElement
-                    if (parent) {
-                      parent.style.overflow = 'visible'
-                      parent.style.whiteSpace = 'nowrap'
-                    }
-                  }
+                // MINIMAL TEXT WRAPPING FIX: Only this addition
+                if (el.textContent && el.textContent.length > 30 && (el.tagName === 'P' || el.tagName === 'SPAN')) {
+                  el.style.whiteSpace = 'nowrap'
+                  el.style.overflow = 'visible'
                 }
                 
                 // Preserve backgrounds and styling
