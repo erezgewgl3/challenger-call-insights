@@ -106,16 +106,38 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.fontWeight = computedStyle.fontWeight
                 el.style.lineHeight = computedStyle.lineHeight
                 
-                // 🚀 FIX EMAIL CONTENT TRUNCATION: Remove height restrictions
-                if (el.classList.contains('max-h-32') || 
-                    el.classList.contains('max-h-40') || 
-                    el.classList.contains('overflow-y-auto') ||
-                    computedStyle.maxHeight === '128px' ||
-                    computedStyle.maxHeight === '160px') {
+                // 🚀 ENHANCED EMAIL CONTENT FIX: Target all possible email containers
+                const isEmailContainer = 
+                  el.classList.contains('max-h-32') || 
+                  el.classList.contains('max-h-40') || 
+                  el.classList.contains('max-h-48') ||
+                  el.classList.contains('overflow-y-auto') ||
+                  el.classList.contains('overflow-auto') ||
+                  computedStyle.maxHeight === '128px' ||
+                  computedStyle.maxHeight === '160px' ||
+                  computedStyle.maxHeight === '192px' ||
+                  el.textContent?.includes('EMAIL CONTENT') ||
+                  el.querySelector('[data-testid*="email"]') ||
+                  el.closest('[data-testid*="email"]') ||
+                  (el.textContent && el.textContent.includes('Hi ') && el.textContent.length > 50)
+
+                if (isEmailContainer) {
                   el.style.maxHeight = 'none'
                   el.style.height = 'auto'
                   el.style.overflow = 'visible'
                   el.style.overflowY = 'visible'
+                  el.style.overflowX = 'visible'
+                  
+                  // Also check child elements that might have height constraints
+                  const childElements = el.querySelectorAll('*')
+                  childElements.forEach(childEl => {
+                    if (childEl instanceof HTMLElement) {
+                      childEl.style.maxHeight = 'none'
+                      childEl.style.height = 'auto'
+                      childEl.style.overflow = 'visible'
+                      childEl.style.overflowY = 'visible'
+                    }
+                  })
                 }
                 
                 // Target numbered list items specifically to prevent line breaks
@@ -149,8 +171,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.padding = computedStyle.padding
                 el.style.margin = computedStyle.margin
                 
-                // Ensure scrollable content remains visible (but not for email content)
-                if (!el.classList.contains('max-h-32') && !el.classList.contains('max-h-40')) {
+                // Ensure other scrollable content remains visible (but not email content which we handled above)
+                if (!isEmailContainer) {
                   if (computedStyle.overflow === 'scroll' || computedStyle.overflow === 'auto' ||
                       computedStyle.overflowY === 'scroll' || computedStyle.overflowY === 'auto') {
                     el.style.overflow = 'visible'
