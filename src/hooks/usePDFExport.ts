@@ -106,6 +106,18 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.fontWeight = computedStyle.fontWeight
                 el.style.lineHeight = computedStyle.lineHeight
                 
+                // 🚀 FIX EMAIL CONTENT TRUNCATION: Remove height restrictions
+                if (el.classList.contains('max-h-32') || 
+                    el.classList.contains('max-h-40') || 
+                    el.classList.contains('overflow-y-auto') ||
+                    computedStyle.maxHeight === '128px' ||
+                    computedStyle.maxHeight === '160px') {
+                  el.style.maxHeight = 'none'
+                  el.style.height = 'auto'
+                  el.style.overflow = 'visible'
+                  el.style.overflowY = 'visible'
+                }
+                
                 // Target numbered list items specifically to prevent line breaks
                 const isNumberedListItem = el.closest('[class*="space-y"] li, [class*="gap"] li') ||
                                          (el.tagName === 'LI' && el.textContent && el.textContent.match(/^\d+\./))
@@ -137,13 +149,15 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.padding = computedStyle.padding
                 el.style.margin = computedStyle.margin
                 
-                // Ensure scrollable content remains visible
-                if (computedStyle.overflow === 'scroll' || computedStyle.overflow === 'auto' ||
-                    computedStyle.overflowY === 'scroll' || computedStyle.overflowY === 'auto') {
-                  el.style.overflow = 'visible'
-                  el.style.overflowY = 'visible'
-                  el.style.height = 'auto'
-                  el.style.maxHeight = 'none'
+                // Ensure scrollable content remains visible (but not for email content)
+                if (!el.classList.contains('max-h-32') && !el.classList.contains('max-h-40')) {
+                  if (computedStyle.overflow === 'scroll' || computedStyle.overflow === 'auto' ||
+                      computedStyle.overflowY === 'scroll' || computedStyle.overflowY === 'auto') {
+                    el.style.overflow = 'visible'
+                    el.style.overflowY = 'visible'
+                    el.style.height = 'auto'
+                    el.style.maxHeight = 'none'
+                  }
                 }
                 
                 // Enhanced font smoothing
