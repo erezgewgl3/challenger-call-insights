@@ -1,11 +1,11 @@
 
 import { useCallback } from 'react'
-import jsPDF from 'jspdf'
 import { toast } from 'sonner'
-import { generateCleanFilename, calculatePDFDimensions, createPDFHeader } from '@/utils/pdfUtils'
+import { generateCleanFilename, calculatePDFDimensions } from '@/utils/pdfUtils'
 import { storeElementStyles, restoreElementStyles, optimizeElementForPDF } from '@/utils/elementStyleUtils'
 import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
-import { generateCanvas, createMultiPageCanvas } from '@/services/canvasGenerator'
+import { generateCanvas } from '@/services/canvasGenerator'
+import { createPDFDocument, addCanvasToPDF, addMultiPageContent } from '@/services/pdfGenerator'
 
 interface UsePDFExportProps {
   filename?: string
@@ -82,7 +82,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           const isCompetitivePositioningText = 
             el.tagName === 'SPAN' &&
             el.classList.contains('text-gray-800') &&
-            (el.classList.contains('text-sm') || el.classList.contains('lg:text-base')) &&
+            (el.classList.contains('text-sm') / el.classList.contains('lg:text-base')) &&
             el.parentElement?.classList.contains('flex') &&
             el.parentElement?.classList.contains('items-center') &&
             el.parentElement?.classList.contains('gap-3')
@@ -168,59 +168,20 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       console.log('✅ Restored all modified elements')
 
-      // Convert to PDF using extracted utilities
-      const imgData = canvas.toDataURL('image/png', 1.0)
+      // Create PDF using new service
+      const pdf = createPDFDocument()
       
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4',
-        compress: false
-      })
-
-      // Calculate dimensions using utility
-      const { scale, scaledHeight, contentWidth, pdfWidth, pdfHeight } = calculatePDFDimensions(canvas)
-      
-      // Create header using utility
-      createPDFHeader(pdf, title)
-      
-      // Content positioning
+      // Calculate dimensions to determine single or multi-page layout
+      const { scaledHeight, pdfHeight } = calculatePDFDimensions(canvas)
       const contentStartY = 45
       const availableHeight = pdfHeight - contentStartY - 10
       
       if (scaledHeight <= availableHeight) {
         // Single page
-        pdf.addImage(imgData, 'PNG', 10, contentStartY, contentWidth, scaledHeight, '', 'FAST')
+        addCanvasToPDF(pdf, canvas, title)
       } else {
         // Multi-page layout
-        const pageContentHeight = availableHeight
-        const totalPages = Math.ceil(scaledHeight / pageContentHeight)
-        
-        for (let page = 0; page < totalPages; page++) {
-          if (page > 0) {
-            pdf.addPage()
-            pdf.setFontSize(14)
-            pdf.setTextColor(100, 116, 139)
-            const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-            pdf.text(`${cleanTitle} - Page ${page + 1} of ${totalPages}`, 10, 15)
-            pdf.setDrawColor(203, 213, 225)
-            pdf.line(10, 20, pdfWidth - 10, 20)
-          }
-          
-          const currentPageStartY = page === 0 ? contentStartY : 25
-          const currentAvailableHeight = page === 0 ? availableHeight : (pdfHeight - 25 - 10)
-          
-          try {
-            // Use utility for multi-page canvas creation
-            const pageCanvas = createMultiPageCanvas(canvas, currentAvailableHeight, page)
-            const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
-            
-            const pageScaledHeight = (pageCanvas.height * 0.264583) * scale
-            pdf.addImage(pageImgData, 'PNG', 10, currentPageStartY, contentWidth, pageScaledHeight, '', 'FAST')
-          } catch (error) {
-            console.warn(`Failed to create page ${page + 1}, skipping:`, error)
-          }
-        }
+        addMultiPageContent(pdf, canvas, title)
       }
       
       // Generate filename and save using utility
