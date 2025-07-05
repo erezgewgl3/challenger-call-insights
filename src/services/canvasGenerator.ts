@@ -101,7 +101,7 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
 /**
  * Creates a canvas for a specific page from a larger canvas for multi-page PDF generation
  * 
- * FIXED: Enhanced error handling and proper dimension calculations
+ * FIXED: Enhanced error handling and proper dimension calculations with bounds checking
  * 
  * @param sourceCanvas - Original canvas containing full content
  * @param pageHeightMM - Height of one PDF page in mm
@@ -127,69 +127,90 @@ export function createMultiPageCanvas(
     throw new Error('Failed to get 2D context for page canvas')
   }
   
-  // FIXED: More precise MM to pixels conversion
+  // FIXED: More precise MM to pixels conversion accounting for canvas scale
   const mmToPixels = (mm: number) => {
-    // 1mm = 3.779527559 pixels at 96 DPI, account for 2x scale
+    // 1mm = 3.779527559 pixels at 96 DPI, account for 2x scale from html2canvas
     return (mm * 3.779527559) * 2
   }
   
   const pageHeightPixels = mmToPixels(pageHeightMM)
   
-  // Calculate source Y position and height for this page
+  // FIXED: Better bounds checking and page calculation
   const sourceY = pageIndex * pageHeightPixels
   
-  // FIXED: Ensure we never exceed source canvas bounds
-  const maxAvailableHeight = sourceCanvas.height - sourceY
-  const sourceHeight = Math.min(pageHeightPixels, maxAvailableHeight)
-  
-  // FIXED: Enhanced validation
-  if (sourceY >= sourceCanvas.height) {
-    console.warn(`Page ${pageIndex + 1} starts beyond source canvas height`)
-    // Return a minimal canvas instead of throwing
-    pageCanvas.width = sourceCanvas.width
-    pageCanvas.height = 1
-    return pageCanvas
-  }
-  
-  if (sourceHeight <= 0) {
-    console.warn(`Invalid source height for page ${pageIndex + 1}: ${sourceHeight}`)
-    // Return a minimal canvas instead of throwing
-    pageCanvas.width = sourceCanvas.width
-    pageCanvas.height = 1
-    return pageCanvas
-  }
-  
-  console.log(`📄 Page ${pageIndex + 1} canvas dimensions:`, {
+  console.log(`📄 Page ${pageIndex + 1} bounds calculation:`, {
     pageHeightMM,
     pageHeightPixels,
     sourceY,
-    sourceHeight,
-    maxAvailableHeight,
-    remainingContent: sourceCanvas.height - sourceY
+    sourceCanvasHeight: sourceCanvas.height,
+    remainingHeight: sourceCanvas.height - sourceY,
+    willFitInPage: sourceY < sourceCanvas.height
   })
   
-  // Set up page canvas
+  // ENHANCED: Proper bounds validation
+  if (sourceY >= sourceCanvas.height) {
+    console.warn(`Page ${pageIndex + 1} starts beyond source canvas height - creating empty page`)
+    // Return a minimal canvas for pages beyond content
+    pageCanvas.width = sourceCanvas.width
+    pageCanvas.height = Math.min(pageHeightPixels, 100) // Small fallback height
+    
+    // Fill with white background for empty pages
+    pageCtx.fillStyle = 'white'
+    pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+    
+    return pageCanvas
+  }
+  
+  // Calculate how much content is actually available for this page
+  const maxAvailableHeight = sourceCanvas.height - sourceY
+  const actualPageHeight = Math.min(pageHeightPixels, maxAvailableHeight)
+  
+  console.log(`📄 Page ${pageIndex + 1} content calculation:`, {
+    maxAvailableHeight,
+    requestedPageHeight: pageHeightPixels,
+    actualPageHeight,
+    contentWillFit: actualPageHeight > 0
+  })
+  
+  // ENHANCED: Ensure we have valid dimensions
+  if (actualPageHeight <= 0) {
+    console.warn(`No content available for page ${pageIndex + 1}`)
+    pageCanvas.width = sourceCanvas.width
+    pageCanvas.height = 1
+    return pageCanvas
+  }
+  
+  // Set up page canvas with actual dimensions
   pageCanvas.width = sourceCanvas.width
-  pageCanvas.height = Math.ceil(sourceHeight) // Ensure integer height
+  pageCanvas.height = Math.ceil(actualPageHeight)
   
   try {
-    // Draw the specific page section
+    // FIXED: Proper canvas slicing with validated dimensions
     pageCtx.drawImage(
       sourceCanvas, 
-      0, sourceY, sourceCanvas.width, sourceHeight,
-      0, 0, sourceCanvas.width, sourceHeight
+      0, sourceY, sourceCanvas.width, actualPageHeight,  // Source rectangle
+      0, 0, sourceCanvas.width, actualPageHeight         // Destination rectangle
     )
     
-    console.log(`✅ Page ${pageIndex + 1} canvas created successfully`)
+    console.log(`✅ Page ${pageIndex + 1} canvas created successfully:`, {
+      finalWidth: pageCanvas.width,
+      finalHeight: pageCanvas.height,
+      sourceSliceY: sourceY,
+      sourceSliceHeight: actualPageHeight
+    })
+    
     return pageCanvas
     
   } catch (error) {
     console.error(`Failed to create page ${pageIndex + 1} canvas:`, error)
-    console.log('Fallback: Creating minimal canvas')
+    console.log('Creating fallback minimal canvas')
     
-    // Fallback: create a minimal canvas
+    // Fallback: create a minimal canvas with white background
     pageCanvas.width = sourceCanvas.width
-    pageCanvas.height = 1
+    pageCanvas.height = Math.min(100, pageHeightPixels)
+    pageCtx.fillStyle = 'white'
+    pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height)
+    
     return pageCanvas
   }
 }

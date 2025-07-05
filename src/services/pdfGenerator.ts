@@ -1,4 +1,3 @@
-
 import jsPDF from 'jspdf'
 import { calculatePDFDimensions, createPDFHeader } from '@/utils/pdfUtils'
 import { createMultiPageCanvas } from './canvasGenerator'
@@ -66,11 +65,7 @@ export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: str
 /**
  * Handles multi-page PDF content with proper headers and pagination
  * 
- * Automatically splits long content across multiple pages while maintaining:
- * - Consistent headers on each page
- * - Proper page numbering
- * - Optimal content distribution
- * - Professional formatting throughout
+ * FIXED: Enhanced multi-page logic with proper bounds checking and page calculation
  * 
  * @param pdf - The jsPDF instance to add content to
  * @param canvas - HTML canvas element containing the full content
@@ -91,26 +86,44 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
   // Create header for first page
   const contentStartY = createPDFHeader(pdf, title)
   
-  // Calculate available heights more accurately
+  // FIXED: More accurate available height calculations
   const firstPageAvailableHeight = pdfHeight - contentStartY - 10 // 10mm bottom margin
   const subsequentPageAvailableHeight = pdfHeight - 35 // 25mm for header + 10mm bottom margin
   
-  console.log('Multi-page PDF setup:', {
+  console.log('Multi-page PDF setup with enhanced calculations:', {
     totalContentHeight: scaledHeight,
     firstPageAvailableHeight,
     subsequentPageAvailableHeight,
     canvasHeight: canvas.height,
-    scale
+    scale,
+    estimatedPages: Math.ceil((scaledHeight - firstPageAvailableHeight) / subsequentPageAvailableHeight) + 1
   })
   
-  // Calculate how much content fits on first page
+  // ENHANCED: Better page calculation logic
   let remainingHeight = scaledHeight
   let currentPage = 0
   let contentY = contentStartY
+  let totalPagesEstimate = 1
   
-  while (remainingHeight > 0) {
+  // Calculate total pages more accurately
+  if (scaledHeight > firstPageAvailableHeight) {
+    const remainingAfterFirstPage = scaledHeight - firstPageAvailableHeight
+    totalPagesEstimate = 1 + Math.ceil(remainingAfterFirstPage / subsequentPageAvailableHeight)
+  }
+  
+  console.log(`📄 Estimated total pages: ${totalPagesEstimate}`)
+  
+  while (remainingHeight > 0 && currentPage < 10) { // Safety limit of 10 pages
     const availableHeight = currentPage === 0 ? firstPageAvailableHeight : subsequentPageAvailableHeight
     const contentHeightForThisPage = Math.min(remainingHeight, availableHeight)
+    
+    console.log(`📄 Processing page ${currentPage + 1}:`, {
+      remainingHeight,
+      availableHeight,
+      contentHeightForThisPage,
+      pageNumber: currentPage + 1,
+      totalPages: totalPagesEstimate
+    })
     
     if (currentPage > 0) {
       pdf.addPage()
@@ -119,35 +132,53 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
       pdf.setFontSize(14)
       pdf.setTextColor(100, 116, 139)
       const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      const totalPages = Math.ceil(scaledHeight / subsequentPageAvailableHeight) + (scaledHeight > firstPageAvailableHeight ? 0 : -1)
-      pdf.text(`${cleanTitle} - Page ${currentPage + 1} of ${totalPages + 1}`, 10, 15)
+      pdf.text(`${cleanTitle} - Page ${currentPage + 1} of ${totalPagesEstimate}`, 10, 15)
       pdf.setDrawColor(203, 213, 225)
       pdf.line(10, 20, pdfWidth - 10, 20)
       contentY = 25
     }
     
     try {
-      // Create canvas for this page content
-      const pageCanvas = createMultiPageCanvas(canvas, contentHeightForThisPage / scale, currentPage)
+      // FIXED: Better page canvas creation with proper height calculation
+      const pageHeightMM = contentHeightForThisPage / scale
+      const pageCanvas = createMultiPageCanvas(canvas, pageHeightMM, currentPage)
+      
+      // Validate page canvas
+      if (pageCanvas.width === 0 || pageCanvas.height === 0) {
+        console.warn(`Page ${currentPage + 1} canvas has zero dimensions, skipping`)
+        break
+      }
+      
       const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
       
-      const actualPageHeight = (pageCanvas.height * 0.264583) * scale
+      // FIXED: Calculate actual page height from canvas dimensions
+      const actualPageHeight = (pageCanvas.height / (canvas.width * 0.264583)) * contentWidth * (canvas.width / pageCanvas.width)
       
-      console.log(`Adding page ${currentPage + 1}:`, {
+      console.log(`📄 Adding page ${currentPage + 1} to PDF:`, {
+        pageCanvasWidth: pageCanvas.width,
         pageCanvasHeight: pageCanvas.height,
         actualPageHeight,
         contentY,
-        availableHeight
+        availableHeight,
+        willFit: actualPageHeight <= availableHeight + 5 // 5mm tolerance
       })
       
-      pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, actualPageHeight, '', 'FAST')
+      pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, Math.min(actualPageHeight, availableHeight), '', 'FAST')
       
       remainingHeight -= contentHeightForThisPage
       currentPage++
       
+      // Safety check to prevent infinite loops
+      if (contentHeightForThisPage <= 0) {
+        console.warn('Content height for page is zero or negative, stopping')
+        break
+      }
+      
     } catch (error) {
-      console.warn(`Failed to create page ${currentPage + 1}, skipping:`, error)
+      console.warn(`Failed to create page ${currentPage + 1}, stopping multi-page generation:`, error)
       break
     }
   }
+  
+  console.log(`📄 Multi-page PDF generation complete: ${currentPage} pages created`)
 }
