@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -39,54 +40,32 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       await document.fonts.ready
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Enhanced section expansion - SURGICAL FIX: Always expand DOM first
-      const collapsedSections = element.querySelectorAll(
-        '[data-state="closed"], [aria-expanded="false"], .collapsed, details:not([open])'
-      )
+      // SURGICAL FIX: Force all closed Radix UI Collapsible sections to open
+      const closedSections = element.querySelectorAll('[data-state="closed"]')
       
-      collapsedSections.forEach(section => {
+      closedSections.forEach(section => {
         if (section instanceof HTMLElement) {
-          const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
-                           section.hasAttribute('aria-expanded') ? 'aria-expanded' : 'class'
-          
           modifiedElements.push({
             element: section,
-            originalState: stateAttr === 'data-state' ? section.getAttribute('data-state') || '' :
-                          stateAttr === 'aria-expanded' ? section.getAttribute('aria-expanded') || '' :
-                          section.className,
+            originalState: section.getAttribute('data-state') || '',
             originalHeight: section.style.height,
             originalMaxHeight: section.style.maxHeight,
             originalOverflow: section.style.overflow,
             originalOverflowY: section.style.overflowY,
-            stateAttribute: stateAttr
+            stateAttribute: 'data-state'
           })
           
-          // SURGICAL FIX: Always force DOM state to expanded first
-          if (stateAttr === 'data-state') {
-            section.setAttribute('data-state', 'open')
-          } else if (stateAttr === 'aria-expanded') {
-            section.setAttribute('aria-expanded', 'true')
-          } else {
-            section.className = section.className.replace(/\bcollapsed\b/g, '')
-          }
-          
+          // Force section to open state
+          section.setAttribute('data-state', 'open')
           section.style.display = 'block'
           section.style.visibility = 'visible'
           section.style.height = 'auto'
           section.style.maxHeight = 'none'
           section.style.overflow = 'visible'
-          
-          // React state management as secondary (if available)
-          if (options?.toggleSection && options?.sectionsOpen) {
-            const sectionKey = section.getAttribute('data-section-key')
-            if (sectionKey && !options.sectionsOpen[sectionKey]) {
-              options.toggleSection(sectionKey)
-            }
-          }
         }
       })
 
-      // SURGICAL FIX: Add small delay to ensure DOM changes take effect
+      // Small delay to ensure DOM changes take effect
       await new Promise(resolve => setTimeout(resolve, 200))
 
       // Expand scrollable content areas
@@ -237,7 +216,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             })
 
             // Ensure expanded sections stay expanded in clone
-            const expandedSections = clonedElement.querySelectorAll('[data-state="open"], [aria-expanded="true"]')
+            const expandedSections = clonedElement.querySelectorAll('[data-state="open"]')
             Array.from(expandedSections).forEach(section => {
               if (section instanceof HTMLElement) {
                 section.style.display = 'block'
@@ -265,14 +244,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             } else {
               element.removeAttribute('data-state')
             }
-          } else if (stateAttribute === 'aria-expanded') {
-            if (originalState) {
-              element.setAttribute('aria-expanded', originalState)
-            } else {
-              element.removeAttribute('aria-expanded')
-            }
-          } else if (stateAttribute === 'class') {
-            element.className = originalState
           }
           
           element.style.height = originalHeight
@@ -283,12 +254,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           console.warn('Failed to restore element state:', error)
         }
       })
-
-      // If using React state management, restore original section states
-      if (options?.toggleSection && options?.sectionsOpen) {
-        // Note: In a real implementation, you might want to restore the original states
-        // For now, we rely on the DOM restoration above
-      }
 
       // Convert to PDF
       const imgData = canvas.toDataURL('image/png', 1.0)
@@ -399,14 +364,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             } else {
               element.removeAttribute('data-state')
             }
-          } else if (stateAttribute === 'aria-expanded') {
-            if (originalState) {
-              element.setAttribute('aria-expanded', originalState)
-            } else {
-              element.removeAttribute('aria-expanded')
-            }
-          } else if (stateAttribute === 'class') {
-            element.className = originalState
           }
           
           element.style.height = originalHeight
