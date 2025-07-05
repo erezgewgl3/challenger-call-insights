@@ -56,21 +56,42 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
     }
   })
 
-  // Also look for any elements with max-height restrictions that might be hiding content
+  // Enhanced: Handle Tailwind CSS class-based height constraints
   const constrainedElements = element.querySelectorAll('*')
   Array.from(constrainedElements).forEach((el) => {
     if (el instanceof HTMLElement) {
       const computedStyle = getComputedStyle(el)
+      const classList = el.classList
       
-      // Check for height constraints that might be hiding content
-      if (computedStyle.maxHeight && 
-          computedStyle.maxHeight !== 'none' && 
-          el.scrollHeight > el.clientHeight) {
+      // Check for Tailwind max-height classes that create scrollable content
+      const hasMaxHeightClass = Array.from(classList).some(cls => 
+        cls.startsWith('max-h-') && cls !== 'max-h-none'
+      )
+      const hasOverflowClass = classList.contains('overflow-y-auto') || 
+                               classList.contains('overflow-auto')
+      
+      // Check for inline max-height restrictions
+      const hasInlineMaxHeight = computedStyle.maxHeight && 
+                                 computedStyle.maxHeight !== 'none' && 
+                                 el.scrollHeight > el.clientHeight
+      
+      // Target email content specifically
+      const isEmailContent = el.closest('[data-testid*="email"]') ||
+                             el.querySelector('.font-mono') ||
+                             (el.textContent && el.textContent.includes('Subject:')) ||
+                             el.classList.contains('whitespace-pre-wrap')
+      
+      if ((hasMaxHeightClass && hasOverflowClass) || hasInlineMaxHeight || 
+          (isEmailContent && (hasMaxHeightClass || hasOverflowClass))) {
         
-        console.log('Found constrained element with hidden content:', el, {
-          maxHeight: computedStyle.maxHeight,
+        console.log('Found constrained element for PDF expansion:', el, {
+          hasMaxHeightClass,
+          hasOverflowClass,
+          hasInlineMaxHeight,
+          isEmailContent,
           scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight
+          clientHeight: el.clientHeight,
+          classes: el.className
         })
         
         const originalClasses = el.className
@@ -82,9 +103,28 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
           originalStyles
         })
         
-        // Remove height constraints
-        el.style.maxHeight = 'none'
-        el.style.height = 'auto'
+        // Remove Tailwind height constraints by replacing classes
+        if (hasMaxHeightClass) {
+          const newClasses = Array.from(classList)
+            .filter(cls => !cls.startsWith('max-h-') || cls === 'max-h-none')
+            .concat(['max-h-none'])
+            .join(' ')
+          el.className = newClasses
+        }
+        
+        // Remove overflow constraints
+        if (hasOverflowClass) {
+          el.classList.remove('overflow-y-auto', 'overflow-auto')
+          el.classList.add('overflow-visible')
+        }
+        
+        // Remove inline height constraints
+        if (hasInlineMaxHeight) {
+          el.style.maxHeight = 'none'
+          el.style.height = 'auto'
+        }
+        
+        // Ensure content is fully visible
         el.style.overflow = 'visible'
         el.style.overflowY = 'visible'
       }
@@ -115,19 +155,45 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
 export function expandScrollableContent(element: HTMLElement, modifiedElements: ElementState[]): void {
   console.log('Expanding scrollable content areas')
   
-  // Find elements with max-height constraints
-  const constrainedElements = element.querySelectorAll('[style*="max-height"]')
+  // Enhanced: Find elements with any height constraints (inline styles OR CSS classes)
+  const allElements = element.querySelectorAll('*')
   
-  Array.from(constrainedElements).forEach((el) => {
+  Array.from(allElements).forEach((el) => {
     if (el instanceof HTMLElement) {
       const computedStyle = getComputedStyle(el)
+      const classList = el.classList
       
-      // Check if this is a constrained scrollable area
-      if (computedStyle.maxHeight && computedStyle.maxHeight !== 'none') {
+      // Check for various constraint types
+      const hasInlineMaxHeight = el.style.maxHeight && el.style.maxHeight !== 'none'
+      const hasComputedMaxHeight = computedStyle.maxHeight && computedStyle.maxHeight !== 'none'
+      const hasTailwindMaxHeight = Array.from(classList).some(cls => 
+        cls.startsWith('max-h-') && cls !== 'max-h-none'
+      )
+      const hasScrollableOverflow = classList.contains('overflow-y-auto') || 
+                                   classList.contains('overflow-auto') ||
+                                   computedStyle.overflowY === 'auto' ||
+                                   computedStyle.overflowY === 'scroll'
+      
+      // Special targeting for email content areas
+      const isLikelyEmailContent = el.textContent && (
+        el.textContent.includes('Subject:') ||
+        el.textContent.includes('@') ||
+        el.classList.contains('font-mono') ||
+        el.classList.contains('whitespace-pre-wrap')
+      )
+      
+      if ((hasInlineMaxHeight || hasComputedMaxHeight || hasTailwindMaxHeight) && 
+          (hasScrollableOverflow || isLikelyEmailContent || el.scrollHeight > el.clientHeight)) {
+        
         console.log('Expanding scrollable element:', el, {
-          maxHeight: computedStyle.maxHeight,
+          hasInlineMaxHeight,
+          hasComputedMaxHeight,
+          hasTailwindMaxHeight,
+          hasScrollableOverflow,
+          isLikelyEmailContent,
           scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight
+          clientHeight: el.clientHeight,
+          classes: el.className
         })
         
         const originalClasses = el.className
@@ -139,8 +205,24 @@ export function expandScrollableContent(element: HTMLElement, modifiedElements: 
           originalStyles
         })
         
-        // Remove height constraints
-        el.style.maxHeight = 'none'
+        // Remove all height constraints
+        if (hasInlineMaxHeight) {
+          el.style.maxHeight = 'none'
+        }
+        
+        if (hasTailwindMaxHeight) {
+          const newClasses = Array.from(classList)
+            .filter(cls => !cls.startsWith('max-h-') || cls === 'max-h-none')
+            .concat(['max-h-none'])
+            .join(' ')
+          el.className = newClasses
+        }
+        
+        // Remove overflow constraints
+        el.classList.remove('overflow-y-auto', 'overflow-auto', 'overflow-hidden')
+        el.classList.add('overflow-visible')
+        
+        // Set expansive styles
         el.style.height = 'auto'
         el.style.overflow = 'visible'
         el.style.overflowY = 'visible'
@@ -177,12 +259,16 @@ export function restoreElementStates(modifiedElements: ElementState[]): void {
   modifiedElements.forEach(({ element, originalClasses, originalStyles }, index) => {
     console.log(`Restoring element ${index + 1}:`, element)
     
-    // Restore classes
+    // Restore classes completely
     element.className = originalClasses
     
-    // Restore styles
+    // Restore styles completely
     Object.entries(originalStyles).forEach(([property, value]) => {
-      element.style[property as any] = value || ''
+      if (value) {
+        element.style[property as any] = value
+      } else {
+        element.style.removeProperty(property)
+      }
     })
   })
 }
@@ -206,7 +292,9 @@ function storeOriginalStyles(element: HTMLElement): Record<string, string> {
     minWidth: element.style.minWidth,
     height: element.style.height,
     maxHeight: element.style.maxHeight,
+    minHeight: element.style.minHeight,
     overflow: element.style.overflow,
+    overflowX: element.style.overflowX,
     overflowY: element.style.overflowY,
     transform: element.style.transform,
     backgroundColor: element.style.backgroundColor,
@@ -214,6 +302,7 @@ function storeOriginalStyles(element: HTMLElement): Record<string, string> {
     wordBreak: element.style.wordBreak,
     hyphens: element.style.hyphens,
     whiteSpace: element.style.whiteSpace,
-    flexWrap: element.style.flexWrap
+    flexWrap: element.style.flexWrap,
+    display: element.style.display
   }
 }
