@@ -33,6 +33,7 @@ export function generateCleanFilename(title: string): string {
 /**
  * Calculates PDF dimensions and scaling for optimal layout
  * 
+ * FIXED: Now properly accounts for html2canvas 2x scale factor
  * Computes scaling factors to fit canvas content within A4 page boundaries
  * while maintaining aspect ratio. Accounts for page margins and ensures
  * professional document layout.
@@ -52,10 +53,31 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
   const pdfWidth = 210
   const pdfHeight = 297
   
-  // Calculate scaling with margins
+  // FIXED: Account for html2canvas 2x scale factor
+  // html2canvas creates canvas at 2x resolution, so we need to divide by 2
+  // to get the actual rendered dimensions
+  const actualCanvasWidth = canvas.width / 2
+  const actualCanvasHeight = canvas.height / 2
+  
+  console.log('PDF dimension calculation with scale fix:', {
+    originalCanvasWidth: canvas.width,
+    originalCanvasHeight: canvas.height,
+    actualCanvasWidth,
+    actualCanvasHeight,
+    scaleFactorAccountedFor: 2
+  })
+  
+  // Calculate scaling with margins using corrected dimensions
   const contentWidth = pdfWidth - 20 // 10mm margins on each side
-  const scale = contentWidth / (canvas.width * 0.264583)
-  const scaledHeight = (canvas.height * 0.264583) * scale
+  const scale = contentWidth / (actualCanvasWidth * 0.264583) // 0.264583 = pixels to mm conversion
+  const scaledHeight = (actualCanvasHeight * 0.264583) * scale
+  
+  console.log('PDF scaling calculations:', {
+    contentWidth,
+    pixelsToMM: actualCanvasWidth * 0.264583,
+    scale,
+    scaledHeight
+  })
   
   return {
     /** Scaling factor to fit content within page width */

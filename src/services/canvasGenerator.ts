@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas'
 /**
  * Generates a high-quality canvas from an HTML element using html2canvas
  * 
+ * FIXED: Removed windowWidth override that was distorting aspect ratios
  * Optimized configuration for PDF export:
  * - 2x scale for crisp rendering
  * - CORS enabled for external resources
@@ -49,7 +50,7 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
     finalWidth: actualWidth
   })
 
-  // Enhanced canvas generation with better error handling
+  // Enhanced canvas generation with FIXED aspect ratio preservation
   try {
     const canvas = await html2canvas(element, {
       scale: 2,
@@ -63,7 +64,9 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
       scrollY: 0,
       width: actualWidth,
       height: actualHeight,
-      windowWidth: Math.max(1200, actualWidth),
+      // FIXED: Remove windowWidth override that was distorting aspect ratios
+      // Let canvas use natural element dimensions to preserve proper proportions
+      // windowWidth: Math.max(1200, actualWidth), // REMOVED - this was causing distortion
       windowHeight: actualHeight,
       // Enhanced options for better content capture
       removeContainer: false,
@@ -80,10 +83,12 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
       }
     })
 
-    console.log('Canvas generated - Final dimensions:', {
+    console.log('Canvas generated successfully with aspect ratio fix:', {
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
-      canvasHeightMM: canvas.height * 0.264583
+      canvasWidthScaled: canvas.width / 2, // Account for 2x scale
+      canvasHeightScaled: canvas.height / 2, // Account for 2x scale
+      aspectRatio: (canvas.width / 2) / (canvas.height / 2)
     })
 
     // Validate canvas was generated properly
