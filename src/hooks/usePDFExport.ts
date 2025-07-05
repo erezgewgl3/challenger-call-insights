@@ -39,7 +39,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       await document.fonts.ready
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Enhanced section expansion with React state integration
+      // Enhanced section expansion - SURGICAL FIX: Always expand DOM first
       const collapsedSections = element.querySelectorAll(
         '[data-state="closed"], [aria-expanded="false"], .collapsed, details:not([open])'
       )
@@ -61,16 +61,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             stateAttribute: stateAttr
           })
           
-          // Use React state management if available, otherwise fallback to DOM manipulation
-          if (options?.toggleSection && options?.sectionsOpen) {
-            // Try to identify section key and open it via React state
-            const sectionKey = section.getAttribute('data-section-key')
-            if (sectionKey && !options.sectionsOpen[sectionKey]) {
-              options.toggleSection(sectionKey)
-            }
-          }
-          
-          // Always ensure DOM state is expanded for PDF capture
+          // SURGICAL FIX: Always force DOM state to expanded first
           if (stateAttr === 'data-state') {
             section.setAttribute('data-state', 'open')
           } else if (stateAttr === 'aria-expanded') {
@@ -84,8 +75,19 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           section.style.height = 'auto'
           section.style.maxHeight = 'none'
           section.style.overflow = 'visible'
+          
+          // React state management as secondary (if available)
+          if (options?.toggleSection && options?.sectionsOpen) {
+            const sectionKey = section.getAttribute('data-section-key')
+            if (sectionKey && !options.sectionsOpen[sectionKey]) {
+              options.toggleSection(sectionKey)
+            }
+          }
         }
       })
+
+      // SURGICAL FIX: Add small delay to ensure DOM changes take effect
+      await new Promise(resolve => setTimeout(resolve, 200))
 
       // Expand scrollable content areas
       const scrollableElements = element.querySelectorAll('*')
