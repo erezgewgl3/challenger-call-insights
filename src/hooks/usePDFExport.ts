@@ -13,19 +13,9 @@ interface PDFExportOptions {
   toggleSection?: (section: string) => void
 }
 
-interface ElementState {
-  element: HTMLElement
-  originalState: string
-  originalHeight: string
-  originalMaxHeight: string
-  originalOverflow: string
-  originalOverflowY: string
-  stateAttribute: string
-}
-
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
-    let modifiedElements: ElementState[] = []
+    let sectionsToRestore: string[] = []
     
     try {
       toast.info('Generating professional PDF...', { duration: 3000 })
@@ -36,77 +26,25 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         return
       }
 
+      // 🚀 SURGICAL FIX: Use React state to open closed sections
+      if (options?.sectionsOpen && options?.toggleSection) {
+        // Find which sections are currently closed and need to be opened
+        Object.entries(options.sectionsOpen).forEach(([sectionKey, isOpen]) => {
+          if (!isOpen) {
+            sectionsToRestore.push(sectionKey)
+            options.toggleSection!(sectionKey)
+          }
+        })
+
+        // Wait for React to re-render with new state
+        if (sectionsToRestore.length > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000))
+        }
+      }
+
       // Ensure fonts are loaded
       await document.fonts.ready
-      await new Promise(resolve => setTimeout(resolve, 500))
-
-      // SURGICAL FIX: Force all closed Radix UI Collapsible sections to open
-      const closedSections = element.querySelectorAll('[data-state="closed"]')
-      
-      closedSections.forEach(section => {
-        if (section instanceof HTMLElement) {
-          modifiedElements.push({
-            element: section,
-            originalState: section.getAttribute('data-state') || '',
-            originalHeight: section.style.height,
-            originalMaxHeight: section.style.maxHeight,
-            originalOverflow: section.style.overflow,
-            originalOverflowY: section.style.overflowY,
-            stateAttribute: 'data-state'
-          })
-          
-          // Force section to open state
-          section.setAttribute('data-state', 'open')
-          section.style.display = 'block'
-          section.style.visibility = 'visible'
-          section.style.height = 'auto'
-          section.style.maxHeight = 'none'
-          section.style.overflow = 'visible'
-        }
-      })
-
-      // Small delay to ensure DOM changes take effect
-      await new Promise(resolve => setTimeout(resolve, 200))
-
-      // Expand scrollable content areas
-      const scrollableElements = element.querySelectorAll('*')
-      Array.from(scrollableElements).forEach(el => {
-        if (el instanceof HTMLElement) {
-          const computedStyle = getComputedStyle(el)
-          const hasScrollableContent = (
-            computedStyle.overflow === 'scroll' || 
-            computedStyle.overflow === 'auto' ||
-            computedStyle.overflowY === 'scroll' || 
-            computedStyle.overflowY === 'auto'
-          ) && (
-            el.scrollHeight > el.clientHeight ||
-            computedStyle.maxHeight !== 'none'
-          )
-          
-          if (hasScrollableContent) {
-            const alreadyStored = modifiedElements.some(item => item.element === el)
-            if (!alreadyStored) {
-              modifiedElements.push({
-                element: el,
-                originalState: '',
-                originalHeight: el.style.height,
-                originalMaxHeight: el.style.maxHeight,
-                originalOverflow: el.style.overflow,
-                originalOverflowY: el.style.overflowY,
-                stateAttribute: 'overflow'
-              })
-            }
-            
-            el.style.overflow = 'visible'
-            el.style.overflowY = 'visible'
-            el.style.height = 'auto'
-            el.style.maxHeight = 'none'
-          }
-        }
-      })
-
-      // Wait for layout changes
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      await new Promise(resolve => setTimeout(resolve, 300))
 
       // Store original styles for restoration
       const originalStyles = {
@@ -214,18 +152,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.textRendering = 'optimizeLegibility'
               }
             })
-
-            // Ensure expanded sections stay expanded in clone
-            const expandedSections = clonedElement.querySelectorAll('[data-state="open"]')
-            Array.from(expandedSections).forEach(section => {
-              if (section instanceof HTMLElement) {
-                section.style.display = 'block'
-                section.style.visibility = 'visible'
-                section.style.height = 'auto'
-                section.style.maxHeight = 'none'
-                section.style.overflow = 'visible'
-              }
-            })
           }
         }
       })
@@ -233,26 +159,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Restore original styles immediately
       Object.entries(originalStyles).forEach(([property, value]) => {
         element.style[property as any] = value
-      })
-
-      // Restore all modified elements
-      modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
-        try {
-          if (stateAttribute === 'data-state') {
-            if (originalState) {
-              element.setAttribute('data-state', originalState)
-            } else {
-              element.removeAttribute('data-state')
-            }
-          }
-          
-          element.style.height = originalHeight
-          element.style.maxHeight = originalMaxHeight
-          element.style.overflow = originalOverflow
-          element.style.overflowY = originalOverflowY
-        } catch (error) {
-          console.warn('Failed to restore element state:', error)
-        }
       })
 
       // Convert to PDF
@@ -269,7 +175,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       const pdfWidth = 210
       const pdfHeight = 297
       
-      // Calculate scaling - FIXED: Use simple left alignment
+      // Calculate scaling - Use simple left alignment
       const contentWidth = pdfWidth - 20 // 10mm margins on each side
       const scale = contentWidth / (canvas.width * 0.264583)
       const scaledHeight = (canvas.height * 0.264583) * scale
@@ -294,12 +200,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       pdf.setLineWidth(0.5)
       pdf.line(10, 40, pdfWidth - 10, 40)
       
-      // Content positioning - FIXED: Use fixed left margin
+      // Content positioning - Use fixed left margin
       const contentStartY = 45
       const availableHeight = pdfHeight - contentStartY - 10
       
       if (scaledHeight <= availableHeight) {
-        // Single page - FIXED: Use 10mm left margin instead of centering
+        // Single page - Use 10mm left margin instead of centering
         pdf.addImage(imgData, 'PNG', 10, contentStartY, contentWidth, scaledHeight, '', 'FAST')
       } else {
         // Multi-page layout
@@ -354,28 +260,17 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       
     } catch (error) {
       console.error('PDF export failed:', error)
-      
-      // Always restore states even on error
-      modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
-        try {
-          if (stateAttribute === 'data-state') {
-            if (originalState) {
-              element.setAttribute('data-state', originalState)
-            } else {
-              element.removeAttribute('data-state')
-            }
-          }
-          
-          element.style.height = originalHeight
-          element.style.maxHeight = originalMaxHeight
-          element.style.overflow = originalOverflow
-          element.style.overflowY = originalOverflowY
-        } catch (restoreError) {
-          console.warn('Failed to restore element state after error:', restoreError)
-        }
-      })
-      
       toast.error('Failed to generate PDF. Please try again.')
+    } finally {
+      // 🚀 RESTORE SECTION STATES: Close sections that were opened for PDF
+      if (options?.toggleSection && sectionsToRestore.length > 0) {
+        // Add small delay to ensure PDF generation is complete
+        setTimeout(() => {
+          sectionsToRestore.forEach(sectionKey => {
+            options.toggleSection!(sectionKey)
+          })
+        }, 500)
+      }
     }
   }, [filename])
   
