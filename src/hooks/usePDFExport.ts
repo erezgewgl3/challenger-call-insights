@@ -7,79 +7,22 @@ import { expandCollapsedSections, expandScrollableContent, restoreElementStates,
 import { generateCanvas } from '@/services/canvasGenerator'
 import { createPDFDocument, addCanvasToPDF, addMultiPageContent } from '@/services/pdfGenerator'
 
-/**
- * Configuration options for PDF export functionality
- */
 interface UsePDFExportProps {
-  /** Base filename for the exported PDF (without extension) */
   filename?: string
 }
 
-/**
- * Additional options for PDF export behavior
- */
 interface PDFExportOptions {
-  /** Current state of collapsible sections (section key -> is open) */
   sectionsOpen?: Record<string, boolean>
-  /** Function to toggle section visibility */
   toggleSection?: (section: string) => void
 }
 
-/**
- * Custom hook for exporting HTML elements to professional PDF documents
- * 
- * Features:
- * - High-quality canvas rendering with html2canvas
- * - Multi-page support for long content
- * - Section expansion for complete content capture
- * - Professional PDF headers and formatting
- * - Automatic cleanup and state restoration
- * 
- * @param props - Configuration options for the PDF export
- * @returns Object containing the exportToPDF function
- * 
- * @example
- * ```typescript
- * const { exportToPDF } = usePDFExport({ filename: 'sales-analysis' });
- * 
- * await exportToPDF('content-element-id', 'Analysis Report', {
- *   sectionsOpen: { insights: true, recommendations: false },
- *   toggleSection: (section) => setSectionState(prev => ({ ...prev, [section]: !prev[section] }))
- * });
- * ```
- */
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
-  /**
-   * Exports an HTML element to a professional PDF document
-   * 
-   * Process:
-   * 1. Expands collapsed sections for complete content capture
-   * 2. Optimizes element styles for PDF rendering
-   * 3. Generates high-quality canvas representation
-   * 4. Creates PDF with professional formatting
-   * 5. Handles multi-page content automatically
-   * 6. Restores original element state
-   * 
-   * @param elementId - DOM ID of the element to export
-   * @param title - Title for the PDF document header
-   * @param options - Additional export configuration options
-   * 
-   * @throws Will show error toast if element not found or export fails
-   * 
-   * @example
-   * ```typescript
-   * await exportToPDF('analysis-results', 'Sales Analysis Report', {
-   *   sectionsOpen: sectionsState,
-   *   toggleSection: handleToggleSection
-   * });
-   * ```
-   */
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let sectionsToRestore: string[] = []
     let modifiedElements: ElementState[] = []
     
     try {
-      toast.info('🚀 Preparing comprehensive PDF export...', { duration: 3000 })
+      toast.info('🎯 Preparing Battle Plan PDF export...', { duration: 3000 })
       
       const element = document.getElementById(elementId)
       if (!element) {
@@ -87,12 +30,16 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         return
       }
 
-      console.log('🎯 Starting comprehensive PDF export for element:', {
+      console.log('🎯 Battle Plan PDF Export - Starting comprehensive expansion')
+      console.log('📊 Initial element state:', {
         elementId,
         scrollHeight: element.scrollHeight,
         offsetHeight: element.offsetHeight,
         clientHeight: element.clientHeight,
-        hasScrollableContent: element.scrollHeight > element.clientHeight
+        battlePlanContainers: element.querySelectorAll('.border-l-4.border-red-500').length,
+        strategicSections: element.querySelectorAll('.bg-gradient-to-r.from-indigo-50').length,
+        whyActionsSections: element.querySelectorAll('.bg-emerald-50').length,
+        emailSections: element.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50').length
       })
 
       // Phase 1: Expand user-controlled sections
@@ -106,94 +53,112 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           }
         })
         if (sectionsToRestore.length > 0) {
-          console.log(`📂 Waiting for ${sectionsToRestore.length} sections to expand...`)
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
 
-      // Phase 2: Comprehensive content expansion
-      console.log('📏 Phase 2: Comprehensive content expansion')
+      // Phase 2: Comprehensive Battle Plan content expansion
+      console.log('⚔️ Phase 2: Comprehensive Battle Plan expansion')
       const sectionModifiedElements = expandCollapsedSections(element)
       modifiedElements.push(...sectionModifiedElements)
       
-      console.log('📜 Phase 3: Additional scrollable content expansion')
+      console.log('📜 Phase 3: Final scrollable content check')
       expandScrollableContent(element, modifiedElements)
       
-      // Wait for DOM changes to settle and fonts to load
+      // Extended wait for DOM stabilization
       await document.fonts.ready
-      console.log('⏳ Allowing DOM changes to settle...')
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      console.log('⏳ Extended DOM stabilization wait...')
+      await new Promise(resolve => setTimeout(resolve, 2500))
 
-      // Phase 4: Optimize for PDF rendering
-      console.log('🎨 Phase 4: Optimizing element styles for PDF capture')
-      const originalStyles = storeElementStyles(element)
-      optimizeElementForPDF(element, 'main')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // Phase 5: Validate content expansion
-      console.log('🔍 Phase 5: Validating content expansion')
-      const emailElements = element.querySelectorAll('.font-mono, .whitespace-pre-wrap, [data-testid*="email"]')
-      console.log('📧 Email content validation:', {
-        emailElementsFound: emailElements.length,
-        totalModifiedElements: modifiedElements.length,
-        elementDimensions: {
-          scrollHeight: element.scrollHeight,
-          clientHeight: element.clientHeight,
-          isFullyExpanded: element.scrollHeight <= element.clientHeight + 10
-        }
-      })
-      
-      emailElements.forEach((emailEl, index) => {
-        if (emailEl instanceof HTMLElement) {
-          const isExpanded = emailEl.scrollHeight <= emailEl.clientHeight + 5
-          console.log(`📧 Email element ${index + 1} status:`, {
-            scrollHeight: emailEl.scrollHeight,
-            clientHeight: emailEl.clientHeight,
-            isFullyExpanded: isExpanded,
-            classes: emailEl.className,
-            hasMaxHeightClass: Array.from(emailEl.classList).some(cls => cls.startsWith('max-h-') && cls !== 'max-h-none'),
-            textPreview: emailEl.textContent?.substring(0, 50) + '...'
+      // Phase 4: Validate expansion success
+      console.log('🔍 Phase 4: Expansion validation')
+      const battlePlanContainers = element.querySelectorAll('.border-l-4.border-red-500')
+      battlePlanContainers.forEach((container, index) => {
+        if (container instanceof HTMLElement) {
+          console.log(`📊 Battle Plan ${index + 1} validation:`, {
+            scrollHeight: container.scrollHeight,
+            clientHeight: container.clientHeight,
+            isFullyExpanded: container.scrollHeight <= container.clientHeight + 10,
+            strategicSections: container.querySelectorAll('.bg-gradient-to-r.from-indigo-50').length,
+            whyActionsSections: container.querySelectorAll('.bg-emerald-50').length,
+            emailBodies: container.querySelectorAll('.font-mono.whitespace-pre-wrap').length
+          })
+          
+          // Validate specific sections
+          const strategicSections = container.querySelectorAll('.bg-gradient-to-r.from-indigo-50')
+          strategicSections.forEach((section, sIndex) => {
+            if (section instanceof HTMLElement) {
+              console.log(`📊 Strategic Assessment ${sIndex + 1}:`, {
+                expanded: section.scrollHeight <= section.clientHeight + 5,
+                hasMaxHeightNone: section.classList.contains('max-h-none'),
+                overflowVisible: section.classList.contains('overflow-visible')
+              })
+            }
+          })
+          
+          const whyActionsSections = container.querySelectorAll('.bg-emerald-50')
+          whyActionsSections.forEach((section, wIndex) => {
+            if (section instanceof HTMLElement) {
+              console.log(`💡 Why Actions ${wIndex + 1}:`, {
+                expanded: section.scrollHeight <= section.clientHeight + 5,
+                hasMaxHeightNone: section.classList.contains('max-h-none'),
+                overflowVisible: section.classList.contains('overflow-visible')
+              })
+            }
+          })
+          
+          const emailBodies = container.querySelectorAll('.font-mono.whitespace-pre-wrap')
+          emailBodies.forEach((email, eIndex) => {
+            if (email instanceof HTMLElement) {
+              console.log(`📧 Email Body ${eIndex + 1}:`, {
+                expanded: email.scrollHeight <= email.clientHeight + 5,
+                hasMaxHeightNone: email.classList.contains('max-h-none'),
+                overflowVisible: email.classList.contains('overflow-visible'),
+                textLength: email.textContent?.length || 0
+              })
+            }
           })
         }
       })
+
+      // Phase 5: Optimize for PDF rendering
+      toast.info('🎨 Optimizing for PDF capture...', { duration: 2000 })
+      const originalStyles = storeElementStyles(element)
+      optimizeElementForPDF(element, 'main')
+      await new Promise(resolve => setTimeout(resolve, 1000))
       
-      toast.info('📸 Generating high-quality canvas...', { duration: 2000 })
-      
-      // Phase 6: Generate canvas with improved sizing
+      // Phase 6: Generate canvas
+      toast.info('📸 Generating high-quality canvas...', { duration: 3000 })
       const canvas = await generateCanvas(element)
       restoreElementStyles(element, originalStyles)
 
       // Phase 7: Create PDF
       const pdf = createPDFDocument()
       const contentHeightMM = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
-      const availableHeightFirstPage = 297 - 45 - 10 // A4 height - header - margin
-      
-      console.log('📄 PDF layout decision:', {
+      const availableHeightFirstPage = 297 - 45 - 10
+
+      console.log('📄 PDF creation:', {
+        canvasHeight: canvas.height,
         contentHeightMM,
         availableHeightFirstPage,
-        needsMultiPage: contentHeightMM > availableHeightFirstPage,
-        canvasDimensions: {
-          width: canvas.width,
-          height: canvas.height
-        },
-        modifiedElementsCount: modifiedElements.length
+        willUseMultiPage: contentHeightMM > availableHeightFirstPage,
+        totalModifiedElements: modifiedElements.length
       })
 
-      toast.info('📋 Creating professional PDF document...', { duration: 2000 })
+      toast.info('📋 Creating comprehensive PDF...', { duration: 2000 })
 
       if (contentHeightMM <= availableHeightFirstPage) {
-        console.log('📄 Using single-page layout')
         addCanvasToPDF(pdf, canvas, title)
       } else {
-        console.log('📄 Using multi-page layout')
         addMultiPageContent(pdf, canvas, title)
       }
       
       const pdfFilename = generateCleanFilename(title)
       pdf.save(pdfFilename)
-      toast.success('✅ Professional PDF exported successfully!', { 
+      
+      toast.success('✅ Battle Plan PDF exported successfully!', { 
         duration: 4000,
-        description: `${modifiedElements.length} content areas expanded for complete capture`
+        description: `Complete content captured: ${modifiedElements.length} sections expanded`
       })
       
     } catch (error) {
@@ -203,11 +168,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       })
     } finally {
       // Phase 8: Comprehensive cleanup
-      console.log('🔄 Restoring all modified elements and states')
+      console.log('🔄 Comprehensive cleanup and restoration')
       restoreElementStates(modifiedElements)
       
       if (options?.toggleSection && sectionsToRestore.length > 0) {
-        console.log(`🔄 Restoring ${sectionsToRestore.length} user-controlled sections`)
         setTimeout(() => {
           sectionsToRestore.forEach(sectionKey => {
             options.toggleSection!(sectionKey)
@@ -216,7 +180,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }, 500)
       }
       
-      console.log('✅ PDF export process complete')
+      console.log('✅ Battle Plan PDF export process complete')
     }
   }, [filename])
   

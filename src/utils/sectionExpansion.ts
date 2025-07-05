@@ -14,300 +14,269 @@ export interface ElementState {
 /**
  * Finds and expands collapsed sections for PDF generation
  * 
- * Searches for accordion/collapsible elements with closed state and simulates
- * user interaction to expand them. This ensures all content is visible for
- * PDF capture, including hidden sections.
+ * Comprehensively targets Battle Plan sections with height constraints
+ * to ensure complete content visibility in PDF output.
  * 
  * @param element - Root element to search for collapsible sections
  * @returns Array of modified elements that need restoration
- * 
- * @example
- * ```typescript
- * const modifiedElements = expandCollapsedSections(document.getElementById('content'));
- * // ... perform PDF generation ...
- * restoreElementStates(modifiedElements);
- * ```
  */
 export function expandCollapsedSections(element: HTMLElement): ElementState[] {
   const modifiedElements: ElementState[] = []
 
-  console.log('🔍 Starting comprehensive section expansion for PDF capture')
+  console.log('🎯 Starting Battle Plan PDF expansion - comprehensive approach')
 
-  // Phase 1: Expand accordion/collapsible sections
+  // Phase 1: Force expand ALL Battle Plan containers
+  console.log('⚔️ Phase 1: Force expanding Battle Plan containers')
+  
+  const battlePlanContainers = element.querySelectorAll('.border-l-4.border-red-500')
+  console.log('⚔️ Found Battle Plan containers:', battlePlanContainers.length)
+  
+  battlePlanContainers.forEach((container, index) => {
+    if (container instanceof HTMLElement) {
+      console.log(`⚔️ Processing Battle Plan container ${index + 1}`)
+      
+      // Force expand the main Battle Plan container
+      const containerState = forceExpandElement(container, modifiedElements, 'Battle Plan Container')
+      if (containerState) modifiedElements.push(containerState)
+      
+      // Target specific Battle Plan sub-sections
+      expandBattlePlanSubSections(container, modifiedElements)
+    }
+  })
+
+  // Phase 2: Standard collapsible triggers
   const collapsibleTriggers = element.querySelectorAll('[data-state="closed"]')
-  console.log('📂 Found closed sections:', collapsibleTriggers.length)
-  
-  Array.from(collapsibleTriggers).forEach((trigger, index) => {
-    if (trigger instanceof HTMLElement) {
-      console.log(`📂 Expanding section ${index + 1}:`, trigger)
-      
-      const originalClasses = trigger.className
-      const originalStyles = storeOriginalStyles(trigger)
-      
-      modifiedElements.push({
-        element: trigger,
-        originalClasses,
-        originalStyles
-      })
-      
-      trigger.click()
-    }
-  })
-
-  // Phase 2: Target Battle Plan specific sections
-  console.log('⚔️ Phase 2: Expanding Battle Plan sections specifically')
-  
-  // Strategic Assessment section
-  const strategicAssessments = element.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50, [class*="strategic"], [class*="assessment"]')
-  Array.from(strategicAssessments).forEach((section, index) => {
-    if (section instanceof HTMLElement) {
-      console.log(`⚔️ Found Strategic Assessment section ${index + 1}:`, {
-        tagName: section.tagName,
-        className: section.className.substring(0, 100) + '...',
-        scrollHeight: section.scrollHeight,
-        clientHeight: section.clientHeight
-      })
-      
-      if (section.scrollHeight > section.clientHeight + 5) {
-        const originalClasses = section.className
-        const originalStyles = storeOriginalStyles(section)
-        
-        modifiedElements.push({
-          element: section,
-          originalClasses,
-          originalStyles
-        })
-        
-        // Remove height constraints
-        section.style.maxHeight = 'none'
-        section.style.height = 'auto'
-        section.style.overflow = 'visible'
-        section.style.overflowY = 'visible'
-        
-        // Update classes
-        const newClasses = Array.from(section.classList)
-          .filter(cls => !cls.startsWith('max-h-') || cls === 'max-h-none')
-          .concat(['max-h-none', 'overflow-visible'])
-          .join(' ')
-        section.className = newClasses
-        
-        console.log(`⚔️ Expanded Strategic Assessment: ${originalClasses.substring(0, 50)}... → ${newClasses.substring(0, 50)}...`)
+  if (collapsibleTriggers.length > 0) {
+    console.log('📂 Phase 2: Standard accordion sections:', collapsibleTriggers.length)
+    Array.from(collapsibleTriggers).forEach((trigger, index) => {
+      if (trigger instanceof HTMLElement) {
+        console.log(`📂 Expanding accordion ${index + 1}`)
+        trigger.click()
       }
-    }
-  })
-
-  // "Why These Specific Actions" section
-  const whyActionsSection = element.querySelector('.bg-emerald-50')
-  if (whyActionsSection instanceof HTMLElement) {
-    console.log('💡 Found "Why These Specific Actions" section:', {
-      scrollHeight: whyActionsSection.scrollHeight,
-      clientHeight: whyActionsSection.clientHeight,
-      className: whyActionsSection.className
     })
-    
-    if (whyActionsSection.scrollHeight > whyActionsSection.clientHeight + 5) {
-      const originalClasses = whyActionsSection.className
-      const originalStyles = storeOriginalStyles(whyActionsSection)
-      
-      modifiedElements.push({
-        element: whyActionsSection,
-        originalClasses,
-        originalStyles
-      })
-      
-      // Expand the section
-      whyActionsSection.style.maxHeight = 'none'
-      whyActionsSection.style.height = 'auto'
-      whyActionsSection.style.overflow = 'visible'
-      whyActionsSection.style.overflowY = 'visible'
-      
-      console.log('💡 Expanded "Why These Specific Actions" section')
-    }
   }
 
-  // Phase 3: Email Template sections specifically
-  console.log('📧 Phase 3: Targeting email templates in Battle Plan')
-  
-  // Look for email template containers in Battle Plan
-  const emailContainers = element.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50, .bg-blue-50, [class*="email"]')
-  Array.from(emailContainers).forEach((container, index) => {
-    if (container instanceof HTMLElement) {
-      // Find email content within containers
-      const emailElements = container.querySelectorAll('.font-mono, .whitespace-pre-wrap, .max-h-32, .max-h-40, .overflow-y-auto')
-      
-      Array.from(emailElements).forEach((emailEl, emailIndex) => {
-        if (emailEl instanceof HTMLElement && emailEl.scrollHeight > emailEl.clientHeight + 5) {
-          console.log(`📧 Found constrained email element ${index + 1}.${emailIndex + 1}:`, {
-            tagName: emailEl.tagName,
-            className: emailEl.className.substring(0, 80) + '...',
-            scrollHeight: emailEl.scrollHeight,
-            clientHeight: emailEl.clientHeight,
-            textPreview: emailEl.textContent?.substring(0, 50) + '...'
-          })
-          
-          // Check if already processed
-          const alreadyProcessed = modifiedElements.some(item => item.element === emailEl)
-          if (!alreadyProcessed) {
-            const originalClasses = emailEl.className
-            const originalStyles = storeOriginalStyles(emailEl)
-            
-            modifiedElements.push({
-              element: emailEl,
-              originalClasses,
-              originalStyles
-            })
-            
-            // Remove all height and overflow constraints
-            emailEl.style.maxHeight = 'none'
-            emailEl.style.height = 'auto'
-            emailEl.style.overflow = 'visible'
-            emailEl.style.overflowY = 'visible'
-            emailEl.style.overflowX = 'visible'
-            
-            // Remove constraining classes and add expansion classes
-            emailEl.classList.remove('max-h-32', 'max-h-40', 'max-h-20', 'max-h-24', 'max-h-48')
-            emailEl.classList.remove('overflow-y-auto', 'overflow-auto', 'overflow-hidden')
-            emailEl.classList.add('max-h-none', 'overflow-visible')
-            
-            // Ensure proper text display for email content
-            if (emailEl.classList.contains('font-mono') || emailEl.classList.contains('whitespace-pre-wrap')) {
-              emailEl.style.whiteSpace = 'pre-wrap'
-              emailEl.style.wordBreak = 'break-word'
-            }
-            
-            console.log(`📧 Expanded email element: removed height constraints`)
-          }
-        }
-      })
-    }
-  })
+  // Phase 3: Comprehensive height constraint removal
+  console.log('📏 Phase 3: Comprehensive height constraint removal')
+  removeAllHeightConstraints(element, modifiedElements)
 
-  // Phase 4: Comprehensive height constraint removal for remaining elements
-  console.log('📏 Phase 4: Comprehensive height constraint removal')
-  
-  const allElements = element.querySelectorAll('*')
-  
-  Array.from(allElements).forEach((el) => {
-    if (el instanceof HTMLElement) {
-      const classList = el.classList
-      
-      // Detect various constraint types
-      const hasMaxHeightClass = Array.from(classList).some(cls => 
-        cls.startsWith('max-h-') && cls !== 'max-h-none' && cls !== 'max-h-full' && cls !== 'max-h-screen'
-      )
-      const hasOverflowClass = classList.contains('overflow-y-auto') || 
-                               classList.contains('overflow-auto') ||
-                               classList.contains('overflow-y-scroll')
-      const hasInlineMaxHeight = el.style.maxHeight && 
-                                 el.style.maxHeight !== 'none' && 
-                                 el.style.maxHeight !== 'unset'
-      
-      // Check if element has scrollable content
-      const hasScrollableContent = el.scrollHeight > el.clientHeight + 5 // 5px tolerance
-      
-      // Special targeting for Battle Plan content
-      const isBattlePlanContent = el.closest('.border-l-4.border-red-500') ||
-                                  el.closest('[class*="battle"]') ||
-                                  el.closest('[class*="strategic"]') ||
-                                  el.closest('[class*="assessment"]') ||
-                                  el.closest('.bg-emerald-50')
-      
-      // Determine if element needs expansion
-      const needsExpansion = (hasMaxHeightClass && (hasOverflowClass || hasScrollableContent || isBattlePlanContent)) ||
-                             (hasInlineMaxHeight && hasScrollableContent) ||
-                             (hasOverflowClass && hasScrollableContent && isBattlePlanContent)
-      
-      if (needsExpansion) {
-        // Check if already processed
-        const alreadyProcessed = modifiedElements.some(item => item.element === el)
-        if (!alreadyProcessed) {
-          console.log(`📏 Expanding constrained Battle Plan element:`, {
-            element: el.tagName + (el.className ? '.' + el.className.split(' ').slice(0, 3).join('.') : ''),
-            hasMaxHeightClass,
-            hasOverflowClass,
-            hasInlineMaxHeight,
-            hasScrollableContent,
-            isBattlePlanContent,
-            scrollHeight: el.scrollHeight,
-            clientHeight: el.clientHeight
-          })
-          
-          const originalClasses = el.className
-          const originalStyles = storeOriginalStyles(el)
-          
-          modifiedElements.push({
-            element: el,
-            originalClasses,
-            originalStyles
-          })
-          
-          // Remove Tailwind height constraints
-          if (hasMaxHeightClass) {
-            el.classList.remove('max-h-32', 'max-h-40', 'max-h-20', 'max-h-24', 'max-h-48', 'max-h-16', 'max-h-12')
-            el.classList.add('max-h-none')
-          }
-          
-          // Remove overflow constraints
-          if (hasOverflowClass) {
-            el.classList.remove('overflow-y-auto', 'overflow-auto', 'overflow-y-scroll', 'overflow-hidden')
-            el.classList.add('overflow-visible')
-          }
-          
-          // Remove inline height constraints
-          if (hasInlineMaxHeight) {
-            el.style.maxHeight = 'none'
-            el.style.height = 'auto'
-          }
-          
-          // Ensure full content visibility
-          el.style.overflow = 'visible'
-          el.style.overflowY = 'visible'
-          el.style.overflowX = 'visible'
-        }
-      }
-    }
-  })
-
-  console.log(`✅ Total elements modified for PDF expansion: ${modifiedElements.length}`)
-  
-  // Log summary of what was expanded
-  const battlePlanCount = modifiedElements.filter(item => 
-    item.element.closest('.border-l-4.border-red-500') ||
-    item.originalClasses.includes('bg-emerald-50') ||
-    item.originalClasses.includes('bg-gradient-to-r')
-  ).length
-  const emailCount = modifiedElements.filter(item => 
-    item.element.classList.contains('font-mono') ||
-    item.originalClasses.includes('font-mono')
-  ).length
-  
-  console.log(`📊 Expansion summary: ${battlePlanCount} Battle Plan elements, ${emailCount} email elements`)
-  
+  console.log(`✅ Total elements modified for PDF: ${modifiedElements.length}`)
   return modifiedElements
 }
 
 /**
+ * Expands specific Battle Plan sub-sections with targeted logic
+ */
+function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedElements: ElementState[]): void {
+  console.log('🎯 Expanding Battle Plan sub-sections')
+
+  // 1. Strategic Assessment Section (gradient background)
+  const strategicSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-indigo-50')
+  console.log('📊 Strategic Assessment sections found:', strategicSections.length)
+  
+  strategicSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`📊 Expanding Strategic Assessment ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Strategic Assessment ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      // Expand all nested grid items and content
+      expandNestedContent(section, modifiedElements, 'Strategic Assessment Child')
+    }
+  })
+
+  // 2. "Why These Specific Actions" Section (emerald background)
+  const whyActionsSections = battlePlanContainer.querySelectorAll('.bg-emerald-50')
+  console.log('💡 Why These Actions sections found:', whyActionsSections.length)
+  
+  whyActionsSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`💡 Expanding Why These Actions ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Why These Actions ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      // Expand nested content
+      expandNestedContent(section, modifiedElements, 'Why Actions Child')
+    }
+  })
+
+  // 3. Email Template Sections (specific targeting)
+  const emailSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50')
+  console.log('📧 Email template sections found:', emailSections.length)
+  
+  emailSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`📧 Expanding email section ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Email Section ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      // Specifically target email content areas
+      expandEmailContent(section, modifiedElements)
+    }
+  })
+
+  // 4. Timeline sections (red background)
+  const timelineSections = battlePlanContainer.querySelectorAll('.bg-red-50')
+  console.log('⏰ Timeline sections found:', timelineSections.length)
+  
+  timelineSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`⏰ Expanding timeline section ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Timeline Section ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      expandNestedContent(section, modifiedElements, 'Timeline Child')
+    }
+  })
+}
+
+/**
+ * Force expands email content with specific height constraints 
+ */
+function expandEmailContent(container: HTMLElement, modifiedElements: ElementState[]): void {
+  // Target email bodies with specific classes
+  const emailBodies = container.querySelectorAll('.font-mono.whitespace-pre-wrap, .max-h-32, .max-h-40, .overflow-y-auto')
+  
+  console.log('📧 Email body elements found:', emailBodies.length)
+  
+  emailBodies.forEach((emailEl, index) => {
+    if (emailEl instanceof HTMLElement) {
+      console.log(`📧 Force expanding email body ${index + 1}:`, {
+        classes: emailEl.className,
+        scrollHeight: emailEl.scrollHeight,
+        clientHeight: emailEl.clientHeight,
+        offsetHeight: emailEl.offsetHeight
+      })
+      
+      const emailState = forceExpandElement(emailEl, modifiedElements, `Email Body ${index + 1}`)
+      if (emailState) modifiedElements.push(emailState)
+    }
+  })
+}
+
+/**
+ * Expands nested content within a container
+ */
+function expandNestedContent(container: HTMLElement, modifiedElements: ElementState[], prefix: string): void {
+  const nestedElements = container.querySelectorAll('*')
+  
+  Array.from(nestedElements).forEach((el, index) => {
+    if (el instanceof HTMLElement && needsExpansion(el)) {
+      const nestedState = forceExpandElement(el, modifiedElements, `${prefix} ${index + 1}`)
+      if (nestedState) modifiedElements.push(nestedState)
+    }
+  })
+}
+
+/**
+ * Determines if an element needs expansion based on height constraints
+ */
+function needsExpansion(element: HTMLElement): boolean {
+  const classList = element.classList
+  
+  // Check for constraining classes
+  const hasMaxHeightClass = Array.from(classList).some(cls => 
+    cls.startsWith('max-h-') && !['max-h-none', 'max-h-full', 'max-h-screen'].includes(cls)
+  )
+  
+  const hasOverflowClass = classList.contains('overflow-y-auto') || 
+                           classList.contains('overflow-auto') ||
+                           classList.contains('overflow-y-scroll') ||
+                           classList.contains('overflow-hidden')
+  
+  const hasInlineConstraints = element.style.maxHeight && 
+                               !['none', 'unset', 'auto'].includes(element.style.maxHeight)
+  
+  // Check if content is actually constrained
+  const rect = element.getBoundingClientRect()
+  const hasScrollableContent = element.scrollHeight > Math.max(element.clientHeight, element.offsetHeight, rect.height) + 2
+  
+  return hasMaxHeightClass || hasOverflowClass || hasInlineConstraints || hasScrollableContent
+}
+
+/**
+ * Force expands a single element by removing all height constraints
+ */
+function forceExpandElement(element: HTMLElement, existingModified: ElementState[], logPrefix: string): ElementState | null {
+  // Check if already processed
+  const alreadyProcessed = existingModified.some(item => item.element === element)
+  if (alreadyProcessed) {
+    console.log(`⚠️ ${logPrefix}: Already processed, skipping`)
+    return null
+  }
+  
+  console.log(`🔧 ${logPrefix}: Force expanding`, {
+    element: element.tagName,
+    classes: element.className.substring(0, 100),
+    scrollHeight: element.scrollHeight,
+    clientHeight: element.clientHeight,
+    offsetHeight: element.offsetHeight
+  })
+  
+  const originalClasses = element.className
+  const originalStyles = storeOriginalStyles(element)
+  
+  // Remove ALL height constraining classes
+  const heightClasses = ['max-h-32', 'max-h-40', 'max-h-20', 'max-h-24', 'max-h-48', 'max-h-16', 'max-h-12', 'max-h-64', 'max-h-96']
+  const overflowClasses = ['overflow-y-auto', 'overflow-auto', 'overflow-y-scroll', 'overflow-hidden', 'overflow-y-hidden']
+  
+  heightClasses.forEach(cls => element.classList.remove(cls))
+  overflowClasses.forEach(cls => element.classList.remove(cls))
+  
+  // Add expansion classes
+  element.classList.add('max-h-none', 'overflow-visible')
+  
+  // Force inline styles
+  element.style.maxHeight = 'none'
+  element.style.height = 'auto'
+  element.style.overflow = 'visible'
+  element.style.overflowY = 'visible'
+  element.style.overflowX = 'visible'
+  
+  // Special handling for grid containers
+  if (element.classList.contains('grid')) {
+    element.style.gridAutoRows = 'auto'
+  }
+  
+  // Special handling for flex containers
+  if (getComputedStyle(element).display.includes('flex')) {
+    element.style.flexShrink = '0'
+  }
+  
+  console.log(`✅ ${logPrefix}: Expansion complete`)
+  
+  return {
+    element,
+    originalClasses,
+    originalStyles
+  }
+}
+
+/**
+ * Removes height constraints from all elements in the container
+ */
+function removeAllHeightConstraints(element: HTMLElement, modifiedElements: ElementState[]): void {
+  const allElements = element.querySelectorAll('*')
+  let additionalExpansions = 0
+  
+  Array.from(allElements).forEach((el) => {
+    if (el instanceof HTMLElement && needsExpansion(el)) {
+      const expandState = forceExpandElement(el, modifiedElements, 'Global Constraint Removal')
+      if (expandState) {
+        modifiedElements.push(expandState)
+        additionalExpansions++
+      }
+    }
+  })
+  
+  console.log(`📏 Additional height constraints removed: ${additionalExpansions} elements`)
+}
+
+/**
  * Expands scrollable content areas for complete PDF capture
- * 
- * Identifies elements with height constraints that would prevent full content
- * visibility and removes those constraints. This ensures scrollable areas
- * are fully expanded in the PDF output.
- * 
- * @param element - Root element to search for scrollable content
- * @param modifiedElements - Array to append modified elements to for restoration
- * 
- * @example
- * ```typescript
- * const modifiedElements: ElementState[] = [];
- * expandScrollableContent(contentElement, modifiedElements);
- * // All scrollable areas are now fully expanded
- * ```
  */
 export function expandScrollableContent(element: HTMLElement, modifiedElements: ElementState[]): void {
-  console.log('🔍 Expanding remaining scrollable content areas')
-  
-  // This function is now primarily handled by expandCollapsedSections
-  // but we keep it for any edge cases that might be missed
+  console.log('🔍 Final scrollable content check')
   
   const remainingScrollable = element.querySelectorAll('*')
   let additionalExpansions = 0
@@ -316,37 +285,29 @@ export function expandScrollableContent(element: HTMLElement, modifiedElements: 
     if (el instanceof HTMLElement) {
       const isAlreadyProcessed = modifiedElements.some(item => item.element === el)
       
-      if (!isAlreadyProcessed && el.scrollHeight > el.clientHeight + 10) { // 10px tolerance
-        console.log('🔍 Found additional scrollable content:', {
+      if (!isAlreadyProcessed && el.scrollHeight > el.clientHeight + 10) {
+        console.log('🔍 Found missed scrollable content:', {
           element: el.tagName,
+          classes: el.className.substring(0, 50),
           scrollHeight: el.scrollHeight,
-          clientHeight: el.clientHeight,
-          className: el.className
+          clientHeight: el.clientHeight
         })
         
-        const originalClasses = el.className
-        const originalStyles = storeOriginalStyles(el)
-        
-        modifiedElements.push({
-          element: el,
-          originalClasses,
-          originalStyles
-        })
-        
-        // Apply expansion
-        el.style.maxHeight = 'none'
-        el.style.height = 'auto'
-        el.style.overflow = 'visible'
-        el.style.overflowY = 'visible'
-        
-        additionalExpansions++
+        const scrollState = forceExpandElement(el, modifiedElements, 'Final Scrollable Check')
+        if (scrollState) {
+          modifiedElements.push(scrollState)
+          additionalExpansions++
+        }
       }
     }
   })
   
-  console.log(`🔍 Additional scrollable content expanded: ${additionalExpansions} elements`)
+  console.log(`🔍 Final scrollable expansion: ${additionalExpansions} elements`)
 }
 
+/**
+ * Restores all modified elements to their original state
+ */
 export function restoreElementStates(modifiedElements: ElementState[]): void {
   console.log('🔄 Restoring element states:', modifiedElements.length, 'elements')
   
@@ -354,8 +315,8 @@ export function restoreElementStates(modifiedElements: ElementState[]): void {
     try {
       console.log(`🔄 Restoring element ${index + 1}:`, {
         element: element.tagName,
-        originalClasses: originalClasses.substring(0, 50) + (originalClasses.length > 50 ? '...' : ''),
-        currentClasses: element.className.substring(0, 50) + (element.className.length > 50 ? '...' : '')
+        from: element.className.substring(0, 30) + '...',
+        to: originalClasses.substring(0, 30) + '...'
       })
       
       // Restore classes completely
@@ -377,6 +338,9 @@ export function restoreElementStates(modifiedElements: ElementState[]): void {
   console.log('✅ Element state restoration complete')
 }
 
+/**
+ * Stores original styles for restoration
+ */
 function storeOriginalStyles(element: HTMLElement): Record<string, string> {
   return {
     position: element.style.position,
@@ -392,10 +356,12 @@ function storeOriginalStyles(element: HTMLElement): Record<string, string> {
     transform: element.style.transform,
     backgroundColor: element.style.backgroundColor,
     flex: element.style.flex,
+    flexShrink: element.style.flexShrink,
     wordBreak: element.style.wordBreak,
     hyphens: element.style.hyphens,
     whiteSpace: element.style.whiteSpace,
     flexWrap: element.style.flexWrap,
-    display: element.style.display
+    display: element.style.display,
+    gridAutoRows: element.style.gridAutoRows
   }
 }
