@@ -3,6 +3,7 @@ import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { toast } from 'sonner'
+import { generateCleanFilename, calculatePDFDimensions, createPDFHeader } from '@/utils/pdfUtils'
 
 interface UsePDFExportProps {
   filename?: string
@@ -275,7 +276,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       console.log('✅ Restored all modified elements')
 
-      // Convert to PDF
+      // Convert to PDF using extracted utilities
       const imgData = canvas.toDataURL('image/png', 1.0)
       
       const pdf = new jsPDF({
@@ -285,34 +286,11 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         compress: false
       })
 
-      // A4 dimensions
-      const pdfWidth = 210
-      const pdfHeight = 297
+      // Calculate dimensions using utility
+      const { scale, scaledHeight, contentWidth, pdfWidth, pdfHeight } = calculatePDFDimensions(canvas)
       
-      // Calculate scaling
-      const contentWidth = pdfWidth - 20 // 10mm margins on each side
-      const scale = contentWidth / (canvas.width * 0.264583)
-      const scaledHeight = (canvas.height * 0.264583) * scale
-      
-      // Professional header
-      pdf.setFontSize(20)
-      pdf.setTextColor(30, 41, 59)
-      const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      pdf.text(cleanTitle, 10, 20)
-      
-      pdf.setFontSize(11)
-      pdf.setTextColor(100, 116, 139)
-      pdf.text('Sales Intelligence Report', 10, 28)
-      pdf.text(`Generated on ${new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      })}`, 10, 35)
-      
-      // Separator line
-      pdf.setDrawColor(203, 213, 225)
-      pdf.setLineWidth(0.5)
-      pdf.line(10, 40, pdfWidth - 10, 40)
+      // Create header using utility
+      createPDFHeader(pdf, title)
       
       // Content positioning
       const contentStartY = 45
@@ -331,6 +309,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             pdf.addPage()
             pdf.setFontSize(14)
             pdf.setTextColor(100, 116, 139)
+            const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
             pdf.text(`${cleanTitle} - Page ${page + 1} of ${totalPages}`, 10, 15)
             pdf.setDrawColor(203, 213, 225)
             pdf.line(10, 20, pdfWidth - 10, 20)
@@ -360,14 +339,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }
       }
       
-      // Generate filename and save
-      const timestamp = new Date().toISOString().slice(0, 10)
-      const cleanFilename = title
-        .replace(/[^a-zA-Z0-9_\-\s]/g, '')
-        .replace(/\s+/g, '_')
-        .toLowerCase()
-      
-      const pdfFilename = `${cleanFilename}_sales_analysis_${timestamp}.pdf`
+      // Generate filename and save using utility
+      const pdfFilename = generateCleanFilename(title)
       pdf.save(pdfFilename)
       
       toast.success('Professional PDF exported successfully!', { duration: 4000 })
