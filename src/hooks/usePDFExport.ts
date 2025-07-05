@@ -47,6 +47,82 @@ const safeElementOperation = <T>(
   }
 }
 
+// 🎯 NEW: Typography Preservation System
+const PDF_STYLES_ID = 'pdf-export-typography-lock'
+
+const injectPDFStyles = (): void => {
+  // Remove existing styles if any
+  const existingStyles = document.getElementById(PDF_STYLES_ID)
+  if (existingStyles) {
+    existingStyles.remove()
+  }
+
+  const styleElement = document.createElement('style')
+  styleElement.id = PDF_STYLES_ID
+  styleElement.textContent = `
+    .pdf-export-lock,
+    .pdf-export-lock * {
+      white-space: normal !important;
+      word-break: keep-all !important;
+      hyphens: none !important;
+      line-height: 1.5 !important;
+      text-align: inherit !important;
+      word-wrap: normal !important;
+      overflow-wrap: normal !important;
+      text-overflow: visible !important;
+    }
+    
+    .pdf-export-lock .text-left {
+      text-align: left !important;
+    }
+    
+    .pdf-export-lock .text-center {
+      text-align: center !important;
+    }
+    
+    .pdf-export-lock .text-right {
+      text-align: right !important;
+    }
+    
+    .pdf-export-lock .text-justify {
+      text-align: justify !important;
+    }
+  `
+  
+  document.head.appendChild(styleElement)
+  console.log('PDF Export: Typography lock styles injected')
+}
+
+const removePDFStyles = (): void => {
+  const styleElement = document.getElementById(PDF_STYLES_ID)
+  if (styleElement) {
+    styleElement.remove()
+    console.log('PDF Export: Typography lock styles removed')
+  }
+}
+
+// 🎯 NEW: Staged Section Expansion
+const expandSectionGently = async (section: HTMLElement, index: number): Promise<void> => {
+  console.log(`PDF Export: Starting gentle expansion for element ${index + 1}`)
+  
+  // Stage 1: Allow natural expansion
+  section.style.maxHeight = '9999px'
+  section.style.minHeight = 'auto'
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  // Stage 2: Set height to auto
+  section.style.height = 'auto'
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
+  // Stage 3: Make fully visible
+  section.style.overflow = 'visible'
+  section.style.overflowY = 'visible'
+  section.style.display = 'block'
+  section.style.visibility = 'visible'
+  
+  console.log(`PDF Export: Gentle expansion complete for element ${index + 1}`)
+}
+
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (
     elementId: string, 
@@ -58,7 +134,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let originalSectionsState: Record<string, boolean> = {}
     
     try {
-      toast.info('Generating professional PDF with full visual design...', { duration: 3000 })
+      toast.info('Generating professional PDF with enhanced typography...', { duration: 3000 })
       
       // 🛡️ GUARDRAIL: Validate element exists
       const element = validateElementExists(elementId)
@@ -66,6 +142,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       // 🛡️ GUARDRAIL: Prevent user interactions during export
       document.body.style.pointerEvents = 'none'
+      
+      // 🎯 NEW: Inject typography preservation styles
+      injectPDFStyles()
       
       // Ensure we're at the top and everything is loaded
       window.scrollTo(0, 0)
@@ -88,23 +167,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         
         // Wait for React state updates and re-renders
         await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        // Verify sections are expanded
-        const verifyExpansion = () => {
-          const closedSections = element.querySelectorAll('[data-state="closed"]')
-          console.log(`PDF Export: Found ${closedSections.length} still-closed sections after React state control`)
-          
-          if (closedSections.length > 0) {
-            console.log('PDF Export: Some sections still closed, applying DOM fixes')
-            return false
-          }
-          return true
-        }
-        
-        const expansionSuccessful = verifyExpansion()
-        if (!expansionSuccessful) {
-          console.warn('PDF Export: React state expansion incomplete, proceeding with DOM fallback')
-        }
       }
 
       // 🛡️ GUARDRAIL: Safe backup of original element styles
@@ -130,50 +192,53 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }
       )
 
-      // PHASE 1: PRE-PDF PREPARATION - Enhanced Collapsible Section Expansion
-      
-      // 🛡️ GUARDRAIL: Enhanced collapsible section expansion with better selectors
-      const expandCollapsibleSections = () => {
+      // 🎯 NEW: Apply typography lock to main element
+      element.classList.add('pdf-export-lock')
+
+      // PHASE 1: Enhanced Collapsible Section Expansion with Gentle Approach
+      const expandCollapsibleSections = async () => {
         try {
-          console.log('PDF Export: Starting enhanced collapsible section expansion')
+          console.log('PDF Export: Starting enhanced gentle collapsible section expansion')
           
           // Target Radix UI Collapsible components specifically
           const collapsibleRoots = element.querySelectorAll('[data-radix-collapsible-root][data-state="closed"]')
           console.log(`PDF Export: Found ${collapsibleRoots.length} closed collapsible roots`)
           
-          collapsibleRoots.forEach((root, index) => {
+          for (let i = 0; i < collapsibleRoots.length; i++) {
+            const root = collapsibleRoots[i]
             const trigger = root.querySelector('[data-radix-collapsible-trigger]')
             if (trigger instanceof HTMLElement) {
-              console.log(`PDF Export: Clicking trigger ${index + 1} for collapsible section`)
+              console.log(`PDF Export: Clicking trigger ${i + 1} for collapsible section`)
               trigger.click()
             }
-          })
+          }
           
           // Also find any standalone triggers that might be separate from roots
           const standaloneTriggers = element.querySelectorAll('[data-radix-collapsible-trigger][aria-expanded="false"]')
           console.log(`PDF Export: Found ${standaloneTriggers.length} standalone closed triggers`)
           
-          standaloneTriggers.forEach((trigger, index) => {
+          for (let i = 0; i < standaloneTriggers.length; i++) {
+            const trigger = standaloneTriggers[i]
             if (trigger instanceof HTMLElement) {
-              console.log(`PDF Export: Clicking standalone trigger ${index + 1}`)
+              console.log(`PDF Export: Clicking standalone trigger ${i + 1}`)
               trigger.click()
             }
-          })
+          }
           
         } catch (error) {
           console.warn('PDF Export: Failed to expand some collapsible sections', error)
         }
       }
 
-      expandCollapsibleSections()
+      await expandCollapsibleSections()
       
-      // 🛡️ GUARDRAIL: Extended wait for React re-render with verification
+      // 🛡️ GUARDRAIL: Extended wait for React re-render
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Enhanced fallback expansion with better targeting
-      const expandFallbackSections = () => {
+      // 🎯 NEW: Enhanced fallback expansion with gentle approach
+      const expandFallbackSections = async () => {
         try {
-          console.log('PDF Export: Starting fallback section expansion')
+          console.log('PDF Export: Starting gentle fallback section expansion')
           
           // Target all remaining closed elements with better selectors
           const closedElements = element.querySelectorAll(`
@@ -183,11 +248,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             .collapsed
           `)
           
-          console.log(`PDF Export: Found ${closedElements.length} elements needing fallback expansion`)
+          console.log(`PDF Export: Found ${closedElements.length} elements needing gentle fallback expansion`)
           
-          closedElements.forEach((section, index) => {
+          for (let i = 0; i < closedElements.length; i++) {
+            const section = closedElements[i]
             if (section instanceof HTMLElement) {
-              console.log(`PDF Export: Processing fallback element ${index + 1}`)
+              console.log(`PDF Export: Processing gentle fallback element ${i + 1}`)
               
               const stateAttr = section.hasAttribute('data-state') ? 'data-state' : 
                                section.hasAttribute('aria-expanded') ? 'aria-expanded' : 'class'
@@ -221,31 +287,25 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                   section.className = section.className.replace(/\bcollapsed\b/g, '')
                 }
                 
-                // Force visibility
-                section.style.display = 'block'
-                section.style.visibility = 'visible'
-                section.style.height = 'auto'
-                section.style.maxHeight = 'none'
-                section.style.overflow = 'visible'
-                
-                console.log(`PDF Export: Expanded fallback element ${index + 1}`)
+                // 🎯 NEW: Use gentle expansion
+                await expandSectionGently(section, i)
               }
             }
-          })
+          }
         } catch (error) {
           console.warn('PDF Export: Failed to expand fallback sections', error)
         }
       }
 
-      expandFallbackSections()
+      await expandFallbackSections()
 
-      // Find and expand all scrollable content areas
-      const expandScrollableContent = () => {
+      // Find and expand all scrollable content areas with gentle approach
+      const expandScrollableContent = async () => {
         try {
           const scrollableElements = element.querySelectorAll('*')
           let expandedCount = 0
           
-          Array.from(scrollableElements).forEach(el => {
+          for (const el of Array.from(scrollableElements)) {
             if (el instanceof HTMLElement) {
               const computedStyle = getComputedStyle(el)
               const hasScrollableContent = (
@@ -273,34 +333,23 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                   })
                 }
                 
-                // Make content fully visible
-                el.style.overflow = 'visible'
-                el.style.overflowY = 'visible'
-                el.style.height = 'auto'
-                el.style.maxHeight = 'none'
+                // 🎯 NEW: Gentle expansion for scrollable content
+                await expandSectionGently(el, expandedCount)
                 expandedCount++
               }
             }
-          })
+          }
           
-          console.log(`PDF Export: Expanded ${expandedCount} scrollable content areas`)
+          console.log(`PDF Export: Gently expanded ${expandedCount} scrollable content areas`)
         } catch (error) {
           console.warn('PDF Export: Failed to expand scrollable content', error)
         }
       }
 
-      expandScrollableContent()
+      await expandScrollableContent()
 
-      // 🛡️ GUARDRAIL: Final wait for all expansions with verification
+      // 🛡️ GUARDRAIL: Final wait for all expansions
       await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Final verification before PDF generation
-      const finalClosedSections = element.querySelectorAll('[data-state="closed"], [aria-expanded="false"]')
-      if (finalClosedSections.length > 0) {
-        console.warn(`PDF Export: ${finalClosedSections.length} sections may still be closed, but proceeding with PDF generation`)
-      } else {
-        console.log('PDF Export: All sections successfully expanded for PDF capture')
-      }
 
       // Temporarily optimize for PDF capture
       element.style.position = 'static'
@@ -314,9 +363,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Wait for layout reflow
       await new Promise(resolve => setTimeout(resolve, 300))
 
-      // 🛡️ GUARDRAIL: Enhanced html2canvas with error handling
+      // 🎯 NEW: Enhanced html2canvas with typography preservation
       const canvas = await html2canvas(element, {
-        scale: 3,
+        scale: 2, // Reduced from 3 to prevent text reflow issues
         useCORS: true,
         allowTaint: true,
         backgroundColor: null,
@@ -329,11 +378,18 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         height: element.scrollHeight,
         windowWidth: 1200,
         windowHeight: element.scrollHeight,
+        letterRendering: true, // Better text handling
         ignoreElements: (element) => {
           return element.classList?.contains('no-pdf') || false
         },
         onclone: (clonedDoc, clonedElement) => {
           if (clonedElement) {
+            // 🎯 NEW: Enhanced typography preservation in clone
+            console.log('PDF Export: Applying enhanced typography preservation to clone')
+            
+            // Apply typography lock to cloned element
+            clonedElement.classList.add('pdf-export-lock')
+            
             // CRITICAL: Force all visual elements to render properly
             clonedElement.style.position = 'static'
             clonedElement.style.width = '1200px'
@@ -348,6 +404,16 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               if (el instanceof HTMLElement) {
                 // Preserve all computed styles for visual fidelity
                 const computedStyle = getComputedStyle(el)
+                
+                // 🎯 NEW: Enhanced typography preservation
+                el.style.whiteSpace = 'normal'
+                el.style.wordBreak = 'keep-all'
+                el.style.hyphens = 'none'
+                el.style.lineHeight = computedStyle.lineHeight || '1.5'
+                el.style.textAlign = computedStyle.textAlign || 'left'
+                el.style.wordWrap = 'normal'
+                el.style.overflowWrap = 'normal'
+                el.style.textOverflow = 'visible'
                 
                 // Force background rendering
                 if (computedStyle.background || computedStyle.backgroundColor || computedStyle.backgroundImage) {
@@ -364,8 +430,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.fontSize = computedStyle.fontSize
                 el.style.fontWeight = computedStyle.fontWeight
                 el.style.fontFamily = computedStyle.fontFamily
-                el.style.lineHeight = computedStyle.lineHeight
-                el.style.textAlign = computedStyle.textAlign
                 
                 // Force border and spacing
                 el.style.border = computedStyle.border
@@ -398,80 +462,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               }
             })
 
-            // SPECIAL HANDLING: Fix gradients specifically
-            const gradientElements = clonedElement.querySelectorAll('[class*="gradient"], [style*="gradient"]')
-            Array.from(gradientElements).forEach(el => {
-              if (el instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(el)
-                // Force gradient rendering
-                el.style.backgroundImage = computedStyle.backgroundImage
-                el.style.background = computedStyle.background
-                // Ensure gradient attachment
-                el.style.backgroundAttachment = 'local'
-              }
-            })
-
-            // SPECIAL HANDLING: Fix card backgrounds and styling
-            const cards = clonedElement.querySelectorAll('[class*="card"], [class*="Card"], .bg-gradient-to-r, .bg-gradient-to-br')
-            Array.from(cards).forEach(card => {
-              if (card instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(card)
-                // Force all card styling
-                card.style.background = computedStyle.background
-                card.style.backgroundColor = computedStyle.backgroundColor
-                card.style.backgroundImage = computedStyle.backgroundImage
-                card.style.border = computedStyle.border
-                card.style.borderRadius = computedStyle.borderRadius
-                card.style.boxShadow = computedStyle.boxShadow
-                card.style.padding = computedStyle.padding
-                card.style.overflow = 'visible'
-                card.style.height = 'auto'
-                card.style.minHeight = 'auto'
-                card.style.maxHeight = 'none'
-              }
-            })
-
-            // SPECIAL HANDLING: Fix badges and inline elements
-            const badges = clonedElement.querySelectorAll('[class*="badge"], [class*="Badge"], .inline-flex')
-            Array.from(badges).forEach(badge => {
-              if (badge instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(badge)
-                badge.style.display = 'inline-flex'
-                badge.style.alignItems = 'center'
-                badge.style.justifyContent = 'center'
-                badge.style.whiteSpace = 'nowrap'
-                badge.style.verticalAlign = 'middle'
-                badge.style.flexShrink = '0'
-                badge.style.background = computedStyle.background
-                badge.style.backgroundColor = computedStyle.backgroundColor
-                badge.style.color = computedStyle.color
-                badge.style.padding = computedStyle.padding || '0.25rem 0.5rem'
-                badge.style.borderRadius = computedStyle.borderRadius || '0.375rem'
-                badge.style.fontSize = computedStyle.fontSize || '0.75rem'
-                badge.style.fontWeight = computedStyle.fontWeight || '500'
-              }
-            })
-
-            // SPECIAL HANDLING: Fix flex containers
-            const flexContainers = clonedElement.querySelectorAll('[class*="flex"], .grid')
-            Array.from(flexContainers).forEach(container => {
-              if (container instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(container)
-                if (computedStyle.display.includes('flex')) {
-                  container.style.display = 'flex'
-                  container.style.flexDirection = computedStyle.flexDirection || 'row'
-                  container.style.flexWrap = computedStyle.flexWrap || 'wrap'
-                  container.style.alignItems = computedStyle.alignItems || 'center'
-                  container.style.justifyContent = computedStyle.justifyContent || 'flex-start'
-                  container.style.gap = computedStyle.gap || '0.5rem'
-                } else if (computedStyle.display.includes('grid')) {
-                  container.style.display = 'grid'
-                  container.style.gridTemplateColumns = computedStyle.gridTemplateColumns
-                  container.style.gap = computedStyle.gap
-                }
-              }
-            })
-
             // 🔧 CRITICAL: Force all collapsible content to be visible in the clone
             const collapsibleContent = clonedElement.querySelectorAll(`
               [data-radix-collapsible-content],
@@ -488,6 +478,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 content.style.transform = 'none'
                 content.style.display = 'block'
                 content.style.visibility = 'visible'
+                
+                // 🎯 NEW: Apply typography preservation to collapsible content
+                content.style.whiteSpace = 'normal'
+                content.style.wordBreak = 'keep-all'
+                content.style.lineHeight = '1.5'
+                content.style.textAlign = 'inherit'
               }
             })
           }
@@ -604,7 +600,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Save the PDF
       pdf.save(pdfFilename)
       
-      toast.success('Professional PDF with all sections exported successfully!', { duration: 4000 })
+      toast.success('Professional PDF with perfect typography exported successfully!', { duration: 4000 })
       
     } catch (error) {
       console.error('PDF export failed:', error)
@@ -614,6 +610,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       try {
         // Re-enable user interactions
         document.body.style.pointerEvents = ''
+        
+        // 🎯 NEW: Remove typography lock styles
+        removePDFStyles()
         
         // 🚀 CRITICAL: Restore React state first
         if (Object.keys(originalSectionsState).length > 0 && options.toggleSection) {
@@ -629,12 +628,16 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           await new Promise(resolve => setTimeout(resolve, 500))
         }
         
-        // Restore main element styles
+        // Restore main element styles and remove typography lock
         const element = document.getElementById(elementId)
-        if (element && originalElementStyles) {
-          Object.entries(originalElementStyles).forEach(([property, value]) => {
-            (element.style as any)[property] = value || ''
-          })
+        if (element) {
+          element.classList.remove('pdf-export-lock')
+          
+          if (originalElementStyles) {
+            Object.entries(originalElementStyles).forEach(([property, value]) => {
+              (element.style as any)[property] = value || ''
+            })
+          }
         }
 
         // Restore all modified elements
@@ -665,7 +668,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           }
         })
         
-        console.log('PDF Export: All states restored successfully')
+        console.log('PDF Export: All states restored successfully with enhanced typography')
       } catch (finalError) {
         console.error('PDF Export: Failed during cleanup:', finalError)
       }
