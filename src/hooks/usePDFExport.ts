@@ -68,6 +68,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             el.parentElement?.classList.contains('items-start') &&
             el.parentElement?.classList.contains('gap-3')
 
+          // Check if this is a Competitive Positioning Arsenal text container
+          const isCompetitivePositioningText = 
+            el.tagName === 'SPAN' &&
+            el.classList.contains('text-gray-800') &&
+            (el.classList.contains('text-sm') || el.classList.contains('lg:text-base')) &&
+            el.parentElement?.classList.contains('flex') &&
+            el.parentElement?.classList.contains('items-start')
+
           if (isEmailContainer) {
             console.log(`📧 Directly modifying email container: ${el.className}`)
             
@@ -101,6 +109,55 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
           if (isDealInsightsText) {
             console.log(`📝 Optimizing Deal Insights text for PDF: ${el.textContent?.substring(0, 50)}...`)
+            
+            // Store original state for restoration
+            const originalClasses = el.className
+            const originalStyles = {
+              flex: el.style.flex,
+              minWidth: el.style.minWidth,
+              wordBreak: el.style.wordBreak,
+              hyphens: el.style.hyphens,
+              width: el.style.width,
+              maxWidth: el.style.maxWidth
+            }
+            
+            modifiedElements.push({
+              element: el,
+              originalClasses,
+              originalStyles
+            })
+            
+            // Apply PDF-optimized text styles
+            el.style.flex = '1'
+            el.style.minWidth = '0'
+            el.style.wordBreak = 'normal'
+            el.style.hyphens = 'auto'
+            el.style.width = 'auto'
+            el.style.maxWidth = 'none'
+            
+            // Also optimize the parent container if it's the flex container
+            const parentContainer = el.parentElement
+            if (parentContainer && parentContainer.classList.contains('flex')) {
+              const parentOriginalStyles = {
+                width: parentContainer.style.width,
+                maxWidth: parentContainer.style.maxWidth,
+                minWidth: parentContainer.style.minWidth
+              }
+              
+              modifiedElements.push({
+                element: parentContainer,
+                originalClasses: parentContainer.className,
+                originalStyles: parentOriginalStyles
+              })
+              
+              parentContainer.style.width = '100%'
+              parentContainer.style.maxWidth = 'none'
+              parentContainer.style.minWidth = '0'
+            }
+          }
+
+          if (isCompetitivePositioningText) {
+            console.log(`🎯 Optimizing Competitive Positioning text for PDF: ${el.textContent?.substring(0, 50)}...`)
             
             // Store original state for restoration
             const originalClasses = el.className
