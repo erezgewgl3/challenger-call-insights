@@ -16,6 +16,7 @@ interface PDFExportOptions {
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let sectionsToRestore: string[] = []
+    let modifiedElements: Array<{ element: HTMLElement; originalClasses: string; originalStyles: { [key: string]: string } }> = []
     
     try {
       toast.info('Generating professional PDF...', { duration: 3000 })
@@ -36,14 +37,67 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         })
 
         if (sectionsToRestore.length > 0) {
-          await new Promise(resolve => setTimeout(resolve, 2000)) // Increased delay
+          await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
 
       await document.fonts.ready
-      await new Promise(resolve => setTimeout(resolve, 1000)) // Increased delay
 
-      // Store original styles for restoration
+      // DIRECT DOM MODIFICATION APPROACH
+      console.log('🔧 Starting direct DOM modification for email content...')
+      
+      // Find and modify email content elements directly in the actual DOM
+      const allElements = element.querySelectorAll('*')
+      Array.from(allElements).forEach((el) => {
+        if (el instanceof HTMLElement) {
+          const computedStyle = getComputedStyle(el)
+          
+          // Check if this is an email content container
+          const isEmailContainer = 
+            el.classList.contains('max-h-32') ||
+            (computedStyle.fontFamily.includes('mono') && el.textContent && el.textContent.length > 50) ||
+            computedStyle.maxHeight === '128px' ||
+            computedStyle.maxHeight === '8rem'
+
+          if (isEmailContainer) {
+            console.log(`📧 Directly modifying email container: ${el.className}`)
+            
+            // Store original state for restoration
+            const originalClasses = el.className
+            const originalStyles = {
+              maxHeight: el.style.maxHeight,
+              height: el.style.height,
+              overflow: el.style.overflow,
+              overflowY: el.style.overflowY
+            }
+            
+            modifiedElements.push({
+              element: el,
+              originalClasses,
+              originalStyles
+            })
+            
+            // Remove problematic classes directly from the actual DOM
+            el.classList.remove('max-h-32')
+            el.classList.remove('overflow-y-auto')
+            el.classList.remove('overflow-hidden')
+            
+            // Apply styles directly to the actual DOM element
+            el.style.maxHeight = 'none'
+            el.style.height = 'auto'
+            el.style.overflow = 'visible'
+            el.style.overflowY = 'visible'
+            el.style.whiteSpace = 'pre-wrap'
+          }
+        }
+      })
+
+      console.log(`✅ Modified ${modifiedElements.length} email elements directly`)
+
+      // Wait for DOM changes to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+      // Store original styles for main element restoration
       const originalStyles = {
         position: element.style.position,
         width: element.style.width,
@@ -54,7 +108,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         backgroundColor: element.style.backgroundColor
       }
 
-      // Optimize for PDF capture
+      // Optimize main element for PDF capture
       element.style.position = 'static'
       element.style.width = '1200px'
       element.style.maxWidth = '1200px'
@@ -65,7 +119,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Generate canvas with improved configuration
+      // Generate canvas with simplified configuration
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
@@ -79,111 +133,23 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         width: 1200,
         height: element.scrollHeight,
         windowWidth: 1200,
-        windowHeight: element.scrollHeight,
-        onclone: (clonedDoc, clonedElement) => {
-          if (clonedElement) {
-            // Force static positioning and proper sizing
-            clonedElement.style.position = 'static'
-            clonedElement.style.width = '1200px'
-            clonedElement.style.maxWidth = '1200px'
-            clonedElement.style.minWidth = '1200px'
-            clonedElement.style.transform = 'none'
-            clonedElement.style.overflow = 'visible'
-            
-            console.log('🔧 Starting targeted email content fix...')
-            
-            // FOCUSED EMAIL CONTENT FIX
-            const allElements = clonedElement.querySelectorAll('*')
-            Array.from(allElements).forEach((el) => {
-              if (el instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(el)
-                
-                // Force font consistency for all elements
-                el.style.fontFamily = 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
-                
-                // TARGETED EMAIL DETECTION - Look for the specific patterns
-                const isEmailContainer = 
-                  // Has max-h-32 class (the main culprit)
-                  el.classList.contains('max-h-32') ||
-                  // Has monospace font (email content)
-                  computedStyle.fontFamily.includes('mono') ||
-                  // Has computed maxHeight of 128px (8rem = max-h-32)
-                  computedStyle.maxHeight === '128px' ||
-                  computedStyle.maxHeight === '8rem' ||
-                  // Text patterns for email content
-                  (el.textContent && (
-                    el.textContent.includes('Subject:') ||
-                    el.textContent.includes('Hi ') ||
-                    el.textContent.includes('Dear ') ||
-                    el.textContent.includes('Best regards') ||
-                    el.textContent.includes('Thank you for')
-                  ) && el.textContent.length > 50)
-
-                if (isEmailContainer) {
-                  console.log(`📧 Fixing email container: ${el.className}`)
-                  
-                  // AGGRESSIVE HEIGHT REMOVAL
-                  el.classList.remove('max-h-32')
-                  el.classList.remove('overflow-y-auto')
-                  el.classList.remove('overflow-hidden')
-                  
-                  // DIRECT STYLE OVERRIDES WITH !important
-                  el.style.setProperty('max-height', 'none', 'important')
-                  el.style.setProperty('height', 'auto', 'important')
-                  el.style.setProperty('overflow', 'visible', 'important')
-                  el.style.setProperty('overflow-y', 'visible', 'important')
-                  el.style.setProperty('overflow-x', 'visible', 'important')
-                  el.style.setProperty('white-space', 'pre-wrap', 'important')
-                  
-                  // Fix child elements too
-                  const childElements = el.querySelectorAll('*')
-                  childElements.forEach(childEl => {
-                    if (childEl instanceof HTMLElement) {
-                      childEl.classList.remove('max-h-32')
-                      childEl.classList.remove('overflow-y-auto')
-                      childEl.style.setProperty('max-height', 'none', 'important')
-                      childEl.style.setProperty('height', 'auto', 'important')
-                      childEl.style.setProperty('overflow', 'visible', 'important')
-                    }
-                  })
-                }
-                
-                // FALLBACK: Fix any element with 128px max-height
-                if (computedStyle.maxHeight === '128px' || computedStyle.maxHeight === '8rem') {
-                  console.log(`🎯 Fallback fix for 128px height element`)
-                  el.style.setProperty('max-height', 'none', 'important')
-                  el.style.setProperty('height', 'auto', 'important')
-                  el.style.setProperty('overflow', 'visible', 'important')
-                }
-                
-                // Preserve other styling
-                el.style.color = computedStyle.color
-                el.style.fontSize = computedStyle.fontSize
-                el.style.fontWeight = computedStyle.fontWeight
-                el.style.lineHeight = computedStyle.lineHeight
-                el.style.background = computedStyle.background
-                el.style.backgroundColor = computedStyle.backgroundColor
-                el.style.border = computedStyle.border
-                el.style.borderRadius = computedStyle.borderRadius
-                el.style.padding = computedStyle.padding
-                el.style.margin = computedStyle.margin
-                
-                // Enhanced font rendering
-                el.style.setProperty('-webkit-font-smoothing', 'antialiased')
-                el.style.setProperty('-moz-osx-font-smoothing', 'grayscale')
-                el.style.textRendering = 'optimizeLegibility'
-              }
-            })
-            
-            console.log('✅ Email content expansion complete')
-          }
-        }
+        windowHeight: element.scrollHeight
       })
 
       // Restore original styles immediately
       Object.entries(originalStyles).forEach(([property, value]) => {
         element.style[property as any] = value
       })
+
+      // Restore modified email elements
+      modifiedElements.forEach(({ element: el, originalClasses, originalStyles }) => {
+        el.className = originalClasses
+        Object.entries(originalStyles).forEach(([property, value]) => {
+          el.style[property as any] = value
+        })
+      })
+
+      console.log('✅ Restored all modified elements')
 
       // Convert to PDF
       const imgData = canvas.toDataURL('image/png', 1.0)
