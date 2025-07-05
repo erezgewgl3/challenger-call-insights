@@ -26,9 +26,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         return
       }
 
-      // 🚀 SURGICAL FIX: Use React state to open closed sections
+      // Open closed sections for PDF
       if (options?.sectionsOpen && options?.toggleSection) {
-        // Find which sections are currently closed and need to be opened
         Object.entries(options.sectionsOpen).forEach(([sectionKey, isOpen]) => {
           if (!isOpen) {
             sectionsToRestore.push(sectionKey)
@@ -36,15 +35,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           }
         })
 
-        // Wait for React to re-render with new state
         if (sectionsToRestore.length > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1500)) // Increased delay
+          await new Promise(resolve => setTimeout(resolve, 2000)) // Increased delay
         }
       }
 
-      // Ensure fonts are loaded
       await document.fonts.ready
-      await new Promise(resolve => setTimeout(resolve, 500)) // Increased delay
+      await new Promise(resolve => setTimeout(resolve, 1000)) // Increased delay
 
       // Store original styles for restoration
       const originalStyles = {
@@ -66,7 +63,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       element.style.overflow = 'visible'
       element.style.backgroundColor = 'transparent'
 
-      await new Promise(resolve => setTimeout(resolve, 500)) // Increased delay
+      await new Promise(resolve => setTimeout(resolve, 500))
 
       // Generate canvas with improved configuration
       const canvas = await html2canvas(element, {
@@ -93,127 +90,92 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             clonedElement.style.transform = 'none'
             clonedElement.style.overflow = 'visible'
             
-            // 🚀 ENHANCED EMAIL CONTENT FIX: More aggressive targeting
-            console.log('🔍 Starting email container search...')
+            console.log('🔧 Starting targeted email content fix...')
             
-            // Process all elements for consistent rendering
+            // FOCUSED EMAIL CONTENT FIX
             const allElements = clonedElement.querySelectorAll('*')
-            Array.from(allElements).forEach((el, index) => {
+            Array.from(allElements).forEach((el) => {
               if (el instanceof HTMLElement) {
                 const computedStyle = getComputedStyle(el)
                 
-                // Force font consistency
+                // Force font consistency for all elements
                 el.style.fontFamily = 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
-                el.style.color = computedStyle.color
-                el.style.fontSize = computedStyle.fontSize
-                el.style.fontWeight = computedStyle.fontWeight
-                el.style.lineHeight = computedStyle.lineHeight
                 
-                // 🚀 SUPER AGGRESSIVE EMAIL CONTENT FIX
+                // TARGETED EMAIL DETECTION - Look for the specific patterns
                 const isEmailContainer = 
-                  // Tailwind classes
-                  Array.from(el.classList).some(cls => 
-                    cls.includes('max-h-') || 
-                    cls.includes('overflow-') ||
-                    cls.includes('h-32') ||
-                    cls.includes('h-40')
-                  ) ||
-                  // Computed styles - check multiple height values
-                  ['128px', '160px', '192px', '8rem', '10rem', '12rem'].includes(computedStyle.maxHeight) ||
-                  // Text content heuristics - more specific patterns
+                  // Has max-h-32 class (the main culprit)
+                  el.classList.contains('max-h-32') ||
+                  // Has monospace font (email content)
+                  computedStyle.fontFamily.includes('mono') ||
+                  // Has computed maxHeight of 128px (8rem = max-h-32)
+                  computedStyle.maxHeight === '128px' ||
+                  computedStyle.maxHeight === '8rem' ||
+                  // Text patterns for email content
                   (el.textContent && (
                     el.textContent.includes('Subject:') ||
                     el.textContent.includes('Hi ') ||
                     el.textContent.includes('Dear ') ||
-                    el.textContent.includes('Thank you') ||
-                    el.textContent.includes('Follow up') ||
-                    el.textContent.includes('Looking forward') ||
                     el.textContent.includes('Best regards') ||
-                    el.textContent.includes('Sincerely')
-                  ) && el.textContent.length > 30) ||
-                  // Element attributes and data
-                  el.getAttribute('data-testid')?.includes('email') ||
-                  el.id?.includes('email') ||
-                  // Parent context
-                  el.closest('[class*="email"]') ||
-                  el.closest('[data-testid*="email"]') ||
-                  // Monospace font (often used for email content)
-                  computedStyle.fontFamily.includes('mono') ||
-                  // Whitespace pre-wrap (email formatting)
-                  computedStyle.whiteSpace === 'pre-wrap'
+                    el.textContent.includes('Thank you for')
+                  ) && el.textContent.length > 50)
 
                 if (isEmailContainer) {
-                  console.log(`📧 Found email container ${index}:`, el.textContent?.substring(0, 50))
+                  console.log(`📧 Fixing email container: ${el.className}`)
                   
-                  // SUPER AGGRESSIVE CSS OVERRIDES WITH !important
+                  // AGGRESSIVE HEIGHT REMOVAL
+                  el.classList.remove('max-h-32')
+                  el.classList.remove('overflow-y-auto')
+                  el.classList.remove('overflow-hidden')
+                  
+                  // DIRECT STYLE OVERRIDES WITH !important
                   el.style.setProperty('max-height', 'none', 'important')
                   el.style.setProperty('height', 'auto', 'important')
                   el.style.setProperty('overflow', 'visible', 'important')
                   el.style.setProperty('overflow-y', 'visible', 'important')
                   el.style.setProperty('overflow-x', 'visible', 'important')
-                  el.style.setProperty('white-space', 'normal', 'important')
+                  el.style.setProperty('white-space', 'pre-wrap', 'important')
                   
-                  // Also fix all child elements
+                  // Fix child elements too
                   const childElements = el.querySelectorAll('*')
                   childElements.forEach(childEl => {
                     if (childEl instanceof HTMLElement) {
+                      childEl.classList.remove('max-h-32')
+                      childEl.classList.remove('overflow-y-auto')
                       childEl.style.setProperty('max-height', 'none', 'important')
                       childEl.style.setProperty('height', 'auto', 'important')
                       childEl.style.setProperty('overflow', 'visible', 'important')
-                      childEl.style.setProperty('overflow-y', 'visible', 'important')
                     }
                   })
                 }
                 
-                // FALLBACK: Target any element with maxHeight of common email heights
-                if (computedStyle.maxHeight && 
-                    ['128px', '160px', '192px', '8rem', '10rem', '12rem'].includes(computedStyle.maxHeight)) {
-                  console.log(`🎯 Fallback fix for element with maxHeight ${computedStyle.maxHeight}`)
+                // FALLBACK: Fix any element with 128px max-height
+                if (computedStyle.maxHeight === '128px' || computedStyle.maxHeight === '8rem') {
+                  console.log(`🎯 Fallback fix for 128px height element`)
                   el.style.setProperty('max-height', 'none', 'important')
                   el.style.setProperty('height', 'auto', 'important')
                   el.style.setProperty('overflow', 'visible', 'important')
-                  el.style.setProperty('overflow-y', 'visible', 'important')
                 }
                 
-                // Target numbered list items specifically to prevent line breaks
-                const isNumberedListItem = el.closest('[class*="space-y"] li, [class*="gap"] li') ||
-                                         (el.tagName === 'LI' && el.textContent && el.textContent.match(/^\d+\./))
-                
-                if (isNumberedListItem) {
-                  // Use scrollWidth to prevent content shrinking
-                  const naturalWidth = el.scrollWidth
-                  if (naturalWidth > el.clientWidth) {
-                    el.style.width = naturalWidth + 'px'
-                    el.style.minWidth = naturalWidth + 'px'
-                  }
-                  
-                  // Prevent text wrapping in list items
-                  const textElements = el.querySelectorAll('p, span, div')
-                  textElements.forEach(textEl => {
-                    if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.trim().length > 20) {
-                      textEl.style.whiteSpace = 'nowrap'
-                      textEl.style.overflow = 'visible'
-                    }
-                  })
-                }
-                
-                // Preserve backgrounds and styling
+                // Preserve other styling
+                el.style.color = computedStyle.color
+                el.style.fontSize = computedStyle.fontSize
+                el.style.fontWeight = computedStyle.fontWeight
+                el.style.lineHeight = computedStyle.lineHeight
                 el.style.background = computedStyle.background
                 el.style.backgroundColor = computedStyle.backgroundColor
-                el.style.backgroundImage = computedStyle.backgroundImage
                 el.style.border = computedStyle.border
                 el.style.borderRadius = computedStyle.borderRadius
                 el.style.padding = computedStyle.padding
                 el.style.margin = computedStyle.margin
                 
-                // Enhanced font smoothing
+                // Enhanced font rendering
                 el.style.setProperty('-webkit-font-smoothing', 'antialiased')
                 el.style.setProperty('-moz-osx-font-smoothing', 'grayscale')
                 el.style.textRendering = 'optimizeLegibility'
               }
             })
             
-            console.log('✅ Email container processing complete')
+            console.log('✅ Email content expansion complete')
           }
         }
       })
@@ -237,7 +199,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       const pdfWidth = 210
       const pdfHeight = 297
       
-      // Calculate scaling - Use simple left alignment
+      // Calculate scaling
       const contentWidth = pdfWidth - 20 // 10mm margins on each side
       const scale = contentWidth / (canvas.width * 0.264583)
       const scaledHeight = (canvas.height * 0.264583) * scale
@@ -262,12 +224,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       pdf.setLineWidth(0.5)
       pdf.line(10, 40, pdfWidth - 10, 40)
       
-      // Content positioning - Use fixed left margin
+      // Content positioning
       const contentStartY = 45
       const availableHeight = pdfHeight - contentStartY - 10
       
       if (scaledHeight <= availableHeight) {
-        // Single page - Use 10mm left margin instead of centering
+        // Single page
         pdf.addImage(imgData, 'PNG', 10, contentStartY, contentWidth, scaledHeight, '', 'FAST')
       } else {
         // Multi-page layout
@@ -324,9 +286,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       console.error('PDF export failed:', error)
       toast.error('Failed to generate PDF. Please try again.')
     } finally {
-      // 🚀 RESTORE SECTION STATES: Close sections that were opened for PDF
+      // Restore section states
       if (options?.toggleSection && sectionsToRestore.length > 0) {
-        // Add small delay to ensure PDF generation is complete
         setTimeout(() => {
           sectionsToRestore.forEach(sectionKey => {
             options.toggleSection!(sectionKey)
