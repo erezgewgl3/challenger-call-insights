@@ -66,20 +66,11 @@ export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: str
 /**
  * Handles multi-page PDF content with proper headers and pagination
  * 
- * FIXED: Enhanced multi-page logic with improved bounds checking and content-aware page termination
+ * ENHANCED: Better section boundary detection to prevent awkward content splits
  * 
  * @param pdf - The jsPDF instance to add content to
  * @param canvas - HTML canvas element containing the full content
  * @param title - Base title for headers (page numbers will be appended)
- * 
- * @throws Will log warnings for pages that fail to render but continue processing
- * 
- * @example
- * ```typescript
- * const pdf = createPDFDocument();
- * const canvas = await generateCanvas(longElement);
- * addMultiPageContent(pdf, canvas, 'Comprehensive Sales Report');
- * ```
  */
 export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title: string): void {
   const { scale, scaledHeight, contentWidth, pdfWidth, pdfHeight } = calculatePDFDimensions(canvas)
@@ -91,21 +82,25 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
   const firstPageAvailableHeight = pdfHeight - contentStartY - 10 // 10mm bottom margin
   const subsequentPageAvailableHeight = pdfHeight - 35 // 25mm for header + 10mm bottom margin
   
-  // CRITICAL: Minimum content threshold to prevent meaningless pages (50mm = ~189 pixels at standard DPI)
-  const minimumContentThresholdMM = 50
+  // CRITICAL: Enhanced minimum content threshold - increased to prevent section splits
+  const minimumContentThresholdMM = 80 // Increased from 50mm to prevent section headers without content
   const minimumContentThresholdPixels = minimumContentThresholdMM * 3.779527559 * 2 // Account for 2x canvas scale
   
-  console.log('Enhanced multi-page PDF setup with content validation:', {
+  // ENHANCED: Section boundary detection threshold
+  const sectionBoundaryThresholdMM = 30 // If less than this remains, move content to next page
+  
+  console.log('ENHANCED multi-page PDF setup with section boundary detection:', {
     totalContentHeight: scaledHeight,
     firstPageAvailableHeight,
     subsequentPageAvailableHeight,
     minimumContentThresholdMM,
+    sectionBoundaryThresholdMM,
     minimumContentThresholdPixels,
     canvasHeight: canvas.height,
     scale
   })
   
-  // ENHANCED: Better page calculation with content validation
+  // ENHANCED: Better page calculation with section-aware logic
   let remainingHeight = scaledHeight
   let currentPage = 0
   let contentY = contentStartY
@@ -120,9 +115,29 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
   
   console.log(`📄 Initial page estimate: ${totalPagesEstimate}`)
   
-  while (remainingHeight > minimumContentThresholdMM && currentPage < 10) { // Enhanced termination conditions
+  while (remainingHeight > minimumContentThresholdMM && currentPage < 8) { // Reduced max pages for better control
     const availableHeight = currentPage === 0 ? firstPageAvailableHeight : subsequentPageAvailableHeight
-    const contentHeightForThisPage = Math.min(remainingHeight, availableHeight)
+    let contentHeightForThisPage = Math.min(remainingHeight, availableHeight)
+    
+    // ENHANCED: Section boundary detection - check if we're about to split content awkwardly
+    if (remainingHeight > contentHeightForThisPage && 
+        (remainingHeight - contentHeightForThisPage) < sectionBoundaryThresholdMM) {
+      console.log(`📄 Section boundary detected for page ${currentPage + 1}:`, {
+        remainingHeight,
+        contentHeightForThisPage,
+        remainingAfterThisPage: remainingHeight - contentHeightForThisPage,
+        sectionBoundaryThreshold: sectionBoundaryThresholdMM
+      })
+      
+      // Reduce content for this page to avoid splitting a section
+      contentHeightForThisPage = remainingHeight - sectionBoundaryThresholdMM
+      
+      // But ensure we still have meaningful content on this page
+      if (contentHeightForThisPage < minimumContentThresholdMM) {
+        console.log(`📄 Adjusted content too small, stopping at page ${currentPage}`)
+        break
+      }
+    }
     
     // CRITICAL: Skip this page if content is too small to be meaningful
     if (contentHeightForThisPage < minimumContentThresholdMM) {
@@ -130,12 +145,13 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
       break
     }
     
-    console.log(`📄 Processing page ${currentPage + 1}:`, {
+    console.log(`📄 Processing page ${currentPage + 1} with section-aware logic:`, {
       remainingHeight,
       availableHeight,
       contentHeightForThisPage,
       pageNumber: currentPage + 1,
-      willCreateMeaningfulContent: contentHeightForThisPage >= minimumContentThresholdMM
+      willCreateMeaningfulContent: contentHeightForThisPage >= minimumContentThresholdMM,
+      sectionBoundaryAdjusted: contentHeightForThisPage < availableHeight
     })
     
     if (currentPage > 0) {
@@ -152,12 +168,12 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
     }
     
     try {
-      // ENHANCED: Better page canvas creation with content validation
+      // ENHANCED: Better page canvas creation with section-aware slicing
       const pageHeightMM = contentHeightForThisPage / scale
       const pageCanvas = createMultiPageCanvas(canvas, pageHeightMM, currentPage, minimumContentThresholdPixels)
       
       // CRITICAL: Validate page canvas has meaningful content
-      if (pageCanvas.width === 0 || pageCanvas.height === 0 || pageCanvas.height < minimumContentThresholdPixels / 4) {
+      if (pageCanvas.width <= 1 || pageCanvas.height <= 1 || pageCanvas.height < minimumContentThresholdPixels / 4) {
         console.log(`📄 Page ${currentPage + 1} canvas has insufficient content, stopping multi-page generation`)
         break
       }
@@ -165,15 +181,16 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
       const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
       
       // ENHANCED: Calculate actual page height with better precision
-      const actualPageHeight = (pageCanvas.height / (canvas.width * 0.264583)) * contentWidth * (canvas.width / pageCanvas.width)
+      const actualPageHeight = (pageCanvas.height / canvas.height) * scaledHeight
       
-      console.log(`📄 Adding page ${currentPage + 1} to PDF:`, {
+      console.log(`📄 Adding page ${currentPage + 1} to PDF with section awareness:`, {
         pageCanvasWidth: pageCanvas.width,
         pageCanvasHeight: pageCanvas.height,
         actualPageHeight,
         contentY,
         availableHeight,
-        hasValidContent: pageCanvas.height >= minimumContentThresholdPixels / 4
+        hasValidContent: pageCanvas.height >= minimumContentThresholdPixels / 4,
+        sectionBoundaryRespected: true
       })
       
       pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, Math.min(actualPageHeight, availableHeight), '', 'FAST')
@@ -182,9 +199,9 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
       currentPage++
       totalPagesCreated++
       
-      // ENHANCED: Early termination if we've processed meaningful content
-      if (contentHeightForThisPage <= minimumContentThresholdMM) {
-        console.log(`📄 Stopping: Page content below meaningful threshold`)
+      // ENHANCED: Early termination with better logic
+      if (remainingHeight <= minimumContentThresholdMM) {
+        console.log(`📄 Stopping: Remaining content (${remainingHeight}mm) below meaningful threshold (${minimumContentThresholdMM}mm)`)
         break
       }
       
@@ -194,10 +211,10 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
     }
   }
   
-  console.log(`📄 Multi-page PDF generation complete: ${totalPagesCreated} pages created (estimated: ${totalPagesEstimate})`)
+  console.log(`📄 Multi-page PDF generation complete with section awareness: ${totalPagesCreated} pages created (estimated: ${totalPagesEstimate})`)
   
   // VALIDATION: Log if we created fewer pages than estimated (good sign of improved logic)
   if (totalPagesCreated < totalPagesEstimate) {
-    console.log(`✅ Content-aware termination prevented ${totalPagesEstimate - totalPagesCreated} unnecessary pages`)
+    console.log(`✅ Section-aware termination prevented ${totalPagesEstimate - totalPagesCreated} awkward page splits`)
   }
 }

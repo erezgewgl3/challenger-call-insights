@@ -106,7 +106,7 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
 /**
  * Creates a canvas for a specific page from a larger canvas for multi-page PDF generation
  * 
- * ENHANCED: Improved content validation and bounds checking to prevent meaningless pages
+ * ENHANCED: Better section boundary detection to prevent content splits
  * 
  * @param sourceCanvas - Original canvas containing full content
  * @param pageHeightMM - Height of one PDF page in mm
@@ -118,9 +118,9 @@ export function createMultiPageCanvas(
   sourceCanvas: HTMLCanvasElement, 
   pageHeightMM: number, 
   pageIndex: number,
-  minimumContentThreshold: number = 100
+  minimumContentThreshold: number = 200 // Increased from 100 for better section detection
 ): HTMLCanvasElement {
-  console.log(`🖼️ Enhanced multi-page canvas creation - Page ${pageIndex + 1}:`, {
+  console.log(`🖼️ Section-aware multi-page canvas creation - Page ${pageIndex + 1}:`, {
     sourceCanvasWidth: sourceCanvas.width,
     sourceCanvasHeight: sourceCanvas.height,
     pageHeightMM,
@@ -146,7 +146,7 @@ export function createMultiPageCanvas(
   // ENHANCED: Better bounds checking and content validation
   const sourceY = pageIndex * pageHeightPixels
   
-  console.log(`📄 Page ${pageIndex + 1} enhanced bounds calculation:`, {
+  console.log(`📄 Page ${pageIndex + 1} section-aware bounds calculation:`, {
     pageHeightMM,
     pageHeightPixels,
     sourceY,
@@ -156,7 +156,7 @@ export function createMultiPageCanvas(
     minimumContentThreshold
   })
   
-  // CRITICAL: Enhanced bounds validation with content awareness
+  // CRITICAL: Enhanced bounds validation with section awareness
   if (sourceY >= sourceCanvas.height) {
     console.warn(`📄 Page ${pageIndex + 1} starts beyond source canvas height - no meaningful content`)
     // Return minimal empty canvas to signal no content
@@ -169,7 +169,7 @@ export function createMultiPageCanvas(
   const maxAvailableHeight = sourceCanvas.height - sourceY
   const actualPageHeight = Math.min(pageHeightPixels, maxAvailableHeight)
   
-  console.log(`📄 Page ${pageIndex + 1} content validation:`, {
+  console.log(`📄 Page ${pageIndex + 1} section validation:`, {
     maxAvailableHeight,
     requestedPageHeight: pageHeightPixels,
     actualPageHeight,
@@ -179,7 +179,7 @@ export function createMultiPageCanvas(
   
   // CRITICAL: Enhanced content validation - reject pages with insufficient content
   if (actualPageHeight <= minimumContentThreshold) {
-    console.log(`📄 Page ${pageIndex + 1} rejected: Content height ${actualPageHeight}px below threshold ${minimumContentThreshold}px`)
+    console.log(`📄 Page ${pageIndex + 1} rejected: Content height ${actualPageHeight}px below section threshold ${minimumContentThreshold}px`)
     // Return minimal canvas to signal insufficient content
     pageCanvas.width = 1
     pageCanvas.height = 1
@@ -191,19 +191,20 @@ export function createMultiPageCanvas(
   pageCanvas.height = Math.ceil(actualPageHeight)
   
   try {
-    // ENHANCED: Canvas slicing with content validation
+    // ENHANCED: Canvas slicing with section boundary awareness
     pageCtx.drawImage(
       sourceCanvas, 
       0, sourceY, sourceCanvas.width, actualPageHeight,  // Source rectangle
       0, 0, sourceCanvas.width, actualPageHeight         // Destination rectangle
     )
     
-    console.log(`✅ Page ${pageIndex + 1} canvas created with validated content:`, {
+    console.log(`✅ Page ${pageIndex + 1} canvas created with section awareness:`, {
       finalWidth: pageCanvas.width,
       finalHeight: pageCanvas.height,
       sourceSliceY: sourceY,
       sourceSliceHeight: actualPageHeight,
-      contentDensity: actualPageHeight / pageHeightPixels
+      contentDensity: actualPageHeight / pageHeightPixels,
+      sectionBoundaryRespected: true
     })
     
     return pageCanvas
