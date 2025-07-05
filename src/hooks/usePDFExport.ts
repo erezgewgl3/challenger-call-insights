@@ -38,13 +38,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
 
         // Wait for React to re-render with new state
         if (sectionsToRestore.length > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000))
+          await new Promise(resolve => setTimeout(resolve, 1500)) // Increased delay
         }
       }
 
       // Ensure fonts are loaded
       await document.fonts.ready
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, 500)) // Increased delay
 
       // Store original styles for restoration
       const originalStyles = {
@@ -66,7 +66,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       element.style.overflow = 'visible'
       element.style.backgroundColor = 'transparent'
 
-      await new Promise(resolve => setTimeout(resolve, 300))
+      await new Promise(resolve => setTimeout(resolve, 500)) // Increased delay
 
       // Generate canvas with improved configuration
       const canvas = await html2canvas(element, {
@@ -93,9 +93,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             clonedElement.style.transform = 'none'
             clonedElement.style.overflow = 'visible'
             
+            // 🚀 ENHANCED EMAIL CONTENT FIX: More aggressive targeting
+            console.log('🔍 Starting email container search...')
+            
             // Process all elements for consistent rendering
             const allElements = clonedElement.querySelectorAll('*')
-            Array.from(allElements).forEach(el => {
+            Array.from(allElements).forEach((el, index) => {
               if (el instanceof HTMLElement) {
                 const computedStyle = getComputedStyle(el)
                 
@@ -106,38 +109,70 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.fontWeight = computedStyle.fontWeight
                 el.style.lineHeight = computedStyle.lineHeight
                 
-                // 🚀 ENHANCED EMAIL CONTENT FIX: Target all possible email containers
+                // 🚀 SUPER AGGRESSIVE EMAIL CONTENT FIX
                 const isEmailContainer = 
-                  el.classList.contains('max-h-32') || 
-                  el.classList.contains('max-h-40') || 
-                  el.classList.contains('max-h-48') ||
-                  el.classList.contains('overflow-y-auto') ||
-                  el.classList.contains('overflow-auto') ||
-                  computedStyle.maxHeight === '128px' ||
-                  computedStyle.maxHeight === '160px' ||
-                  computedStyle.maxHeight === '192px' ||
-                  el.textContent?.includes('EMAIL CONTENT') ||
-                  el.querySelector('[data-testid*="email"]') ||
+                  // Tailwind classes
+                  Array.from(el.classList).some(cls => 
+                    cls.includes('max-h-') || 
+                    cls.includes('overflow-') ||
+                    cls.includes('h-32') ||
+                    cls.includes('h-40')
+                  ) ||
+                  // Computed styles - check multiple height values
+                  ['128px', '160px', '192px', '8rem', '10rem', '12rem'].includes(computedStyle.maxHeight) ||
+                  // Text content heuristics - more specific patterns
+                  (el.textContent && (
+                    el.textContent.includes('Subject:') ||
+                    el.textContent.includes('Hi ') ||
+                    el.textContent.includes('Dear ') ||
+                    el.textContent.includes('Thank you') ||
+                    el.textContent.includes('Follow up') ||
+                    el.textContent.includes('Looking forward') ||
+                    el.textContent.includes('Best regards') ||
+                    el.textContent.includes('Sincerely')
+                  ) && el.textContent.length > 30) ||
+                  // Element attributes and data
+                  el.getAttribute('data-testid')?.includes('email') ||
+                  el.id?.includes('email') ||
+                  // Parent context
+                  el.closest('[class*="email"]') ||
                   el.closest('[data-testid*="email"]') ||
-                  (el.textContent && el.textContent.includes('Hi ') && el.textContent.length > 50)
+                  // Monospace font (often used for email content)
+                  computedStyle.fontFamily.includes('mono') ||
+                  // Whitespace pre-wrap (email formatting)
+                  computedStyle.whiteSpace === 'pre-wrap'
 
                 if (isEmailContainer) {
-                  el.style.maxHeight = 'none'
-                  el.style.height = 'auto'
-                  el.style.overflow = 'visible'
-                  el.style.overflowY = 'visible'
-                  el.style.overflowX = 'visible'
+                  console.log(`📧 Found email container ${index}:`, el.textContent?.substring(0, 50))
                   
-                  // Also check child elements that might have height constraints
+                  // SUPER AGGRESSIVE CSS OVERRIDES WITH !important
+                  el.style.setProperty('max-height', 'none', 'important')
+                  el.style.setProperty('height', 'auto', 'important')
+                  el.style.setProperty('overflow', 'visible', 'important')
+                  el.style.setProperty('overflow-y', 'visible', 'important')
+                  el.style.setProperty('overflow-x', 'visible', 'important')
+                  el.style.setProperty('white-space', 'normal', 'important')
+                  
+                  // Also fix all child elements
                   const childElements = el.querySelectorAll('*')
                   childElements.forEach(childEl => {
                     if (childEl instanceof HTMLElement) {
-                      childEl.style.maxHeight = 'none'
-                      childEl.style.height = 'auto'
-                      childEl.style.overflow = 'visible'
-                      childEl.style.overflowY = 'visible'
+                      childEl.style.setProperty('max-height', 'none', 'important')
+                      childEl.style.setProperty('height', 'auto', 'important')
+                      childEl.style.setProperty('overflow', 'visible', 'important')
+                      childEl.style.setProperty('overflow-y', 'visible', 'important')
                     }
                   })
+                }
+                
+                // FALLBACK: Target any element with maxHeight of common email heights
+                if (computedStyle.maxHeight && 
+                    ['128px', '160px', '192px', '8rem', '10rem', '12rem'].includes(computedStyle.maxHeight)) {
+                  console.log(`🎯 Fallback fix for element with maxHeight ${computedStyle.maxHeight}`)
+                  el.style.setProperty('max-height', 'none', 'important')
+                  el.style.setProperty('height', 'auto', 'important')
+                  el.style.setProperty('overflow', 'visible', 'important')
+                  el.style.setProperty('overflow-y', 'visible', 'important')
                 }
                 
                 // Target numbered list items specifically to prevent line breaks
@@ -171,23 +206,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 el.style.padding = computedStyle.padding
                 el.style.margin = computedStyle.margin
                 
-                // Ensure other scrollable content remains visible (but not email content which we handled above)
-                if (!isEmailContainer) {
-                  if (computedStyle.overflow === 'scroll' || computedStyle.overflow === 'auto' ||
-                      computedStyle.overflowY === 'scroll' || computedStyle.overflowY === 'auto') {
-                    el.style.overflow = 'visible'
-                    el.style.overflowY = 'visible'
-                    el.style.height = 'auto'
-                    el.style.maxHeight = 'none'
-                  }
-                }
-                
                 // Enhanced font smoothing
                 el.style.setProperty('-webkit-font-smoothing', 'antialiased')
                 el.style.setProperty('-moz-osx-font-smoothing', 'grayscale')
                 el.style.textRendering = 'optimizeLegibility'
               }
             })
+            
+            console.log('✅ Email container processing complete')
           }
         }
       })
