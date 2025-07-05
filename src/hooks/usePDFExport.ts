@@ -74,7 +74,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             el.classList.contains('text-gray-800') &&
             (el.classList.contains('text-sm') || el.classList.contains('lg:text-base')) &&
             el.parentElement?.classList.contains('flex') &&
-            el.parentElement?.classList.contains('items-start')
+            el.parentElement?.classList.contains('items-center') &&
+            el.parentElement?.classList.contains('gap-3') &&
+            (el.parentElement?.classList.contains('bg-white') ||
+             el.parentElement?.classList.contains('bg-red-50') ||
+             el.parentElement?.classList.contains('bg-orange-50') ||
+             el.parentElement?.classList.contains('bg-purple-50'))
 
           if (isEmailContainer) {
             console.log(`📧 Directly modifying email container: ${el.className}`)
@@ -167,7 +172,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               wordBreak: el.style.wordBreak,
               hyphens: el.style.hyphens,
               width: el.style.width,
-              maxWidth: el.style.maxWidth
+              maxWidth: el.style.maxWidth,
+              whiteSpace: el.style.whiteSpace
             }
             
             modifiedElements.push({
@@ -176,13 +182,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               originalStyles
             })
             
-            // Apply PDF-optimized text styles
+            // Apply PDF-optimized text styles - same as Deal Insights
             el.style.flex = '1'
             el.style.minWidth = '0'
             el.style.wordBreak = 'normal'
             el.style.hyphens = 'auto'
             el.style.width = 'auto'
             el.style.maxWidth = 'none'
+            el.style.whiteSpace = 'normal'
             
             // Also optimize the parent container if it's the flex container
             const parentContainer = el.parentElement
@@ -190,7 +197,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               const parentOriginalStyles = {
                 width: parentContainer.style.width,
                 maxWidth: parentContainer.style.maxWidth,
-                minWidth: parentContainer.style.minWidth
+                minWidth: parentContainer.style.minWidth,
+                flexWrap: parentContainer.style.flexWrap
               }
               
               modifiedElements.push({
@@ -202,6 +210,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               parentContainer.style.width = '100%'
               parentContainer.style.maxWidth = 'none'
               parentContainer.style.minWidth = '0'
+              parentContainer.style.flexWrap = 'wrap'
             }
           }
         }
