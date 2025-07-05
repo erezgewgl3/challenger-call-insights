@@ -87,6 +87,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         return
       }
 
+      console.log('Starting PDF export for element:', {
+        elementId,
+        scrollHeight: element.scrollHeight,
+        offsetHeight: element.offsetHeight,
+        clientHeight: element.clientHeight
+      })
+
       // Expand sections for complete content capture
       if (options?.sectionsOpen && options?.toggleSection) {
         Object.entries(options.sectionsOpen).forEach(([sectionKey, isOpen]) => {
@@ -96,6 +103,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           }
         })
         if (sectionsToRestore.length > 0) {
+          console.log('Expanding sections for PDF:', sectionsToRestore)
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
@@ -110,17 +118,27 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       const originalStyles = storeElementStyles(element)
       optimizeElementForPDF(element, 'main')
       await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // Generate canvas with improved sizing
       const canvas = await generateCanvas(element)
       restoreElementStyles(element, originalStyles)
 
-      // Generate and save PDF
+      // Determine if we need multi-page layout
       const pdf = createPDFDocument()
-      const canvasHeight = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
-      const availableHeight = 297 - 45 - 10
+      const contentHeightMM = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
+      const availableHeightFirstPage = 297 - 45 - 10 // A4 height - header - margin
+      
+      console.log('PDF layout decision:', {
+        contentHeightMM,
+        availableHeightFirstPage,
+        needsMultiPage: contentHeightMM > availableHeightFirstPage
+      })
 
-      if (canvasHeight <= availableHeight) {
+      if (contentHeightMM <= availableHeightFirstPage) {
+        console.log('Using single-page layout')
         addCanvasToPDF(pdf, canvas, title)
       } else {
+        console.log('Using multi-page layout')
         addMultiPageContent(pdf, canvas, title)
       }
       

@@ -31,10 +31,16 @@ export interface ElementState {
 export function expandCollapsedSections(element: HTMLElement): ElementState[] {
   const modifiedElements: ElementState[] = []
 
+  console.log('Expanding collapsed sections for PDF capture')
+
   // Find and expand accordion/collapsible sections
   const collapsibleTriggers = element.querySelectorAll('[data-state="closed"]')
-  Array.from(collapsibleTriggers).forEach((trigger) => {
+  console.log('Found closed sections:', collapsibleTriggers.length)
+  
+  Array.from(collapsibleTriggers).forEach((trigger, index) => {
     if (trigger instanceof HTMLElement) {
+      console.log(`Expanding section ${index + 1}:`, trigger)
+      
       // Store original state
       const originalClasses = trigger.className
       const originalStyles = storeOriginalStyles(trigger)
@@ -50,6 +56,42 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
     }
   })
 
+  // Also look for any elements with max-height restrictions that might be hiding content
+  const constrainedElements = element.querySelectorAll('*')
+  Array.from(constrainedElements).forEach((el) => {
+    if (el instanceof HTMLElement) {
+      const computedStyle = getComputedStyle(el)
+      
+      // Check for height constraints that might be hiding content
+      if (computedStyle.maxHeight && 
+          computedStyle.maxHeight !== 'none' && 
+          el.scrollHeight > el.clientHeight) {
+        
+        console.log('Found constrained element with hidden content:', el, {
+          maxHeight: computedStyle.maxHeight,
+          scrollHeight: el.scrollHeight,
+          clientHeight: el.clientHeight
+        })
+        
+        const originalClasses = el.className
+        const originalStyles = storeOriginalStyles(el)
+        
+        modifiedElements.push({
+          element: el,
+          originalClasses,
+          originalStyles
+        })
+        
+        // Remove height constraints
+        el.style.maxHeight = 'none'
+        el.style.height = 'auto'
+        el.style.overflow = 'visible'
+        el.style.overflowY = 'visible'
+      }
+    }
+  })
+
+  console.log('Total elements modified for expansion:', modifiedElements.length)
   return modifiedElements
 }
 
@@ -71,6 +113,8 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
  * ```
  */
 export function expandScrollableContent(element: HTMLElement, modifiedElements: ElementState[]): void {
+  console.log('Expanding scrollable content areas')
+  
   // Find elements with max-height constraints
   const constrainedElements = element.querySelectorAll('[style*="max-height"]')
   
@@ -80,6 +124,12 @@ export function expandScrollableContent(element: HTMLElement, modifiedElements: 
       
       // Check if this is a constrained scrollable area
       if (computedStyle.maxHeight && computedStyle.maxHeight !== 'none') {
+        console.log('Expanding scrollable element:', el, {
+          maxHeight: computedStyle.maxHeight,
+          scrollHeight: el.scrollHeight,
+          clientHeight: el.clientHeight
+        })
+        
         const originalClasses = el.className
         const originalStyles = storeOriginalStyles(el)
         
@@ -122,7 +172,11 @@ export function expandScrollableContent(element: HTMLElement, modifiedElements: 
  * ```
  */
 export function restoreElementStates(modifiedElements: ElementState[]): void {
-  modifiedElements.forEach(({ element, originalClasses, originalStyles }) => {
+  console.log('Restoring element states:', modifiedElements.length, 'elements')
+  
+  modifiedElements.forEach(({ element, originalClasses, originalStyles }, index) => {
+    console.log(`Restoring element ${index + 1}:`, element)
+    
     // Restore classes
     element.className = originalClasses
     
