@@ -44,9 +44,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       await document.fonts.ready
 
       // DIRECT DOM MODIFICATION APPROACH
-      console.log('🔧 Starting direct DOM modification for email content...')
+      console.log('🔧 Starting direct DOM modification for PDF optimization...')
       
-      // Find and modify email content elements directly in the actual DOM
+      // Find and modify elements directly in the actual DOM
       const allElements = element.querySelectorAll('*')
       Array.from(allElements).forEach((el) => {
         if (el instanceof HTMLElement) {
@@ -58,6 +58,15 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             (computedStyle.fontFamily.includes('mono') && el.textContent && el.textContent.length > 50) ||
             computedStyle.maxHeight === '128px' ||
             computedStyle.maxHeight === '8rem'
+
+          // Check if this is a Deal Acceleration Insights text container
+          const isDealInsightsText = 
+            el.tagName === 'P' &&
+            el.classList.contains('text-gray-800') &&
+            el.classList.contains('leading-relaxed') &&
+            el.parentElement?.classList.contains('flex') &&
+            el.parentElement?.classList.contains('items-start') &&
+            el.parentElement?.classList.contains('gap-3')
 
           if (isEmailContainer) {
             console.log(`📧 Directly modifying email container: ${el.className}`)
@@ -89,10 +98,59 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             el.style.overflowY = 'visible'
             el.style.whiteSpace = 'pre-wrap'
           }
+
+          if (isDealInsightsText) {
+            console.log(`📝 Optimizing Deal Insights text for PDF: ${el.textContent?.substring(0, 50)}...`)
+            
+            // Store original state for restoration
+            const originalClasses = el.className
+            const originalStyles = {
+              flex: el.style.flex,
+              minWidth: el.style.minWidth,
+              wordBreak: el.style.wordBreak,
+              hyphens: el.style.hyphens,
+              width: el.style.width,
+              maxWidth: el.style.maxWidth
+            }
+            
+            modifiedElements.push({
+              element: el,
+              originalClasses,
+              originalStyles
+            })
+            
+            // Apply PDF-optimized text styles
+            el.style.flex = '1'
+            el.style.minWidth = '0'
+            el.style.wordBreak = 'normal'
+            el.style.hyphens = 'auto'
+            el.style.width = 'auto'
+            el.style.maxWidth = 'none'
+            
+            // Also optimize the parent container if it's the flex container
+            const parentContainer = el.parentElement
+            if (parentContainer && parentContainer.classList.contains('flex')) {
+              const parentOriginalStyles = {
+                width: parentContainer.style.width,
+                maxWidth: parentContainer.style.maxWidth,
+                minWidth: parentContainer.style.minWidth
+              }
+              
+              modifiedElements.push({
+                element: parentContainer,
+                originalClasses: parentContainer.className,
+                originalStyles: parentOriginalStyles
+              })
+              
+              parentContainer.style.width = '100%'
+              parentContainer.style.maxWidth = 'none'
+              parentContainer.style.minWidth = '0'
+            }
+          }
         }
       })
 
-      console.log(`✅ Modified ${modifiedElements.length} email elements directly`)
+      console.log(`✅ Modified ${modifiedElements.length} elements for PDF optimization`)
 
       // Wait for DOM changes to take effect
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -141,7 +199,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         element.style[property as any] = value
       })
 
-      // Restore modified email elements
+      // Restore modified elements
       modifiedElements.forEach(({ element: el, originalClasses, originalStyles }) => {
         el.className = originalClasses
         Object.entries(originalStyles).forEach(([property, value]) => {
