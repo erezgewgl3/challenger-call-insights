@@ -5,6 +5,7 @@ import jsPDF from 'jspdf'
 import { toast } from 'sonner'
 import { generateCleanFilename, calculatePDFDimensions, createPDFHeader } from '@/utils/pdfUtils'
 import { storeElementStyles, restoreElementStyles, optimizeElementForPDF } from '@/utils/elementStyleUtils'
+import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
 
 interface UsePDFExportProps {
   filename?: string
@@ -18,7 +19,8 @@ interface PDFExportOptions {
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let sectionsToRestore: string[] = []
-    let modifiedElements: Array<{ element: HTMLElement; originalClasses: string; originalStyles: Record<string, string> }> = []
+    let sectionModifiedElements: ElementState[] = []
+    let contentModifiedElements: ElementState[] = []
     
     try {
       toast.info('Generating professional PDF...', { duration: 3000 })
@@ -29,7 +31,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         return
       }
 
-      // Open closed sections for PDF
+      // Open closed sections for PDF using existing options
       if (options?.sectionsOpen && options?.toggleSection) {
         Object.entries(options.sectionsOpen).forEach(([sectionKey, isOpen]) => {
           if (!isOpen) {
@@ -42,6 +44,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
+
+      // Expand any remaining collapsed sections using utility
+      sectionModifiedElements = expandCollapsedSections(element)
+
+      // Expand scrollable content areas using utility
+      expandScrollableContent(element, contentModifiedElements)
 
       await document.fonts.ready
 
@@ -86,7 +94,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             const originalClasses = el.className
             const originalStyles = storeElementStyles(el)
             
-            modifiedElements.push({
+            contentModifiedElements.push({
               element: el,
               originalClasses,
               originalStyles
@@ -109,7 +117,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             const originalClasses = el.className
             const originalStyles = storeElementStyles(el)
             
-            modifiedElements.push({
+            contentModifiedElements.push({
               element: el,
               originalClasses,
               originalStyles
@@ -123,7 +131,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             if (parentContainer && parentContainer.classList.contains('flex')) {
               const parentOriginalStyles = storeElementStyles(parentContainer)
               
-              modifiedElements.push({
+              contentModifiedElements.push({
                 element: parentContainer,
                 originalClasses: parentContainer.className,
                 originalStyles: parentOriginalStyles
@@ -135,7 +143,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }
       })
 
-      console.log(`✅ Modified ${modifiedElements.length} elements for PDF optimization`)
+      console.log(`✅ Modified ${contentModifiedElements.length} elements for PDF optimization`)
 
       // Wait for DOM changes to take effect
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -168,11 +176,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Restore original styles immediately using utility
       restoreElementStyles(element, originalStyles)
 
-      // Restore modified elements using utility
-      modifiedElements.forEach(({ element: el, originalClasses, originalStyles }) => {
-        el.className = originalClasses
-        restoreElementStyles(el, originalStyles)
-      })
+      // Restore modified elements using utilities
+      restoreElementStates(contentModifiedElements)
+      restoreElementStates(sectionModifiedElements)
 
       console.log('✅ Restored all modified elements')
 
@@ -249,7 +255,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       console.error('PDF export failed:', error)
       toast.error('Failed to generate PDF. Please try again.')
     } finally {
-      // Restore section states
+      // Restore section states using original options logic
       if (options?.toggleSection && sectionsToRestore.length > 0) {
         setTimeout(() => {
           sectionsToRestore.forEach(sectionKey => {
@@ -257,6 +263,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           })
         }, 500)
       }
+      
+      // Ensure all element states are restored using utilities
+      restoreElementStates(contentModifiedElements)
+      restoreElementStates(sectionModifiedElements)
     }
   }, [filename])
   
