@@ -4,6 +4,7 @@ import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { toast } from 'sonner'
 import { generateCleanFilename, calculatePDFDimensions, createPDFHeader } from '@/utils/pdfUtils'
+import { storeElementStyles, restoreElementStyles, optimizeElementForPDF } from '@/utils/elementStyleUtils'
 
 interface UsePDFExportProps {
   filename?: string
@@ -17,7 +18,7 @@ interface PDFExportOptions {
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let sectionsToRestore: string[] = []
-    let modifiedElements: Array<{ element: HTMLElement; originalClasses: string; originalStyles: { [key: string]: string } }> = []
+    let modifiedElements: Array<{ element: HTMLElement; originalClasses: string; originalStyles: Record<string, string> }> = []
     
     try {
       toast.info('Generating professional PDF...', { duration: 3000 })
@@ -76,23 +77,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             (el.classList.contains('text-sm') || el.classList.contains('lg:text-base')) &&
             el.parentElement?.classList.contains('flex') &&
             el.parentElement?.classList.contains('items-center') &&
-            el.parentElement?.classList.contains('gap-3') &&
-            (el.parentElement?.classList.contains('bg-white') ||
-             el.parentElement?.classList.contains('bg-red-50') ||
-             el.parentElement?.classList.contains('bg-orange-50') ||
-             el.parentElement?.classList.contains('bg-purple-50'))
+            el.parentElement?.classList.contains('gap-3')
 
           if (isEmailContainer) {
             console.log(`📧 Directly modifying email container: ${el.className}`)
             
-            // Store original state for restoration
+            // Store original state for restoration using utility
             const originalClasses = el.className
-            const originalStyles = {
-              maxHeight: el.style.maxHeight,
-              height: el.style.height,
-              overflow: el.style.overflow,
-              overflowY: el.style.overflowY
-            }
+            const originalStyles = storeElementStyles(el)
             
             modifiedElements.push({
               element: el,
@@ -105,27 +97,17 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             el.classList.remove('overflow-y-auto')
             el.classList.remove('overflow-hidden')
             
-            // Apply styles directly to the actual DOM element
-            el.style.maxHeight = 'none'
-            el.style.height = 'auto'
-            el.style.overflow = 'visible'
-            el.style.overflowY = 'visible'
-            el.style.whiteSpace = 'pre-wrap'
+            // Apply PDF optimization using utility
+            optimizeElementForPDF(el, 'email')
           }
 
-          if (isDealInsightsText) {
-            console.log(`📝 Optimizing Deal Insights text for PDF: ${el.textContent?.substring(0, 50)}...`)
+          if (isDealInsightsText || isCompetitivePositioningText) {
+            const sectionType = isDealInsightsText ? 'Deal Insights' : 'Competitive Positioning'
+            console.log(`📝 Optimizing ${sectionType} text for PDF: ${el.textContent?.substring(0, 50)}...`)
             
-            // Store original state for restoration
+            // Store original state for restoration using utility
             const originalClasses = el.className
-            const originalStyles = {
-              flex: el.style.flex,
-              minWidth: el.style.minWidth,
-              wordBreak: el.style.wordBreak,
-              hyphens: el.style.hyphens,
-              width: el.style.width,
-              maxWidth: el.style.maxWidth
-            }
+            const originalStyles = storeElementStyles(el)
             
             modifiedElements.push({
               element: el,
@@ -133,22 +115,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               originalStyles
             })
             
-            // Apply PDF-optimized text styles
-            el.style.flex = '1'
-            el.style.minWidth = '0'
-            el.style.wordBreak = 'normal'
-            el.style.hyphens = 'auto'
-            el.style.width = 'auto'
-            el.style.maxWidth = 'none'
+            // Apply PDF-optimized text styles using utility
+            optimizeElementForPDF(el, 'text')
             
             // Also optimize the parent container if it's the flex container
             const parentContainer = el.parentElement
             if (parentContainer && parentContainer.classList.contains('flex')) {
-              const parentOriginalStyles = {
-                width: parentContainer.style.width,
-                maxWidth: parentContainer.style.maxWidth,
-                minWidth: parentContainer.style.minWidth
-              }
+              const parentOriginalStyles = storeElementStyles(parentContainer)
               
               modifiedElements.push({
                 element: parentContainer,
@@ -156,62 +129,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 originalStyles: parentOriginalStyles
               })
               
-              parentContainer.style.width = '100%'
-              parentContainer.style.maxWidth = 'none'
-              parentContainer.style.minWidth = '0'
-            }
-          }
-
-          if (isCompetitivePositioningText) {
-            console.log(`🎯 Optimizing Competitive Positioning text for PDF: ${el.textContent?.substring(0, 50)}...`)
-            
-            // Store original state for restoration
-            const originalClasses = el.className
-            const originalStyles = {
-              flex: el.style.flex,
-              minWidth: el.style.minWidth,
-              wordBreak: el.style.wordBreak,
-              hyphens: el.style.hyphens,
-              width: el.style.width,
-              maxWidth: el.style.maxWidth,
-              whiteSpace: el.style.whiteSpace
-            }
-            
-            modifiedElements.push({
-              element: el,
-              originalClasses,
-              originalStyles
-            })
-            
-            // Apply PDF-optimized text styles - same as Deal Insights
-            el.style.flex = '1'
-            el.style.minWidth = '0'
-            el.style.wordBreak = 'normal'
-            el.style.hyphens = 'auto'
-            el.style.width = 'auto'
-            el.style.maxWidth = 'none'
-            el.style.whiteSpace = 'normal'
-            
-            // Also optimize the parent container if it's the flex container
-            const parentContainer = el.parentElement
-            if (parentContainer && parentContainer.classList.contains('flex')) {
-              const parentOriginalStyles = {
-                width: parentContainer.style.width,
-                maxWidth: parentContainer.style.maxWidth,
-                minWidth: parentContainer.style.minWidth,
-                flexWrap: parentContainer.style.flexWrap
-              }
-              
-              modifiedElements.push({
-                element: parentContainer,
-                originalClasses: parentContainer.className,
-                originalStyles: parentOriginalStyles
-              })
-              
-              parentContainer.style.width = '100%'
-              parentContainer.style.maxWidth = 'none'
-              parentContainer.style.minWidth = '0'
-              parentContainer.style.flexWrap = 'wrap'
+              optimizeElementForPDF(parentContainer, 'container')
             }
           }
         }
@@ -222,25 +140,11 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Wait for DOM changes to take effect
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-      // Store original styles for main element restoration
-      const originalStyles = {
-        position: element.style.position,
-        width: element.style.width,
-        maxWidth: element.style.maxWidth,
-        minWidth: element.style.minWidth,
-        transform: element.style.transform,
-        overflow: element.style.overflow,
-        backgroundColor: element.style.backgroundColor
-      }
+      // Store original styles for main element restoration using utility
+      const originalStyles = storeElementStyles(element)
 
-      // Optimize main element for PDF capture
-      element.style.position = 'static'
-      element.style.width = '1200px'
-      element.style.maxWidth = '1200px'
-      element.style.minWidth = '1200px'
-      element.style.transform = 'none'
-      element.style.overflow = 'visible'
-      element.style.backgroundColor = 'transparent'
+      // Optimize main element for PDF capture using utility
+      optimizeElementForPDF(element, 'main')
 
       await new Promise(resolve => setTimeout(resolve, 500))
 
@@ -261,17 +165,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         windowHeight: element.scrollHeight
       })
 
-      // Restore original styles immediately
-      Object.entries(originalStyles).forEach(([property, value]) => {
-        element.style[property as any] = value
-      })
+      // Restore original styles immediately using utility
+      restoreElementStyles(element, originalStyles)
 
-      // Restore modified elements
+      // Restore modified elements using utility
       modifiedElements.forEach(({ element: el, originalClasses, originalStyles }) => {
         el.className = originalClasses
-        Object.entries(originalStyles).forEach(([property, value]) => {
-          el.style[property as any] = value
-        })
+        restoreElementStyles(el, originalStyles)
       })
 
       console.log('✅ Restored all modified elements')
