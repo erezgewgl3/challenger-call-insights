@@ -82,7 +82,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           const isCompetitivePositioningText = 
             el.tagName === 'SPAN' &&
             el.classList.contains('text-gray-800') &&
-            (el.classList.contains('text-sm') / el.classList.contains('lg:text-base')) &&
+            (el.classList.contains('text-sm') || el.classList.contains('lg:text-base')) &&
             el.parentElement?.classList.contains('flex') &&
             el.parentElement?.classList.contains('items-center') &&
             el.parentElement?.classList.contains('gap-3')
