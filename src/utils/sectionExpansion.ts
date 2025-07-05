@@ -1,4 +1,3 @@
-
 /**
  * Represents the stored state of a modified DOM element for restoration
  */
@@ -23,7 +22,7 @@ export interface ElementState {
 export function expandCollapsedSections(element: HTMLElement): ElementState[] {
   const modifiedElements: ElementState[] = []
 
-  console.log('🎯 Starting Battle Plan PDF expansion - Phase 2 Enhanced')
+  console.log('🎯 Starting Battle Plan PDF expansion - Enhanced Phase 3')
 
   // Phase 1: Force expand ALL Battle Plan containers
   console.log('⚔️ Phase 1: Force expanding Battle Plan containers')
@@ -39,7 +38,7 @@ export function expandCollapsedSections(element: HTMLElement): ElementState[] {
       const containerState = forceExpandElement(container, modifiedElements, 'Battle Plan Container')
       if (containerState) modifiedElements.push(containerState)
       
-      // Target specific Battle Plan sub-sections with CORRECT selectors
+      // Target specific Battle Plan sub-sections with CORRECTED selectors
       expandBattlePlanSubSections(container, modifiedElements)
       
       // RECURSIVE BRUTE FORCE: Expand ALL child elements regardless of selectors
@@ -139,23 +138,34 @@ function hasAnyHeightConstraint(element: HTMLElement): boolean {
 }
 
 /**
- * Expands specific Battle Plan sub-sections with CORRECTED selectors
+ * Expands specific Battle Plan sub-sections with CORRECTED selectors matching BattlePlanSection.tsx
  */
 function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedElements: ElementState[]): void {
-  console.log('🎯 Expanding Battle Plan sub-sections with corrected selectors')
+  console.log('🎯 Expanding Battle Plan sub-sections with CORRECTED selectors')
 
-  // 1. Strategic Assessment Section - CORRECTED SELECTOR
-  const strategicSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-indigo-50.via-blue-50.to-purple-50')
-  console.log('📊 Strategic Assessment sections found:', strategicSections.length)
+  // 1. Strategic Intelligence & Approach Section - CORRECTED SELECTOR
+  const strategicIntelligenceSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-indigo-50.via-blue-50.to-purple-50')
+  console.log('📊 Strategic Intelligence sections found:', strategicIntelligenceSections.length)
   
-  strategicSections.forEach((section, index) => {
+  strategicIntelligenceSections.forEach((section, index) => {
     if (section instanceof HTMLElement) {
-      console.log(`📊 Expanding Strategic Assessment ${index + 1}`)
-      const sectionState = forceExpandElement(section, modifiedElements, `Strategic Assessment ${index + 1}`)
+      console.log(`📊 Expanding Strategic Intelligence ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Strategic Intelligence ${index + 1}`)
       if (sectionState) modifiedElements.push(sectionState)
       
-      // Expand all nested grid items and content
-      expandNestedContent(section, modifiedElements, 'Strategic Assessment Child')
+      // Expand all nested content including Strategic Assessment
+      expandNestedContent(section, modifiedElements, 'Strategic Intelligence Child')
+      
+      // SPECIFIC: Target Strategic Assessment nested inside
+      const strategicAssessmentSections = section.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50')
+      console.log(`📊 Strategic Assessment sections found in container ${index + 1}:`, strategicAssessmentSections.length)
+      strategicAssessmentSections.forEach((assessment, aIndex) => {
+        if (assessment instanceof HTMLElement) {
+          console.log(`📊 Expanding Strategic Assessment ${aIndex + 1}`)
+          const assessmentState = forceExpandElement(assessment, modifiedElements, `Strategic Assessment ${aIndex + 1}`)
+          if (assessmentState) modifiedElements.push(assessmentState)
+        }
+      })
     }
   })
 
@@ -174,14 +184,14 @@ function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedE
     }
   })
 
-  // 3. Email Template Sections - MULTIPLE SELECTORS
-  const emailSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50, .bg-gradient-to-r.from-slate-50.to-gray-50')
-  console.log('📧 Email template sections found:', emailSections.length)
+  // 3. Email Template Sections - CORRECTED SELECTORS
+  const emailTemplateSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50')
+  console.log('📧 Email template sections found:', emailTemplateSections.length)
   
-  emailSections.forEach((section, index) => {
+  emailTemplateSections.forEach((section, index) => {
     if (section instanceof HTMLElement) {
-      console.log(`📧 Expanding email section ${index + 1}`)
-      const sectionState = forceExpandElement(section, modifiedElements, `Email Section ${index + 1}`)
+      console.log(`📧 Expanding email template section ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Email Template Section ${index + 1}`)
       if (sectionState) modifiedElements.push(sectionState)
       
       // Specifically target email content areas
@@ -189,7 +199,21 @@ function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedE
     }
   })
 
-  // 4. Timeline sections
+  // 4. Action Details Sections - NEW
+  const actionDetailsSections = battlePlanContainer.querySelectorAll('.bg-gradient-to-r.from-slate-50.to-gray-50')
+  console.log('📋 Action details sections found:', actionDetailsSections.length)
+  
+  actionDetailsSections.forEach((section, index) => {
+    if (section instanceof HTMLElement) {
+      console.log(`📋 Expanding action details section ${index + 1}`)
+      const sectionState = forceExpandElement(section, modifiedElements, `Action Details Section ${index + 1}`)
+      if (sectionState) modifiedElements.push(sectionState)
+      
+      expandNestedContent(section, modifiedElements, 'Action Details Child')
+    }
+  })
+
+  // 5. Timeline sections
   const timelineSections = battlePlanContainer.querySelectorAll('.bg-red-50')
   console.log('⏰ Timeline sections found:', timelineSections.length)
   
@@ -203,15 +227,64 @@ function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedE
     }
   })
 
-  // 5. CRITICAL: Email bodies with specific constraints
+  // 6. CRITICAL: Email bodies with specific constraints - ENHANCED TARGETING
   const emailBodies = battlePlanContainer.querySelectorAll('.font-mono.whitespace-pre-wrap')
   console.log('📧 Email body elements found:', emailBodies.length)
   
   emailBodies.forEach((emailEl, index) => {
     if (emailEl instanceof HTMLElement) {
-      console.log(`📧 Force expanding email body ${index + 1}`)
+      console.log(`📧 Force expanding email body ${index + 1}:`, {
+        scrollHeight: emailEl.scrollHeight,
+        clientHeight: emailEl.clientHeight,
+        hasMaxHeight: emailEl.classList.contains('max-h-32'),
+        hasOverflow: emailEl.classList.contains('overflow-y-auto')
+      })
       const emailState = forceExpandElement(emailEl, modifiedElements, `Email Body ${index + 1}`)
       if (emailState) modifiedElements.push(emailState)
+    }
+  })
+
+  // 7. FALLBACK: Content-based detection for missed elements
+  console.log('🔍 Running content-based fallback detection')
+  findElementsByContent(battlePlanContainer, modifiedElements)
+}
+
+/**
+ * Fallback: Find elements by text content when CSS selectors fail
+ */
+function findElementsByContent(container: HTMLElement, modifiedElements: ElementState[]): void {
+  const targetTexts = [
+    'Strategic Intelligence',
+    'Strategic Assessment', 
+    'Why These Specific Actions',
+    'Email Template',
+    'Subject Line',
+    'Email Content'
+  ]
+  
+  targetTexts.forEach(targetText => {
+    const walker = document.createTreeWalker(
+      container,
+      NodeFilter.SHOW_TEXT,
+      null
+    )
+    
+    let node
+    while (node = walker.nextNode()) {
+      if (node.textContent?.includes(targetText)) {
+        let parentElement = node.parentElement
+        while (parentElement && parentElement !== container) {
+          if (parentElement instanceof HTMLElement && hasAnyHeightConstraint(parentElement)) {
+            const fallbackState = forceExpandElement(parentElement, modifiedElements, `Content Fallback: ${targetText}`)
+            if (fallbackState) {
+              modifiedElements.push(fallbackState)
+              console.log(`🔍 Found by content: ${targetText}`)
+              break
+            }
+          }
+          parentElement = parentElement.parentElement
+        }
+      }
     }
   })
 }
