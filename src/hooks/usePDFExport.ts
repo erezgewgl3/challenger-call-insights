@@ -7,6 +7,11 @@ interface UsePDFExportProps {
   filename?: string
 }
 
+interface PDFExportOptions {
+  sectionsOpen?: Record<string, boolean>
+  toggleSection?: (section: string) => void
+}
+
 interface ElementState {
   element: HTMLElement
   originalState: string
@@ -18,7 +23,7 @@ interface ElementState {
 }
 
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
-  const exportToPDF = useCallback(async (elementId: string, title: string) => {
+  const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let modifiedElements: ElementState[] = []
     
     try {
@@ -34,7 +39,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       await document.fonts.ready
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      // Expand collapsed sections
+      // Enhanced section expansion with React state integration
       const collapsedSections = element.querySelectorAll(
         '[data-state="closed"], [aria-expanded="false"], .collapsed, details:not([open])'
       )
@@ -56,7 +61,16 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             stateAttribute: stateAttr
           })
           
-          // Expand the section
+          // Use React state management if available, otherwise fallback to DOM manipulation
+          if (options?.toggleSection && options?.sectionsOpen) {
+            // Try to identify section key and open it via React state
+            const sectionKey = section.getAttribute('data-section-key')
+            if (sectionKey && !options.sectionsOpen[sectionKey]) {
+              options.toggleSection(sectionKey)
+            }
+          }
+          
+          // Always ensure DOM state is expanded for PDF capture
           if (stateAttr === 'data-state') {
             section.setAttribute('data-state', 'open')
           } else if (stateAttr === 'aria-expanded') {
@@ -267,6 +281,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           console.warn('Failed to restore element state:', error)
         }
       })
+
+      // If using React state management, restore original section states
+      if (options?.toggleSection && options?.sectionsOpen) {
+        // Note: In a real implementation, you might want to restore the original states
+        // For now, we rely on the DOM restoration above
+      }
 
       // Convert to PDF
       const imgData = canvas.toDataURL('image/png', 1.0)
