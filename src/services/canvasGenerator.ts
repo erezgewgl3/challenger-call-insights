@@ -68,6 +68,11 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
       // Enhanced options for better content capture
       removeContainer: false,
       ignoreElements: (element) => {
+        // Type guard to ensure we have an HTMLElement
+        if (!(element instanceof HTMLElement)) {
+          return false
+        }
+        
         // Skip hidden or zero-height elements that might cause issues
         return element.style.display === 'none' || 
                element.style.visibility === 'hidden' ||
