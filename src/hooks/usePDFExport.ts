@@ -1,3 +1,4 @@
+
 import { useCallback } from 'react'
 import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
@@ -22,7 +23,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let modifiedElements: ElementState[] = []
     
     try {
-      toast.info('Generating professional PDF with full visual design...', { duration: 3000 })
+      toast.info('Generating professional PDF...', { duration: 3000 })
       
       const element = document.getElementById(elementId)
       if (!element) {
@@ -30,22 +31,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         return
       }
 
-      // Ensure we're at the top and everything is loaded
-      window.scrollTo(0, 0)
-      
-      // 🎯 SURGICAL FIX #1: Font Synchronization
-      // Wait for all fonts to be fully loaded and measured
+      // Ensure fonts are loaded
       await document.fonts.ready
-      await new Promise(resolve => setTimeout(resolve, 1500)) // Increased from 500ms to 1500ms for font stability
+      await new Promise(resolve => setTimeout(resolve, 500))
 
-      // PHASE 1: PRE-PDF PREPARATION - Expand collapsed sections and scrollable content
-      
-      // 🎯 ENHANCED: Find and expand all collapsed sections with better selectors
+      // Expand collapsed sections
       const collapsedSections = element.querySelectorAll(
-        '[data-state="closed"], [aria-expanded="false"], .collapsed, ' +
-        'details:not([open]), summary + *, ' +
-        '[class*="collaps"]:not([data-state="open"]), ' +
-        '[class*="Collaps"]:not([data-state="open"])'
+        '[data-state="closed"], [aria-expanded="false"], .collapsed, details:not([open])'
       )
       
       collapsedSections.forEach(section => {
@@ -74,7 +66,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             section.className = section.className.replace(/\bcollapsed\b/g, '')
           }
           
-          // Force visibility and height
           section.style.display = 'block'
           section.style.visibility = 'visible'
           section.style.height = 'auto'
@@ -82,16 +73,8 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           section.style.overflow = 'visible'
         }
       })
-      
-      // 🎯 ENHANCED: Click any collapsible triggers to force expansion
-      const triggers = element.querySelectorAll('[data-collapsible="trigger"], [role="button"][aria-expanded="false"]')
-      triggers.forEach(trigger => {
-        if (trigger instanceof HTMLElement) {
-          trigger.click()
-        }
-      })
 
-      // Find and expand all scrollable content areas
+      // Expand scrollable content areas
       const scrollableElements = element.querySelectorAll('*')
       Array.from(scrollableElements).forEach(el => {
         if (el instanceof HTMLElement) {
@@ -107,7 +90,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           )
           
           if (hasScrollableContent) {
-            // Store original state if not already stored
             const alreadyStored = modifiedElements.some(item => item.element === el)
             if (!alreadyStored) {
               modifiedElements.push({
@@ -121,7 +103,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
               })
             }
             
-            // Make content fully visible
             el.style.overflow = 'visible'
             el.style.overflowY = 'visible'
             el.style.height = 'auto'
@@ -130,10 +111,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }
       })
 
-      // Wait for all expansions and layout changes to complete
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Increased from 1000ms to 2000ms
+      // Wait for layout changes
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
-      // Store original styles for the main element restoration
+      // Store original styles for restoration
       const originalStyles = {
         position: element.style.position,
         width: element.style.width,
@@ -144,7 +125,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         backgroundColor: element.style.backgroundColor
       }
 
-      // Temporarily optimize for PDF capture - ensure full visual rendering
+      // Optimize for PDF capture
       element.style.position = 'static'
       element.style.width = '1200px'
       element.style.maxWidth = '1200px'
@@ -153,16 +134,15 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       element.style.overflow = 'visible'
       element.style.backgroundColor = 'transparent'
 
-      // Wait for layout reflow
       await new Promise(resolve => setTimeout(resolve, 300))
 
-      // Enhanced html2canvas configuration for FULL VISUAL CAPTURE
+      // Generate canvas with improved configuration
       const canvas = await html2canvas(element, {
-        scale: 3, // Maximum quality for crisp output
+        scale: 2,
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null, // Preserve all backgrounds and gradients
-        foreignObjectRendering: true, // Better CSS support
+        backgroundColor: null,
+        foreignObjectRendering: true,
         imageTimeout: 15000,
         logging: false,
         scrollX: 0,
@@ -171,13 +151,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         height: element.scrollHeight,
         windowWidth: 1200,
         windowHeight: element.scrollHeight,
-        ignoreElements: (element) => {
-          // Only skip elements explicitly marked for PDF exclusion
-          return element.classList?.contains('no-pdf') || false
-        },
         onclone: (clonedDoc, clonedElement) => {
           if (clonedElement) {
-            // CRITICAL: Force all visual elements to render properly
+            // Force static positioning and proper sizing
             clonedElement.style.position = 'static'
             clonedElement.style.width = '1200px'
             clonedElement.style.maxWidth = '1200px'
@@ -185,83 +161,51 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             clonedElement.style.transform = 'none'
             clonedElement.style.overflow = 'visible'
             
-            // Force render all gradients and backgrounds
+            // Process all elements for consistent rendering
             const allElements = clonedElement.querySelectorAll('*')
             Array.from(allElements).forEach(el => {
               if (el instanceof HTMLElement) {
-                // Preserve all computed styles for visual fidelity
                 const computedStyle = getComputedStyle(el)
                 
-                // Force background rendering
-                if (computedStyle.background || computedStyle.backgroundColor || computedStyle.backgroundImage) {
-                  el.style.background = computedStyle.background
-                  el.style.backgroundColor = computedStyle.backgroundColor
-                  el.style.backgroundImage = computedStyle.backgroundImage
-                  el.style.backgroundSize = computedStyle.backgroundSize
-                  el.style.backgroundPosition = computedStyle.backgroundPosition
-                  el.style.backgroundRepeat = computedStyle.backgroundRepeat
-                }
-                
-                // 🎯 SURGICAL FIX: Force consistent font and text rendering
+                // Force font consistency
                 el.style.fontFamily = 'Inter, system-ui, -apple-system, BlinkMacSystemFont, sans-serif'
                 el.style.color = computedStyle.color
                 el.style.fontSize = computedStyle.fontSize
                 el.style.fontWeight = computedStyle.fontWeight
                 el.style.lineHeight = computedStyle.lineHeight
-                el.style.textAlign = computedStyle.textAlign
                 
-                // 🎯 ENHANCED FIX: Prevent unwanted text wrapping for content elements
-                const tagName = el.tagName.toLowerCase()
-                const hasLongText = el.textContent && el.textContent.trim().length > 20
+                // Target numbered list items specifically to prevent line breaks
+                const isNumberedListItem = el.closest('[class*="space-y"] li, [class*="gap"] li') ||
+                                         (el.tagName === 'LI' && el.textContent && el.textContent.match(/^\d+\./))
                 
-                // Target paragraphs, spans, divs with substantial text content
-                if (hasLongText && (tagName === 'p' || tagName === 'span' || tagName === 'div')) {
-                  // Check if it's in a content area (not a title or header)
-                  const isInContentArea = el.closest('[class*="space-y"], [class*="gap"], .grid, .flex, [class*="card"], [class*="Card"]')
-                  const isNotHeader = !el.closest('h1, h2, h3, h4, h5, h6, [class*="title"], [class*="Title"]')
+                if (isNumberedListItem) {
+                  // Use scrollWidth to prevent content shrinking
+                  const naturalWidth = el.scrollWidth
+                  if (naturalWidth > el.clientWidth) {
+                    el.style.width = naturalWidth + 'px'
+                    el.style.minWidth = naturalWidth + 'px'
+                  }
                   
-                  if (isInContentArea && isNotHeader) {
-                    el.style.whiteSpace = 'nowrap'
-                    el.style.overflow = 'visible'
-                    el.style.textOverflow = 'clip'
-                    el.style.minWidth = 'max-content'
-                    el.style.width = 'max-content'
-                  }
+                  // Prevent text wrapping in list items
+                  const textElements = el.querySelectorAll('p, span, div')
+                  textElements.forEach(textEl => {
+                    if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.trim().length > 20) {
+                      textEl.style.whiteSpace = 'nowrap'
+                      textEl.style.overflow = 'visible'
+                    }
+                  })
                 }
                 
-                // 🎯 TARGETED FIX: Specific elements that commonly wrap incorrectly
-                if (el.textContent && (
-                  el.textContent.includes('ProspectCorp') ||
-                  el.textContent.includes('actively seeking') ||
-                  el.textContent.includes('particularly interested') ||
-                  el.textContent.includes('volume-based pricing') ||
-                  el.textContent.length > 50
-                )) {
-                  const parentElement = el.parentElement
-                  if (parentElement && !el.closest('h1, h2, h3, h4, h5, h6')) {
-                    el.style.whiteSpace = 'nowrap'
-                    el.style.overflow = 'visible'
-                    el.style.minWidth = 'max-content'
-                    el.style.width = 'max-content'
-                  }
-                }
-                
-                // Force border and spacing
+                // Preserve backgrounds and styling
+                el.style.background = computedStyle.background
+                el.style.backgroundColor = computedStyle.backgroundColor
+                el.style.backgroundImage = computedStyle.backgroundImage
                 el.style.border = computedStyle.border
                 el.style.borderRadius = computedStyle.borderRadius
                 el.style.padding = computedStyle.padding
                 el.style.margin = computedStyle.margin
                 
-                // Force positioning and sizing
-                el.style.width = computedStyle.width
-                el.style.height = computedStyle.height
-                el.style.display = computedStyle.display
-                el.style.flexDirection = computedStyle.flexDirection
-                el.style.alignItems = computedStyle.alignItems
-                el.style.justifyContent = computedStyle.justifyContent
-                el.style.gap = computedStyle.gap
-                
-                // CRITICAL: Force all previously scrollable content to be fully visible
+                // Ensure scrollable content remains visible
                 if (computedStyle.overflow === 'scroll' || computedStyle.overflow === 'auto' ||
                     computedStyle.overflowY === 'scroll' || computedStyle.overflowY === 'auto') {
                   el.style.overflow = 'visible'
@@ -270,88 +214,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                   el.style.maxHeight = 'none'
                 }
                 
-                // Enhanced font smoothing for crisp text (TypeScript-safe)
+                // Enhanced font smoothing
                 el.style.setProperty('-webkit-font-smoothing', 'antialiased')
                 el.style.setProperty('-moz-osx-font-smoothing', 'grayscale')
                 el.style.textRendering = 'optimizeLegibility'
               }
             })
 
-            // SPECIAL HANDLING: Fix gradients specifically
-            const gradientElements = clonedElement.querySelectorAll('[class*="gradient"], [style*="gradient"]')
-            Array.from(gradientElements).forEach(el => {
-              if (el instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(el)
-                // Force gradient rendering
-                el.style.backgroundImage = computedStyle.backgroundImage
-                el.style.background = computedStyle.background
-                // Ensure gradient attachment
-                el.style.backgroundAttachment = 'local'
-              }
-            })
-
-            // SPECIAL HANDLING: Fix card backgrounds and styling
-            const cards = clonedElement.querySelectorAll('[class*="card"], [class*="Card"], .bg-gradient-to-r, .bg-gradient-to-br')
-            Array.from(cards).forEach(card => {
-              if (card instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(card)
-                // Force all card styling
-                card.style.background = computedStyle.background
-                card.style.backgroundColor = computedStyle.backgroundColor
-                card.style.backgroundImage = computedStyle.backgroundImage
-                card.style.border = computedStyle.border
-                card.style.borderRadius = computedStyle.borderRadius
-                card.style.boxShadow = computedStyle.boxShadow
-                card.style.padding = computedStyle.padding
-                card.style.overflow = 'visible'
-                card.style.height = 'auto'
-                card.style.minHeight = 'auto'
-                card.style.maxHeight = 'none'
-              }
-            })
-
-            // SPECIAL HANDLING: Fix badges and inline elements
-            const badges = clonedElement.querySelectorAll('[class*="badge"], [class*="Badge"], .inline-flex')
-            Array.from(badges).forEach(badge => {
-              if (badge instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(badge)
-                badge.style.display = 'inline-flex'
-                badge.style.alignItems = 'center'
-                badge.style.justifyContent = 'center'
-                badge.style.whiteSpace = 'nowrap'
-                badge.style.verticalAlign = 'middle'
-                badge.style.flexShrink = '0'
-                badge.style.background = computedStyle.background
-                badge.style.backgroundColor = computedStyle.backgroundColor
-                badge.style.color = computedStyle.color
-                badge.style.padding = computedStyle.padding || '0.25rem 0.5rem'
-                badge.style.borderRadius = computedStyle.borderRadius || '0.375rem'
-                badge.style.fontSize = computedStyle.fontSize || '0.75rem'
-                badge.style.fontWeight = computedStyle.fontWeight || '500'
-              }
-            })
-
-            // SPECIAL HANDLING: Fix flex containers
-            const flexContainers = clonedElement.querySelectorAll('[class*="flex"], .grid')
-            Array.from(flexContainers).forEach(container => {
-              if (container instanceof HTMLElement) {
-                const computedStyle = getComputedStyle(container)
-                if (computedStyle.display.includes('flex')) {
-                  container.style.display = 'flex'
-                  container.style.flexDirection = computedStyle.flexDirection || 'row'
-                  container.style.flexWrap = computedStyle.flexWrap || 'wrap'
-                  container.style.alignItems = computedStyle.alignItems || 'center'
-                  container.style.justifyContent = computedStyle.justifyContent || 'flex-start'
-                  container.style.gap = computedStyle.gap || '0.5rem'
-                } else if (computedStyle.display.includes('grid')) {
-                  container.style.display = 'grid'
-                  container.style.gridTemplateColumns = computedStyle.gridTemplateColumns
-                  container.style.gap = computedStyle.gap
-                }
-              }
-            })
-
-            // SPECIAL HANDLING: Ensure expanded sections stay expanded in clone
+            // Ensure expanded sections stay expanded in clone
             const expandedSections = clonedElement.querySelectorAll('[data-state="open"], [aria-expanded="true"]')
             Array.from(expandedSections).forEach(section => {
               if (section instanceof HTMLElement) {
@@ -360,76 +230,18 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
                 section.style.height = 'auto'
                 section.style.maxHeight = 'none'
                 section.style.overflow = 'visible'
-              }
-            })
-            
-            // SPECIAL HANDLING: Ensure expanded sections stay expanded in clone
-            const expandedSections = clonedElement.querySelectorAll('[data-state="open"], [aria-expanded="true"]')
-            Array.from(expandedSections).forEach(section => {
-              if (section instanceof HTMLElement) {
-                section.style.display = 'block'
-                section.style.visibility = 'visible'
-                section.style.height = 'auto'
-                section.style.maxHeight = 'none'
-                section.style.overflow = 'visible'
-              }
-            })
-            
-            // 🎯 ENHANCED: Force expand ANY remaining collapsed content in clone
-            const stillCollapsed = clonedElement.querySelectorAll(
-              '[data-state="closed"], [aria-expanded="false"], [style*="display: none"], [style*="height: 0"]'
-            )
-            Array.from(stillCollapsed).forEach(section => {
-              if (section instanceof HTMLElement) {
-                section.setAttribute('data-state', 'open')
-                section.setAttribute('aria-expanded', 'true')
-                section.style.display = 'block'
-                section.style.visibility = 'visible'
-                section.style.height = 'auto'
-                section.style.maxHeight = 'none'
-                section.style.overflow = 'visible'
-              }
-            })
-            
-            // 🎯 FINAL FIX: Target bullet points and list items specifically
-            const listItems = clonedElement.querySelectorAll('li, [class*="bullet"], [class*="list-item"], [class*="items-start"]')
-            Array.from(listItems).forEach(item => {
-              if (item instanceof HTMLElement && item.textContent && item.textContent.trim().length > 20) {
-                const textElements = item.querySelectorAll('p, span, div')
-                textElements.forEach(textEl => {
-                  if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.trim().length > 20) {
-                    textEl.style.whiteSpace = 'nowrap'
-                    textEl.style.overflow = 'visible'
-                    textEl.style.minWidth = 'max-content'
-                    textEl.style.width = 'max-content'
-                  }
-                })
-              }
-            })
-            
-            // 🎯 AGGRESSIVE FIX: Prevent any text wrapping in content areas
-            const contentAreas = clonedElement.querySelectorAll('[class*="space-y"] p, [class*="space-y"] span, [class*="space-y"] div, [class*="gap"] p, [class*="gap"] span, [class*="gap"] div')
-            Array.from(contentAreas).forEach(textEl => {
-              if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.trim().length > 30) {
-                textEl.style.whiteSpace = 'nowrap'
-                textEl.style.overflow = 'visible'
-                textEl.style.textOverflow = 'clip'
-                textEl.style.minWidth = 'max-content'
-                textEl.style.width = 'max-content'
               }
             })
           }
         }
       })
 
-      // PHASE 3: POST-PDF RESTORATION - Restore all original states
-      
-      // Restore main element styles immediately
+      // Restore original styles immediately
       Object.entries(originalStyles).forEach(([property, value]) => {
         element.style[property as any] = value
       })
 
-      // Restore all modified elements to their original states
+      // Restore all modified elements
       modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
         try {
           if (stateAttribute === 'data-state') {
@@ -448,7 +260,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
             element.className = originalState
           }
           
-          // Restore overflow and sizing properties
           element.style.height = originalHeight
           element.style.maxHeight = originalMaxHeight
           element.style.overflow = originalOverflow
@@ -458,37 +269,33 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }
       })
 
-      // Convert to high-quality image data
+      // Convert to PDF
       const imgData = canvas.toDataURL('image/png', 1.0)
       
-      // Professional Portrait A4 PDF Configuration
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
         format: 'a4',
-        compress: false // Maintain visual quality
+        compress: false
       })
 
-      // A4 Portrait dimensions
+      // A4 dimensions
       const pdfWidth = 210
       const pdfHeight = 297
       
-      // Calculate optimal scaling for portrait layout with margins
-      const canvasWidth = canvas.width
-      const canvasHeight = canvas.height
-      
+      // Calculate scaling - FIXED: Use simple left alignment
       const contentWidth = pdfWidth - 20 // 10mm margins on each side
-      const scale = contentWidth / (canvasWidth * 0.264583) // Convert pixels to mm
-      const scaledHeight = (canvasHeight * 0.264583) * scale
+      const scale = contentWidth / (canvas.width * 0.264583)
+      const scaledHeight = (canvas.height * 0.264583) * scale
       
       // Professional header
       pdf.setFontSize(20)
-      pdf.setTextColor(30, 41, 59) // slate-800
+      pdf.setTextColor(30, 41, 59)
       const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
       pdf.text(cleanTitle, 10, 20)
       
       pdf.setFontSize(11)
-      pdf.setTextColor(100, 116, 139) // slate-500
+      pdf.setTextColor(100, 116, 139)
       pdf.text('Sales Intelligence Report', 10, 28)
       pdf.text(`Generated on ${new Date().toLocaleDateString('en-US', { 
         year: 'numeric', 
@@ -496,30 +303,26 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         day: 'numeric' 
       })}`, 10, 35)
       
-      // Professional separator
-      pdf.setDrawColor(203, 213, 225) // slate-300
+      // Separator line
+      pdf.setDrawColor(203, 213, 225)
       pdf.setLineWidth(0.5)
       pdf.line(10, 40, pdfWidth - 10, 40)
       
-      // Content positioning
+      // Content positioning - FIXED: Use fixed left margin
       const contentStartY = 45
-      const availableHeight = pdfHeight - contentStartY - 10 // Bottom margin
+      const availableHeight = pdfHeight - contentStartY - 10
       
-      // Check if content fits on one page
       if (scaledHeight <= availableHeight) {
-        // Single page layout
-        const xOffset = (pdfWidth - contentWidth) / 2
-        pdf.addImage(imgData, 'PNG', xOffset, contentStartY, contentWidth, scaledHeight, '', 'FAST')
+        // Single page - FIXED: Use 10mm left margin instead of centering
+        pdf.addImage(imgData, 'PNG', 10, contentStartY, contentWidth, scaledHeight, '', 'FAST')
       } else {
-        // Multi-page layout for long content
+        // Multi-page layout
         const pageContentHeight = availableHeight
         const totalPages = Math.ceil(scaledHeight / pageContentHeight)
         
         for (let page = 0; page < totalPages; page++) {
           if (page > 0) {
             pdf.addPage()
-            
-            // Header for continuation pages
             pdf.setFontSize(14)
             pdf.setTextColor(100, 116, 139)
             pdf.text(`${cleanTitle} - Page ${page + 1} of ${totalPages}`, 10, 15)
@@ -530,33 +333,28 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           const currentPageStartY = page === 0 ? contentStartY : 25
           const currentAvailableHeight = page === 0 ? availableHeight : (pdfHeight - 25 - 10)
           
-          // Calculate source coordinates for this page
           const sourceY = page * (pageContentHeight / scale) / 0.264583
-          const sourceHeight = Math.min((currentAvailableHeight / scale) / 0.264583, canvasHeight - sourceY)
+          const sourceHeight = Math.min((currentAvailableHeight / scale) / 0.264583, canvas.height - sourceY)
           
           if (sourceHeight > 0) {
-            // Create canvas for this page section
             const pageCanvas = document.createElement('canvas')
             const pageCtx = pageCanvas.getContext('2d')
             
             if (pageCtx) {
-              pageCanvas.width = canvasWidth
+              pageCanvas.width = canvas.width
               pageCanvas.height = sourceHeight
               
-              // Draw the section of the main canvas onto the page canvas
-              pageCtx.drawImage(canvas, 0, sourceY, canvasWidth, sourceHeight, 0, 0, canvasWidth, sourceHeight)
+              pageCtx.drawImage(canvas, 0, sourceY, canvas.width, sourceHeight, 0, 0, canvas.width, sourceHeight)
               const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
               
-              // Add to PDF
-              const xOffset = (pdfWidth - contentWidth) / 2
               const pageScaledHeight = (sourceHeight * 0.264583) * scale
-              pdf.addImage(pageImgData, 'PNG', xOffset, currentPageStartY, contentWidth, pageScaledHeight, '', 'FAST')
+              pdf.addImage(pageImgData, 'PNG', 10, currentPageStartY, contentWidth, pageScaledHeight, '', 'FAST')
             }
           }
         }
       }
       
-      // Generate professional filename
+      // Generate filename and save
       const timestamp = new Date().toISOString().slice(0, 10)
       const cleanFilename = title
         .replace(/[^a-zA-Z0-9_\-\s]/g, '')
@@ -564,16 +362,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         .toLowerCase()
       
       const pdfFilename = `${cleanFilename}_sales_analysis_${timestamp}.pdf`
-      
-      // Save the PDF
       pdf.save(pdfFilename)
       
-      toast.success('Professional PDF with full content exported successfully!', { duration: 4000 })
+      toast.success('Professional PDF exported successfully!', { duration: 4000 })
       
     } catch (error) {
       console.error('PDF export failed:', error)
       
-      // CRITICAL: Always restore states even if PDF generation fails
+      // Always restore states even on error
       modifiedElements.forEach(({ element, originalState, originalHeight, originalMaxHeight, originalOverflow, originalOverflowY, stateAttribute }) => {
         try {
           if (stateAttribute === 'data-state') {
@@ -601,7 +397,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         }
       })
       
-      toast.error('Failed to generate professional PDF. Please try again.')
+      toast.error('Failed to generate PDF. Please try again.')
     }
   }, [filename])
   
