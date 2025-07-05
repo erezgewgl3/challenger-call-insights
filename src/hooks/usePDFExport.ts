@@ -79,117 +79,144 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let modifiedElements: ElementState[] = []
     
     try {
-      toast.info('Preparing content for professional PDF export...', { duration: 3000 })
+      toast.info('🚀 Preparing comprehensive PDF export...', { duration: 3000 })
       
       const element = document.getElementById(elementId)
       if (!element) {
-        toast.error('Unable to find content to export')
+        toast.error('❌ Unable to find content to export')
         return
       }
 
-      console.log('Starting PDF export for element:', {
+      console.log('🎯 Starting comprehensive PDF export for element:', {
         elementId,
         scrollHeight: element.scrollHeight,
         offsetHeight: element.offsetHeight,
-        clientHeight: element.clientHeight
+        clientHeight: element.clientHeight,
+        hasScrollableContent: element.scrollHeight > element.clientHeight
       })
 
-      // Expand sections for complete content capture
+      // Phase 1: Expand user-controlled sections
       if (options?.sectionsOpen && options?.toggleSection) {
+        console.log('📂 Phase 1: Expanding user-controlled sections')
         Object.entries(options.sectionsOpen).forEach(([sectionKey, isOpen]) => {
           if (!isOpen) {
             sectionsToRestore.push(sectionKey)
             options.toggleSection!(sectionKey)
+            console.log(`📂 Expanding user section: ${sectionKey}`)
           }
         })
         if (sectionsToRestore.length > 0) {
-          console.log('Expanding sections for PDF:', sectionsToRestore)
+          console.log(`📂 Waiting for ${sectionsToRestore.length} sections to expand...`)
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
 
-      // Enhanced: Comprehensive content expansion with better targeting
-      console.log('Phase 1: Expanding collapsed UI sections')
+      // Phase 2: Comprehensive content expansion
+      console.log('📏 Phase 2: Comprehensive content expansion')
       const sectionModifiedElements = expandCollapsedSections(element)
       modifiedElements.push(...sectionModifiedElements)
       
-      console.log('Phase 2: Expanding scrollable content areas')
+      console.log('📜 Phase 3: Additional scrollable content expansion')
       expandScrollableContent(element, modifiedElements)
       
-      // Wait for fonts and DOM changes to settle
+      // Wait for DOM changes to settle and fonts to load
       await document.fonts.ready
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('⏳ Allowing DOM changes to settle...')
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-      console.log('Phase 3: Optimizing element styles for PDF capture')
+      // Phase 4: Optimize for PDF rendering
+      console.log('🎨 Phase 4: Optimizing element styles for PDF capture')
       const originalStyles = storeElementStyles(element)
       optimizeElementForPDF(element, 'main')
       await new Promise(resolve => setTimeout(resolve, 500))
       
-      // Enhanced validation: Check if critical content is now visible
-      const emailElements = element.querySelectorAll('.font-mono, .whitespace-pre-wrap')
-      console.log('Email content validation:', {
+      // Phase 5: Validate content expansion
+      console.log('🔍 Phase 5: Validating content expansion')
+      const emailElements = element.querySelectorAll('.font-mono, .whitespace-pre-wrap, [data-testid*="email"]')
+      console.log('📧 Email content validation:', {
         emailElementsFound: emailElements.length,
-        totalModifiedElements: modifiedElements.length
+        totalModifiedElements: modifiedElements.length,
+        elementDimensions: {
+          scrollHeight: element.scrollHeight,
+          clientHeight: element.clientHeight,
+          isFullyExpanded: element.scrollHeight <= element.clientHeight + 10
+        }
       })
       
       emailElements.forEach((emailEl, index) => {
         if (emailEl instanceof HTMLElement) {
-          console.log(`Email element ${index + 1} dimensions:`, {
+          const isExpanded = emailEl.scrollHeight <= emailEl.clientHeight + 5
+          console.log(`📧 Email element ${index + 1} status:`, {
             scrollHeight: emailEl.scrollHeight,
             clientHeight: emailEl.clientHeight,
-            isFullyVisible: emailEl.scrollHeight <= emailEl.clientHeight + 5, // 5px tolerance
-            classes: emailEl.className
+            isFullyExpanded: isExpanded,
+            classes: emailEl.className,
+            hasMaxHeightClass: Array.from(emailEl.classList).some(cls => cls.startsWith('max-h-') && cls !== 'max-h-none'),
+            textPreview: emailEl.textContent?.substring(0, 50) + '...'
           })
         }
       })
       
-      toast.info('Generating high-quality canvas...', { duration: 2000 })
+      toast.info('📸 Generating high-quality canvas...', { duration: 2000 })
       
-      // Generate canvas with improved sizing
+      // Phase 6: Generate canvas with improved sizing
       const canvas = await generateCanvas(element)
       restoreElementStyles(element, originalStyles)
 
-      // Determine if we need multi-page layout
+      // Phase 7: Create PDF
       const pdf = createPDFDocument()
       const contentHeightMM = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
       const availableHeightFirstPage = 297 - 45 - 10 // A4 height - header - margin
       
-      console.log('PDF layout decision:', {
+      console.log('📄 PDF layout decision:', {
         contentHeightMM,
         availableHeightFirstPage,
         needsMultiPage: contentHeightMM > availableHeightFirstPage,
-        canvasHeight: canvas.height,
-        canvasWidth: canvas.width
+        canvasDimensions: {
+          width: canvas.width,
+          height: canvas.height
+        },
+        modifiedElementsCount: modifiedElements.length
       })
 
-      toast.info('Creating professional PDF document...', { duration: 2000 })
+      toast.info('📋 Creating professional PDF document...', { duration: 2000 })
 
       if (contentHeightMM <= availableHeightFirstPage) {
-        console.log('Using single-page layout')
+        console.log('📄 Using single-page layout')
         addCanvasToPDF(pdf, canvas, title)
       } else {
-        console.log('Using multi-page layout')
+        console.log('📄 Using multi-page layout')
         addMultiPageContent(pdf, canvas, title)
       }
       
       const pdfFilename = generateCleanFilename(title)
       pdf.save(pdfFilename)
-      toast.success('Professional PDF exported successfully!', { duration: 4000 })
+      toast.success('✅ Professional PDF exported successfully!', { 
+        duration: 4000,
+        description: `${modifiedElements.length} content areas expanded for complete capture`
+      })
       
     } catch (error) {
-      console.error('PDF export failed:', error)
-      toast.error('Failed to generate PDF. Please try again.')
+      console.error('❌ PDF export failed:', error)
+      toast.error('❌ Failed to generate PDF. Please try again.', {
+        description: 'Check console for detailed error information'
+      })
     } finally {
-      // Restore all modified states
-      console.log('Restoring all modified elements and states')
+      // Phase 8: Comprehensive cleanup
+      console.log('🔄 Restoring all modified elements and states')
       restoreElementStates(modifiedElements)
+      
       if (options?.toggleSection && sectionsToRestore.length > 0) {
+        console.log(`🔄 Restoring ${sectionsToRestore.length} user-controlled sections`)
         setTimeout(() => {
           sectionsToRestore.forEach(sectionKey => {
             options.toggleSection!(sectionKey)
+            console.log(`🔄 Restored user section: ${sectionKey}`)
           })
         }, 500)
       }
+      
+      console.log('✅ PDF export process complete')
     }
   }, [filename])
   
