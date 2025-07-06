@@ -118,32 +118,32 @@ export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) 
             <div className="p-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full">
               <Zap className="h-3 w-3 text-white" />
             </div>
-            <h4 className="text-sm font-semibold text-gray-900">What You'll Get</h4>
+            <h4 className="text-base font-semibold text-gray-900">What You'll Get</h4>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <div className="group flex items-center space-x-2 p-1.5 rounded-md hover:bg-white/60 transition-all duration-200 cursor-default">
               <div className="p-1 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors">
-                <Brain className="w-3 h-3 text-emerald-600" />
+                <Brain className="w-3.5 h-3.5 text-emerald-600" />
               </div>
-              <span className="text-xs font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">Client intelligence</span>
+              <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">Client intelligence</span>
             </div>
             <div className="group flex items-center space-x-2 p-1.5 rounded-md hover:bg-white/60 transition-all duration-200 cursor-default">
               <div className="p-1 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
-                <Target className="w-3 h-3 text-blue-600" />
+                <Target className="w-3.5 h-3.5 text-blue-600" />
               </div>
-              <span className="text-xs font-medium text-gray-700 group-hover:text-blue-700 transition-colors">Strategic insights</span>
+              <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700 transition-colors">Strategic insights</span>
             </div>
             <div className="group flex items-center space-x-2 p-1.5 rounded-md hover:bg-white/60 transition-all duration-200 cursor-default">
               <div className="p-1 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
-                <MessageSquare className="w-3 h-3 text-purple-600" />
+                <MessageSquare className="w-3.5 h-3.5 text-purple-600" />
               </div>
-              <span className="text-xs font-medium text-gray-700 group-hover:text-purple-700 transition-colors">Follow-up content</span>
+              <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700 transition-colors">Follow-up content</span>
             </div>
             <div className="group flex items-center space-x-2 p-1.5 rounded-md hover:bg-white/60 transition-all duration-200 cursor-default">
               <div className="p-1 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-colors">
-                <ArrowRight className="w-3 h-3 text-orange-600" />
+                <ArrowRight className="w-3.5 h-3.5 text-orange-600" />
               </div>
-              <span className="text-xs font-medium text-gray-700 group-hover:text-orange-700 transition-colors">Next steps</span>
+              <span className="text-sm font-medium text-gray-700 group-hover:text-orange-700 transition-colors">Next steps</span>
             </div>
           </div>
         </div>
