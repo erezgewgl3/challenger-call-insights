@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -172,8 +173,30 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
           </div>
         ) : (
           <div className="relative">
-            <ScrollArea className="max-h-96" style={{ scrollbarGutter: "stable" }}>
-              <div className="space-y-3 pr-2">
+            <div 
+              className="max-h-96 overflow-y-auto pr-2"
+              style={{
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#64748b #e2e8f0'
+              }}
+            >
+              <style jsx>{`
+                div::-webkit-scrollbar {
+                  width: 8px;
+                }
+                div::-webkit-scrollbar-track {
+                  background: #f1f5f9;
+                  border-radius: 4px;
+                }
+                div::-webkit-scrollbar-thumb {
+                  background: #64748b;
+                  border-radius: 4px;
+                }
+                div::-webkit-scrollbar-thumb:hover {
+                  background: #475569;
+                }
+              `}</style>
+              <div className="space-y-3">
                 {filteredTranscripts.map((transcript) => (
                   <div
                     key={transcript.id}
@@ -249,7 +272,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </div>
             {filteredTranscripts.length > 4 && (
               <div className="absolute bottom-0 left-0 right-0 h-6 bg-gradient-to-t from-white to-transparent pointer-events-none" />
             )}
