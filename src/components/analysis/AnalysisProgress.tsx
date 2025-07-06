@@ -99,7 +99,7 @@ export function AnalysisProgress({
 
   return (
     <Card className="shadow-md bg-white animate-fade-in">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2">
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center space-x-2 text-lg text-slate-900">
             <div className="p-1.5 bg-blue-50 rounded-lg border border-blue-200">
@@ -124,24 +124,24 @@ export function AnalysisProgress({
       </CardHeader>
 
       <CardContent className="pt-0">
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center space-x-4">
           {/* Animated Spinner */}
           <div className="flex-shrink-0">
-            <div className="relative w-20 h-20 flex items-center justify-center">
+            <div className="relative w-16 h-16 flex items-center justify-center">
               {progress >= 100 ? (
-                <div className={`w-16 h-16 rounded-full bg-${strategyInfo.color}-100 flex items-center justify-center`}>
-                  <CheckCircle className={`w-8 h-8 text-${strategyInfo.color}-600`} />
+                <div className={`w-12 h-12 rounded-full bg-${strategyInfo.color}-100 flex items-center justify-center`}>
+                  <CheckCircle className={`w-6 h-6 text-${strategyInfo.color}-600`} />
                 </div>
               ) : (
-                <div className={`w-16 h-16 rounded-full bg-${strategyInfo.color}-100 flex items-center justify-center`}>
-                  <Loader className={`w-8 h-8 text-${strategyInfo.color}-600 animate-spin`} />
+                <div className={`w-12 h-12 rounded-full bg-${strategyInfo.color}-100 flex items-center justify-center`}>
+                  <Loader className={`w-6 h-6 text-${strategyInfo.color}-600 animate-spin`} />
                 </div>
               )}
             </div>
           </div>
 
           {/* Information Display */}
-          <div className="flex-1 space-y-4">
+          <div className="flex-1 space-y-3">
             {/* Current Status */}
             <div>
               <h3 className="text-base font-semibold text-slate-900">
@@ -167,17 +167,17 @@ export function AnalysisProgress({
             </div>
 
             {/* Stage Progress */}
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {stages.map((stage, index) => (
                 <div key={stage.id} className="flex items-center space-x-3">
                   {/* Stage Indicator */}
-                  <div className="flex items-center justify-center w-5 h-5">
+                  <div className="flex items-center justify-center w-4 h-4">
                     {stage.isCompleted ? (
-                      <CheckCircle className={`w-4 h-4 text-${strategyInfo.color}-600`} />
+                      <CheckCircle className={`w-3.5 h-3.5 text-${strategyInfo.color}-600`} />
                     ) : stage.isCurrent ? (
-                      <div className={`w-2 h-2 rounded-full bg-${strategyInfo.color}-500 animate-pulse`} />
+                      <div className={`w-1.5 h-1.5 rounded-full bg-${strategyInfo.color}-500 animate-pulse`} />
                     ) : (
-                      <div className="w-2 h-2 rounded-full bg-slate-300" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-slate-300" />
                     )}
                   </div>
                   
@@ -194,7 +194,7 @@ export function AnalysisProgress({
             </div>
 
             {/* Time Estimation */}
-            <div className="flex items-center space-x-2 text-sm text-slate-500 pt-1 border-t border-slate-100">
+            <div className="flex items-center space-x-2 text-sm text-slate-500 mt-2">
               <Clock className="w-3 h-3" />
               <span>Expected: {getTimeEstimate()}</span>
             </div>
