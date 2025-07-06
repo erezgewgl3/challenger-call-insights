@@ -2,7 +2,7 @@ import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Clock, Users, TrendingUp, ArrowRight, Upload, Flame, AlertTriangle, Minus } from 'lucide-react'
+import { Clock, Users, TrendingUp, ArrowRight, Upload } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
 
@@ -29,11 +29,16 @@ export function RecentTranscripts() {
     }
   }
 
-  const getHeatIndicator = (analysis: any) => {
+  const getHeatLevel = (analysis: any) => {
     // Extract heat level from existing analysis data
-    const heatLevel = analysis?.recommendations?.heat_level || 
-                     analysis?.guidance?.heat_level || 
-                     analysis?.call_summary?.heat_level
+    return analysis?.recommendations?.heat_level || 
+           analysis?.guidance?.heat_level || 
+           analysis?.call_summary?.heat_level ||
+           analysis?.dealHeat
+  }
+
+  const getHeatIndicator = (analysis: any) => {
+    const heatLevel = getHeatLevel(analysis)
 
     if (!heatLevel) return null
 
@@ -41,28 +46,53 @@ export function RecentTranscripts() {
       case 'HIGH':
         return (
           <div className="flex items-center space-x-1">
-            <Flame className="h-4 w-4 text-red-500" />
+            <span className="text-lg">🔥</span>
             <span className="text-xs font-medium text-red-700">HIGH HEAT</span>
           </div>
         )
       case 'MEDIUM':
         return (
           <div className="flex items-center space-x-1">
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
+            <span className="text-lg">🌡️</span>
             <span className="text-xs font-medium text-orange-700">MEDIUM HEAT</span>
           </div>
         )
       case 'LOW':
         return (
           <div className="flex items-center space-x-1">
-            <Minus className="h-4 w-4 text-slate-400" />
-            <span className="text-xs font-medium text-slate-500">LOW HEAT</span>
+            <span className="text-lg">❄️</span>
+            <span className="text-xs font-medium text-blue-600">LOW HEAT</span>
           </div>
         )
       default:
         return null
     }
   }
+
+  const getHeatSortValue = (heatLevel: string) => {
+    switch (heatLevel?.toUpperCase()) {
+      case 'HIGH': return 3
+      case 'MEDIUM': return 2
+      case 'LOW': return 1
+      default: return 0
+    }
+  }
+
+  // Sort transcripts by heat level (highest first), then by date
+  const sortedTranscripts = [...transcripts].sort((a, b) => {
+    const heatA = getHeatLevel(a.conversation_analysis?.[0])
+    const heatB = getHeatLevel(b.conversation_analysis?.[0])
+    
+    const heatValueA = getHeatSortValue(heatA)
+    const heatValueB = getHeatSortValue(heatB)
+    
+    if (heatValueA !== heatValueB) {
+      return heatValueB - heatValueA // Sort by heat descending
+    }
+    
+    // If heat is the same, sort by date (most recent first)
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`
@@ -116,7 +146,7 @@ export function RecentTranscripts() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {transcripts.length === 0 ? (
+        {sortedTranscripts.length === 0 ? (
           <div className="text-center py-8 space-y-4">
             <div className="p-4 bg-slate-50 rounded-lg">
               <Upload className="h-8 w-8 text-slate-400 mx-auto mb-2" />
@@ -126,7 +156,7 @@ export function RecentTranscripts() {
           </div>
         ) : (
           <div className="space-y-4">
-            {transcripts.map((transcript) => (
+            {sortedTranscripts.map((transcript) => (
               <div
                 key={transcript.id}
                 className="p-4 border rounded-lg hover:bg-slate-50 transition-colors group cursor-pointer"
@@ -134,10 +164,18 @@ export function RecentTranscripts() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
-                      {transcript.title}
-                    </h4>
-                    <div className="flex items-center space-x-3 text-sm text-slate-500 mt-1">
+                    <div className="flex items-center space-x-3 mb-1">
+                      <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        {transcript.title}
+                      </h4>
+                      {/* Display heat indicator prominently next to title */}
+                      {getHeatIndicator(transcript.conversation_analysis?.[0]) && (
+                        <div className="flex-shrink-0">
+                          {getHeatIndicator(transcript.conversation_analysis?.[0])}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center space-x-3 text-sm text-slate-500">
                       <span className="flex items-center">
                         <Users className="h-4 w-4 mr-1" />
                         {transcript.participants.length} participants
@@ -181,13 +219,6 @@ export function RecentTranscripts() {
                         </div>
                         <div className="text-xs text-slate-500">Control</div>
                       </div>
-                      
-                      {/* Display heat indicator if available */}
-                      {getHeatIndicator(transcript.conversation_analysis?.[0]) && (
-                        <div className="ml-4 border-l pl-4">
-                          {getHeatIndicator(transcript.conversation_analysis?.[0])}
-                        </div>
-                      )}
                     </div>
                     <Button
                       variant="ghost"
