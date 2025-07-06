@@ -66,16 +66,16 @@ export default function WelcomeDashboard() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-slate-900 mb-2">Welcome to Sales Whisperer</h2>
-          <p className="text-lg text-slate-600">
-            Transform your sales calls into actionable intelligence that wins deals
+        {/* Enhanced Welcome Section with stronger CTA */}
+        <div className="mb-8 text-center">
+          <h2 className="text-4xl font-bold text-slate-900 mb-3">Transform Every Sales Conversation Into Deal Intelligence</h2>
+          <p className="text-xl text-slate-600 max-w-3xl mx-auto">
+            Upload your call transcript and instantly unlock buying signals, stakeholder insights, and strategic next steps to accelerate your deals
           </p>
         </div>
 
         {/* Performance Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-slate-700">Calls Analyzed</CardTitle>
@@ -124,51 +124,69 @@ export default function WelcomeDashboard() {
           </Card>
         </div>
 
-        {/* Main Dashboard Grid - Updated Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-          {/* Upload Section - Now spans 2 columns */}
-          <div className="lg:col-span-2 space-y-6">
-            <TranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
+        {/* Enhanced Upload Section - Now the Hero */}
+        <div className="mb-12">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 shadow-xl">
+            <div className="text-center mb-8">
+              <h3 className="text-3xl font-bold text-white mb-3">Analyze Your Latest Sales Conversation</h3>
+              <p className="text-xl text-blue-100 max-w-2xl mx-auto">
+                Get instant deal intelligence, buying signals, and actionable recommendations to advance your pipeline
+              </p>
+            </div>
+            
+            {/* Upload Card with enhanced styling */}
+            <div className="bg-white rounded-xl shadow-2xl">
+              <TranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
+            </div>
           </div>
+        </div>
 
-          {/* Recent Activity - Now spans 1 column */}
+        {/* Secondary Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Recent Activity */}
           <div className="space-y-6">
             <RecentTranscripts />
-            
+          </div>
+
+          {/* Insights Panel */}
+          <div className="space-y-6">
             <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-3 text-xl text-slate-900">
                   <div className="p-2 bg-indigo-100 rounded-lg">
                     <TrendingUp className="h-6 w-6 text-indigo-600" />
                   </div>
-                  <span>Recent Insights</span>
+                  <span>Deal Intelligence Ready</span>
                 </CardTitle>
                 <CardDescription className="text-slate-600">
-                  Key intelligence from your latest analyzed conversations
+                  Every conversation becomes actionable intelligence for your pipeline
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 {stats.completedTranscripts === 0 ? (
-                  <div className="text-center py-4">
-                    <p className="text-slate-500">Upload and analyze your first call to see intelligence here</p>
+                  <div className="text-center py-6">
+                    <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                      <p className="font-medium text-slate-900 mb-2">Ready to unlock deal intelligence?</p>
+                      <p className="text-sm text-slate-600">Upload your first call transcript above to see personalized insights here</p>
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
                     <div className="border-l-4 border-l-blue-500 pl-4">
                       <p className="font-medium text-slate-900 mb-1">
-                        {stats.averageTeachingScore >= 4 ? 'Strong Teaching Momentum' : 'Building Teaching Skills'}
+                        {stats.averageTeachingScore >= 4 ? 'Strong Deal Momentum' : 'Building Deal Momentum'}
                       </p>
                       <p className="text-sm text-slate-600">
                         {stats.averageTeachingScore >= 4 
-                          ? 'Your insights are creating strong impact. Keep challenging assumptions!'
-                          : 'Focus on sharing more industry insights and challenging customer thinking.'
+                          ? 'Your conversations are creating strong buying signals. Keep driving urgency!'
+                          : 'Focus on challenging assumptions and creating urgency to accelerate deals.'
                         }
                       </p>
                     </div>
                     <div className="border-l-4 border-l-green-500 pl-4">
-                      <p className="font-medium text-slate-900 mb-1">Sales Intelligence Ready</p>
+                      <p className="font-medium text-slate-900 mb-1">Intelligence Pipeline Active</p>
                       <p className="text-sm text-slate-600">
-                        Each analyzed call provides actionable intelligence to help you win more deals.
+                        Each analyzed conversation provides deal-advancing intelligence and next steps.
                       </p>
                     </div>
                   </div>
@@ -182,9 +200,9 @@ export default function WelcomeDashboard() {
         {stats.totalTranscripts === 0 && !isLoading && (
           <Card className="shadow-md bg-white">
             <CardHeader>
-              <CardTitle className="text-xl text-slate-900">Getting Started with Sales Intelligence</CardTitle>
+              <CardTitle className="text-xl text-slate-900">Transform Sales Conversations Into Deal Intelligence</CardTitle>
               <CardDescription className="text-slate-600">
-                Follow these steps to transform your sales conversations into winning intelligence
+                Follow these steps to unlock buying signals and accelerate your deals
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -193,9 +211,9 @@ export default function WelcomeDashboard() {
                   <span className="text-xs font-bold text-white">1</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900">Upload Your Sales Call</h4>
+                  <h4 className="font-semibold text-slate-900">Upload Your Sales Conversation</h4>
                   <p className="text-slate-600 text-sm">
-                    Upload a sales conversation transcript to get AI-powered intelligence analysis.
+                    Upload any sales call transcript to get AI-powered deal intelligence analysis.
                   </p>
                 </div>
               </div>
@@ -204,9 +222,9 @@ export default function WelcomeDashboard() {
                   <span className="text-xs font-bold text-white">2</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900">Get Sales Intelligence</h4>
+                  <h4 className="font-semibold text-slate-900">Discover Hidden Buying Signals</h4>
                   <p className="text-slate-600 text-sm">
-                    Receive detailed client insights, buying signals, and actionable recommendations.
+                    Uncover stakeholder insights, urgency indicators, and competitive intelligence.
                   </p>
                 </div>
               </div>
@@ -215,9 +233,9 @@ export default function WelcomeDashboard() {
                   <span className="text-xs font-bold text-white">3</span>
                 </div>
                 <div>
-                  <h4 className="font-semibold text-slate-900">Execute & Win Deals</h4>
+                  <h4 className="font-semibold text-slate-900">Accelerate Deal Progression</h4>
                   <p className="text-slate-600 text-sm">
-                    Use copy-paste ready follow-ups and strategic recommendations to advance your deals.
+                    Execute strategic follow-ups and next steps designed to advance your opportunities.
                   </p>
                 </div>
               </div>
