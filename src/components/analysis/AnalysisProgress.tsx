@@ -25,32 +25,76 @@ export function AnalysisProgress({
 }: AnalysisProgressProps) {
   const [displayProgress, setDisplayProgress] = useState(0)
   const [timeRemaining, setTimeRemaining] = useState<number>(0)
+  const [analysisStartTime, setAnalysisStartTime] = useState<number>(Date.now())
 
-  // Smooth progress animation
+  // Initialize analysis start time
   useEffect(() => {
+    if (progress > 0) {
+      setAnalysisStartTime(Date.now())
+    }
+  }, [])
+
+  // Enhanced progress mapping with realistic phases
+  const getEnhancedProgress = (rawProgress: number) => {
+    if (rawProgress <= 25) {
+      // File upload phase: 0-15%
+      return Math.min(15, rawProgress * 0.6)
+    } else if (rawProgress <= 40) {
+      // Initial processing: 15-30%
+      return 15 + ((rawProgress - 25) / 15) * 15
+    } else if (rawProgress <= 60) {
+      // AI analysis start: 30-50%
+      return 30 + ((rawProgress - 40) / 20) * 20
+    } else if (rawProgress <= 90) {
+      // Deep analysis: 50-85%
+      return 50 + ((rawProgress - 60) / 30) * 35
+    } else {
+      // Finalizing results: 85-100%
+      return 85 + ((rawProgress - 90) / 10) * 15
+    }
+  }
+
+  // Smooth progress animation with enhanced mapping
+  useEffect(() => {
+    const enhancedProgress = getEnhancedProgress(progress)
     const timer = setTimeout(() => {
-      setDisplayProgress(progress)
+      setDisplayProgress(enhancedProgress)
     }, 100)
     return () => clearTimeout(timer)
   }, [progress])
 
-  // Countdown timer effect
+  // Real-time countdown timer
   useEffect(() => {
     if (!estimatedTime) return
 
-    const totalSeconds = estimatedTime.includes('8') ? 8 : 
-                        estimatedTime.includes('25') ? 25 : 60
-    
-    const remaining = Math.max(0, totalSeconds - (progress / 100) * totalSeconds)
-    setTimeRemaining(Math.ceil(remaining))
+    // Extract seconds from estimated time string
+    const getSecondsFromEstimate = (estimate: string) => {
+      if (estimate.includes('8')) return 8
+      if (estimate.includes('25')) return 25
+      if (estimate.includes('60')) return 60
+      return 30 // default fallback
+    }
 
-    if (remaining > 0) {
+    const totalSeconds = getSecondsFromEstimate(estimatedTime)
+    const elapsedSeconds = Math.floor((Date.now() - analysisStartTime) / 1000)
+    const remaining = Math.max(0, totalSeconds - elapsedSeconds)
+    
+    setTimeRemaining(remaining)
+
+    if (remaining > 0 && progress < 100) {
       const interval = setInterval(() => {
-        setTimeRemaining(prev => Math.max(0, prev - 1))
+        const currentElapsed = Math.floor((Date.now() - analysisStartTime) / 1000)
+        const currentRemaining = Math.max(0, totalSeconds - currentElapsed)
+        setTimeRemaining(currentRemaining)
+        
+        if (currentRemaining === 0) {
+          clearInterval(interval)
+        }
       }, 1000)
+      
       return () => clearInterval(interval)
     }
-  }, [estimatedTime, progress])
+  }, [estimatedTime, analysisStartTime, progress])
 
   const getStrategyInfo = () => {
     switch (strategy) {
@@ -79,15 +123,16 @@ export function AnalysisProgress({
   }
 
   const getCurrentPhase = () => {
-    if (progress <= 20) return 'Uploading transcript...'
-    if (progress <= 30) return 'Analyzing conversation...'
-    if (progress <= 90) return 'Discovering insights...'
-    return 'Preparing results...'
+    if (displayProgress <= 15) return 'Uploading transcript...'
+    if (displayProgress <= 30) return 'Processing file...'
+    if (displayProgress <= 50) return 'Starting AI analysis...'
+    if (displayProgress <= 85) return 'Analyzing conversation...'
+    return 'Finalizing insights...'
   }
 
   const strategyInfo = getStrategyInfo()
   const currentPhase = getCurrentPhase()
-  const circumference = 2 * Math.PI * 36 // radius of 36 for smaller ring
+  const circumference = 2 * Math.PI * 36
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return 'Unknown size'
@@ -98,9 +143,9 @@ export function AnalysisProgress({
 
   const getProgressSteps = () => {
     return [
-      { completed: progress > 20, text: 'File uploaded' },
-      { completed: progress > 50, text: 'AI analyzing' },
-      { completed: progress > 90, text: 'Generating results' }
+      { completed: displayProgress > 15, text: 'File uploaded' },
+      { completed: displayProgress > 50, text: 'AI analyzing' },
+      { completed: displayProgress > 85, text: 'Generating results' }
     ]
   }
 
@@ -131,13 +176,11 @@ export function AnalysisProgress({
       </CardHeader>
 
       <CardContent className="pt-0">
-        {/* Horizontal Layout */}
         <div className="flex items-center space-x-6">
-          {/* Compact Progress Ring */}
+          {/* Enhanced Progress Ring */}
           <div className="flex-shrink-0">
             <div className="relative w-20 h-20">
               <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
-                {/* Background circle */}
                 <circle
                   cx="40"
                   cy="40"
@@ -147,7 +190,6 @@ export function AnalysisProgress({
                   fill="transparent"
                   className="text-slate-200"
                 />
-                {/* Progress circle */}
                 <circle
                   cx="40"
                   cy="40"
@@ -166,9 +208,9 @@ export function AnalysisProgress({
                   <div className={`text-lg font-bold text-${strategyInfo.color}-600`}>
                     {Math.round(displayProgress)}%
                   </div>
-                  {timeRemaining > 0 && (
+                  {timeRemaining > 0 && progress < 100 && (
                     <div className="text-xs text-slate-500">
-                      {timeRemaining}s
+                      {timeRemaining}s left
                     </div>
                   )}
                 </div>
@@ -176,7 +218,7 @@ export function AnalysisProgress({
             </div>
           </div>
 
-          {/* Consolidated Information */}
+          {/* Enhanced Information Display */}
           <div className="flex-1 space-y-3">
             {/* Current Phase */}
             <div>
@@ -189,13 +231,18 @@ export function AnalysisProgress({
                       <span className="truncate max-w-32">{fileName}</span>
                     </div>
                     {fileSize && <span>• {formatFileSize(fileSize)}</span>}
-                    {fileDuration && <span>• {fileDuration} min</span>}
+                    {fileDuration && (
+                      <span className="flex items-center space-x-1">
+                        <span>•</span>
+                        <span className="font-medium">Meeting length: {fileDuration} min</span>
+                      </span>
+                    )}
                   </>
                 )}
               </div>
             </div>
 
-            {/* Inline Progress Steps */}
+            {/* Progress Steps */}
             <div className="flex items-center space-x-4">
               {getProgressSteps().map((step, index) => (
                 <div key={index} className="flex items-center space-x-1">
@@ -211,11 +258,18 @@ export function AnalysisProgress({
               ))}
             </div>
 
-            {/* Estimated Time */}
+            {/* Time Estimation */}
             {estimatedTime && (
               <div className="flex items-center space-x-1 text-sm text-slate-500">
                 <Clock className="w-3 h-3" />
-                <span>Estimated: {estimatedTime}</span>
+                <span>
+                  Estimated total: {estimatedTime}
+                  {timeRemaining > 0 && progress < 100 && (
+                    <span className="ml-2 font-medium text-slate-700">
+                      ({timeRemaining}s remaining)
+                    </span>
+                  )}
+                </span>
               </div>
             )}
           </div>

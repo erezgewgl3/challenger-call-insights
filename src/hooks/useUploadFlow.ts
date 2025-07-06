@@ -26,24 +26,38 @@ export function useUploadFlow() {
   const navigate = useNavigate()
   const { status: analysisStatus } = useAnalysisStatus(state.currentTranscriptId || undefined)
 
-  // Update progress based on analysis status
+  // Enhanced progress mapping based on analysis status
   useEffect(() => {
     if (!state.currentTranscriptId || !analysisStatus) return
 
     switch (analysisStatus.status) {
       case 'uploaded':
-        setState(prev => ({ ...prev, analysisProgress: 25 }))
+        // File uploaded, starting processing
+        setState(prev => ({ ...prev, analysisProgress: 20 }))
         break
       case 'processing':
-        setState(prev => ({ ...prev, analysisProgress: 60 }))
-        break
+        // AI analysis in progress - simulate gradual progress
+        setState(prev => ({ ...prev, analysisProgress: 45 }))
+        
+        // Simulate intermediate progress updates during processing
+        const progressInterval = setInterval(() => {
+          setState(prev => {
+            if (prev.analysisProgress < 85) {
+              return { ...prev, analysisProgress: prev.analysisProgress + 5 }
+            }
+            return prev
+          })
+        }, 2000) // Update every 2 seconds
+        
+        return () => clearInterval(progressInterval)
+        
       case 'completed':
         setState(prev => ({ 
           ...prev, 
           uploadStatus: 'completed', 
           analysisProgress: 100 
         }))
-        // Auto-navigate to results after a brief delay
+        // Auto-navigate to results after completion celebration
         setTimeout(() => {
           navigate(`/analysis/${state.currentTranscriptId}`)
         }, 1500)
@@ -58,25 +72,33 @@ export function useUploadFlow() {
     }
   }, [analysisStatus, state.currentTranscriptId, navigate])
 
+  const calculateEstimatedTime = (durationMinutes?: number) => {
+    if (!durationMinutes) return '~8 seconds'
+    
+    if (durationMinutes <= 5) return '~8 seconds'
+    if (durationMinutes <= 30) return '~25 seconds'
+    if (durationMinutes <= 60) return '~45 seconds'
+    return '~60 seconds'
+  }
+
   const startUpload = useCallback(() => {
     setState({
       uploadStatus: 'uploading',
       currentTranscriptId: null,
-      analysisProgress: 10,
+      analysisProgress: 5, // Start with small progress
       error: null,
       estimatedTime: null
     })
   }, [])
 
   const uploadComplete = useCallback((transcriptId: string, durationMinutes?: number) => {
-    const estimatedTime = durationMinutes && durationMinutes <= 30 ? '~8 seconds' : 
-                         durationMinutes && durationMinutes <= 90 ? '~20 seconds' : '~45 seconds'
+    const estimatedTime = calculateEstimatedTime(durationMinutes)
     
     setState(prev => ({
       ...prev,
       uploadStatus: 'processing',
       currentTranscriptId: transcriptId,
-      analysisProgress: 40,
+      analysisProgress: 15, // File uploaded successfully
       estimatedTime
     }))
   }, [])

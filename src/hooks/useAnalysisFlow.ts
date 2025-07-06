@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
@@ -35,17 +34,46 @@ export function useAnalysisFlow() {
   const navigate = useNavigate()
   const { status: analysisStatus } = useAnalysisStatus(state.currentTranscriptId || undefined)
 
-  // Update progress based on analysis status
+  // Calculate more accurate time estimation based on file characteristics
+  const calculateEstimatedTime = (durationMinutes?: number) => {
+    if (!durationMinutes) return '~8 seconds'
+    
+    // More nuanced time estimation
+    if (durationMinutes <= 5) return '~8 seconds'
+    if (durationMinutes <= 15) return '~15 seconds'
+    if (durationMinutes <= 30) return '~25 seconds'
+    if (durationMinutes <= 60) return '~45 seconds'
+    return '~60 seconds'
+  }
+
+  // Enhanced progress tracking with realistic phases
   useEffect(() => {
     if (!state.currentTranscriptId || !analysisStatus) return
 
     switch (analysisStatus.status) {
       case 'uploaded':
-        setState(prev => ({ ...prev, analysisProgress: 25 }))
+        // File processed, analysis queued
+        setState(prev => ({ ...prev, analysisProgress: 20 }))
         break
       case 'processing':
-        setState(prev => ({ ...prev, analysisProgress: 60 }))
-        break
+        // Start with moderate progress, then simulate gradual increase
+        setState(prev => ({ ...prev, analysisProgress: 40 }))
+        
+        // Simulate realistic progress during analysis
+        let currentProgress = 40
+        const progressInterval = setInterval(() => {
+          setState(prev => {
+            if (prev.analysisProgress < 85) {
+              // Slower progress in middle phases (more realistic)
+              const increment = prev.analysisProgress < 60 ? 8 : 4
+              return { ...prev, analysisProgress: Math.min(85, prev.analysisProgress + increment) }
+            }
+            return prev
+          })
+        }, 3000) // Update every 3 seconds for more realistic pacing
+        
+        return () => clearInterval(progressInterval)
+        
       case 'completed':
         // Celebration phase before showing results
         setState(prev => ({ 
@@ -74,12 +102,15 @@ export function useAnalysisFlow() {
   }, [analysisStatus, state.currentTranscriptId])
 
   const startUpload = useCallback((uploadContext: AnalysisFlowState['uploadContext']) => {
+    const estimatedTime = calculateEstimatedTime(uploadContext.fileDuration)
+    
     setState(prev => ({
       ...prev,
       currentView: 'progress',
       transitionState: 'transitioning',
-      analysisProgress: 10,
+      analysisProgress: 5, // Start with minimal progress
       error: null,
+      estimatedTime,
       uploadContext
     }))
     
@@ -90,13 +121,12 @@ export function useAnalysisFlow() {
   }, [])
 
   const uploadComplete = useCallback((transcriptId: string, durationMinutes?: number) => {
-    const estimatedTime = durationMinutes && durationMinutes <= 30 ? '~8 seconds' : 
-                         durationMinutes && durationMinutes <= 90 ? '~25 seconds' : '~60 seconds'
+    const estimatedTime = calculateEstimatedTime(durationMinutes)
     
     setState(prev => ({
       ...prev,
       currentTranscriptId: transcriptId,
-      analysisProgress: 40,
+      analysisProgress: 15, // File uploaded successfully
       estimatedTime
     }))
   }, [])
