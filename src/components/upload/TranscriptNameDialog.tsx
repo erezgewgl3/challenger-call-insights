@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { FileText } from 'lucide-react'
 import {
   Dialog,
@@ -30,14 +30,11 @@ export function TranscriptNameDialog({
 }: TranscriptNameDialogProps) {
   const [name, setName] = useState('')
 
-  // Update name when defaultName changes
-  useEffect(() => {
-    setName(defaultName)
-  }, [defaultName])
-
   const handleConfirm = () => {
-    if (name.trim()) {
-      onConfirm(name.trim())
+    // Use user input if provided, otherwise use the default name (placeholder)
+    const finalName = name.trim() || defaultName
+    if (finalName) {
+      onConfirm(finalName)
     }
   }
 
@@ -46,10 +43,6 @@ export function TranscriptNameDialog({
       e.preventDefault()
       handleConfirm()
     }
-  }
-
-  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    e.target.select()
   }
 
   const formatFileSize = (bytes: number) => {
@@ -93,7 +86,7 @@ export function TranscriptNameDialog({
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={handleKeyDown}
-            onFocus={handleFocus}
+            placeholder={defaultName}
             className="w-full"
             autoFocus
           />
@@ -103,10 +96,7 @@ export function TranscriptNameDialog({
           <Button variant="outline" onClick={onClose}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleConfirm}
-            disabled={!name.trim()}
-          >
+          <Button onClick={handleConfirm}>
             Continue Analysis
           </Button>
         </DialogFooter>
