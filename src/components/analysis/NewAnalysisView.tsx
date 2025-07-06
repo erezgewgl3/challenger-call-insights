@@ -493,12 +493,12 @@ export function NewAnalysisView({
                   {isExporting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Generating Professional PDF...
+                      Generating PDF...
                     </>
                   ) : (
                     <>
                       <Download className="w-4 h-4 mr-2" />
-                      Export Professional PDF
+                      Export PDF
                     </>
                   )}
                 </Button>
