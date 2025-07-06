@@ -6,6 +6,7 @@ import { UploadProgress } from '@/components/upload/UploadProgress'
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { SalesIntelligenceView } from '@/components/analysis/SalesIntelligenceView'
+import { Separator } from '@/components/ui/separator'
 import { useState } from 'react'
 
 console.log('🔍 WelcomeDashboard.tsx file loaded')
@@ -82,6 +83,11 @@ export default function WelcomeDashboard() {
               <TranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
             </div>
           </div>
+        </div>
+
+        {/* Subtle Separator */}
+        <div className="mb-8">
+          <Separator className="bg-slate-200" />
         </div>
 
         {/* Heat-Based Deal Sections - Enhanced with more real estate */}
