@@ -4,7 +4,7 @@ import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
 import { TranscriptUpload } from '@/components/upload/TranscriptUpload'
 import { UploadProgress } from '@/components/upload/UploadProgress'
-import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
+import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { SalesIntelligenceView } from '@/components/analysis/SalesIntelligenceView'
 import { useState } from 'react'
@@ -238,56 +238,74 @@ export default function WelcomeDashboard() {
           </div>
         </div>
 
-        {/* Secondary Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Recent Activity */}
-          <div className="space-y-6">
-            <RecentTranscripts />
+        {/* Heat-Based Deal Sections */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-2xl font-bold text-slate-900">Deal Intelligence Pipeline</h3>
+            <p className="text-slate-600">Organized by opportunity heat level</p>
           </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <HeatDealsSection 
+              heatLevel="HIGH" 
+              transcripts={transcripts} 
+              isLoading={isLoading} 
+            />
+            <HeatDealsSection 
+              heatLevel="MEDIUM" 
+              transcripts={transcripts} 
+              isLoading={isLoading} 
+            />
+            <HeatDealsSection 
+              heatLevel="LOW" 
+              transcripts={transcripts} 
+              isLoading={isLoading} 
+            />
+          </div>
+        </div>
 
-          {/* Deal Intelligence Panel */}
-          <div className="space-y-6">
-            <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-3 text-xl text-slate-900">
-                  <div className="p-2 bg-indigo-100 rounded-lg">
-                    <TrendingUp className="h-6 w-6 text-indigo-600" />
+        {/* Deal Intelligence Panel */}
+        <div className="mb-8">
+          <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-3 text-xl text-slate-900">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <TrendingUp className="h-6 w-6 text-indigo-600" />
+                </div>
+                <span>Deal Intelligence</span>
+              </CardTitle>
+              <CardDescription className="text-slate-600">
+                Insights extracted from your analyzed conversations
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {dealIntelligenceInsights.length === 0 ? (
+                <div className="text-center py-6">
+                  <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
+                    <p className="font-medium text-slate-900 mb-2">Ready to unlock deal intelligence?</p>
+                    <p className="text-sm text-slate-600">Upload your first conversation transcript above to see personalized insights here</p>
                   </div>
-                  <span>Deal Intelligence</span>
-                </CardTitle>
-                <CardDescription className="text-slate-600">
-                  Insights extracted from your analyzed conversations
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {dealIntelligenceInsights.length === 0 ? (
-                  <div className="text-center py-6">
-                    <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-                      <p className="font-medium text-slate-900 mb-2">Ready to unlock deal intelligence?</p>
-                      <p className="text-sm text-slate-600">Upload your first conversation transcript above to see personalized insights here</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {dealIntelligenceInsights.map((insight, index) => (
+                    <div key={index} className="border-l-4 border-l-blue-500 pl-4">
+                      <p className="font-medium text-slate-900 mb-1 flex items-center space-x-2">
+                        <span className="text-lg">{insight.icon}</span>
+                        <span>{insight.text}</span>
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        {insight.type === 'high-heat' && 'Strong buying signals detected - prioritize these opportunities'}
+                        {insight.type === 'budget' && 'Budget conversations indicate serious evaluation - prepare pricing discussions'}
+                        {insight.type === 'timeline' && 'Time-sensitive opportunities - accelerate your sales process'}
+                        {insight.type === 'competitive' && 'Competitive situations identified - strengthen your differentiation'}
+                      </p>
                     </div>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {dealIntelligenceInsights.map((insight, index) => (
-                      <div key={index} className="border-l-4 border-l-blue-500 pl-4">
-                        <p className="font-medium text-slate-900 mb-1 flex items-center space-x-2">
-                          <span className="text-lg">{insight.icon}</span>
-                          <span>{insight.text}</span>
-                        </p>
-                        <p className="text-sm text-slate-600">
-                          {insight.type === 'high-heat' && 'Strong buying signals detected - prioritize these opportunities'}
-                          {insight.type === 'budget' && 'Budget conversations indicate serious evaluation - prepare pricing discussions'}
-                          {insight.type === 'timeline' && 'Time-sensitive opportunities - accelerate your sales process'}
-                          {insight.type === 'competitive' && 'Competitive situations identified - strengthen your differentiation'}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
         {/* Getting Started Guide - Only show if no transcripts */}
