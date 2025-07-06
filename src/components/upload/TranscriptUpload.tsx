@@ -96,11 +96,6 @@ export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) 
                   uploadStatus={file.status}
                   analysisProgress={file.progress}
                   error={file.error || null}
-                  estimatedTime={file.metadata?.durationMinutes ? 
-                    (file.metadata.durationMinutes <= 30 ? '8 seconds' : 
-                     file.metadata.durationMinutes <= 90 ? '20 seconds' : '45 seconds') : 
-                    '8 seconds'
-                  }
                   onRetry={() => retryFile(file.id)}
                   onUploadAnother={handleClearAll}
                   fileName={file.file.name}
