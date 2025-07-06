@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
@@ -14,11 +15,107 @@ export default function WelcomeDashboard() {
   console.log('🔍 WelcomeDashboard MOUNTED')
   console.log('🔍 Current route:', window.location.pathname)
   
-  const { stats, isLoading } = useTranscriptData()
+  const { stats, transcripts, isLoading } = useTranscriptData()
   const [currentView, setCurrentView] = useState<'dashboard' | 'intelligence'>('dashboard')
   const [currentTranscriptId, setCurrentTranscriptId] = useState<string | null>(null)
 
   console.log('🔍 Component states:', { currentView, currentTranscriptId })
+
+  // Analyze transcript data for deal intelligence insights
+  const analyzeDealIntelligence = () => {
+    const completedTranscripts = transcripts.filter(t => t.status === 'completed' && t.conversation_analysis?.length > 0)
+    
+    if (completedTranscripts.length === 0) return []
+
+    const insights = []
+    
+    // Count HIGH heat deals
+    const highHeatDeals = completedTranscripts.filter(t => {
+      const analysis = t.conversation_analysis?.[0]
+      const heatLevel = analysis?.recommendations?.heat_level || 
+                       analysis?.guidance?.heat_level || 
+                       analysis?.call_summary?.heat_level ||
+                       analysis?.dealHeat
+      return heatLevel?.toUpperCase() === 'HIGH'
+    }).length
+
+    if (highHeatDeals > 0) {
+      insights.push({
+        icon: '🔥',
+        text: `${highHeatDeals} conversation${highHeatDeals > 1 ? 's show' : ' shows'} strong buying signals`,
+        type: 'high-heat'
+      })
+    }
+
+    // Analyze for budget mentions
+    const budgetMentions = completedTranscripts.filter(t => {
+      const analysis = t.conversation_analysis?.[0]
+      const hasbudget = analysis?.key_takeaways?.some((takeaway: any) => 
+        typeof takeaway === 'string' && takeaway.toLowerCase().includes('budget')
+      ) || analysis?.call_summary?.budget_discussion ||
+         analysis?.recommendations?.budget_qualified
+      return hasbudget
+    }).length
+
+    if (budgetMentions > 0) {
+      insights.push({
+        icon: '💰',
+        text: `${budgetMentions} prospect${budgetMentions > 1 ? 's discussed' : ' discussed'} specific budget ranges`,
+        type: 'budget'
+      })
+    }
+
+    // Analyze for timeline urgency
+    const timelineUrgency = completedTranscripts.filter(t => {
+      const analysis = t.conversation_analysis?.[0]
+      const hasUrgency = analysis?.key_takeaways?.some((takeaway: any) => 
+        typeof takeaway === 'string' && (
+          takeaway.toLowerCase().includes('urgent') ||
+          takeaway.toLowerCase().includes('deadline') ||
+          takeaway.toLowerCase().includes('timeline') ||
+          takeaway.toLowerCase().includes('asap')
+        )
+      ) || analysis?.recommendations?.urgency_indicators ||
+         analysis?.call_summary?.timeline_pressure
+      return hasUrgency
+    }).length
+
+    if (timelineUrgency > 0) {
+      insights.push({
+        icon: '⏰',
+        text: `${timelineUrgency} deal${timelineUrgency > 1 ? 's have' : ' has'} mentioned deadlines or urgency`,
+        type: 'timeline'
+      })
+    }
+
+    // Analyze for competitive situations
+    const competitiveSituations = completedTranscripts.filter(t => {
+      const analysis = t.conversation_analysis?.[0]
+      const hasCompetition = analysis?.key_takeaways?.some((takeaway: any) => 
+        typeof takeaway === 'string' && (
+          takeaway.toLowerCase().includes('competitor') ||
+          takeaway.toLowerCase().includes('alternative') ||
+          takeaway.toLowerCase().includes('evaluation') ||
+          takeaway.toLowerCase().includes('compare')
+        )
+      ) || analysis?.recommendations?.competitive_intel ||
+         analysis?.call_summary?.competitive_landscape
+      return hasCompetition
+    }).length
+
+    if (competitiveSituations > 0) {
+      insights.push({
+        icon: '⚔️',
+        text: `${competitiveSituations} call${competitiveSituations > 1 ? 's revealed' : ' revealed'} competitive evaluations`,
+        type: 'competitive'
+      })
+    }
+
+    // Return max 3 most relevant insights
+    return insights.slice(0, 3)
+  }
+
+  const dealIntelligenceInsights = analyzeDealIntelligence()
 
   // Handle analysis completion from TranscriptUpload
   const handleAnalysisComplete = (transcriptId: string) => {
@@ -148,7 +245,7 @@ export default function WelcomeDashboard() {
             <RecentTranscripts />
           </div>
 
-          {/* Insights Panel */}
+          {/* Deal Intelligence Panel */}
           <div className="space-y-6">
             <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
               <CardHeader>
@@ -156,14 +253,14 @@ export default function WelcomeDashboard() {
                   <div className="p-2 bg-indigo-100 rounded-lg">
                     <TrendingUp className="h-6 w-6 text-indigo-600" />
                   </div>
-                  <span>Deal Intelligence Ready</span>
+                  <span>Deal Intelligence</span>
                 </CardTitle>
                 <CardDescription className="text-slate-600">
-                  Every conversation becomes actionable intelligence for your pipeline
+                  Insights extracted from your analyzed conversations
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {stats.completedTranscripts === 0 ? (
+                {dealIntelligenceInsights.length === 0 ? (
                   <div className="text-center py-6">
                     <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                       <p className="font-medium text-slate-900 mb-2">Ready to unlock deal intelligence?</p>
@@ -172,23 +269,20 @@ export default function WelcomeDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="border-l-4 border-l-blue-500 pl-4">
-                      <p className="font-medium text-slate-900 mb-1">
-                        {stats.averageTeachingScore >= 4 ? 'Strong Deal Momentum' : 'Building Deal Momentum'}
-                      </p>
-                      <p className="text-sm text-slate-600">
-                        {stats.averageTeachingScore >= 4 
-                          ? 'Your conversations are creating strong buying signals. Keep driving urgency!'
-                          : 'Focus on challenging assumptions and creating urgency to accelerate deals.'
-                        }
-                      </p>
-                    </div>
-                    <div className="border-l-4 border-l-green-500 pl-4">
-                      <p className="font-medium text-slate-900 mb-1">Intelligence Pipeline Active</p>
-                      <p className="text-sm text-slate-600">
-                        Each analyzed conversation provides deal-advancing intelligence and next steps.
-                      </p>
-                    </div>
+                    {dealIntelligenceInsights.map((insight, index) => (
+                      <div key={index} className="border-l-4 border-l-blue-500 pl-4">
+                        <p className="font-medium text-slate-900 mb-1 flex items-center space-x-2">
+                          <span className="text-lg">{insight.icon}</span>
+                          <span>{insight.text}</span>
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          {insight.type === 'high-heat' && 'Strong buying signals detected - prioritize these opportunities'}
+                          {insight.type === 'budget' && 'Budget conversations indicate serious evaluation - prepare pricing discussions'}
+                          {insight.type === 'timeline' && 'Time-sensitive opportunities - accelerate your sales process'}
+                          {insight.type === 'competitive' && 'Competitive situations identified - strengthen your differentiation'}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 )}
               </CardContent>
