@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -11,7 +10,6 @@ interface UploadProgressProps {
   uploadStatus: UploadStatus
   analysisProgress: number
   error: string | null
-  estimatedTime: string | null
   onRetry: () => void
   onUploadAnother: () => void
   fileName?: string
@@ -23,7 +21,6 @@ export function UploadProgress({
   uploadStatus, 
   analysisProgress, 
   error, 
-  estimatedTime, 
   onRetry, 
   onUploadAnother,
   fileName,
@@ -45,7 +42,6 @@ export function UploadProgress({
       <AnalysisProgress
         progress={analysisProgress}
         strategy={getAnalysisStrategy()}
-        estimatedTime={estimatedTime}
         fileName={fileName}
         fileSize={fileSize}
         fileDuration={fileDuration}
