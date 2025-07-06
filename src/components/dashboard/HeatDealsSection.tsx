@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Clock, Users, ArrowRight, TrendingUp } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, differenceInHours, format } from 'date-fns'
 
 interface TranscriptSummary {
   id: string
@@ -114,7 +114,16 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
   const formatAnalysisDate = (dateString: string | undefined) => {
     if (!dateString) return null
     try {
-      return formatDistanceToNow(new Date(dateString), { addSuffix: true })
+      const analysisDate = new Date(dateString)
+      const hoursAgo = differenceInHours(new Date(), analysisDate)
+      
+      // If within 24 hours, show relative time
+      if (hoursAgo < 24) {
+        return formatDistanceToNow(analysisDate, { addSuffix: true })
+      }
+      
+      // If older than 24 hours, show actual date
+      return format(analysisDate, 'MMM d, yyyy')
     } catch {
       return null
     }
