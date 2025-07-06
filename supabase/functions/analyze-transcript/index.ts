@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
@@ -28,8 +27,10 @@ interface ParsedAnalysis {
   actionPlan?: any;
 }
 
-// Shared deal heat calculation logic
+// Frontend-exact deal heat calculation logic (returns string only)
 function calculateDealHeat(analysis: any): string {
+  console.log('🔍 [HEAT] Input analysis structure:', JSON.stringify(analysis, null, 2));
+  
   const painLevel = analysis.call_summary?.painSeverity?.level || 'low'
   const indicators = analysis.call_summary?.painSeverity?.indicators || []
   
@@ -102,6 +103,16 @@ function calculateDealHeat(analysis: any): string {
   
   dealScore = Math.max(0, dealScore - resistancePenalty)
   
+  console.log('🔍 [HEAT] Calculation details:', {
+    painLevel,
+    criticalFactors: criticalFactors.length,
+    businessFactors: businessFactors.length,
+    commitmentSignals: commitmentSignals.length,
+    urgencyScore,
+    dealScore,
+    resistancePenalty
+  });
+  
   if (
     painLevel === 'high' ||
     criticalFactors.length >= 1 ||
@@ -109,15 +120,18 @@ function calculateDealHeat(analysis: any): string {
     (commitmentSignals.length >= 2 && dealScore >= 6) ||
     (painLevel === 'medium' && commitmentSignals.length >= 2 && dealScore >= 5)
   ) {
+    console.log('🔍 [HEAT] Result: HIGH');
     return 'HIGH'
   } else if (
     painLevel === 'medium' || 
     (businessFactors || []).length >= 1 ||
     dealScore >= 3
   ) {
+    console.log('🔍 [HEAT] Result: MEDIUM');
     return 'MEDIUM'
   }
   
+  console.log('🔍 [HEAT] Result: LOW');
   return 'LOW'
 }
 
@@ -215,9 +229,17 @@ serve(async (req) => {
     const parsedResult = parseAIResponse(aiResponse);
     console.log('🔍 [PARSE] AI response parsed successfully');
 
-    // Calculate deal heat using the same logic as frontend
-    console.log('🔍 [HEAT] Calculating deal heat');
-    const heatLevel = calculateDealHeat(parsedResult);
+    // Calculate deal heat using frontend-exact logic with proper data structure
+    console.log('🔍 [HEAT] Calculating deal heat with transformed data structure');
+    
+    // Transform parsedResult to match expected format (Option A)
+    const transformedData = {
+      call_summary: parsedResult.callSummary  // Convert camelCase to snake_case structure
+    };
+    
+    console.log('🔍 [HEAT] Transformed data for heat calculation:', JSON.stringify(transformedData, null, 2));
+    
+    const heatLevel = calculateDealHeat(transformedData);
     console.log('🔍 [HEAT] Deal heat calculated:', heatLevel);
 
     // Save analysis results with heat level
