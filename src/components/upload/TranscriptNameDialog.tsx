@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FileText } from 'lucide-react'
 import {
   Dialog,
@@ -28,7 +28,12 @@ export function TranscriptNameDialog({
   file, 
   defaultName 
 }: TranscriptNameDialogProps) {
-  const [name, setName] = useState(defaultName)
+  const [name, setName] = useState('')
+
+  // Update name when defaultName changes
+  useEffect(() => {
+    setName(defaultName)
+  }, [defaultName])
 
   const handleConfirm = () => {
     if (name.trim()) {
@@ -76,7 +81,6 @@ export function TranscriptNameDialog({
             id="transcript-name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Enter transcript name"
             className="w-full"
             autoFocus
           />
