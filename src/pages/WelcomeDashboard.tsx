@@ -1,11 +1,9 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
 import { TranscriptUpload } from '@/components/upload/TranscriptUpload'
 import { UploadProgress } from '@/components/upload/UploadProgress'
 import { RecentTranscripts } from '@/components/dashboard/RecentTranscripts'
-import { AccountSelector } from '@/components/account/AccountSelector'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { SalesIntelligenceView } from '@/components/analysis/SalesIntelligenceView'
 import { useState } from 'react'
@@ -126,15 +124,14 @@ export default function WelcomeDashboard() {
           </Card>
         </div>
 
-        {/* Main Dashboard Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Upload Section */}
-          <div className="space-y-6">
+        {/* Main Dashboard Grid - Updated Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+          {/* Upload Section - Now spans 2 columns */}
+          <div className="lg:col-span-2 space-y-6">
             <TranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
-            <AccountSelector />
           </div>
 
-          {/* Recent Activity */}
+          {/* Recent Activity - Now spans 1 column */}
           <div className="space-y-6">
             <RecentTranscripts />
             
