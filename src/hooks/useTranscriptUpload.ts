@@ -56,10 +56,10 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
     }
   }
 
-  const extractMetadataFromText = (text: string, fileName: string) => {
+  const extractMetadataFromText = (text: string, fileName: string, customTitle?: string) => {
     // Simple metadata extraction
     const lines = text.split('\n').filter(line => line.trim())
-    const title = fileName.replace(/\.[^/.]+$/, "") // Remove extension
+    const title = customTitle || fileName.replace(/\.[^/.]+$/, "") // Use custom title if provided
     
     // Try to extract participants from common patterns
     const participants: string[] = []
@@ -89,7 +89,7 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
     }
   }
 
-  const processFiles = useCallback(async (files: File[]) => {
+  const processFiles = useCallback(async (files: File[], customName?: string) => {
     const newFiles: UploadFile[] = files.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -108,8 +108,8 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
         const textContent = await extractTextFromFile(uploadFile.file)
         updateFileStatus(uploadFile.id, { progress: 40 })
         
-        // Extract metadata
-        const metadata = extractMetadataFromText(textContent, uploadFile.file.name)
+        // Extract metadata with custom name
+        const metadata = extractMetadataFromText(textContent, uploadFile.file.name, customName)
         updateFileStatus(uploadFile.id, { metadata, progress: 60 })
 
         // Upload phase
