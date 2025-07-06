@@ -77,7 +77,7 @@ export default function WelcomeDashboard() {
         </div>
 
         {/* Performance Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-slate-700">Calls Analyzed</CardTitle>
@@ -93,26 +93,9 @@ export default function WelcomeDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-green-500 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Avg Teaching Score</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {isLoading ? '-' : stats.averageTeachingScore > 0 ? stats.averageTeachingScore.toFixed(1) : 'N/A'}
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {stats.averageTeachingScore >= 4 ? 'Excellent performance' : 
-                 stats.averageTeachingScore >= 3 ? 'Good performance' : 
-                 stats.averageTeachingScore > 0 ? 'Growing skills' : 'Start analyzing calls'}
-              </p>
-            </CardContent>
-          </Card>
-
           <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Avg Call Duration</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-700">Calls Last 7 Days</CardTitle>
               <Clock className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
@@ -129,7 +112,7 @@ export default function WelcomeDashboard() {
 
           <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Active Accounts</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-700">Total Analyzed</CardTitle>
               <Target className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
