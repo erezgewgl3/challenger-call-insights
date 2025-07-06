@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -42,7 +43,7 @@ export function useTranscriptData() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // Fetch recent transcripts with analysis data including full conversation_analysis
+        // Fetch recent transcripts with analysis data including the new heat_level column
         const { data: transcriptsData, error: transcriptsError } = await supabase
           .from('transcripts')
           .select(`
@@ -53,13 +54,17 @@ export function useTranscriptData() {
             created_at,
             status,
             accounts(name),
-            conversation_analysis(challenger_scores, recommendations, guidance, call_summary)
+            conversation_analysis(challenger_scores, recommendations, guidance, call_summary, heat_level)
           `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(10)
 
         if (transcriptsError) throw transcriptsError
+
+        // Debug logging to verify data structure
+        console.log('🔍 DEBUG: Raw transcripts data:', transcriptsData)
+        console.log('🔍 DEBUG: First transcript analysis:', transcriptsData?.[0]?.conversation_analysis)
 
         const formattedTranscripts: TranscriptSummary[] = transcriptsData.map(t => ({
           id: t.id,
@@ -76,6 +81,23 @@ export function useTranscriptData() {
           } | undefined,
           conversation_analysis: t.conversation_analysis as any[]
         }))
+
+        // Debug logging for heat level analysis
+        const completedWithAnalysis = formattedTranscripts.filter(t => 
+          t.status === 'completed' && t.conversation_analysis?.length > 0
+        )
+        console.log('🔍 DEBUG: Completed transcripts with analysis:', completedWithAnalysis.length)
+        
+        completedWithAnalysis.forEach((transcript, index) => {
+          const analysis = transcript.conversation_analysis?.[0]
+          console.log(`🔍 DEBUG: Transcript ${index + 1} (${transcript.title}):`, {
+            heat_level: analysis?.heat_level,
+            hasRecommendations: !!analysis?.recommendations,
+            hasGuidance: !!analysis?.guidance,
+            hasCallSummary: !!analysis?.call_summary,
+            fullAnalysis: analysis
+          })
+        })
 
         setTranscripts(formattedTranscripts)
 

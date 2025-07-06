@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -37,17 +36,36 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
   }
 
   const getHeatLevel = (analysis: any) => {
-    return analysis?.recommendations?.heat_level || 
-           analysis?.guidance?.heat_level || 
-           analysis?.call_summary?.heat_level ||
-           analysis?.dealHeat
+    // Check the new heat_level column first
+    if (analysis?.heat_level) {
+      console.log('🔍 DEBUG: Found heat_level in analysis:', analysis.heat_level)
+      return analysis.heat_level
+    }
+
+    // Fallback to existing logic for backward compatibility
+    const fallbackHeat = analysis?.recommendations?.heat_level || 
+                        analysis?.guidance?.heat_level || 
+                        analysis?.call_summary?.heat_level ||
+                        analysis?.dealHeat
+
+    console.log('🔍 DEBUG: Using fallback heat logic:', fallbackHeat)
+    return fallbackHeat
   }
 
-  // Filter transcripts by heat level
+  // Filter transcripts by heat level with debug logging
   const filteredTranscripts = transcripts.filter(transcript => {
-    if (transcript.status !== 'completed' || !transcript.conversation_analysis?.length) return false
+    if (transcript.status !== 'completed' || !transcript.conversation_analysis?.length) {
+      return false
+    }
+    
     const transcriptHeat = getHeatLevel(transcript.conversation_analysis[0])
-    return transcriptHeat?.toUpperCase() === heatLevel
+    const matches = transcriptHeat?.toUpperCase() === heatLevel
+    
+    if (transcriptHeat) {
+      console.log(`🔍 DEBUG: Transcript "${transcript.title}" heat: ${transcriptHeat}, matches ${heatLevel}: ${matches}`)
+    }
+    
+    return matches
   }).slice(0, 4) // Max 4 per column
 
   const remainingCount = transcripts.filter(transcript => {
@@ -55,6 +73,9 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
     const transcriptHeat = getHeatLevel(transcript.conversation_analysis[0])
     return transcriptHeat?.toUpperCase() === heatLevel
   }).length - 4
+
+  // Debug logging for filtering results
+  console.log(`🔍 DEBUG: ${heatLevel} heat deals - Found ${filteredTranscripts.length} transcripts, ${remainingCount > 0 ? remainingCount : 0} remaining`)
 
   const getThemeClasses = () => {
     switch (heatLevel) {
@@ -149,6 +170,9 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
           <div className="text-center py-6">
             <div className={`p-4 ${theme.bg} rounded-lg border border-gray-200`}>
               <p className="text-sm text-slate-600">No {heatLevel.toLowerCase()} heat deals yet</p>
+              <p className="text-xs text-slate-500 mt-1">
+                Debug: Check console for heat level analysis
+              </p>
             </div>
           </div>
         ) : (

@@ -52,6 +52,7 @@ export type Database = {
           created_at: string | null
           email_followup: Json | null
           guidance: Json | null
+          heat_level: string | null
           id: string
           key_takeaways: Json | null
           participants: Json | null
@@ -66,6 +67,7 @@ export type Database = {
           created_at?: string | null
           email_followup?: Json | null
           guidance?: Json | null
+          heat_level?: string | null
           id?: string
           key_takeaways?: Json | null
           participants?: Json | null
@@ -80,6 +82,7 @@ export type Database = {
           created_at?: string | null
           email_followup?: Json | null
           guidance?: Json | null
+          heat_level?: string | null
           id?: string
           key_takeaways?: Json | null
           participants?: Json | null
