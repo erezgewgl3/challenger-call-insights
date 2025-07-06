@@ -1,6 +1,5 @@
-
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { BarChart3, TrendingUp, Clock, Target } from 'lucide-react'
+import { TrendingUp } from 'lucide-react'
 import { DashboardHeader } from '@/components/layout/DashboardHeader'
 import { TranscriptUpload } from '@/components/upload/TranscriptUpload'
 import { UploadProgress } from '@/components/upload/UploadProgress'
@@ -169,56 +168,6 @@ export default function WelcomeDashboard() {
           <p className="text-xl text-slate-600 max-w-3xl mx-auto">
             Upload your call transcript and instantly unlock buying signals, stakeholder insights, and strategic next steps to accelerate your opportunities
           </p>
-        </div>
-
-        {/* Performance Overview Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Conversations Analyzed</CardTitle>
-              <BarChart3 className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {isLoading ? '-' : stats.totalTranscripts}
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {stats.completedTranscripts} with intelligence extracted
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Avg Conversation Length</CardTitle>
-              <Clock className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {isLoading ? '-' : stats.averageCallDuration > 0 ? `${stats.averageCallDuration}m` : 'N/A'}
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {stats.averageCallDuration >= 45 ? 'Rich intelligence depth' : 
-                 stats.averageCallDuration >= 30 ? 'Good intelligence quality' : 
-                 stats.averageCallDuration > 0 ? 'Consider longer discovery' : 'Upload conversations to track'}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-white">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Active Opportunities</CardTitle>
-              <Target className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-slate-900">
-                {isLoading ? '-' : stats.activeDeals}
-              </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {stats.activeDeals > 0 ? 'Pipeline intelligence active' : 'Start tracking opportunities'}
-              </p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Enhanced Upload Section - Now the Hero */}
