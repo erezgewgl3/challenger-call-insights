@@ -2,7 +2,7 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Brain, FileText, Clock, Zap, Target, X } from 'lucide-react'
+import { Brain, FileText, Clock, Zap, Target, X, CheckCircle, Loader } from 'lucide-react'
 
 interface AnalysisProgressProps {
   progress: number
@@ -51,38 +51,40 @@ export function AnalysisProgress({
     }
   }
 
-  // Use simple 3-state progress only: 33%, 66%, or 100%
-  const getDisplayProgress = () => {
-    if (progress >= 100) return 100
-    if (progress >= 66) return 66
-    if (progress >= 33) return 33
-    return 0
-  }
-
-  // Simple status message based on progress
-  const getStatusMessage = () => {
-    if (message) return message
+  // Smart time estimation based on file characteristics
+  const getTimeEstimate = () => {
+    if (fileDuration) {
+      if (fileDuration <= 30) return '30-60 seconds'
+      if (fileDuration <= 60) return '45-90 seconds'
+      if (fileDuration <= 90) return '60-120 seconds'
+      return '90-180 seconds'
+    }
     
-    const displayProgress = getDisplayProgress()
-    if (displayProgress >= 100) return 'Analysis complete!'
-    if (displayProgress >= 66) return 'AI analyzing conversation...'
-    if (displayProgress >= 33) return 'Processing transcript...'
-    return 'Starting analysis...'
+    if (fileSize) {
+      if (fileSize < 50000) return '30-60 seconds' // < 50KB
+      if (fileSize < 200000) return '45-90 seconds' // < 200KB
+      return '60-120 seconds'
+    }
+    
+    return '30-90 seconds'
   }
 
-  // Simple progress steps
-  const getProgressSteps = () => {
-    const displayProgress = getDisplayProgress()
-    return [
-      { completed: displayProgress >= 33, text: 'Processing' },
-      { completed: displayProgress >= 66, text: 'Analyzing' },
-      { completed: displayProgress >= 100, text: 'Complete' }
+  // Define analysis stages
+  const getAnalysisStages = () => {
+    const stages = [
+      { id: 'processing', label: 'Processing transcript', threshold: 33 },
+      { id: 'analyzing', label: 'AI analyzing conversation', threshold: 66 },
+      { id: 'generating', label: 'Generating insights', threshold: 90 },
+      { id: 'complete', label: 'Analysis complete', threshold: 100 }
     ]
-  }
 
-  const strategyInfo = getStrategyInfo()
-  const displayProgress = getDisplayProgress()
-  const circumference = 2 * Math.PI * 36
+    return stages.map(stage => ({
+      ...stage,
+      isCompleted: progress >= stage.threshold,
+      isActive: progress >= (stage.threshold - 33) && progress < stage.threshold,
+      isCurrent: progress < stage.threshold && progress >= Math.max(0, stage.threshold - 33)
+    }))
+  }
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return 'Unknown size'
@@ -91,13 +93,9 @@ export function AnalysisProgress({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  // Static time estimate based on file duration
-  const getTimeEstimate = () => {
-    if (!fileDuration) return 'Usually takes 30-90 seconds'
-    if (fileDuration <= 30) return 'Usually takes 30-60 seconds'
-    if (fileDuration <= 90) return 'Usually takes 60-120 seconds'
-    return 'Usually takes 90-180 seconds'
-  }
+  const strategyInfo = getStrategyInfo()
+  const stages = getAnalysisStages()
+  const currentStage = stages.find(stage => stage.isCurrent) || stages[0]
 
   return (
     <Card className="shadow-md bg-white animate-fade-in">
@@ -127,47 +125,28 @@ export function AnalysisProgress({
 
       <CardContent className="pt-0">
         <div className="flex items-center space-x-6">
-          {/* Progress Ring - Only shows 0, 33, 66, or 100% */}
+          {/* Animated Spinner */}
           <div className="flex-shrink-0">
-            <div className="relative w-20 h-20">
-              <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
-                <circle
-                  cx="40"
-                  cy="40"
-                  r="36"
-                  stroke="currentColor"
-                  strokeWidth="6"
-                  fill="transparent"
-                  className="text-slate-200"
-                />
-                <circle
-                  cx="40"
-                  cy="40"
-                  r="36"
-                  stroke="currentColor"
-                  strokeWidth="6"
-                  fill="transparent"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={circumference - (displayProgress / 100) * circumference}
-                  className={`text-${strategyInfo.color}-500 transition-all duration-1000 ease-out`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-center">
-                  <div className={`text-lg font-bold text-${strategyInfo.color}-600`}>
-                    {displayProgress}%
-                  </div>
+            <div className="relative w-20 h-20 flex items-center justify-center">
+              {progress >= 100 ? (
+                <div className={`w-16 h-16 rounded-full bg-${strategyInfo.color}-100 flex items-center justify-center`}>
+                  <CheckCircle className={`w-8 h-8 text-${strategyInfo.color}-600`} />
                 </div>
-              </div>
+              ) : (
+                <div className={`w-16 h-16 rounded-full bg-${strategyInfo.color}-100 flex items-center justify-center`}>
+                  <Loader className={`w-8 h-8 text-${strategyInfo.color}-600 animate-spin`} />
+                </div>
+              )}
             </div>
           </div>
 
           {/* Information Display */}
-          <div className="flex-1 space-y-3">
+          <div className="flex-1 space-y-4">
             {/* Current Status */}
             <div>
-              <h3 className="text-base font-semibold text-slate-900">{getStatusMessage()}</h3>
+              <h3 className="text-base font-semibold text-slate-900">
+                {message || currentStage.label}
+              </h3>
               <div className="flex items-center space-x-4 text-sm text-slate-600 mt-1">
                 {fileName && (
                   <>
@@ -187,26 +166,37 @@ export function AnalysisProgress({
               </div>
             </div>
 
-            {/* Progress Steps */}
-            <div className="flex items-center space-x-4">
-              {getProgressSteps().map((step, index) => (
-                <div key={index} className="flex items-center space-x-1">
-                  <div 
-                    className={`w-1.5 h-1.5 rounded-full transition-colors duration-300 ${
-                      step.completed ? `bg-${strategyInfo.color}-500` : 'bg-slate-300'
-                    }`} 
-                  />
-                  <span className={`text-xs ${step.completed ? 'text-slate-900' : 'text-slate-500'}`}>
-                    {step.text}
+            {/* Stage Progress */}
+            <div className="space-y-2">
+              {stages.map((stage, index) => (
+                <div key={stage.id} className="flex items-center space-x-3">
+                  {/* Stage Indicator */}
+                  <div className="flex items-center justify-center w-5 h-5">
+                    {stage.isCompleted ? (
+                      <CheckCircle className={`w-4 h-4 text-${strategyInfo.color}-600`} />
+                    ) : stage.isCurrent ? (
+                      <div className={`w-2 h-2 rounded-full bg-${strategyInfo.color}-500 animate-pulse`} />
+                    ) : (
+                      <div className="w-2 h-2 rounded-full bg-slate-300" />
+                    )}
+                  </div>
+                  
+                  {/* Stage Label */}
+                  <span className={`text-sm ${
+                    stage.isCompleted || stage.isCurrent 
+                      ? 'text-slate-900 font-medium' 
+                      : 'text-slate-500'
+                  }`}>
+                    {stage.label}
                   </span>
                 </div>
               ))}
             </div>
 
-            {/* Static Time Estimation */}
-            <div className="flex items-center space-x-1 text-sm text-slate-500">
+            {/* Time Estimation */}
+            <div className="flex items-center space-x-2 text-sm text-slate-500 pt-1 border-t border-slate-100">
               <Clock className="w-3 h-3" />
-              <span>{getTimeEstimate()}</span>
+              <span>Expected: {getTimeEstimate()}</span>
             </div>
           </div>
         </div>
