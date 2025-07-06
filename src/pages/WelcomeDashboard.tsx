@@ -157,7 +157,7 @@ export default function WelcomeDashboard() {
       {/* Header */}
       <DashboardHeader
         title="Sales Whisperer"
-        subtitle="AI-Powered Sales Intelligence"
+        subtitle="Get instant deal intelligence from every sales conversation"
         iconColor="bg-blue-600"
       />
 
@@ -165,9 +165,9 @@ export default function WelcomeDashboard() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Enhanced Welcome Section with stronger CTA */}
         <div className="mb-8 text-center">
-          <h2 className="text-4xl font-bold text-slate-900 mb-3">Transform Every Sales Conversation Into Deal Intelligence</h2>
+          <h2 className="text-4xl font-bold text-slate-900 mb-3">Turn Every Sales Conversation Into Deal Intelligence</h2>
           <p className="text-xl text-slate-600 max-w-3xl mx-auto">
-            Upload your call transcript and instantly unlock buying signals, stakeholder insights, and strategic next steps to accelerate your deals
+            Upload your call transcript and instantly unlock buying signals, stakeholder insights, and strategic next steps to accelerate your opportunities
           </p>
         </div>
 
@@ -175,7 +175,7 @@ export default function WelcomeDashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           <Card className="border-l-4 border-l-blue-500 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Calls Analyzed</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-700">Conversations Analyzed</CardTitle>
               <BarChart3 className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
@@ -183,14 +183,14 @@ export default function WelcomeDashboard() {
                 {isLoading ? '-' : stats.totalTranscripts}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {stats.completedTranscripts} completed
+                {stats.completedTranscripts} with intelligence extracted
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-l-4 border-l-purple-500 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Calls Last 7 Days</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-700">Avg Conversation Length</CardTitle>
               <Clock className="h-4 w-4 text-purple-500" />
             </CardHeader>
             <CardContent>
@@ -198,16 +198,16 @@ export default function WelcomeDashboard() {
                 {isLoading ? '-' : stats.averageCallDuration > 0 ? `${stats.averageCallDuration}m` : 'N/A'}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {stats.averageCallDuration >= 45 ? 'Great depth' : 
-                 stats.averageCallDuration >= 30 ? 'Good length' : 
-                 stats.averageCallDuration > 0 ? 'Consider longer calls' : 'Upload calls to track'}
+                {stats.averageCallDuration >= 45 ? 'Rich intelligence depth' : 
+                 stats.averageCallDuration >= 30 ? 'Good intelligence quality' : 
+                 stats.averageCallDuration > 0 ? 'Consider longer discovery' : 'Upload conversations to track'}
               </p>
             </CardContent>
           </Card>
 
           <Card className="border-l-4 border-l-orange-500 hover:shadow-lg transition-all duration-200 bg-white">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-slate-700">Total Analyzed</CardTitle>
+              <CardTitle className="text-sm font-medium text-slate-700">Active Opportunities</CardTitle>
               <Target className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
@@ -215,7 +215,7 @@ export default function WelcomeDashboard() {
                 {isLoading ? '-' : stats.activeDeals}
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {stats.activeDeals > 0 ? 'Pipeline engaged' : 'Start tracking accounts'}
+                {stats.activeDeals > 0 ? 'Pipeline intelligence active' : 'Start tracking opportunities'}
               </p>
             </CardContent>
           </Card>
@@ -225,9 +225,9 @@ export default function WelcomeDashboard() {
         <div className="mb-12">
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 shadow-xl">
             <div className="text-center mb-8">
-              <h3 className="text-3xl font-bold text-white mb-3">Analyze Your Latest Sales Conversation</h3>
+              <h3 className="text-3xl font-bold text-white mb-3">Extract Intelligence From Your Latest Sales Conversation</h3>
               <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-                Get instant deal intelligence, buying signals, and actionable recommendations to advance your pipeline
+                Get instant deal intelligence, buying signals, and actionable insights to accelerate your opportunities
               </p>
             </div>
             
@@ -264,7 +264,7 @@ export default function WelcomeDashboard() {
                   <div className="text-center py-6">
                     <div className="p-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
                       <p className="font-medium text-slate-900 mb-2">Ready to unlock deal intelligence?</p>
-                      <p className="text-sm text-slate-600">Upload your first call transcript above to see personalized insights here</p>
+                      <p className="text-sm text-slate-600">Upload your first conversation transcript above to see personalized insights here</p>
                     </div>
                   </div>
                 ) : (
