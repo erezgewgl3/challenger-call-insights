@@ -62,7 +62,7 @@ export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) 
               </div>
             ) : (
               <div>
-                <p className="font-medium text-gray-900 text-sm">
+                <p className="font-semibold text-gray-900 text-base">
                   Drag & drop transcripts or <span className="text-blue-600">browse files</span>
                 </p>
                 <p className="text-xs text-gray-500">
