@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -21,20 +20,12 @@ interface TranscriptSummary {
 
 interface DashboardStats {
   totalTranscripts: number
-  completedTranscripts: number
-  averageTeachingScore: number
-  averageCallDuration: number
-  activeDeals: number
 }
 
 export function useTranscriptData() {
   const [transcripts, setTranscripts] = useState<TranscriptSummary[]>([])
   const [stats, setStats] = useState<DashboardStats>({
-    totalTranscripts: 0,
-    completedTranscripts: 0,
-    averageTeachingScore: 0,
-    averageCallDuration: 0,
-    activeDeals: 0
+    totalTranscripts: 0
   })
   const [isLoading, setIsLoading] = useState(true)
 
@@ -44,7 +35,7 @@ export function useTranscriptData() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // Fetch recent transcripts with analysis data including the analysis created_at
+        // Fetch ALL transcripts with analysis data (no limit) for heat deal sections
         const { data: transcriptsData, error: transcriptsError } = await supabase
           .from('transcripts')
           .select(`
@@ -59,7 +50,6 @@ export function useTranscriptData() {
           `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(10)
 
         if (transcriptsError) throw transcriptsError
 
@@ -104,23 +94,9 @@ export function useTranscriptData() {
 
         setTranscripts(formattedTranscripts)
 
-        // Calculate stats - keep existing logic the same
-        const completed = formattedTranscripts.filter(t => t.status === 'completed')
-        const totalDuration = formattedTranscripts.reduce((sum, t) => sum + t.duration_minutes, 0)
-        const teachingScores = completed
-          .filter(t => t.challenger_scores?.teaching)
-          .map(t => t.challenger_scores!.teaching)
-
+        // Only keep totalTranscripts stat (the only one being used)
         setStats({
-          totalTranscripts: transcriptsData.length,
-          completedTranscripts: completed.length,
-          averageTeachingScore: teachingScores.length > 0 
-            ? teachingScores.reduce((sum, score) => sum + score, 0) / teachingScores.length 
-            : 0,
-          averageCallDuration: transcriptsData.length > 0 
-            ? Math.round(totalDuration / transcriptsData.length) 
-            : 0,
-          activeDeals: new Set(formattedTranscripts.map(t => t.account_name).filter(Boolean)).size
+          totalTranscripts: transcriptsData.length
         })
 
       } catch (error) {
