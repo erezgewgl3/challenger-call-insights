@@ -49,24 +49,7 @@ serve(async (req) => {
       durationMinutes 
     });
 
-    // Helper function to update progress
-    const updateProgress = async (progress: number, phase: string, message: string) => {
-      console.log(`🔍 [PROGRESS] ${progress}%: ${message}`);
-      await supabase
-        .from('transcript_progress')
-        .upsert({
-          transcript_id: transcriptId,
-          progress,
-          phase,
-          message,
-          updated_at: new Date().toISOString()
-        });
-    };
-
-    // Initial progress update
-    await updateProgress(15, 'processing', 'Processing transcript...');
-
-    // Update transcript status to processing
+    // Update transcript status to processing (triggers real-time update)
     console.log('🔍 [DB] Updating transcript status to processing');
     const { error: statusError } = await supabase
       .from('transcripts')
@@ -79,8 +62,6 @@ serve(async (req) => {
     if (statusError) {
       console.error('🔍 [ERROR] Failed to update transcript status:', statusError);
     }
-
-    await updateProgress(25, 'preparing', 'Preparing AI analysis...');
 
     // Get active prompt directly from prompts table
     console.log('🔍 [PROMPT] Fetching active prompt');
@@ -117,9 +98,7 @@ serve(async (req) => {
 
     console.log('🔍 [PROMPT] Prompt built, length:', finalPrompt.length);
 
-    await updateProgress(45, 'analyzing', 'AI analyzing conversation...');
-
-    // Default to OpenAI if no AI provider is specified or if Claude fails
+    // Call AI (default to OpenAI with Claude fallback)
     console.log('🔍 [AI] Calling OpenAI (default provider)');
     let aiResponse: string;
     
@@ -138,15 +117,11 @@ serve(async (req) => {
     
     console.log('🔍 [AI] AI response received, length:', aiResponse.length);
 
-    await updateProgress(70, 'processing_insights', 'Processing AI insights...');
-
     // Parse AI response
     const parsedResult = parseAIResponse(aiResponse);
     console.log('🔍 [PARSE] AI response parsed successfully');
 
-    await updateProgress(85, 'finalizing', 'Finalizing results...');
-
-    // Save analysis results with proper error handling
+    // Save analysis results
     console.log('🔍 [DB] Saving analysis results to database');
     const analysisPayload = {
       transcript_id: transcriptId,
@@ -175,22 +150,18 @@ serve(async (req) => {
 
     console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id);
 
-    // Final progress update
-    await updateProgress(100, 'completed', 'Analysis complete!');
-
-    // Update transcript status to completed
+    // Update transcript status to completed (triggers real-time update)
     console.log('🔍 [DB] Updating transcript status to completed');
     const { error: completeError } = await supabase
       .from('transcripts')
       .update({ 
         status: 'completed',
-        error_message: null // Clear any previous error
+        error_message: null
       })
       .eq('id', transcriptId);
 
     if (completeError) {
       console.error('🔍 [ERROR] Failed to update transcript to completed:', completeError);
-      // Don't throw, analysis is saved successfully
     }
 
     console.log('🔍 [COMPLETE] Analysis pipeline completed successfully');
@@ -319,7 +290,6 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
     const parsed = JSON.parse(aiResponse);
     console.log('🔍 [PARSE] JSON parsed successfully, keys:', Object.keys(parsed));
     
-    // Store AI response fields directly without transformation
     const result: ParsedAnalysis = {
       challengerScores: parsed.challengerScores || parsed.challenger_scores || null,
       guidance: parsed.guidance || null,
@@ -339,7 +309,6 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
     console.error('🔍 [ERROR] Failed to parse AI response:', error);
     console.error('🔍 [ERROR] Raw response:', aiResponse?.substring(0, 500));
     
-    // Return null structure on parse failure
     return {
       challengerScores: null,
       guidance: null,

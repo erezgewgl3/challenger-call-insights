@@ -6,19 +6,10 @@ import { toast } from 'sonner'
 interface AnalysisStatus {
   transcriptId: string
   status: 'uploaded' | 'processing' | 'completed' | 'error'
-  progress?: number
-  phase?: string
-  message?: string
-  estimatedTimeRemaining?: number
-  error?: string
-}
-
-interface ProgressData {
-  transcript_id: string
   progress: number
   phase: string
-  message: string | null
-  updated_at: string
+  message: string
+  error?: string
 }
 
 export function useAnalysisStatus(transcriptId?: string) {
@@ -31,7 +22,6 @@ export function useAnalysisStatus(transcriptId?: string) {
     const fetchStatus = async () => {
       setIsLoading(true)
       try {
-        // Get transcript status
         const { data: transcript, error } = await supabase
           .from('transcripts')
           .select('id, status, title, duration_minutes')
@@ -40,19 +30,40 @@ export function useAnalysisStatus(transcriptId?: string) {
 
         if (error) throw error
 
-        // Get progress data if available
-        const { data: progressData } = await supabase
-          .from('transcript_progress')
-          .select('*')
-          .eq('transcript_id', transcriptId)
-          .single()
+        // Simple 3-state progress system
+        let progress = 0
+        let phase = 'starting'
+        let message = 'Starting analysis...'
+
+        switch (transcript.status) {
+          case 'uploaded':
+            progress = 33
+            phase = 'processing'
+            message = 'Processing transcript...'
+            break
+          case 'processing':
+            progress = 66
+            phase = 'analyzing'
+            message = 'AI analyzing conversation...'
+            break
+          case 'completed':
+            progress = 100
+            phase = 'completed'
+            message = 'Analysis complete!'
+            break
+          case 'error':
+            progress = 0
+            phase = 'error'
+            message = 'Analysis failed'
+            break
+        }
 
         setStatus({
           transcriptId,
           status: transcript.status,
-          progress: progressData?.progress || (transcript.status === 'completed' ? 100 : 0),
-          phase: progressData?.phase || 'starting',
-          message: progressData?.message || undefined
+          progress,
+          phase,
+          message
         })
       } catch (error) {
         console.error('Failed to fetch analysis status:', error)
@@ -63,7 +74,7 @@ export function useAnalysisStatus(transcriptId?: string) {
 
     fetchStatus()
 
-    // Set up real-time subscription for transcript updates
+    // Set up real-time subscription for transcript status changes only
     const transcriptChannel = supabase
       .channel('transcript-updates')
       .on(
@@ -76,50 +87,51 @@ export function useAnalysisStatus(transcriptId?: string) {
         },
         (payload) => {
           const updatedTranscript = payload.new as any
+          
+          // Update status based on transcript status change
+          let progress = 0
+          let phase = 'starting'
+          let message = 'Starting analysis...'
+
+          switch (updatedTranscript.status) {
+            case 'uploaded':
+              progress = 33
+              phase = 'processing'
+              message = 'Processing transcript...'
+              break
+            case 'processing':
+              progress = 66
+              phase = 'analyzing'
+              message = 'AI analyzing conversation...'
+              break
+            case 'completed':
+              progress = 100
+              phase = 'completed'
+              message = 'Analysis complete!'
+              toast.success('Analysis completed! View your insights now.', {
+                duration: 5000,
+                action: {
+                  label: 'View Results',
+                  onClick: () => {
+                    window.location.hash = `#transcript-${transcriptId}`
+                  }
+                }
+              })
+              break
+            case 'error':
+              progress = 0
+              phase = 'error'
+              message = 'Analysis failed'
+              toast.error('Analysis failed. Please try again.')
+              break
+          }
+
           setStatus(prev => prev ? {
             ...prev,
             status: updatedTranscript.status,
-            progress: updatedTranscript.status === 'completed' ? 100 : prev.progress
-          } : null)
-
-          // Show completion notification
-          if (updatedTranscript.status === 'completed') {
-            toast.success('Analysis completed! View your insights now.', {
-              duration: 5000,
-              action: {
-                label: 'View Results',
-                onClick: () => {
-                  window.location.hash = `#transcript-${transcriptId}`
-                }
-              }
-            })
-          } else if (updatedTranscript.status === 'error') {
-            toast.error('Analysis failed. Please try again.')
-          }
-        }
-      )
-      .subscribe()
-
-    // Set up real-time subscription for progress updates  
-    const progressChannel = supabase
-      .channel('progress-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public', 
-          table: 'transcript_progress',
-          filter: `transcript_id=eq.${transcriptId}`
-        },
-        (payload) => {
-          const progressUpdate = payload.new as ProgressData
-          console.log('🔍 [REALTIME] Progress update received:', progressUpdate)
-          
-          setStatus(prev => prev ? {
-            ...prev,
-            progress: progressUpdate.progress,
-            phase: progressUpdate.phase,
-            message: progressUpdate.message || undefined
+            progress,
+            phase,
+            message
           } : null)
         }
       )
@@ -127,7 +139,6 @@ export function useAnalysisStatus(transcriptId?: string) {
 
     return () => {
       supabase.removeChannel(transcriptChannel)
-      supabase.removeChannel(progressChannel)
     }
   }, [transcriptId])
 

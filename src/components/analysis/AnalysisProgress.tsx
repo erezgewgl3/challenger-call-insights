@@ -7,7 +7,6 @@ import { Brain, FileText, Clock, Zap, Target, X } from 'lucide-react'
 interface AnalysisProgressProps {
   progress: number
   strategy: 'single_pass' | 'smart_chunking' | 'hierarchical'
-  estimatedTime: string | null
   fileName?: string
   fileSize?: number
   fileDuration?: number
@@ -19,7 +18,6 @@ interface AnalysisProgressProps {
 export function AnalysisProgress({
   progress,
   strategy,
-  estimatedTime,
   fileName,
   fileSize,
   fileDuration,
@@ -27,16 +25,7 @@ export function AnalysisProgress({
   phase,
   message
 }: AnalysisProgressProps) {
-  const [displayProgress, setDisplayProgress] = useState(0)
   const [startTime] = useState<number>(Date.now())
-
-  // Smooth progress animation - use real progress directly
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDisplayProgress(progress)
-    }, 100)
-    return () => clearTimeout(timer)
-  }, [progress])
 
   const getStrategyInfo = () => {
     switch (strategy) {
@@ -64,23 +53,20 @@ export function AnalysisProgress({
     }
   }
 
-  // Use real message from Edge Function or fall back to phase-based message
-  const getCurrentPhase = () => {
+  // Use message from status or default phase-based message
+  const getCurrentMessage = () => {
     if (message) return message
     
     switch (phase) {
       case 'processing': return 'Processing transcript...'
-      case 'preparing': return 'Preparing AI analysis...'
       case 'analyzing': return 'AI analyzing conversation...'
-      case 'processing_insights': return 'Processing AI insights...'
-      case 'finalizing': return 'Finalizing results...'
       case 'completed': return 'Analysis complete!'
       default: return 'Starting analysis...'
     }
   }
 
   const strategyInfo = getStrategyInfo()
-  const currentPhase = getCurrentPhase()
+  const currentMessage = getCurrentMessage()
   const circumference = 2 * Math.PI * 36
 
   const formatFileSize = (bytes?: number) => {
@@ -90,12 +76,13 @@ export function AnalysisProgress({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
-  const getProgressSteps = () => {
-    return [
-      { completed: displayProgress > 15, text: 'File processed' },
-      { completed: displayProgress > 45, text: 'AI analyzing' },
-      { completed: displayProgress > 85, text: 'Generating results' }
-    ]
+  // Get realistic time estimate based on file duration
+  const getTimeEstimate = () => {
+    if (!fileDuration) return 'Usually takes 30-90 seconds'
+    if (fileDuration <= 5) return 'Usually takes 30-45 seconds'
+    if (fileDuration <= 30) return 'Usually takes 45-90 seconds'
+    if (fileDuration <= 60) return 'Usually takes 60-120 seconds'
+    return 'Usually takes 90-180 seconds'
   }
 
   // Calculate elapsed time for better user feedback
@@ -105,6 +92,15 @@ export function AnalysisProgress({
     const minutes = Math.floor(elapsed / 60)
     const seconds = elapsed % 60
     return `${minutes}m ${seconds}s elapsed`
+  }
+
+  // Get progress steps based on current progress
+  const getProgressSteps = () => {
+    return [
+      { completed: progress >= 33, text: 'Processing transcript' },
+      { completed: progress >= 66, text: 'AI analyzing' },
+      { completed: progress >= 100, text: 'Complete' }
+    ]
   }
 
   return (
@@ -135,7 +131,7 @@ export function AnalysisProgress({
 
       <CardContent className="pt-0">
         <div className="flex items-center space-x-6">
-          {/* Real Progress Ring */}
+          {/* Progress Ring */}
           <div className="flex-shrink-0">
             <div className="relative w-20 h-20">
               <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
@@ -156,7 +152,7 @@ export function AnalysisProgress({
                   strokeWidth="6"
                   fill="transparent"
                   strokeDasharray={circumference}
-                  strokeDashoffset={circumference - (displayProgress / 100) * circumference}
+                  strokeDashoffset={circumference - (progress / 100) * circumference}
                   className={`text-${strategyInfo.color}-500 transition-all duration-1000 ease-out`}
                   strokeLinecap="round"
                 />
@@ -164,7 +160,7 @@ export function AnalysisProgress({
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center">
                   <div className={`text-lg font-bold text-${strategyInfo.color}-600`}>
-                    {Math.round(displayProgress)}%
+                    {Math.round(progress)}%
                   </div>
                   <div className="text-xs text-slate-500">
                     {getElapsedTime()}
@@ -174,11 +170,11 @@ export function AnalysisProgress({
             </div>
           </div>
 
-          {/* Real Information Display */}
+          {/* Information Display */}
           <div className="flex-1 space-y-3">
-            {/* Current Phase with Real Message */}
+            {/* Current Phase */}
             <div>
-              <h3 className="text-base font-semibold text-slate-900">{currentPhase}</h3>
+              <h3 className="text-base font-semibold text-slate-900">{currentMessage}</h3>
               <div className="flex items-center space-x-4 text-sm text-slate-600 mt-1">
                 {fileName && (
                   <>
@@ -215,14 +211,10 @@ export function AnalysisProgress({
             </div>
 
             {/* Time Estimation */}
-            {estimatedTime && (
-              <div className="flex items-center space-x-1 text-sm text-slate-500">
-                <Clock className="w-3 h-3" />
-                <span>
-                  Estimated total: {estimatedTime}
-                </span>
-              </div>
-            )}
+            <div className="flex items-center space-x-1 text-sm text-slate-500">
+              <Clock className="w-3 h-3" />
+              <span>{getTimeEstimate()}</span>
+            </div>
           </div>
         </div>
       </CardContent>
