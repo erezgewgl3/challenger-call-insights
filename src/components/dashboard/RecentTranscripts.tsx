@@ -2,9 +2,10 @@ import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Clock, Users, TrendingUp, ArrowRight, Upload } from 'lucide-react'
+import { Clock, Users, ArrowRight, Upload } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
+import { formatDistanceToNow } from 'date-fns'
 
 export function RecentTranscripts() {
   const { transcripts, isLoading } = useTranscriptData()
@@ -39,38 +40,6 @@ export function RecentTranscripts() {
     return analysis?.recommendations?.heat_level || 
            analysis?.guidance?.heat_level || 
            analysis?.call_summary?.heat_level
-  }
-
-  const getHeatIndicator = (analysis: any) => {
-    const heatLevel = getHeatLevel(analysis)
-
-    if (!heatLevel) return null
-
-    switch (heatLevel) {
-      case 'HIGH':
-        return (
-          <div className="flex items-center space-x-1">
-            <span className="text-lg">🔥</span>
-            <span className="text-xs font-medium text-red-700">HIGH HEAT</span>
-          </div>
-        )
-      case 'MEDIUM':
-        return (
-          <div className="flex items-center space-x-1">
-            <span className="text-lg">🌡️</span>
-            <span className="text-xs font-medium text-orange-700">MEDIUM HEAT</span>
-          </div>
-        )
-      case 'LOW':
-        return (
-          <div className="flex items-center space-x-1">
-            <span className="text-lg">❄️</span>
-            <span className="text-xs font-medium text-blue-600">LOW HEAT</span>
-          </div>
-        )
-      default:
-        return null
-    }
   }
 
   const getHeatSortValue = (heatLevel: string) => {
@@ -108,6 +77,15 @@ export function RecentTranscripts() {
   const getScoreDisplay = (score: number | null | undefined) => {
     if (score === null || score === undefined) return 'N/A'
     return score.toFixed(1)
+  }
+
+  const formatAnalysisDate = (dateString: string | undefined) => {
+    if (!dateString) return null
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true })
+    } catch {
+      return null
+    }
   }
 
   if (isLoading) {
@@ -172,12 +150,6 @@ export function RecentTranscripts() {
                       <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
                         {transcript.title}
                       </h4>
-                      {/* Display heat indicator prominently next to title */}
-                      {getHeatIndicator(transcript.conversation_analysis?.[0]) && (
-                        <div className="flex-shrink-0">
-                          {getHeatIndicator(transcript.conversation_analysis?.[0])}
-                        </div>
-                      )}
                     </div>
                     <div className="flex items-center space-x-3 text-sm text-slate-500">
                       <span className="flex items-center">
@@ -188,6 +160,11 @@ export function RecentTranscripts() {
                         <Clock className="h-4 w-4 mr-1" />
                         {formatDuration(transcript.duration_minutes)}
                       </span>
+                      {transcript.analysis_created_at && (
+                        <span className="flex items-center">
+                          📅 Analyzed {formatAnalysisDate(transcript.analysis_created_at)}
+                        </span>
+                      )}
                       {transcript.account_name && (
                         <span className="text-blue-600 font-medium">
                           {transcript.account_name}

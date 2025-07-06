@@ -1,10 +1,10 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Clock, Users, ArrowRight, TrendingUp } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
+import { formatDistanceToNow } from 'date-fns'
 
 interface TranscriptSummary {
   id: string
@@ -20,6 +20,7 @@ interface TranscriptSummary {
     control: number
   }
   conversation_analysis?: any[]
+  analysis_created_at?: string
 }
 
 interface HeatDealsSectionProps {
@@ -73,8 +74,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
           icon: '🔥',
           iconBg: 'bg-red-100',
           iconColor: 'text-red-600',
-          title: 'text-red-900',
-          badge: 'bg-red-100 text-red-800'
+          title: 'text-red-900'
         }
       case 'MEDIUM':
         return {
@@ -83,8 +83,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
           icon: '🌡️',
           iconBg: 'bg-orange-100',
           iconColor: 'text-orange-600',
-          title: 'text-orange-900',
-          badge: 'bg-orange-100 text-orange-800'
+          title: 'text-orange-900'
         }
       case 'LOW':
         return {
@@ -93,8 +92,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
           icon: '❄️',
           iconBg: 'bg-blue-100',
           iconColor: 'text-blue-600',
-          title: 'text-blue-900',
-          badge: 'bg-blue-100 text-blue-800'
+          title: 'text-blue-900'
         }
     }
   }
@@ -111,6 +109,15 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
   const getScoreDisplay = (score: number | null | undefined) => {
     if (score === null || score === undefined) return 'N/A'
     return score.toFixed(1)
+  }
+
+  const formatAnalysisDate = (dateString: string | undefined) => {
+    if (!dateString) return null
+    try {
+      return formatDistanceToNow(new Date(dateString), { addSuffix: true })
+    } catch {
+      return null
+    }
   }
 
   if (isLoading) {
@@ -181,6 +188,11 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                         <Clock className="h-3 w-3 mr-1" />
                         {formatDuration(transcript.duration_minutes)}
                       </span>
+                      {transcript.analysis_created_at && (
+                        <span className="flex items-center">
+                          📅 Analyzed {formatAnalysisDate(transcript.analysis_created_at)}
+                        </span>
+                      )}
                     </div>
                     {transcript.account_name && (
                       <div className="mt-1">
@@ -190,9 +202,6 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                       </div>
                     )}
                   </div>
-                  <Badge className={`${theme.badge} text-xs`} variant="secondary">
-                    {heatLevel}
-                  </Badge>
                 </div>
 
                 {transcript.challenger_scores && (

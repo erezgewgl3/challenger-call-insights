@@ -16,6 +16,7 @@ interface TranscriptSummary {
     control: number
   }
   conversation_analysis?: any[]
+  analysis_created_at?: string
 }
 
 interface DashboardStats {
@@ -43,7 +44,7 @@ export function useTranscriptData() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // Fetch recent transcripts with analysis data including the new heat_level column
+        // Fetch recent transcripts with analysis data including the analysis created_at
         const { data: transcriptsData, error: transcriptsError } = await supabase
           .from('transcripts')
           .select(`
@@ -54,7 +55,7 @@ export function useTranscriptData() {
             created_at,
             status,
             accounts(name),
-            conversation_analysis(challenger_scores, recommendations, guidance, call_summary, heat_level)
+            conversation_analysis(challenger_scores, recommendations, guidance, call_summary, heat_level, created_at)
           `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
@@ -79,7 +80,8 @@ export function useTranscriptData() {
             tailoring: number
             control: number
           } | undefined,
-          conversation_analysis: t.conversation_analysis as any[]
+          conversation_analysis: t.conversation_analysis as any[],
+          analysis_created_at: (t.conversation_analysis as any)?.[0]?.created_at
         }))
 
         // Debug logging for heat level analysis
@@ -95,6 +97,7 @@ export function useTranscriptData() {
             hasRecommendations: !!analysis?.recommendations,
             hasGuidance: !!analysis?.guidance,
             hasCallSummary: !!analysis?.call_summary,
+            analysis_created_at: transcript.analysis_created_at,
             fullAnalysis: analysis
           })
         })
