@@ -1,6 +1,6 @@
 
 import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, AlertCircle, FileText, RotateCcw } from 'lucide-react'
 import { AnalysisProgress } from '@/components/analysis/AnalysisProgress'
@@ -58,32 +58,26 @@ export function UploadProgress({
   if (uploadStatus === 'validating') {
     return (
       <Card className="shadow-md bg-white">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-3 text-xl text-slate-900">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="h-8 w-8 text-blue-500" />
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-1.5 bg-blue-100 rounded-lg">
+              <FileText className="h-5 w-5 text-blue-500" />
             </div>
-            <span>Validating Your File</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
-            <div className="space-y-2">
-              <p className="text-lg font-medium text-slate-900">
-                Checking file format and extracting content...
-              </p>
+            <div className="flex-1">
+              <p className="font-medium text-slate-900 text-sm">Validating Your File</p>
+              <p className="text-xs text-slate-600">Checking format and extracting content...</p>
             </div>
-
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${Math.min(analysisProgress, 40)}%` }}
-              />
-            </div>
-            <p className="text-sm text-slate-500">
-              {Math.round(Math.min(analysisProgress, 40))}% complete
-            </p>
           </div>
+
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div 
+              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(analysisProgress, 40)}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-500 text-center">
+            {Math.round(Math.min(analysisProgress, 40))}% complete
+          </p>
         </CardContent>
       </Card>
     )
@@ -93,32 +87,26 @@ export function UploadProgress({
   if (uploadStatus === 'uploading') {
     return (
       <Card className="shadow-md bg-white">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-3 text-xl text-slate-900">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <FileText className="h-8 w-8 text-blue-500" />
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-1.5 bg-blue-100 rounded-lg">
+              <FileText className="h-5 w-5 text-blue-500" />
             </div>
-            <span>Uploading Your Transcript</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
-            <div className="space-y-2">
-              <p className="text-lg font-medium text-slate-900">
-                Preparing your file for analysis...
-              </p>
+            <div className="flex-1">
+              <p className="font-medium text-slate-900 text-sm">Uploading Your Transcript</p>
+              <p className="text-xs text-slate-600">Preparing for analysis...</p>
             </div>
-
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${Math.min(analysisProgress, 80)}%` }}
-              />
-            </div>
-            <p className="text-sm text-slate-500">
-              {Math.round(Math.min(analysisProgress, 80))}% complete
-            </p>
           </div>
+
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
+            <div 
+              className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+              style={{ width: `${Math.min(analysisProgress, 80)}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-500 text-center">
+            {Math.round(Math.min(analysisProgress, 80))}% complete
+          </p>
         </CardContent>
       </Card>
     )
@@ -128,33 +116,32 @@ export function UploadProgress({
   if (uploadStatus === 'completed') {
     return (
       <Card className="shadow-md bg-white">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-3 text-xl text-slate-900">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <CheckCircle className="h-8 w-8 text-green-500" />
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-1.5 bg-green-100 rounded-lg">
+              <CheckCircle className="h-5 w-5 text-green-500" />
             </div>
-            <span>Analysis Complete!</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <CheckCircle className="w-5 h-5 text-green-600" />
-                <p className="text-green-800 font-medium">Analysis Complete!</p>
-              </div>
-              <p className="text-green-600 text-sm">
-                Your conversation insights are ready. You'll be redirected to the results page in a moment.
-              </p>
+            <div className="flex-1">
+              <p className="font-medium text-slate-900 text-sm">Analysis Complete!</p>
+              <p className="text-xs text-slate-600">Redirecting to results...</p>
             </div>
-            <Button 
-              onClick={onUploadAnother}
-              variant="outline"
-              className="w-full"
-            >
-              Upload Another Transcript
-            </Button>
           </div>
+
+          <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center space-x-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              <p className="text-green-800 font-medium text-xs">Your insights are ready!</p>
+            </div>
+          </div>
+          
+          <Button 
+            onClick={onUploadAnother}
+            variant="outline"
+            size="sm"
+            className="w-full h-7 text-xs"
+          >
+            Upload Another Transcript
+          </Button>
         </CardContent>
       </Card>
     )
@@ -164,29 +151,31 @@ export function UploadProgress({
   if (uploadStatus === 'error') {
     return (
       <Card className="shadow-md bg-white">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-3 text-xl text-slate-900">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <AlertCircle className="h-8 w-8 text-red-500" />
+        <CardContent className="p-4 space-y-3">
+          <div className="flex items-center space-x-3">
+            <div className="p-1.5 bg-red-100 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-red-500" />
             </div>
-            <span>Upload Failed</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="text-center space-y-4">
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800 font-medium mb-2">Upload Failed</p>
-              <p className="text-red-600 text-sm">{error}</p>
+            <div className="flex-1">
+              <p className="font-medium text-slate-900 text-sm">Upload Failed</p>
+              <p className="text-xs text-slate-600">Please try again</p>
             </div>
-            <Button 
-              onClick={onRetry}
-              className="w-full"
-              variant="outline"
-            >
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Try Again
-            </Button>
           </div>
+
+          <div className="p-2 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-800 font-medium text-xs mb-1">Upload Failed</p>
+            <p className="text-red-600 text-xs">{error}</p>
+          </div>
+          
+          <Button 
+            onClick={onRetry}
+            variant="outline"
+            size="sm"
+            className="w-full h-7 text-xs"
+          >
+            <RotateCcw className="w-3 h-3 mr-1" />
+            Try Again
+          </Button>
         </CardContent>
       </Card>
     )
