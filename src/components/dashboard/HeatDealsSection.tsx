@@ -1,7 +1,8 @@
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Clock, Users, ArrowRight, TrendingUp } from 'lucide-react'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Clock, Users, ArrowRight } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow, differenceInHours, format } from 'date-fns'
@@ -57,13 +58,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
     
     const transcriptHeat = getHeatLevel(transcript.conversation_analysis[0])
     return transcriptHeat === heatLevel
-  }).slice(0, 4) // Max 4 per column
-
-  const remainingCount = transcripts.filter(transcript => {
-    if (transcript.status !== 'completed' || !transcript.conversation_analysis?.length) return false
-    const transcriptHeat = getHeatLevel(transcript.conversation_analysis[0])
-    return transcriptHeat === heatLevel
-  }).length - 4
+  })
 
   const getThemeClasses = () => {
     switch (heatLevel) {
@@ -176,95 +171,84 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
             </div>
           </div>
         ) : (
-          <div className="space-y-3">
-            {filteredTranscripts.map((transcript) => (
-              <div
-                key={transcript.id}
-                className="p-3 border rounded-lg hover:bg-slate-50 transition-colors group cursor-pointer"
-                onClick={() => handleViewTranscript(transcript.id)}
-              >
-                <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1">
-                    <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors text-sm mb-1">
-                      {transcript.title}
-                    </h4>
-                    <div className="flex items-center space-x-2 text-xs text-slate-500">
-                      <span className="flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        {transcript.participants.length}
-                      </span>
-                      <span className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {formatDuration(transcript.duration_minutes)}
-                      </span>
-                      {transcript.analysis_created_at && (
+          <ScrollArea className="max-h-96">
+            <div className="space-y-3 pr-4">
+              {filteredTranscripts.map((transcript) => (
+                <div
+                  key={transcript.id}
+                  className="p-3 border rounded-lg hover:bg-slate-50 transition-colors group cursor-pointer"
+                  onClick={() => handleViewTranscript(transcript.id)}
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors text-sm mb-1">
+                        {transcript.title}
+                      </h4>
+                      <div className="flex items-center space-x-2 text-xs text-slate-500">
                         <span className="flex items-center">
-                          📅 Analyzed {formatAnalysisDate(transcript.analysis_created_at)}
+                          <Users className="h-3 w-3 mr-1" />
+                          {transcript.participants.length}
                         </span>
+                        <span className="flex items-center">
+                          <Clock className="h-3 w-3 mr-1" />
+                          {formatDuration(transcript.duration_minutes)}
+                        </span>
+                        {transcript.analysis_created_at && (
+                          <span className="flex items-center">
+                            📅 Analyzed {formatAnalysisDate(transcript.analysis_created_at)}
+                          </span>
+                        )}
+                      </div>
+                      {transcript.account_name && (
+                        <div className="mt-1">
+                          <span className="text-xs text-blue-600 font-medium">
+                            {transcript.account_name}
+                          </span>
+                        </div>
                       )}
                     </div>
-                    {transcript.account_name && (
-                      <div className="mt-1">
-                        <span className="text-xs text-blue-600 font-medium">
-                          {transcript.account_name}
-                        </span>
-                      </div>
-                    )}
                   </div>
-                </div>
 
-                {transcript.challenger_scores && (
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <div className="flex items-center space-x-3 text-xs">
-                      <div className="text-center">
-                        <div className="font-medium text-yellow-600">
-                          {getScoreDisplay(transcript.challenger_scores.teaching)}
+                  {transcript.challenger_scores && (
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <div className="flex items-center space-x-3 text-xs">
+                        <div className="text-center">
+                          <div className="font-medium text-yellow-600">
+                            {getScoreDisplay(transcript.challenger_scores.teaching)}
+                          </div>
+                          <div className="text-xs text-slate-500">T</div>
                         </div>
-                        <div className="text-xs text-slate-500">T</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-blue-600">
-                          {getScoreDisplay(transcript.challenger_scores.tailoring)}
+                        <div className="text-center">
+                          <div className="font-medium text-blue-600">
+                            {getScoreDisplay(transcript.challenger_scores.tailoring)}
+                          </div>
+                          <div className="text-xs text-slate-500">T</div>
                         </div>
-                        <div className="text-xs text-slate-500">T</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-medium text-green-600">
-                          {getScoreDisplay(transcript.challenger_scores.control)}
+                        <div className="text-center">
+                          <div className="font-medium text-green-600">
+                            {getScoreDisplay(transcript.challenger_scores.control)}
+                          </div>
+                          <div className="text-xs text-slate-500">C</div>
                         </div>
-                        <div className="text-xs text-slate-500">C</div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleViewTranscript(transcript.id)
+                        }}
+                      >
+                        View
+                        <ArrowRight className="h-3 w-3 ml-1" />
+                      </Button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-xs"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleViewTranscript(transcript.id)
-                      }}
-                    >
-                      View
-                      <ArrowRight className="h-3 w-3 ml-1" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-            ))}
-
-            {remainingCount > 0 && (
-              <div className="pt-3 border-t">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={`w-full text-xs ${theme.iconColor} hover:${theme.bg}`}
-                >
-                  View All ({remainingCount} more)
-                  <TrendingUp className="h-3 w-3 ml-1" />
-                </Button>
-              </div>
-            )}
-          </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
         )}
       </CardContent>
     </Card>
