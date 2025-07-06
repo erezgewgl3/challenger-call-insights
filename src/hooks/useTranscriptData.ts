@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 
@@ -15,6 +14,7 @@ interface TranscriptSummary {
     tailoring: number
     control: number
   }
+  conversation_analysis?: any[]
 }
 
 interface DashboardStats {
@@ -42,7 +42,7 @@ export function useTranscriptData() {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) return
 
-        // Fetch recent transcripts with analysis data
+        // Fetch recent transcripts with analysis data including full conversation_analysis
         const { data: transcriptsData, error: transcriptsError } = await supabase
           .from('transcripts')
           .select(`
@@ -53,7 +53,7 @@ export function useTranscriptData() {
             created_at,
             status,
             accounts(name),
-            conversation_analysis(challenger_scores)
+            conversation_analysis(challenger_scores, recommendations, guidance, call_summary)
           `)
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
@@ -73,12 +73,13 @@ export function useTranscriptData() {
             teaching: number
             tailoring: number
             control: number
-          } | undefined
+          } | undefined,
+          conversation_analysis: t.conversation_analysis as any[]
         }))
 
         setTranscripts(formattedTranscripts)
 
-        // Calculate stats
+        // Calculate stats - keep existing logic the same
         const completed = formattedTranscripts.filter(t => t.status === 'completed')
         const totalDuration = formattedTranscripts.reduce((sum, t) => sum + t.duration_minutes, 0)
         const teachingScores = completed

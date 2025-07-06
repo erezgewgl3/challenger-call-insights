@@ -1,9 +1,8 @@
-
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Clock, Users, TrendingUp, ArrowRight, Upload } from 'lucide-react'
+import { Clock, Users, TrendingUp, ArrowRight, Upload, Flame, AlertTriangle, Minus } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
 
@@ -27,6 +26,41 @@ export function RecentTranscripts() {
         return 'bg-red-100 text-red-800'
       default:
         return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getHeatIndicator = (analysis: any) => {
+    // Extract heat level from existing analysis data
+    const heatLevel = analysis?.recommendations?.heat_level || 
+                     analysis?.guidance?.heat_level || 
+                     analysis?.call_summary?.heat_level
+
+    if (!heatLevel) return null
+
+    switch (heatLevel.toUpperCase()) {
+      case 'HIGH':
+        return (
+          <div className="flex items-center space-x-1">
+            <Flame className="h-4 w-4 text-red-500" />
+            <span className="text-xs font-medium text-red-700">HIGH HEAT</span>
+          </div>
+        )
+      case 'MEDIUM':
+        return (
+          <div className="flex items-center space-x-1">
+            <AlertTriangle className="h-4 w-4 text-orange-500" />
+            <span className="text-xs font-medium text-orange-700">MEDIUM HEAT</span>
+          </div>
+        )
+      case 'LOW':
+        return (
+          <div className="flex items-center space-x-1">
+            <Minus className="h-4 w-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-500">LOW HEAT</span>
+          </div>
+        )
+      default:
+        return null
     }
   }
 
@@ -78,7 +112,7 @@ export function RecentTranscripts() {
           <span>Recent Transcripts</span>
         </CardTitle>
         <CardDescription className="text-slate-600">
-          Your latest conversation analyses and coaching insights
+          Your latest conversation analyses and deal intelligence
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -147,6 +181,13 @@ export function RecentTranscripts() {
                         </div>
                         <div className="text-xs text-slate-500">Control</div>
                       </div>
+                      
+                      {/* Display heat indicator if available */}
+                      {getHeatIndicator(transcript.conversation_analysis?.[0]) && (
+                        <div className="ml-4 border-l pl-4">
+                          {getHeatIndicator(transcript.conversation_analysis?.[0])}
+                        </div>
+                      )}
                     </div>
                     <Button
                       variant="ghost"
