@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
@@ -8,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { SalesIntelligenceView } from '@/components/analysis/SalesIntelligenceView'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
+import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { ArrowLeft } from 'lucide-react'
 
 interface TranscriptData {
@@ -28,6 +28,7 @@ export default function TranscriptAnalysis() {
   const [error, setError] = useState<string | null>(null)
   
   const { status } = useAnalysisStatus(transcriptId)
+  const { refreshData } = useTranscriptData()
 
   useEffect(() => {
     if (!transcriptId) return
@@ -67,10 +68,14 @@ export default function TranscriptAnalysis() {
   }, [transcriptId])
 
   const handleBackToDashboard = () => {
+    // Refresh dashboard data before navigating back
+    refreshData()
     navigate('/dashboard')
   }
 
   const handleUploadAnother = () => {
+    // Refresh dashboard data before navigating back
+    refreshData()
     navigate('/dashboard')
     // Could add a query param to auto-open upload dialog
   }

@@ -15,7 +15,7 @@ export default function WelcomeDashboard() {
   console.log('🔍 WelcomeDashboard MOUNTED')
   console.log('🔍 Current route:', window.location.pathname)
   
-  const { stats, transcripts, isLoading } = useTranscriptData()
+  const { stats, transcripts, isLoading, refreshData } = useTranscriptData()
   const [currentView, setCurrentView] = useState<'dashboard' | 'intelligence'>('dashboard')
   const [currentTranscriptId, setCurrentTranscriptId] = useState<string | null>(null)
 
@@ -33,6 +33,8 @@ export default function WelcomeDashboard() {
     console.log('🔍 Returning to dashboard')
     setCurrentView('dashboard')
     setCurrentTranscriptId(null)
+    // Refresh data to ensure we see any new transcripts or updates
+    refreshData()
   }
 
   // Handle upload another
@@ -40,6 +42,8 @@ export default function WelcomeDashboard() {
     console.log('🔍 Starting new upload')
     setCurrentView('dashboard')
     setCurrentTranscriptId(null)
+    // Refresh data to ensure we see any new transcripts or updates
+    refreshData()
   }
 
   // Show sales intelligence view
