@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
@@ -34,7 +35,7 @@ function calculateDealHeat(analysis: any): string {
   
   const criticalFactors = analysis.call_summary?.urgencyDrivers?.criticalFactors || []
   const businessFactors = analysis.call_summary?.urgencyDrivers?.businessFactors || []
-  const generalFactors = analysis_call_summary?.urgencyDrivers?.generalFactors || []
+  const generalFactors = analysis.call_summary?.urgencyDrivers?.generalFactors || []
   
   const urgencyScore = (criticalFactors.length * 3) + 
                       (businessFactors.length * 2) + 
