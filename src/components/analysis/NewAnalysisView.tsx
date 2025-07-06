@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -46,6 +45,7 @@ import { BattlePlanSection } from './BattlePlanSection'
 import { StakeholderNavigation } from './StakeholderNavigation'
 import { ExpandableSections } from './ExpandableSections'
 import { usePDFExport } from '@/hooks/usePDFExport'
+import { calculateDealHeat, type DealHeatResult } from '@/utils/dealHeatCalculator'
 
 interface AnalysisData {
   id: string
@@ -55,6 +55,7 @@ interface AnalysisData {
   recommendations?: any
   reasoning?: any
   action_plan?: any
+  heat_level?: string
 }
 
 interface TranscriptData {
@@ -83,113 +84,26 @@ export function NewAnalysisView({
   const [isExporting, setIsExporting] = useState(false)
 
   // Enhanced data mapping functions - moved before usage
-  const getDealHeat = () => {
-    const painLevel = analysis.call_summary?.painSeverity?.level || 'low'
-    const indicators = analysis.call_summary?.painSeverity?.indicators || []
-    const businessImpact = analysis.call_summary?.painSeverity?.businessImpact || ''
-    
-    const criticalFactors = analysis.call_summary?.urgencyDrivers?.criticalFactors || []
-    const businessFactors = analysis.call_summary?.urgencyDrivers?.businessFactors || []
-    const generalFactors = analysis.call_summary?.urgencyDrivers?.generalFactors || []
-    
-    const urgencyScore = (criticalFactors.length * 3) + 
-                        (businessFactors.length * 2) + 
-                        (generalFactors.length * 1)
-    
-    const buyingSignals = analysis.call_summary?.buyingSignalsAnalysis || {}
-    const commitmentSignals = buyingSignals.commitmentSignals || []
-    const engagementSignals = buyingSignals.engagementSignals || []
-    
-    const timelineAnalysis = analysis.call_summary?.timelineAnalysis || {}
-    const statedTimeline = timelineAnalysis.statedTimeline || ''
-    const businessDriver = timelineAnalysis.businessDriver || ''
-    
-    let dealScore = urgencyScore
-    
-    dealScore += commitmentSignals.length * 2
-    dealScore += engagementSignals.length * 1
-    
-    const timelineText = (statedTimeline + ' ' + businessDriver).toLowerCase()
-    if (timelineText.includes('friday') || timelineText.includes('this week') || 
-        timelineText.includes('immediate') || timelineText.includes('asap')) {
-      dealScore += 3
-    }
-    if (timelineText.includes('contract') || timelineText.includes('execute') || 
-        timelineText.includes('sign') || timelineText.includes('docs')) {
-      dealScore += 2
+  const getDealHeat = (): DealHeatResult => {
+    // PRIORITY 1: Use database heat_level if available (single source of truth)
+    if (analysis.heat_level) {
+      const dbHeatLevel = analysis.heat_level.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW'
+      
+      return {
+        level: dbHeatLevel,
+        emoji: dbHeatLevel === 'HIGH' ? '🔥' : dbHeatLevel === 'MEDIUM' ? '🌡️' : '❄️',
+        description: dbHeatLevel === 'HIGH' ? 'Immediate attention needed' : 
+                    dbHeatLevel === 'MEDIUM' ? 'Active opportunity' : 'Long-term opportunity',
+        evidence: analysis.call_summary?.painSeverity?.indicators?.slice(0, 2) || [],
+        businessImpact: analysis.call_summary?.painSeverity?.businessImpact || '',
+        bgColor: dbHeatLevel === 'HIGH' ? 'bg-red-500' : dbHeatLevel === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500',
+        color: dbHeatLevel === 'HIGH' ? 'text-red-300' : dbHeatLevel === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
+      }
     }
     
-    const resistanceData = analysis.call_summary?.resistanceAnalysis || {}
-    const resistanceLevel = resistanceData.level || 'none'
-    const resistanceSignals = resistanceData.signals || []
-    
-    let resistancePenalty = 0
-    
-    if (resistanceLevel === 'high') {
-      resistancePenalty += 8
-    } else if (resistanceLevel === 'medium') {
-      resistancePenalty += 4
-    }
-    
-    const allResistanceText = resistanceSignals.join(' ').toLowerCase()
-    
-    if (allResistanceText.includes('not actively looking') || 
-        allResistanceText.includes('not looking for') ||
-        allResistanceText.includes('no immediate need')) {
-      resistancePenalty += 3
-    }
-    
-    if (allResistanceText.includes('budget constraints') || 
-        allResistanceText.includes('budget concerns') ||
-        allResistanceText.includes('cost concerns')) {
-      resistancePenalty += 2
-    }
-    
-    if (allResistanceText.includes('satisfied with current') || 
-        allResistanceText.includes('current solution works')) {
-      resistancePenalty += 2
-    }
-    
-    if (allResistanceText.includes('timing concerns') || 
-        allResistanceText.includes('not the right time')) {
-      resistancePenalty += 1
-    }
-    
-    dealScore = Math.max(0, dealScore - resistancePenalty)
-    
-    let heatLevel = 'LOW'
-    let emoji = '❄️'
-    let description = 'Long-term opportunity'
-    
-    if (
-      painLevel === 'high' ||
-      criticalFactors.length >= 1 ||
-      dealScore >= 8 ||
-      (commitmentSignals.length >= 2 && dealScore >= 6) ||
-      (painLevel === 'medium' && commitmentSignals.length >= 2 && dealScore >= 5)
-    ) {
-      heatLevel = 'HIGH'
-      emoji = '🔥'
-      description = 'Immediate attention needed'
-    } else if (
-      painLevel === 'medium' || 
-      (businessFactors || []).length >= 1 ||
-      dealScore >= 3
-    ) {
-      heatLevel = 'MEDIUM'
-      emoji = '🌡️'
-      description = 'Active opportunity'
-    }
-    
-    return {
-      level: heatLevel,
-      emoji,
-      description,
-      evidence: indicators.slice(0, 2),
-      businessImpact,
-      bgColor: heatLevel === 'HIGH' ? 'bg-red-500' : heatLevel === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500',
-      color: heatLevel === 'HIGH' ? 'text-red-300' : heatLevel === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
-    }
+    // FALLBACK: Calculate using shared utility for older records without heat_level
+    console.log('🔍 [FALLBACK] Using client-side heat calculation for older record')
+    return calculateDealHeat(analysis)
   }
 
   const getConversationIntelligence = () => {
@@ -212,8 +126,9 @@ export function NewAnalysisView({
   }
 
   // 🚀 SMART PRIORITY SYSTEM - Auto-expand based on deal heat
-  const isHighPriorityDeal = getDealHeat().level === 'HIGH'
-  const isMediumPriorityDeal = getDealHeat().level === 'MEDIUM'
+  const dealHeat = getDealHeat()
+  const isHighPriorityDeal = dealHeat.level === 'HIGH'
+  const isMediumPriorityDeal = dealHeat.level === 'MEDIUM'
   
   // State for collapsible sections with smart defaults
   const [sectionsOpen, setSectionsOpen] = useState({
@@ -447,7 +362,6 @@ export function NewAnalysisView({
     }
   }
 
-  const dealHeat = getDealHeat()
   const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()

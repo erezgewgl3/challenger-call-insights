@@ -1,4 +1,3 @@
-
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -39,19 +38,21 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
   }
 
   const getHeatLevel = (analysis: any) => {
-    // FIXED: Use database heat_level column as primary source
+    // PRIORITY 1: Use database heat_level as primary source (single source of truth)
     if (analysis?.heat_level) {
       return analysis.heat_level.toUpperCase()
     }
     
-    // Only fallback if no heat_level in database (shouldn't happen after migration)
+    // LEGACY FALLBACK: Only for old records that don't have heat_level in database
+    // This should become rare as new analyses will always have heat_level
+    console.log('🔍 [FALLBACK] Using legacy heat calculation for old record')
     return analysis?.recommendations?.heat_level || 
            analysis?.guidance?.heat_level || 
            analysis?.call_summary?.heat_level ||
            'LOW'
   }
 
-  // Filter transcripts by heat level
+  // Filter transcripts by heat level using database-first approach
   const filteredTranscripts = transcripts.filter(transcript => {
     if (transcript.status !== 'completed' || !transcript.conversation_analysis?.length) {
       return false

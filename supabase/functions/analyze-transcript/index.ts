@@ -27,6 +27,99 @@ interface ParsedAnalysis {
   actionPlan?: any;
 }
 
+// Shared deal heat calculation logic
+function calculateDealHeat(analysis: any): string {
+  const painLevel = analysis.call_summary?.painSeverity?.level || 'low'
+  const indicators = analysis.call_summary?.painSeverity?.indicators || []
+  
+  const criticalFactors = analysis.call_summary?.urgencyDrivers?.criticalFactors || []
+  const businessFactors = analysis.call_summary?.urgencyDrivers?.businessFactors || []
+  const generalFactors = analysis_call_summary?.urgencyDrivers?.generalFactors || []
+  
+  const urgencyScore = (criticalFactors.length * 3) + 
+                      (businessFactors.length * 2) + 
+                      (generalFactors.length * 1)
+  
+  const buyingSignals = analysis.call_summary?.buyingSignalsAnalysis || {}
+  const commitmentSignals = buyingSignals.commitmentSignals || []
+  const engagementSignals = buyingSignals.engagementSignals || []
+  
+  const timelineAnalysis = analysis.call_summary?.timelineAnalysis || {}
+  const statedTimeline = timelineAnalysis.statedTimeline || ''
+  const businessDriver = timelineAnalysis.businessDriver || ''
+  
+  let dealScore = urgencyScore
+  
+  dealScore += commitmentSignals.length * 2
+  dealScore += engagementSignals.length * 1
+  
+  const timelineText = (statedTimeline + ' ' + businessDriver).toLowerCase()
+  if (timelineText.includes('friday') || timelineText.includes('this week') || 
+      timelineText.includes('immediate') || timelineText.includes('asap')) {
+    dealScore += 3
+  }
+  if (timelineText.includes('contract') || timelineText.includes('execute') || 
+      timelineText.includes('sign') || timelineText.includes('docs')) {
+    dealScore += 2
+  }
+  
+  const resistanceData = analysis.call_summary?.resistanceAnalysis || {}
+  const resistanceLevel = resistanceData.level || 'none'
+  const resistanceSignals = resistanceData.signals || []
+  
+  let resistancePenalty = 0
+  
+  if (resistanceLevel === 'high') {
+    resistancePenalty += 8
+  } else if (resistanceLevel === 'medium') {
+    resistancePenalty += 4
+  }
+  
+  const allResistanceText = resistanceSignals.join(' ').toLowerCase()
+  
+  if (allResistanceText.includes('not actively looking') || 
+      allResistanceText.includes('not looking for') ||
+      allResistanceText.includes('no immediate need')) {
+    resistancePenalty += 3
+  }
+  
+  if (allResistanceText.includes('budget constraints') || 
+      allResistanceText.includes('budget concerns') ||
+      allResistanceText.includes('cost concerns')) {
+    resistancePenalty += 2
+  }
+  
+  if (allResistanceText.includes('satisfied with current') || 
+      allResistanceText.includes('current solution works')) {
+    resistancePenalty += 2
+  }
+  
+  if (allResistanceText.includes('timing concerns') || 
+      allResistanceText.includes('not the right time')) {
+    resistancePenalty += 1
+  }
+  
+  dealScore = Math.max(0, dealScore - resistancePenalty)
+  
+  if (
+    painLevel === 'high' ||
+    criticalFactors.length >= 1 ||
+    dealScore >= 8 ||
+    (commitmentSignals.length >= 2 && dealScore >= 6) ||
+    (painLevel === 'medium' && commitmentSignals.length >= 2 && dealScore >= 5)
+  ) {
+    return 'HIGH'
+  } else if (
+    painLevel === 'medium' || 
+    (businessFactors || []).length >= 1 ||
+    dealScore >= 3
+  ) {
+    return 'MEDIUM'
+  }
+  
+  return 'LOW'
+}
+
 serve(async (req) => {
   console.log('🔍 [INIT] Analyze transcript function started');
   
@@ -121,7 +214,12 @@ serve(async (req) => {
     const parsedResult = parseAIResponse(aiResponse);
     console.log('🔍 [PARSE] AI response parsed successfully');
 
-    // Save analysis results
+    // Calculate deal heat using the same logic as frontend
+    console.log('🔍 [HEAT] Calculating deal heat');
+    const heatLevel = calculateDealHeat(parsedResult);
+    console.log('🔍 [HEAT] Deal heat calculated:', heatLevel);
+
+    // Save analysis results with heat level
     console.log('🔍 [DB] Saving analysis results to database');
     const analysisPayload = {
       transcript_id: transcriptId,
@@ -133,7 +231,8 @@ serve(async (req) => {
       key_takeaways: parsedResult.keyTakeaways,
       recommendations: parsedResult.recommendations,
       reasoning: parsedResult.reasoning,
-      action_plan: parsedResult.actionPlan
+      action_plan: parsedResult.actionPlan,
+      heat_level: heatLevel
     };
 
     const { data: analysisData, error: analysisError } = await supabase
@@ -148,7 +247,7 @@ serve(async (req) => {
       throw new Error(`Failed to save analysis: ${analysisError.message}`);
     }
 
-    console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id);
+    console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id, 'Heat Level:', heatLevel);
 
     // Update transcript status to completed (triggers real-time update)
     console.log('🔍 [DB] Updating transcript status to completed');
@@ -172,6 +271,7 @@ serve(async (req) => {
       transcriptId,
       strategy,
       aiProvider: 'openai',
+      heatLevel,
       message: 'Analysis completed successfully'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
