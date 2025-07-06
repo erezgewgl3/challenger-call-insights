@@ -30,11 +30,15 @@ export function RecentTranscripts() {
   }
 
   const getHeatLevel = (analysis: any) => {
-    // Extract heat level from existing analysis data
+    // FIXED: Use database heat_level column as primary source
+    if (analysis?.heat_level) {
+      return analysis.heat_level.toUpperCase()
+    }
+    
+    // Only fallback if no heat_level in database (shouldn't happen after migration)
     return analysis?.recommendations?.heat_level || 
            analysis?.guidance?.heat_level || 
-           analysis?.call_summary?.heat_level ||
-           analysis?.dealHeat
+           analysis?.call_summary?.heat_level
   }
 
   const getHeatIndicator = (analysis: any) => {
@@ -42,7 +46,7 @@ export function RecentTranscripts() {
 
     if (!heatLevel) return null
 
-    switch (heatLevel.toUpperCase()) {
+    switch (heatLevel) {
       case 'HIGH':
         return (
           <div className="flex items-center space-x-1">
