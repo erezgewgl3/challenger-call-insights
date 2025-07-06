@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { UploadProgress } from './UploadProgress'
 import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
-import { Upload, FileText, Zap } from 'lucide-react'
+import { Upload, FileText, Zap, Brain, Target, MessageSquare, ArrowRight } from 'lucide-react'
 
 interface TranscriptUploadProps {
   onAnalysisComplete?: (transcriptId: string) => void
@@ -35,7 +35,7 @@ export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) 
 
   return (
     <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
-      <CardContent className="space-y-4 p-4">
+      <CardContent className="space-y-3 p-4">
         {/* Compact Drop Zone */}
         <div
           {...getRootProps()}
@@ -48,24 +48,24 @@ export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) 
           `}
         >
           <input {...getInputProps()} />
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex justify-center">
-              <div className="p-2 bg-blue-100 rounded-full">
-                <FileText className="h-6 w-6 text-blue-600" />
+              <div className="p-1.5 bg-blue-100 rounded-full">
+                <FileText className="h-5 w-5 text-blue-600" />
               </div>
             </div>
             
             {isDragActive ? (
               <div>
-                <p className="font-medium text-blue-600">Drop files here...</p>
+                <p className="font-medium text-blue-600 text-sm">Drop files here...</p>
                 <p className="text-xs text-gray-600">Release to upload your transcripts</p>
               </div>
             ) : (
               <div>
-                <p className="font-medium text-gray-900">
+                <p className="font-medium text-gray-900 text-sm">
                   Drag & drop transcripts or <span className="text-blue-600">browse files</span>
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500">
                   Supports .txt, .docx, and .vtt files up to 10MB
                 </p>
               </div>
@@ -75,7 +75,7 @@ export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) 
 
         {/* Upload Progress */}
         {uploadFiles.length > 0 && (
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-medium text-gray-900">Upload Progress</h3>
               <Button 
@@ -83,7 +83,7 @@ export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) 
                 size="sm" 
                 onClick={handleClearAll}
                 disabled={isUploading}
-                className="h-7 px-2 text-xs"
+                className="h-6 px-2 text-xs"
               >
                 Clear All
               </Button>
@@ -112,28 +112,38 @@ export function TranscriptUpload({ onAnalysisComplete }: TranscriptUploadProps) 
           </div>
         )}
 
-        {/* Compact Features Section */}
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-2 rounded-lg">
+        {/* Enhanced Professional Features Section */}
+        <div className="bg-gradient-to-r from-emerald-50 via-blue-50 to-purple-50 p-3 rounded-lg border border-emerald-100/50">
           <div className="flex items-center space-x-2 mb-2">
-            <Zap className="h-4 w-4 text-green-600" />
-            <h4 className="text-sm font-medium text-gray-900">What You'll Get</h4>
+            <div className="p-1 bg-gradient-to-r from-emerald-500 to-blue-500 rounded-full">
+              <Zap className="h-3 w-3 text-white" />
+            </div>
+            <h4 className="text-sm font-semibold text-gray-900">What You'll Get</h4>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs text-gray-700">
-            <div className="flex items-center space-x-1">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full" />
-              <span>Client intelligence</span>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <div className="group flex items-center space-x-2 p-1.5 rounded-md hover:bg-white/60 transition-all duration-200 cursor-default">
+              <div className="p-1 bg-emerald-100 rounded-full group-hover:bg-emerald-200 transition-colors">
+                <Brain className="w-3 h-3 text-emerald-600" />
+              </div>
+              <span className="text-xs font-medium text-gray-700 group-hover:text-emerald-700 transition-colors">Client intelligence</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-              <span>Strategic insights</span>
+            <div className="group flex items-center space-x-2 p-1.5 rounded-md hover:bg-white/60 transition-all duration-200 cursor-default">
+              <div className="p-1 bg-blue-100 rounded-full group-hover:bg-blue-200 transition-colors">
+                <Target className="w-3 h-3 text-blue-600" />
+              </div>
+              <span className="text-xs font-medium text-gray-700 group-hover:text-blue-700 transition-colors">Strategic insights</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-1.5 h-1.5 bg-purple-500 rounded-full" />
-              <span>Follow-up content</span>
+            <div className="group flex items-center space-x-2 p-1.5 rounded-md hover:bg-white/60 transition-all duration-200 cursor-default">
+              <div className="p-1 bg-purple-100 rounded-full group-hover:bg-purple-200 transition-colors">
+                <MessageSquare className="w-3 h-3 text-purple-600" />
+              </div>
+              <span className="text-xs font-medium text-gray-700 group-hover:text-purple-700 transition-colors">Follow-up content</span>
             </div>
-            <div className="flex items-center space-x-1">
-              <div className="w-1.5 h-1.5 bg-orange-500 rounded-full" />
-              <span>Next steps</span>
+            <div className="group flex items-center space-x-2 p-1.5 rounded-md hover:bg-white/60 transition-all duration-200 cursor-default">
+              <div className="p-1 bg-orange-100 rounded-full group-hover:bg-orange-200 transition-colors">
+                <ArrowRight className="w-3 h-3 text-orange-600" />
+              </div>
+              <span className="text-xs font-medium text-gray-700 group-hover:text-orange-700 transition-colors">Next steps</span>
             </div>
           </div>
         </div>
