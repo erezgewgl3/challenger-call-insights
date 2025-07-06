@@ -74,16 +74,9 @@ export default function WelcomeDashboard() {
           </p>
         </div>
 
-        {/* Enhanced Upload Section - Now the Hero */}
-        <div className="mb-12">
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 shadow-xl">
-            <div className="text-center mb-8">
-              <h3 className="text-3xl font-bold text-white mb-3">Extract Intelligence From Your Latest Sales Conversation</h3>
-              <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-                Get instant deal intelligence, buying signals, and actionable insights to accelerate your opportunities
-              </p>
-            </div>
-            
+        {/* Streamlined Upload Section */}
+        <div className="mb-8">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-6 shadow-xl">
             {/* Upload Card with enhanced styling */}
             <div className="bg-white rounded-xl shadow-2xl">
               <TranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
