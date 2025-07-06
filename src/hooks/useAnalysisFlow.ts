@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
@@ -36,44 +37,27 @@ export function useAnalysisFlow() {
 
   // Calculate more accurate time estimation based on file characteristics
   const calculateEstimatedTime = (durationMinutes?: number) => {
-    if (!durationMinutes) return '~8 seconds'
+    if (!durationMinutes) return '30-60 seconds'
     
-    // More nuanced time estimation
-    if (durationMinutes <= 5) return '~8 seconds'
-    if (durationMinutes <= 15) return '~15 seconds'
-    if (durationMinutes <= 30) return '~25 seconds'
-    if (durationMinutes <= 60) return '~45 seconds'
-    return '~60 seconds'
+    // More realistic time estimates based on actual AI processing
+    if (durationMinutes <= 5) return '20-40 seconds'
+    if (durationMinutes <= 15) return '40-60 seconds'
+    if (durationMinutes <= 30) return '60-90 seconds'
+    if (durationMinutes <= 60) return '90-120 seconds'
+    return '2-3 minutes'
   }
 
-  // Enhanced progress tracking with realistic phases
+  // Use real progress from database, no fake simulation
   useEffect(() => {
     if (!state.currentTranscriptId || !analysisStatus) return
 
+    // Update progress with real data from Edge Function
+    setState(prev => ({
+      ...prev,
+      analysisProgress: analysisStatus.progress || 0
+    }))
+
     switch (analysisStatus.status) {
-      case 'uploaded':
-        // File processed, analysis queued
-        setState(prev => ({ ...prev, analysisProgress: 20 }))
-        break
-      case 'processing':
-        // Start with moderate progress, then simulate gradual increase
-        setState(prev => ({ ...prev, analysisProgress: 40 }))
-        
-        // Simulate realistic progress during analysis
-        let currentProgress = 40
-        const progressInterval = setInterval(() => {
-          setState(prev => {
-            if (prev.analysisProgress < 85) {
-              // Slower progress in middle phases (more realistic)
-              const increment = prev.analysisProgress < 60 ? 8 : 4
-              return { ...prev, analysisProgress: Math.min(85, prev.analysisProgress + increment) }
-            }
-            return prev
-          })
-        }, 3000) // Update every 3 seconds for more realistic pacing
-        
-        return () => clearInterval(progressInterval)
-        
       case 'completed':
         // Celebration phase before showing results
         setState(prev => ({ 

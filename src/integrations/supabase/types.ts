@@ -225,6 +225,38 @@ export type Database = {
         }
         Relationships: []
       }
+      transcript_progress: {
+        Row: {
+          message: string | null
+          phase: string
+          progress: number
+          transcript_id: string
+          updated_at: string
+        }
+        Insert: {
+          message?: string | null
+          phase?: string
+          progress?: number
+          transcript_id: string
+          updated_at?: string
+        }
+        Update: {
+          message?: string | null
+          phase?: string
+          progress?: number
+          transcript_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "transcript_progress_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: true
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       transcripts: {
         Row: {
           account_id: string | null

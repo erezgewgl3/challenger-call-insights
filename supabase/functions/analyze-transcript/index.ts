@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
@@ -50,6 +49,23 @@ serve(async (req) => {
       durationMinutes 
     });
 
+    // Helper function to update progress
+    const updateProgress = async (progress: number, phase: string, message: string) => {
+      console.log(`🔍 [PROGRESS] ${progress}%: ${message}`);
+      await supabase
+        .from('transcript_progress')
+        .upsert({
+          transcript_id: transcriptId,
+          progress,
+          phase,
+          message,
+          updated_at: new Date().toISOString()
+        });
+    };
+
+    // Initial progress update
+    await updateProgress(15, 'processing', 'Processing transcript...');
+
     // Update transcript status to processing
     console.log('🔍 [DB] Updating transcript status to processing');
     const { error: statusError } = await supabase
@@ -62,8 +78,9 @@ serve(async (req) => {
 
     if (statusError) {
       console.error('🔍 [ERROR] Failed to update transcript status:', statusError);
-      // Don't throw here, continue with analysis
     }
+
+    await updateProgress(25, 'preparing', 'Preparing AI analysis...');
 
     // Get active prompt directly from prompts table
     console.log('🔍 [PROMPT] Fetching active prompt');
@@ -100,6 +117,8 @@ serve(async (req) => {
 
     console.log('🔍 [PROMPT] Prompt built, length:', finalPrompt.length);
 
+    await updateProgress(45, 'analyzing', 'AI analyzing conversation...');
+
     // Default to OpenAI if no AI provider is specified or if Claude fails
     console.log('🔍 [AI] Calling OpenAI (default provider)');
     let aiResponse: string;
@@ -119,9 +138,13 @@ serve(async (req) => {
     
     console.log('🔍 [AI] AI response received, length:', aiResponse.length);
 
+    await updateProgress(70, 'processing_insights', 'Processing AI insights...');
+
     // Parse AI response
     const parsedResult = parseAIResponse(aiResponse);
     console.log('🔍 [PARSE] AI response parsed successfully');
+
+    await updateProgress(85, 'finalizing', 'Finalizing results...');
 
     // Save analysis results with proper error handling
     console.log('🔍 [DB] Saving analysis results to database');
@@ -151,6 +174,9 @@ serve(async (req) => {
     }
 
     console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id);
+
+    // Final progress update
+    await updateProgress(100, 'completed', 'Analysis complete!');
 
     // Update transcript status to completed
     console.log('🔍 [DB] Updating transcript status to completed');

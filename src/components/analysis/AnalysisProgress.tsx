@@ -12,6 +12,8 @@ interface AnalysisProgressProps {
   fileSize?: number
   fileDuration?: number
   onCancel?: () => void
+  phase?: string
+  message?: string
 }
 
 export function AnalysisProgress({
@@ -21,80 +23,20 @@ export function AnalysisProgress({
   fileName,
   fileSize,
   fileDuration,
-  onCancel
+  onCancel,
+  phase,
+  message
 }: AnalysisProgressProps) {
   const [displayProgress, setDisplayProgress] = useState(0)
-  const [timeRemaining, setTimeRemaining] = useState<number>(0)
-  const [analysisStartTime, setAnalysisStartTime] = useState<number>(Date.now())
+  const [startTime] = useState<number>(Date.now())
 
-  // Initialize analysis start time
+  // Smooth progress animation - use real progress directly
   useEffect(() => {
-    if (progress > 0) {
-      setAnalysisStartTime(Date.now())
-    }
-  }, [])
-
-  // Enhanced progress mapping with realistic phases
-  const getEnhancedProgress = (rawProgress: number) => {
-    if (rawProgress <= 25) {
-      // File upload phase: 0-15%
-      return Math.min(15, rawProgress * 0.6)
-    } else if (rawProgress <= 40) {
-      // Initial processing: 15-30%
-      return 15 + ((rawProgress - 25) / 15) * 15
-    } else if (rawProgress <= 60) {
-      // AI analysis start: 30-50%
-      return 30 + ((rawProgress - 40) / 20) * 20
-    } else if (rawProgress <= 90) {
-      // Deep analysis: 50-85%
-      return 50 + ((rawProgress - 60) / 30) * 35
-    } else {
-      // Finalizing results: 85-100%
-      return 85 + ((rawProgress - 90) / 10) * 15
-    }
-  }
-
-  // Smooth progress animation with enhanced mapping
-  useEffect(() => {
-    const enhancedProgress = getEnhancedProgress(progress)
     const timer = setTimeout(() => {
-      setDisplayProgress(enhancedProgress)
+      setDisplayProgress(progress)
     }, 100)
     return () => clearTimeout(timer)
   }, [progress])
-
-  // Real-time countdown timer
-  useEffect(() => {
-    if (!estimatedTime) return
-
-    // Extract seconds from estimated time string
-    const getSecondsFromEstimate = (estimate: string) => {
-      if (estimate.includes('8')) return 8
-      if (estimate.includes('25')) return 25
-      if (estimate.includes('60')) return 60
-      return 30 // default fallback
-    }
-
-    const totalSeconds = getSecondsFromEstimate(estimatedTime)
-    const elapsedSeconds = Math.floor((Date.now() - analysisStartTime) / 1000)
-    const remaining = Math.max(0, totalSeconds - elapsedSeconds)
-    
-    setTimeRemaining(remaining)
-
-    if (remaining > 0 && progress < 100) {
-      const interval = setInterval(() => {
-        const currentElapsed = Math.floor((Date.now() - analysisStartTime) / 1000)
-        const currentRemaining = Math.max(0, totalSeconds - currentElapsed)
-        setTimeRemaining(currentRemaining)
-        
-        if (currentRemaining === 0) {
-          clearInterval(interval)
-        }
-      }, 1000)
-      
-      return () => clearInterval(interval)
-    }
-  }, [estimatedTime, analysisStartTime, progress])
 
   const getStrategyInfo = () => {
     switch (strategy) {
@@ -122,12 +64,19 @@ export function AnalysisProgress({
     }
   }
 
+  // Use real message from Edge Function or fall back to phase-based message
   const getCurrentPhase = () => {
-    if (displayProgress <= 15) return 'Uploading transcript...'
-    if (displayProgress <= 30) return 'Processing file...'
-    if (displayProgress <= 50) return 'Starting AI analysis...'
-    if (displayProgress <= 85) return 'Analyzing conversation...'
-    return 'Finalizing insights...'
+    if (message) return message
+    
+    switch (phase) {
+      case 'processing': return 'Processing transcript...'
+      case 'preparing': return 'Preparing AI analysis...'
+      case 'analyzing': return 'AI analyzing conversation...'
+      case 'processing_insights': return 'Processing AI insights...'
+      case 'finalizing': return 'Finalizing results...'
+      case 'completed': return 'Analysis complete!'
+      default: return 'Starting analysis...'
+    }
   }
 
   const strategyInfo = getStrategyInfo()
@@ -143,10 +92,19 @@ export function AnalysisProgress({
 
   const getProgressSteps = () => {
     return [
-      { completed: displayProgress > 15, text: 'File uploaded' },
-      { completed: displayProgress > 50, text: 'AI analyzing' },
+      { completed: displayProgress > 15, text: 'File processed' },
+      { completed: displayProgress > 45, text: 'AI analyzing' },
       { completed: displayProgress > 85, text: 'Generating results' }
     ]
+  }
+
+  // Calculate elapsed time for better user feedback
+  const getElapsedTime = () => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000)
+    if (elapsed < 60) return `${elapsed}s elapsed`
+    const minutes = Math.floor(elapsed / 60)
+    const seconds = elapsed % 60
+    return `${minutes}m ${seconds}s elapsed`
   }
 
   return (
@@ -177,7 +135,7 @@ export function AnalysisProgress({
 
       <CardContent className="pt-0">
         <div className="flex items-center space-x-6">
-          {/* Enhanced Progress Ring */}
+          {/* Real Progress Ring */}
           <div className="flex-shrink-0">
             <div className="relative w-20 h-20">
               <svg className="w-20 h-20 transform -rotate-90" viewBox="0 0 80 80">
@@ -208,19 +166,17 @@ export function AnalysisProgress({
                   <div className={`text-lg font-bold text-${strategyInfo.color}-600`}>
                     {Math.round(displayProgress)}%
                   </div>
-                  {timeRemaining > 0 && progress < 100 && (
-                    <div className="text-xs text-slate-500">
-                      {timeRemaining}s left
-                    </div>
-                  )}
+                  <div className="text-xs text-slate-500">
+                    {getElapsedTime()}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Enhanced Information Display */}
+          {/* Real Information Display */}
           <div className="flex-1 space-y-3">
-            {/* Current Phase */}
+            {/* Current Phase with Real Message */}
             <div>
               <h3 className="text-base font-semibold text-slate-900">{currentPhase}</h3>
               <div className="flex items-center space-x-4 text-sm text-slate-600 mt-1">
@@ -234,7 +190,7 @@ export function AnalysisProgress({
                     {fileDuration && (
                       <span className="flex items-center space-x-1">
                         <span>•</span>
-                        <span className="font-medium">Meeting length: {fileDuration} min</span>
+                        <span className="font-medium">{fileDuration} min meeting</span>
                       </span>
                     )}
                   </>
@@ -264,11 +220,6 @@ export function AnalysisProgress({
                 <Clock className="w-3 h-3" />
                 <span>
                   Estimated total: {estimatedTime}
-                  {timeRemaining > 0 && progress < 100 && (
-                    <span className="ml-2 font-medium text-slate-700">
-                      ({timeRemaining}s remaining)
-                    </span>
-                  )}
                 </span>
               </div>
             )}
