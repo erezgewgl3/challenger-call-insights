@@ -174,28 +174,12 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
         ) : (
           <div className="relative">
             <div 
-              className="max-h-96 overflow-y-auto pr-2"
+              className="max-h-96 overflow-y-auto pr-2 custom-scrollbar"
               style={{
                 scrollbarWidth: 'thin',
                 scrollbarColor: '#64748b #e2e8f0'
               }}
             >
-              <style jsx>{`
-                div::-webkit-scrollbar {
-                  width: 8px;
-                }
-                div::-webkit-scrollbar-track {
-                  background: #f1f5f9;
-                  border-radius: 4px;
-                }
-                div::-webkit-scrollbar-thumb {
-                  background: #64748b;
-                  border-radius: 4px;
-                }
-                div::-webkit-scrollbar-thumb:hover {
-                  background: #475569;
-                }
-              `}</style>
               <div className="space-y-3">
                 {filteredTranscripts.map((transcript) => (
                   <div

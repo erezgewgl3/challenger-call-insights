@@ -103,6 +103,25 @@
   }
 }
 
+/* Custom scrollbar styles for heat deals section */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #64748b;
+  border-radius: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
 /* Enhanced PDF Export Optimizations - CRITICAL for Visual Capture */
 @media print, (prefers-color-scheme: pdf) {
   * {
