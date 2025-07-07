@@ -5,7 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { UsersOverview } from '@/components/admin/users/UsersOverview';
 import { InviteManagement } from '@/components/admin/users/InviteManagement';
-import { Shield } from 'lucide-react';
+import { AdvancedAnalytics } from '@/components/admin/analytics/AdvancedAnalytics';
+import { Shield, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function UserManagement() {
@@ -20,22 +21,26 @@ export default function UserManagement() {
               Manage users, roles, and access control across your Sales Whisperer platform
             </p>
           </div>
-          <Link to="/admin/gdpr-compliance">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Shield className="h-4 w-4" />
-              GDPR Compliance
-            </Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/admin/gdpr-compliance">
+              <Button variant="outline" className="flex items-center gap-2">
+                <Shield className="h-4 w-4" />
+                GDPR Compliance
+              </Button>
+            </Link>
+          </div>
         </div>
 
         {/* Tabbed Interface */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Users Overview</TabsTrigger>
-            <TabsTrigger value="invites">
-              Invite Management
+            <TabsTrigger value="invites">Invite Management</TabsTrigger>
+            <TabsTrigger value="analytics">
+              <BarChart3 className="h-4 w-4 mr-2" />
+              Advanced Analytics
             </TabsTrigger>
-            <TabsTrigger value="analytics" disabled>
+            <TabsTrigger value="usage" disabled>
               Usage Analytics
             </TabsTrigger>
           </TabsList>
@@ -48,7 +53,11 @@ export default function UserManagement() {
             <InviteManagement />
           </TabsContent>
 
-          <TabsContent value="analytics">
+          <TabsContent value="analytics" className="space-y-6">
+            <AdvancedAnalytics />
+          </TabsContent>
+
+          <TabsContent value="usage">
             <div className="text-center py-12 text-gray-500">
               Usage Analytics - Coming Soon
             </div>
