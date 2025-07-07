@@ -3,8 +3,21 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { BarChart3, Users, FileText, TrendingUp, Clock, Target, Activity } from 'lucide-react';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useUsageMetrics, useFeatureUsage } from '@/hooks/useUsageAnalytics';
 
 const UsageAnalytics: React.FC = () => {
+  const { data: metrics, isLoading: metricsLoading } = useUsageMetrics();
+  const { data: featureUsage, isLoading: featureLoading } = useFeatureUsage();
+
+  if (metricsLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -22,8 +35,10 @@ const UsageAnalytics: React.FC = () => {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">23</div>
-            <p className="text-xs text-muted-foreground">+12% from yesterday</p>
+            <div className="text-2xl font-bold">{metrics?.dailyActiveUsers || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              {metrics?.weeklyGrowth ? `${metrics.weeklyGrowth > 0 ? '+' : ''}${metrics.weeklyGrowth}% from last week` : 'No change from last week'}
+            </p>
           </CardContent>
         </Card>
         
@@ -33,8 +48,10 @@ const UsageAnalytics: React.FC = () => {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">156</div>
-            <p className="text-xs text-muted-foreground">+23% from last month</p>
+            <div className="text-2xl font-bold">{metrics?.transcriptsThisMonth || 0}</div>
+            <p className="text-xs text-muted-foreground">
+              Avg {metrics?.avgTranscriptsPerUser || 0} per user
+            </p>
           </CardContent>
         </Card>
         
@@ -44,8 +61,8 @@ const UsageAnalytics: React.FC = () => {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">24m</div>
-            <p className="text-xs text-muted-foreground">+5% from last week</p>
+            <div className="text-2xl font-bold">{metrics?.avgSessionTime || '0m'}</div>
+            <p className="text-xs text-muted-foreground">Estimated average</p>
           </CardContent>
         </Card>
         
@@ -55,7 +72,7 @@ const UsageAnalytics: React.FC = () => {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">78%</div>
+            <div className="text-2xl font-bold">{metrics?.featureAdoption || 0}%</div>
             <p className="text-xs text-muted-foreground">Overall adoption rate</p>
           </CardContent>
         </Card>
@@ -78,48 +95,56 @@ const UsageAnalytics: React.FC = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-center">
-                  <span>Total Users</span>
-                  <span className="font-semibold">45</span>
+                  <span>Daily Active Users</span>
+                  <span className="font-semibold">{metrics?.dailyActiveUsers || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Active This Month</span>
-                  <span className="font-semibold">32</span>
+                  <span>Transcripts This Month</span>
+                  <span className="font-semibold">{metrics?.transcriptsThisMonth || 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>Transcripts Uploaded</span>
-                  <span className="font-semibold">234</span>
+                  <span>Feature Adoption Rate</span>
+                  <span className="font-semibold">{metrics?.featureAdoption || 0}%</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span>AI Analyses Completed</span>
-                  <span className="font-semibold">198</span>
+                  <span>Weekly Return Rate</span>
+                  <span className="font-semibold">{metrics?.weeklyReturnRate || 0}%</span>
                 </div>
               </CardContent>
             </Card>
             
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <CardTitle>Key Metrics</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">User uploaded new transcript</span>
-                  <span className="text-xs text-muted-foreground ml-auto">2m ago</span>
+                  <span className="text-sm">Users actively using transcripts</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {metrics?.dailyActiveUsers || 0} users
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm">AI analysis completed</span>
-                  <span className="text-xs text-muted-foreground ml-auto">5m ago</span>
+                  <span className="text-sm">Average sessions per user</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {metrics?.avgSessionsPerUser || 0}
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span className="text-sm">New user registered</span>
-                  <span className="text-xs text-muted-foreground ml-auto">12m ago</span>
+                  <span className="text-sm">Monthly growth rate</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {metrics?.weeklyGrowth || 0}%
+                  </span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm">Prompt updated by admin</span>
-                  <span className="text-xs text-muted-foreground ml-auto">1h ago</span>
+                  <span className="text-sm">Monthly retention</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {metrics?.monthlyRetention || 0}%
+                  </span>
                 </div>
               </CardContent>
             </Card>
@@ -137,15 +162,15 @@ const UsageAnalytics: React.FC = () => {
               </p>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <p className="text-2xl font-bold text-blue-600">87%</p>
+                  <p className="text-2xl font-bold text-blue-600">{metrics?.weeklyReturnRate || 0}%</p>
                   <p className="text-sm text-muted-foreground">Weekly Return Rate</p>
                 </div>
                 <div className="text-center p-4 bg-green-50 rounded-lg">
-                  <p className="text-2xl font-bold text-green-600">12.3</p>
+                  <p className="text-2xl font-bold text-green-600">{metrics?.avgSessionsPerUser || 0}</p>
                   <p className="text-sm text-muted-foreground">Avg Sessions/User</p>
                 </div>
                 <div className="text-center p-4 bg-purple-50 rounded-lg">
-                  <p className="text-2xl font-bold text-purple-600">94%</p>
+                  <p className="text-2xl font-bold text-purple-600">{metrics?.featureDiscoveryRate || 0}%</p>
                   <p className="text-sm text-muted-foreground">Feature Discovery Rate</p>
                 </div>
               </div>
@@ -159,42 +184,26 @@ const UsageAnalytics: React.FC = () => {
               <CardTitle>Feature Usage Statistics</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span>Transcript Upload</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-600 h-2 rounded-full" style={{width: '95%'}}></div>
-                  </div>
-                  <span className="text-sm font-medium">95%</span>
+              {featureLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner size="lg" />
                 </div>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span>AI Analysis Review</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
-                    <div className="bg-green-600 h-2 rounded-full" style={{width: '78%'}}></div>
+              ) : (
+                featureUsage?.map((feature) => (
+                  <div key={feature.feature} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span>{feature.feature}</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-24 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{width: `${Math.min(100, feature.usagePercentage)}%`}}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-medium">{feature.usagePercentage}%</span>
+                    </div>
                   </div>
-                  <span className="text-sm font-medium">78%</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span>Account Management</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
-                    <div className="bg-purple-600 h-2 rounded-full" style={{width: '65%'}}></div>
-                  </div>
-                  <span className="text-sm font-medium">65%</span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <span>Email Follow-up Tools</span>
-                <div className="flex items-center space-x-2">
-                  <div className="w-24 bg-gray-200 rounded-full h-2">
-                    <div className="bg-orange-600 h-2 rounded-full" style={{width: '52%'}}></div>
-                  </div>
-                  <span className="text-sm font-medium">52%</span>
-                </div>
-              </div>
+                )) || []
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -212,24 +221,26 @@ const UsageAnalytics: React.FC = () => {
                 <div className="space-y-4">
                   <div>
                     <h4 className="font-medium mb-2">Weekly Growth</h4>
-                    <p className="text-3xl font-bold text-green-600">+12%</p>
+                    <p className="text-3xl font-bold text-green-600">
+                      {metrics?.weeklyGrowth ? `${metrics.weeklyGrowth > 0 ? '+' : ''}${metrics.weeklyGrowth}%` : '0%'}
+                    </p>
                     <p className="text-sm text-muted-foreground">User activity increase</p>
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Monthly Retention</h4>
-                    <p className="text-3xl font-bold text-blue-600">89%</p>
+                    <p className="text-3xl font-bold text-blue-600">{metrics?.monthlyRetention || 0}%</p>
                     <p className="text-sm text-muted-foreground">Users returning monthly</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div>
                     <h4 className="font-medium mb-2">Peak Usage Hours</h4>
-                    <p className="text-3xl font-bold text-orange-600">2-4 PM</p>
+                    <p className="text-3xl font-bold text-orange-600">{metrics?.peakUsageHours || 'N/A'}</p>
                     <p className="text-sm text-muted-foreground">Highest activity window</p>
                   </div>
                   <div>
                     <h4 className="font-medium mb-2">Avg Transcripts/User</h4>
-                    <p className="text-3xl font-bold text-purple-600">5.2</p>
+                    <p className="text-3xl font-bold text-purple-600">{metrics?.avgTranscriptsPerUser || 0}</p>
                     <p className="text-sm text-muted-foreground">Per month average</p>
                   </div>
                 </div>

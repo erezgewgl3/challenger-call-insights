@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface UserGrowthData {
   date: string;
@@ -13,6 +14,7 @@ interface UserGrowthData {
 
 interface UserGrowthChartProps {
   data: UserGrowthData[];
+  isLoading?: boolean;
 }
 
 const chartConfig = {
@@ -30,11 +32,24 @@ const chartConfig = {
   },
 };
 
-export function UserGrowthChart({ data }: UserGrowthChartProps) {
+export function UserGrowthChart({ data, isLoading = false }: UserGrowthChartProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>User Growth Analytics</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[300px]">
+          <LoadingSpinner size="lg" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>User Growth Trend</CardTitle>
+        <CardTitle>User Growth Analytics</CardTitle>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig}>
@@ -56,24 +71,24 @@ export function UserGrowthChart({ data }: UserGrowthChartProps) {
                 dataKey="totalUsers" 
                 stroke={chartConfig.totalUsers.color}
                 strokeWidth={2}
-                dot={{ r: 4 }}
                 name={chartConfig.totalUsers.label}
+                dot={{ r: 4 }}
               />
               <Line 
                 type="monotone" 
                 dataKey="newUsers" 
                 stroke={chartConfig.newUsers.color}
                 strokeWidth={2}
-                dot={{ r: 4 }}
                 name={chartConfig.newUsers.label}
+                dot={{ r: 4 }}
               />
               <Line 
                 type="monotone" 
                 dataKey="activeUsers" 
                 stroke={chartConfig.activeUsers.color}
                 strokeWidth={2}
-                dot={{ r: 4 }}
                 name={chartConfig.activeUsers.label}
+                dot={{ r: 4 }}
               />
             </LineChart>
           </ResponsiveContainer>

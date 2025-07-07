@@ -13,37 +13,13 @@ import { AnalysisPerformanceChart } from '@/components/admin/analytics/AnalysisP
 import { RecentActivityFeed } from '@/components/admin/analytics/RecentActivityFeed'
 import { AnalyticsCard } from '@/components/admin/AnalyticsCard'
 import { useSystemMetrics } from '@/hooks/useSystemMetrics'
+import { useUserGrowthData, useTranscriptVolumeData, useAnalysisPerformanceData } from '@/hooks/useChartData'
 
 export default function AdminDashboard() {
   const { data: systemMetrics, isLoading } = useSystemMetrics();
-
-  // Mock chart data for the visual components
-  const userGrowthData = [
-    { date: '2024-01-01', totalUsers: 1100, newUsers: 45, activeUsers: 890 },
-    { date: '2024-01-02', totalUsers: 1145, newUsers: 52, activeUsers: 920 },
-    { date: '2024-01-03', totalUsers: 1197, newUsers: 48, activeUsers: 945 },
-    { date: '2024-01-04', totalUsers: 1245, newUsers: 38, activeUsers: 967 },
-    { date: '2024-01-05', totalUsers: 1283, newUsers: 42, activeUsers: 985 },
-    { date: '2024-01-06', totalUsers: 1325, newUsers: 55, activeUsers: 1012 },
-  ];
-
-  const transcriptVolumeData = [
-    { date: '2024-01-01', uploads: 145, processed: 142, errors: 3 },
-    { date: '2024-01-02', uploads: 189, processed: 185, errors: 4 },
-    { date: '2024-01-03', uploads: 156, processed: 153, errors: 3 },
-    { date: '2024-01-04', uploads: 203, processed: 199, errors: 4 },
-    { date: '2024-01-05', uploads: 178, processed: 175, errors: 3 },
-    { date: '2024-01-06', uploads: 221, processed: 218, errors: 3 },
-  ];
-
-  const analysisPerformanceData = [
-    { timestamp: '2024-01-01T00:00:00Z', avgTime: 22.5, p95Time: 45.2, successRate: 96.8 },
-    { timestamp: '2024-01-01T04:00:00Z', avgTime: 21.8, p95Time: 42.1, successRate: 97.2 },
-    { timestamp: '2024-01-01T08:00:00Z', avgTime: 24.3, p95Time: 48.7, successRate: 96.5 },
-    { timestamp: '2024-01-01T12:00:00Z', avgTime: 23.1, p95Time: 46.8, successRate: 97.0 },
-    { timestamp: '2024-01-01T16:00:00Z', avgTime: 22.9, p95Time: 44.5, successRate: 96.9 },
-    { timestamp: '2024-01-01T20:00:00Z', avgTime: 21.5, p95Time: 41.8, successRate: 97.3 },
-  ];
+  const { data: userGrowthData, isLoading: userGrowthLoading } = useUserGrowthData(6);
+  const { data: transcriptVolumeData, isLoading: transcriptVolumeLoading } = useTranscriptVolumeData(6);
+  const { data: analysisPerformanceData, isLoading: analysisPerformanceLoading } = useAnalysisPerformanceData(24);
 
   return (
     <AdminLayout>
@@ -108,9 +84,18 @@ export default function AdminDashboard() {
 
             {/* Interactive Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <UserGrowthChart data={userGrowthData} />
-              <TranscriptVolumeChart data={transcriptVolumeData} />
-              <AnalysisPerformanceChart data={analysisPerformanceData} />
+              <UserGrowthChart 
+                data={userGrowthData || []} 
+                isLoading={userGrowthLoading}
+              />
+              <TranscriptVolumeChart 
+                data={transcriptVolumeData || []} 
+                isLoading={transcriptVolumeLoading}
+              />
+              <AnalysisPerformanceChart 
+                data={analysisPerformanceData || []} 
+                isLoading={analysisPerformanceLoading}
+              />
               
               {/* Management Cards */}
               <Card className="hover:shadow-xl transition-all duration-300 border-0 shadow-md bg-white">

@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface AnalysisPerformanceData {
   timestamp: string;
@@ -13,6 +14,7 @@ interface AnalysisPerformanceData {
 
 interface AnalysisPerformanceChartProps {
   data: AnalysisPerformanceData[];
+  isLoading?: boolean;
 }
 
 const chartConfig = {
@@ -30,7 +32,20 @@ const chartConfig = {
   },
 };
 
-export function AnalysisPerformanceChart({ data }: AnalysisPerformanceChartProps) {
+export function AnalysisPerformanceChart({ data, isLoading = false }: AnalysisPerformanceChartProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Analysis Performance</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[300px]">
+          <LoadingSpinner size="lg" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -72,7 +87,7 @@ export function AnalysisPerformanceChart({ data }: AnalysisPerformanceChartProps
             </AreaChart>
           </ResponsiveContainer>
         </ChartContainer>
-      </CardContent>
-    </Card>
-  );
+      </Card>
+    );
+  }
 }

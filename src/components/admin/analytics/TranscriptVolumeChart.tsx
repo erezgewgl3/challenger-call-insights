@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 interface TranscriptVolumeData {
   date: string;
@@ -13,6 +14,7 @@ interface TranscriptVolumeData {
 
 interface TranscriptVolumeChartProps {
   data: TranscriptVolumeData[];
+  isLoading?: boolean;
 }
 
 const chartConfig = {
@@ -30,7 +32,20 @@ const chartConfig = {
   },
 };
 
-export function TranscriptVolumeChart({ data }: TranscriptVolumeChartProps) {
+export function TranscriptVolumeChart({ data, isLoading = false }: TranscriptVolumeChartProps) {
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Transcript Processing Volume</CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[300px]">
+          <LoadingSpinner size="lg" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -72,7 +87,7 @@ export function TranscriptVolumeChart({ data }: TranscriptVolumeChartProps) {
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
-      </CardContent>
-    </Card>
-  );
+      </Card>
+    );
+  }
 }
