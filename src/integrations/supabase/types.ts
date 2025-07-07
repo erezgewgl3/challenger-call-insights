@@ -105,6 +105,168 @@ export type Database = {
           },
         ]
       }
+      data_export_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          download_url: string | null
+          expires_at: string | null
+          format: string
+          id: string
+          options: Json | null
+          requested_by: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          download_url?: string | null
+          expires_at?: string | null
+          format: string
+          id?: string
+          options?: Json | null
+          requested_by?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          download_url?: string | null
+          expires_at?: string | null
+          format?: string
+          id?: string
+          options?: Json | null
+          requested_by?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "data_export_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "data_export_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deletion_requests: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          grace_period_end: string | null
+          id: string
+          immediate_delete: boolean | null
+          reason: string
+          recovery_token: string | null
+          requested_by: string | null
+          scheduled_for: string
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          grace_period_end?: string | null
+          id?: string
+          immediate_delete?: boolean | null
+          reason: string
+          recovery_token?: string | null
+          requested_by?: string | null
+          scheduled_for: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          grace_period_end?: string | null
+          id?: string
+          immediate_delete?: boolean | null
+          reason?: string
+          recovery_token?: string | null
+          requested_by?: string | null
+          scheduled_for?: string
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deletion_requests_requested_by_fkey"
+            columns: ["requested_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deletion_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      gdpr_audit_log: {
+        Row: {
+          admin_id: string | null
+          created_at: string | null
+          details: Json | null
+          event_type: string
+          id: string
+          legal_basis: string | null
+          status: string | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          event_type: string
+          id?: string
+          legal_basis?: string | null
+          status?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          created_at?: string | null
+          details?: Json | null
+          event_type?: string
+          id?: string
+          legal_basis?: string | null
+          status?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gdpr_audit_log_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "gdpr_audit_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invites: {
         Row: {
           created_at: string | null
@@ -317,6 +479,50 @@ export type Database = {
             foreignKeyName: "transcripts_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_consent: {
+        Row: {
+          consent_date: string | null
+          consent_version: string | null
+          granular_consents: Json | null
+          id: string
+          last_updated: string | null
+          legal_basis: string | null
+          renewal_required: boolean | null
+          user_id: string | null
+          withdrawal_date: string | null
+        }
+        Insert: {
+          consent_date?: string | null
+          consent_version?: string | null
+          granular_consents?: Json | null
+          id?: string
+          last_updated?: string | null
+          legal_basis?: string | null
+          renewal_required?: boolean | null
+          user_id?: string | null
+          withdrawal_date?: string | null
+        }
+        Update: {
+          consent_date?: string | null
+          consent_version?: string | null
+          granular_consents?: Json | null
+          id?: string
+          last_updated?: string | null
+          legal_basis?: string | null
+          renewal_required?: boolean | null
+          user_id?: string | null
+          withdrawal_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_consent_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "users"
             referencedColumns: ["id"]
           },

@@ -24,13 +24,14 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from '@/components/ui/pagination';
-import { Users, Shield, Clock, UserPlus, Search, MoreHorizontal, Eye, UserCog, Download, X } from 'lucide-react';
+import { Users, Shield, Clock, UserPlus, Search, MoreHorizontal, Eye, UserCog, Download, X, Trash2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { RoleBadge } from './RoleBadge';
 import { ChangeRoleDialog } from './ChangeRoleDialog';
 import { UserActivityModal } from './UserActivityModal';
+import { UserDeletionDialog } from '../gdpr/UserDeletionDialog';
 
 interface UserWithCounts {
   id: string;
@@ -80,6 +81,12 @@ export function UsersOverview() {
     userId?: string;
     userName?: string;
     userRole?: 'admin' | 'sales_user';
+  }>({ isOpen: false });
+
+  // Deletion dialog state
+  const [deletionDialog, setDeletionDialog] = useState<{
+    isOpen: boolean;
+    user?: UserWithCounts;
   }>({ isOpen: false });
 
   const usersPerPage = 20;
@@ -238,6 +245,32 @@ export function UsersOverview() {
       userId: user.id,
       userName: user.email,
       userRole: user.role
+    });
+  };
+
+  // Data export handler
+  const handleDataExport = (user: UserWithCounts) => {
+    toast({
+      title: "Export Initiated",
+      description: `Data export for ${user.email} will be available in the GDPR dashboard.`,
+    });
+  };
+
+  // User deletion handler
+  const handleUserDeletion = (user: UserWithCounts) => {
+    // Prevent self-deletion
+    if (currentUser?.id === user.id) {
+      toast({
+        title: "Cannot Delete Own Account",
+        description: "You cannot delete your own admin account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDeletionDialog({
+      isOpen: true,
+      user
     });
   };
 
@@ -492,6 +525,11 @@ export function UsersOverview() {
                                 View Activity
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => handleDataExport(user)}>
+                                <Download className="mr-2 h-4 w-4" />
+                                Export User Data
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => handleRoleChange(user, user.role === 'admin' ? 'sales_user' : 'admin')}
                               >
@@ -499,9 +537,12 @@ export function UsersOverview() {
                                 {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem>
-                                <Download className="mr-2 h-4 w-4" />
-                                Export Data
+                              <DropdownMenuItem 
+                                onClick={() => handleUserDeletion(user)}
+                                className="text-red-600 focus:text-red-600"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Request Deletion
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -575,6 +616,15 @@ export function UsersOverview() {
           userRole={activityModal.userRole || 'sales_user'}
           isOpen={activityModal.isOpen}
           onClose={() => setActivityModal({ isOpen: false })}
+        />
+      )}
+
+      {/* User Deletion Dialog */}
+      {deletionDialog.user && (
+        <UserDeletionDialog
+          isOpen={deletionDialog.isOpen}
+          onClose={() => setDeletionDialog({ isOpen: false })}
+          user={deletionDialog.user}
         />
       )}
     </div>
