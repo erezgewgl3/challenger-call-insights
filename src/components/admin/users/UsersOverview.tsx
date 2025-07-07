@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useMemo } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Checkbox } from '@/components/ui/checkbox';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu';
 import { 
   Pagination, 
   PaginationContent, 
@@ -17,8 +25,12 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from '@/components/ui/pagination';
-import { Users, Shield, Clock, UserPlus, Search, MoreHorizontal } from 'lucide-react';
+import { Users, Shield, Clock, UserPlus, Search, MoreHorizontal, Eye, UserCog, Download, X } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { RoleBadge } from './RoleBadge';
+import { ChangeRoleDialog } from './ChangeRoleDialog';
 
 interface UserWithCounts {
   id: string;
@@ -32,34 +44,36 @@ interface UserWithCounts {
 
 type UserStatus = 'active' | 'inactive' | 'dormant' | 'never';
 
-const getUserStatus = (lastLogin?: string): UserStatus => {
-  if (!lastLogin) return 'never';
+const getUserStatus = (lastLogin?: string): { status: UserStatus; label: string; color: string; icon: string } => {
+  if (!lastLogin) return { status: 'never', label: 'Never logged in', color: 'bg-gray-100 text-gray-800', icon: '⚪' };
   
   const lastLoginDate = new Date(lastLogin);
   const daysSinceLogin = (Date.now() - lastLoginDate.getTime()) / (1000 * 60 * 60 * 24);
   
-  if (daysSinceLogin <= 7) return 'active';
-  if (daysSinceLogin <= 30) return 'inactive';
-  return 'dormant';
-};
-
-const getStatusDisplay = (status: UserStatus) => {
-  switch (status) {
-    case 'active':
-      return { label: 'Active', color: 'bg-green-100 text-green-800', icon: '🟢' };
-    case 'inactive':
-      return { label: 'Inactive', color: 'bg-yellow-100 text-yellow-800', icon: '🟡' };
-    case 'dormant':
-      return { label: 'Dormant', color: 'bg-red-100 text-red-800', icon: '🔴' };
-    case 'never':
-      return { label: 'Never logged in', color: 'bg-gray-100 text-gray-800', icon: '⚪' };
-  }
+  if (daysSinceLogin <= 7) return { status: 'active', label: 'Active', color: 'bg-green-100 text-green-800', icon: '🟢' };
+  if (daysSinceLogin <= 30) return { status: 'inactive', label: 'Inactive', color: 'bg-yellow-100 text-yellow-800', icon: '🟡' };
+  return { status: 'dormant', label: 'Dormant', color: 'bg-red-100 text-red-800', icon: '🔴' };
 };
 
 export function UsersOverview() {
+  const { toast } = useToast();
+  const { user: currentUser } = useAuth();
+  const queryClient = useQueryClient();
+  
   const [searchEmail, setSearchEmail] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
+  
+  // Role change dialog state
+  const [roleChangeDialog, setRoleChangeDialog] = useState<{
+    isOpen: boolean;
+    user?: UserWithCounts;
+    newRole?: 'admin' | 'sales_user';
+  }>({ isOpen: false });
+
   const usersPerPage = 20;
 
   // Fetch users data
@@ -85,12 +99,45 @@ export function UsersOverview() {
     }
   });
 
-  // Filter users based on search and role filter
-  const filteredUsers = users?.filter(user => {
-    const emailMatch = user.email.toLowerCase().includes(searchEmail.toLowerCase());
-    const roleMatch = roleFilter === 'all' || user.role === roleFilter;
-    return emailMatch && roleMatch;
-  }) || [];
+  // Role change mutation
+  const roleChangeMutation = useMutation({
+    mutationFn: async ({ userId, newRole }: { userId: string; newRole: 'admin' | 'sales_user' }) => {
+      const { error } = await supabase
+        .from('users')
+        .update({ role: newRole })
+        .eq('id', userId);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, { newRole }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast({
+        title: "Role Updated",
+        description: `User role successfully changed to ${newRole === 'admin' ? 'Admin' : 'Sales User'}.`,
+      });
+      setRoleChangeDialog({ isOpen: false });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to update user role. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Filter users based on search and filters
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    
+    return users.filter(user => {
+      const emailMatch = user.email.toLowerCase().includes(searchEmail.toLowerCase());
+      const roleMatch = roleFilter === 'all' || user.role === roleFilter;
+      const statusMatch = statusFilter === 'all' || getUserStatus(user.last_login).status === statusFilter;
+      
+      return emailMatch && roleMatch && statusMatch;
+    });
+  }, [users, searchEmail, roleFilter, statusFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
@@ -98,10 +145,74 @@ export function UsersOverview() {
   const paginatedUsers = filteredUsers.slice(startIndex, startIndex + usersPerPage);
 
   // Summary calculations
-  const totalUsers = users?.length || 0;
-  const activeUsers = users?.filter(u => getUserStatus(u.last_login) === 'active').length || 0;
-  const adminUsers = users?.filter(u => u.role === 'admin').length || 0;
-  const pendingInvites = 0; // TODO: Implement when invite management is added
+  const summaryStats = useMemo(() => {
+    if (!users) return { totalUsers: 0, activeUsers: 0, adminUsers: 0, pendingInvites: 0 };
+    
+    return {
+      totalUsers: users.length,
+      activeUsers: users.filter(u => getUserStatus(u.last_login).status === 'active').length,
+      adminUsers: users.filter(u => u.role === 'admin').length,
+      pendingInvites: 0 // TODO: Implement when invite management is added
+    };
+  }, [users]);
+
+  // Selection handlers
+  const handleUserSelect = (userId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(prev => [...prev, userId]);
+    } else {
+      setSelectedUsers(prev => prev.filter(id => id !== userId));
+      setSelectAll(false);
+    }
+  };
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedUsers(paginatedUsers.map(user => user.id));
+      setSelectAll(true);
+    } else {
+      setSelectedUsers([]);
+      setSelectAll(false);
+    }
+  };
+
+  // Role change handlers
+  const handleRoleChange = (user: UserWithCounts, newRole: 'admin' | 'sales_user') => {
+    // Prevent self-demotion
+    if (currentUser?.id === user.id && newRole === 'sales_user') {
+      toast({
+        title: "Cannot Change Own Role",
+        description: "You cannot demote your own admin privileges.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setRoleChangeDialog({
+      isOpen: true,
+      user,
+      newRole
+    });
+  };
+
+  const confirmRoleChange = () => {
+    if (roleChangeDialog.user && roleChangeDialog.newRole) {
+      roleChangeMutation.mutate({
+        userId: roleChangeDialog.user.id,
+        newRole: roleChangeDialog.newRole
+      });
+    }
+  };
+
+  // Clear filters
+  const clearFilters = () => {
+    setSearchEmail('');
+    setRoleFilter('all');
+    setStatusFilter('all');
+    setCurrentPage(1);
+  };
+
+  const hasFilters = searchEmail || roleFilter !== 'all' || statusFilter !== 'all';
 
   if (error) {
     return (
@@ -126,7 +237,7 @@ export function UsersOverview() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalUsers}</div>
+            <div className="text-2xl font-bold">{summaryStats.totalUsers}</div>
             <p className="text-xs text-muted-foreground">
               Registered accounts
             </p>
@@ -139,7 +250,7 @@ export function UsersOverview() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeUsers}</div>
+            <div className="text-2xl font-bold">{summaryStats.activeUsers}</div>
             <p className="text-xs text-muted-foreground">
               Active in last 7 days
             </p>
@@ -152,7 +263,7 @@ export function UsersOverview() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{adminUsers}</div>
+            <div className="text-2xl font-bold">{summaryStats.adminUsers}</div>
             <p className="text-xs text-muted-foreground">
               System administrators
             </p>
@@ -165,7 +276,7 @@ export function UsersOverview() {
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pendingInvites}</div>
+            <div className="text-2xl font-bold">{summaryStats.pendingInvites}</div>
             <p className="text-xs text-muted-foreground">
               Awaiting registration
             </p>
@@ -173,7 +284,7 @@ export function UsersOverview() {
         </Card>
       </div>
 
-      {/* Filters and Search */}
+      {/* Users Table */}
       <Card>
         <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -183,7 +294,7 @@ export function UsersOverview() {
                 Manage and monitor user accounts
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-stretch sm:items-center">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -194,8 +305,8 @@ export function UsersOverview() {
                 />
               </div>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger className="w-full sm:w-40">
-                  <SelectValue placeholder="Filter by role" />
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue placeholder="Role" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
@@ -203,7 +314,45 @@ export function UsersOverview() {
                   <SelectItem value="sales_user">Sales User</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full sm:w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="dormant">Dormant</SelectItem>
+                  <SelectItem value="never">Never logged in</SelectItem>
+                </SelectContent>
+              </Select>
+              {hasFilters && (
+                <Button variant="outline" size="sm" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
             </div>
+          </div>
+          
+          {/* Show results count and bulk actions */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-muted-foreground">
+              {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'} found
+              {hasFilters && ` (filtered from ${summaryStats.totalUsers} total)`}
+            </p>
+            
+            {selectedUsers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">
+                  {selectedUsers.length} selected
+                </span>
+                <Button variant="outline" size="sm">
+                  <Download className="h-4 w-4 mr-1" />
+                  Export Selected
+                </Button>
+              </div>
+            )}
           </div>
         </CardHeader>
 
@@ -212,12 +361,14 @@ export function UsersOverview() {
             <div className="space-y-4">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
+                  <div className="h-4 w-4 bg-gray-200 rounded" />
                   <div className="h-10 w-10 bg-gray-200 rounded-full" />
                   <div className="space-y-2 flex-1">
                     <div className="h-4 bg-gray-200 rounded w-1/3" />
                     <div className="h-3 bg-gray-200 rounded w-1/4" />
                   </div>
                   <div className="h-6 bg-gray-200 rounded w-20" />
+                  <div className="h-6 bg-gray-200 rounded w-16" />
                   <div className="h-8 bg-gray-200 rounded w-8" />
                 </div>
               ))}
@@ -227,6 +378,12 @@ export function UsersOverview() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox
+                        checked={selectAll}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
@@ -238,10 +395,15 @@ export function UsersOverview() {
                 <TableBody>
                   {paginatedUsers.map((user) => {
                     const status = getUserStatus(user.last_login);
-                    const statusDisplay = getStatusDisplay(status);
                     
                     return (
                       <TableRow key={user.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedUsers.includes(user.id)}
+                            onCheckedChange={(checked) => handleUserSelect(user.id, !!checked)}
+                          />
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center space-x-3">
                             <Avatar className="h-8 w-8">
@@ -258,14 +420,12 @@ export function UsersOverview() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                            {user.role === 'admin' ? 'Admin' : 'Sales User'}
-                          </Badge>
+                          <RoleBadge role={user.role} />
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className={statusDisplay.color}>
-                            <span className="mr-1">{statusDisplay.icon}</span>
-                            {statusDisplay.label}
+                          <Badge variant="outline" className={status.color}>
+                            <span className="mr-1">{status.icon}</span>
+                            {status.label}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -283,9 +443,35 @@ export function UsersOverview() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-56">
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Details
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => handleRoleChange(user, user.role === 'admin' ? 'sales_user' : 'admin')}
+                              >
+                                <UserCog className="mr-2 h-4 w-4" />
+                                {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Activity
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Download className="mr-2 h-4 w-4" />
+                                Export Data
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
@@ -336,6 +522,17 @@ export function UsersOverview() {
           )}
         </CardContent>
       </Card>
+
+      {/* Role Change Dialog */}
+      <ChangeRoleDialog
+        isOpen={roleChangeDialog.isOpen}
+        onClose={() => setRoleChangeDialog({ isOpen: false })}
+        onConfirm={confirmRoleChange}
+        userEmail={roleChangeDialog.user?.email || ''}
+        currentRole={roleChangeDialog.user?.role || 'sales_user'}
+        newRole={roleChangeDialog.newRole || 'sales_user'}
+        isLoading={roleChangeMutation.isPending}
+      />
     </div>
   );
 }
