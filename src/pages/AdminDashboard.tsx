@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -10,23 +11,13 @@ import { UserGrowthChart } from '@/components/admin/analytics/UserGrowthChart'
 import { TranscriptVolumeChart } from '@/components/admin/analytics/TranscriptVolumeChart'
 import { AnalysisPerformanceChart } from '@/components/admin/analytics/AnalysisPerformanceChart'
 import { RecentActivityFeed } from '@/components/admin/analytics/RecentActivityFeed'
+import { AnalyticsCard } from '@/components/admin/AnalyticsCard'
+import { useSystemMetrics } from '@/hooks/useSystemMetrics'
 
 export default function AdminDashboard() {
-  // Mock data for real-time metrics - replace with actual API calls
-  const systemMetrics = {
-    totalUsers: 1247,
-    userGrowth: 12.5,
-    activePrompts: 2,
-    promptChanges: 0,
-    analysesToday: 89,
-    analysisGrowth: 15.3
-  };
+  const { data: systemMetrics, isLoading } = useSystemMetrics();
 
-  const performanceData = {
-    uptime: 99.97
-  };
-
-  // Mock chart data
+  // Mock chart data for the visual components
   const userGrowthData = [
     { date: '2024-01-01', totalUsers: 1100, newUsers: 45, activeUsers: 890 },
     { date: '2024-01-02', totalUsers: 1145, newUsers: 52, activeUsers: 920 },
@@ -77,34 +68,41 @@ export default function AdminDashboard() {
           </TabsList>
 
           <TabsContent value="overview">
+            {/* Real-time Analytics Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <SystemMetricCard
+              <AnalyticsCard
                 title="Total Users"
-                value={systemMetrics.totalUsers}
-                change={systemMetrics.userGrowth}
-                trend="up"
+                value={systemMetrics?.totalUsers || 0}
+                description={`${systemMetrics?.newUsersThisWeek || 0} new this week`}
                 icon={Users}
+                isLoading={isLoading}
+                trend={systemMetrics?.userGrowthTrend}
               />
-              <SystemMetricCard
+              
+              <AnalyticsCard
                 title="Active Prompts"
-                value={systemMetrics.activePrompts}
-                change={systemMetrics.promptChanges}
-                trend="neutral"
+                value={systemMetrics?.activePrompts || 0}
+                description="System prompts active"
                 icon={MessageSquare}
+                isLoading={isLoading}
               />
-              <SystemMetricCard
+              
+              <AnalyticsCard
                 title="Analyses Today"
-                value={systemMetrics.analysesToday}
-                change={systemMetrics.analysisGrowth}
-                trend="up"
+                value={systemMetrics?.analysesToday || 0}
+                description={`${systemMetrics?.analysesThisMonth || 0} this month`}
                 icon={Activity}
+                isLoading={isLoading}
+                trend={systemMetrics?.analysesTrend}
               />
-              <SystemMetricCard
+              
+              <AnalyticsCard
                 title="System Health"
                 value="Operational"
-                uptime={performanceData.uptime}
-                trend="stable"
+                description={`${systemMetrics?.uptime || 99.9}% uptime`}
                 icon={Settings}
+                isLoading={isLoading}
+                status={systemMetrics?.systemStatus || 'healthy'}
               />
             </div>
 
