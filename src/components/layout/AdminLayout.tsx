@@ -49,15 +49,14 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       title: 'User Management',
       href: '/admin/users',
       icon: Users,
-      description: 'Manage users and invites',
-      badge: 'Soon',
-      disabled: true
+      description: 'Manage users and invites'
     },
     {
       title: 'Analytics',
       href: '/admin/analytics',
       icon: BarChart3,
       description: 'Usage analytics and insights',
+      badge: 'Soon',
       disabled: true
     },
     {
@@ -80,6 +79,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       
       if (pathSegments[1] === 'prompts') {
         breadcrumbs.push({ label: 'AI Prompt Management', href: '/admin/prompts' });
+      } else if (pathSegments[1] === 'users') {
+        breadcrumbs.push({ label: 'User Management', href: '/admin/users' });
       }
     }
     

@@ -13,6 +13,7 @@ import Index from "./pages/Index";
 import WelcomeDashboard from "./pages/WelcomeDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import PromptManagement from "./pages/PromptManagement";
+import UserManagement from "./pages/admin/UserManagement";
 import NotFound from "./pages/NotFound";
 import TranscriptAnalysis from "./pages/TranscriptAnalysis";
 
@@ -43,6 +44,11 @@ function App() {
               <Route path="/admin/prompts" element={
                 <AdminGuard>
                   <PromptManagement />
+                </AdminGuard>
+              } />
+              <Route path="/admin/users" element={
+                <AdminGuard>
+                  <UserManagement />
                 </AdminGuard>
               } />
               <Route path="/analysis/:transcriptId" element={
