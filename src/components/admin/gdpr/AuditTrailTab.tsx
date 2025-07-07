@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -13,13 +14,13 @@ import { formatDistanceToNow, format } from 'date-fns';
 
 interface GDPRAuditEvent {
   id: string;
-  event_type: 'data_export' | 'data_deletion' | 'consent_updated' | 'retention_action';
+  event_type: string; // Changed to string to match database
   user_id: string;
   admin_id: string;
   timestamp: string;
   details: Record<string, any>;
   legal_basis?: string;
-  status: 'pending' | 'completed' | 'failed';
+  status: string; // Changed to string to match database
   created_at: string;
   user?: {
     email: string;
@@ -100,7 +101,7 @@ export function AuditTrailTab() {
         );
       }
 
-      return filteredData;
+      return filteredData as GDPRAuditEvent[];
     }
   });
 
@@ -127,6 +128,16 @@ export function AuditTrailTab() {
     a.download = `gdpr-audit-trail-${format(new Date(), 'yyyy-MM-dd')}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
+  };
+
+  const getEventTypeConfig = (eventType: string) => {
+    return eventTypeConfig[eventType as keyof typeof eventTypeConfig] || 
+           { label: eventType, color: 'bg-gray-100 text-gray-800' };
+  };
+
+  const getStatusConfig = (status: string) => {
+    return statusConfig[status as keyof typeof statusConfig] || 
+           { label: status, color: 'bg-gray-100 text-gray-800' };
   };
 
   return (
@@ -252,8 +263,8 @@ export function AuditTrailTab() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge className={eventTypeConfig[event.event_type].color}>
-                        {eventTypeConfig[event.event_type].label}
+                      <Badge className={getEventTypeConfig(event.event_type).color}>
+                        {getEventTypeConfig(event.event_type).label}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -263,8 +274,8 @@ export function AuditTrailTab() {
                       {event.admin?.email || 'Automated'}
                     </TableCell>
                     <TableCell>
-                      <Badge className={statusConfig[event.status].color}>
-                        {statusConfig[event.status].label}
+                      <Badge className={getStatusConfig(event.status).color}>
+                        {getStatusConfig(event.status).label}
                       </Badge>
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
@@ -318,14 +329,14 @@ export function AuditTrailTab() {
                 </div>
                 <div>
                   <Label className="font-medium">Event Type</Label>
-                  <Badge className={eventTypeConfig[selectedEvent.event_type].color}>
-                    {eventTypeConfig[selectedEvent.event_type].label}
+                  <Badge className={getEventTypeConfig(selectedEvent.event_type).color}>
+                    {getEventTypeConfig(selectedEvent.event_type).label}
                   </Badge>
                 </div>
                 <div>
                   <Label className="font-medium">Status</Label>
-                  <Badge className={statusConfig[selectedEvent.status].color}>
-                    {statusConfig[selectedEvent.status].label}
+                  <Badge className={getStatusConfig(selectedEvent.status).color}>
+                    {getStatusConfig(selectedEvent.status).label}
                   </Badge>
                 </div>
                 <div>

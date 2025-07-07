@@ -51,7 +51,7 @@ export function DataExportModal({ isOpen, onClose, userId, onSuccess }: DataExpo
           requested_by: currentUser?.id,
           format: exportRequest.format,
           status: 'pending',
-          options: exportRequest.options,
+          options: exportRequest.options as any, // Cast to Json type
           expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days
         })
         .select()

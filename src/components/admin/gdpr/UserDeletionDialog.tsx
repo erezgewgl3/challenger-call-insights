@@ -105,6 +105,11 @@ export function UserDeletionDialog({ isOpen, onClose, user }: UserDeletionDialog
     onClose();
   };
 
+  const handleImmediateDeleteChange = (checked: boolean | 'indeterminate') => {
+    // Handle the checkbox state properly
+    setImmediateDelete(checked === true);
+  };
+
   const canProceed = reason.trim() && confirmationText === 'DELETE';
 
   return (
@@ -164,7 +169,7 @@ export function UserDeletionDialog({ isOpen, onClose, user }: UserDeletionDialog
             <Checkbox
               id="immediate"
               checked={immediateDelete}
-              onCheckedChange={setImmediateDelete}
+              onCheckedChange={handleImmediateDeleteChange}
             />
             <Label htmlFor="immediate" className="text-sm">
               Delete immediately (skip 30-day grace period)
