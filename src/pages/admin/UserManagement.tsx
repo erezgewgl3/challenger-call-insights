@@ -3,6 +3,7 @@ import React from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { UsersOverview } from '@/components/admin/users/UsersOverview';
+import { InviteManagement } from '@/components/admin/users/InviteManagement';
 
 export default function UserManagement() {
   return (
@@ -20,7 +21,7 @@ export default function UserManagement() {
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="overview">Users Overview</TabsTrigger>
-            <TabsTrigger value="invites" disabled>
+            <TabsTrigger value="invites">
               Invite Management
             </TabsTrigger>
             <TabsTrigger value="analytics" disabled>
@@ -32,10 +33,8 @@ export default function UserManagement() {
             <UsersOverview />
           </TabsContent>
 
-          <TabsContent value="invites">
-            <div className="text-center py-12 text-gray-500">
-              Invite Management - Coming Soon
-            </div>
+          <TabsContent value="invites" className="space-y-6">
+            <InviteManagement />
           </TabsContent>
 
           <TabsContent value="analytics">

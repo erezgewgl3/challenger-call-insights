@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -99,6 +98,19 @@ export function UsersOverview() {
     }
   });
 
+  // Fetch invites data for summary statistics
+  const { data: invites } = useQuery({
+    queryKey: ['admin', 'invites'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('invites')
+        .select('*');
+      
+      if (error) throw error;
+      return data;
+    }
+  });
+
   // Role change mutation
   const roleChangeMutation = useMutation({
     mutationFn: async ({ userId, newRole }: { userId: string; newRole: 'admin' | 'sales_user' }) => {
@@ -144,18 +156,24 @@ export function UsersOverview() {
   const startIndex = (currentPage - 1) * usersPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, startIndex + usersPerPage);
 
-  // Summary calculations
+  // Summary calculations including invite statistics
   const summaryStats = useMemo(() => {
     if (!users) return { totalUsers: 0, activeUsers: 0, adminUsers: 0, pendingInvites: 0 };
+    
+    const now = new Date();
+    const pendingInvites = invites?.filter(invite => 
+      !invite.used_at && new Date(invite.expires_at) > now
+    ).length || 0;
     
     return {
       totalUsers: users.length,
       activeUsers: users.filter(u => getUserStatus(u.last_login).status === 'active').length,
       adminUsers: users.filter(u => u.role === 'admin').length,
-      pendingInvites: 0 // TODO: Implement when invite management is added
+      pendingInvites
     };
-  }, [users]);
+  }, [users, invites]);
 
+  
   // Selection handlers
   const handleUserSelect = (userId: string, checked: boolean) => {
     if (checked) {

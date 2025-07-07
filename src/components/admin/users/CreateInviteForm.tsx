@@ -1,0 +1,280 @@
+
+import React, { useState } from 'react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Copy, Check, Mail, UserPlus } from 'lucide-react';
+import { 
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+  FormDescription
+} from '@/components/ui/form';
+
+const createInviteSchema = z.object({
+  email: z.string()
+    .email('Invalid email address')
+    .min(1, 'Email is required'),
+  expiresInDays: z.number().min(1).max(30),
+  sendEmail: z.boolean()
+});
+
+type CreateInviteForm = z.infer<typeof createInviteSchema>;
+
+export function CreateInviteForm() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+
+  const form = useForm<CreateInviteForm>({
+    resolver: zodResolver(createInviteSchema),
+    defaultValues: {
+      email: '',
+      expiresInDays: 7,
+      sendEmail: true
+    }
+  });
+
+  const createInviteMutation = useMutation({
+    mutationFn: async (data: CreateInviteForm) => {
+      // Check for existing user
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', data.email)
+        .single();
+
+      if (existingUser) {
+        throw new Error('A user with this email already exists');
+      }
+
+      // Check for pending invites
+      const { data: pendingInvite } = await supabase
+        .from('invites')
+        .select('id')
+        .eq('email', data.email)
+        .is('used_at', null)
+        .gt('expires_at', new Date().toISOString())
+        .single();
+
+      if (pendingInvite) {
+        throw new Error('A pending invitation already exists for this email');
+      }
+
+      // Calculate expiration date
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + data.expiresInDays);
+
+      // Generate secure token
+      const token = crypto.randomUUID() + '-' + Date.now().toString(36);
+
+      // Create invite
+      const { data: invite, error } = await supabase
+        .from('invites')
+        .insert({
+          email: data.email,
+          token,
+          expires_at: expiresAt.toISOString(),
+          created_by: user?.id
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      return { invite, token };
+    },
+    onSuccess: ({ invite, token }) => {
+      const baseUrl = window.location.origin;
+      const inviteLink = `${baseUrl}/register?token=${token}`;
+      
+      setGeneratedLink(inviteLink);
+      queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      
+      toast({
+        title: "Invitation Created",
+        description: `Successfully created invitation for ${invite.email}`,
+      });
+
+      form.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
+  const onSubmit = (data: CreateInviteForm) => {
+    createInviteMutation.mutate(data);
+  };
+
+  const copyToClipboard = async () => {
+    if (!generatedLink) return;
+    
+    try {
+      await navigator.clipboard.writeText(generatedLink);
+      setCopySuccess(true);
+      toast({
+        title: "Copied!",
+        description: "Invite link copied to clipboard",
+      });
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Please copy the link manually",
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserPlus className="h-5 w-5" />
+          Create New Invitation
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email Address</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="email"
+                      placeholder="user@company.com"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="expiresInDays"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Expires In</FormLabel>
+                  <Select 
+                    value={field.value.toString()} 
+                    onValueChange={(value) => field.onChange(parseInt(value))}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="1">1 day</SelectItem>
+                      <SelectItem value="7">7 days</SelectItem>
+                      <SelectItem value="14">14 days</SelectItem>
+                      <SelectItem value="30">30 days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="sendEmail"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Send Email Invitation</FormLabel>
+                    <FormDescription>
+                      Automatically send the invitation link via email
+                    </FormDescription>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            <Button 
+              type="submit" 
+              className="w-full"
+              disabled={createInviteMutation.isPending}
+            >
+              {createInviteMutation.isPending ? (
+                'Creating Invitation...'
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Create Invitation
+                </>
+              )}
+            </Button>
+          </form>
+        </Form>
+
+        {/* Generated Link Section */}
+        {generatedLink && (
+          <div className="p-4 bg-green-50 border border-green-200 rounded-lg space-y-3">
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-green-600" />
+              <span className="font-medium text-green-800">Invitation Created!</span>
+            </div>
+            
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Invitation Link:</Label>
+              <div className="flex items-center gap-2">
+                <Input
+                  value={generatedLink}
+                  readOnly
+                  className="font-mono text-sm bg-white"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={copyToClipboard}
+                  className="shrink-0"
+                >
+                  {copySuccess ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
