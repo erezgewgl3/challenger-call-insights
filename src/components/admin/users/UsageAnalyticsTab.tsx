@@ -80,7 +80,7 @@ export function UsageAnalyticsTab({ userId }: UsageAnalyticsTabProps) {
       }, {} as Record<number, number>);
       
       const peakHour = Object.entries(hourCounts)
-        .sort(([,a], [,b]) => b - a)[0]?.[0] || 9;
+        .sort(([,a], [,b]) => b - a)[0]?.[0] || '9';
 
       // Most active day
       const dayCounts = transcripts.reduce((acc, t) => {
@@ -197,7 +197,7 @@ export function UsageAnalyticsTab({ userId }: UsageAnalyticsTabProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {usageStats?.peakUsageHour ? 
+              {usageStats?.peakUsageHour !== undefined ? 
                 `${usageStats.peakUsageHour}:00` : 
                 'N/A'
               }

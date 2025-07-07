@@ -131,6 +131,7 @@ export function ActivityTimelineTab({ userId }: ActivityTimelineTabProps) {
   } = useInfiniteQuery({
     queryKey: ['user-activity', userId, filters],
     queryFn: fetchUserActivity,
+    initialPageParam: 0,
     getNextPageParam: (lastPage) => lastPage.hasMore ? lastPage.nextCursor : undefined,
     refetchInterval: 30000 // Refresh every 30 seconds
   });
