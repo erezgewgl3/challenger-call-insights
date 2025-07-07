@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { UsersOverview } from '@/components/admin/users/UsersOverview';
 import { InviteManagement } from '@/components/admin/users/InviteManagement';
 import { AdvancedAnalytics } from '@/components/admin/analytics/AdvancedAnalytics';
+import UsageAnalytics from '@/components/admin/analytics/UsageAnalytics';
 import { Shield, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -40,7 +41,7 @@ export default function UserManagement() {
               <BarChart3 className="h-4 w-4 mr-2" />
               Advanced Analytics
             </TabsTrigger>
-            <TabsTrigger value="usage" disabled>
+            <TabsTrigger value="usage">
               Usage Analytics
             </TabsTrigger>
           </TabsList>
@@ -57,10 +58,8 @@ export default function UserManagement() {
             <AdvancedAnalytics />
           </TabsContent>
 
-          <TabsContent value="usage">
-            <div className="text-center py-12 text-gray-500">
-              Usage Analytics - Coming Soon
-            </div>
+          <TabsContent value="usage" className="space-y-6">
+            <UsageAnalytics />
           </TabsContent>
         </Tabs>
       </div>
