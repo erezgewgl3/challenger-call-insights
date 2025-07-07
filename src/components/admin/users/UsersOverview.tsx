@@ -30,6 +30,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { RoleBadge } from './RoleBadge';
 import { ChangeRoleDialog } from './ChangeRoleDialog';
+import { UserActivityModal } from './UserActivityModal';
 
 interface UserWithCounts {
   id: string;
@@ -71,6 +72,14 @@ export function UsersOverview() {
     isOpen: boolean;
     user?: UserWithCounts;
     newRole?: 'admin' | 'sales_user';
+  }>({ isOpen: false });
+
+  // Activity modal state
+  const [activityModal, setActivityModal] = useState<{
+    isOpen: boolean;
+    userId?: string;
+    userName?: string;
+    userRole?: 'admin' | 'sales_user';
   }>({ isOpen: false });
 
   const usersPerPage = 20;
@@ -220,6 +229,16 @@ export function UsersOverview() {
         newRole: roleChangeDialog.newRole
       });
     }
+  };
+
+  // Activity modal handlers
+  const handleViewActivity = (user: UserWithCounts) => {
+    setActivityModal({
+      isOpen: true,
+      userId: user.id,
+      userName: user.email,
+      userRole: user.role
+    });
   };
 
   // Clear filters
@@ -468,9 +487,9 @@ export function UsersOverview() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="w-56">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleViewActivity(user)}>
                                 <Eye className="mr-2 h-4 w-4" />
-                                View Details
+                                View Activity
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
@@ -480,10 +499,6 @@ export function UsersOverview() {
                                 {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Activity
-                              </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Download className="mr-2 h-4 w-4" />
                                 Export Data
@@ -551,6 +566,17 @@ export function UsersOverview() {
         newRole={roleChangeDialog.newRole || 'sales_user'}
         isLoading={roleChangeMutation.isPending}
       />
+
+      {/* Activity Modal */}
+      {activityModal.userId && (
+        <UserActivityModal
+          userId={activityModal.userId}
+          userName={activityModal.userName || ''}
+          userRole={activityModal.userRole || 'sales_user'}
+          isOpen={activityModal.isOpen}
+          onClose={() => setActivityModal({ isOpen: false })}
+        />
+      )}
     </div>
   );
 }
