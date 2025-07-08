@@ -87,7 +87,7 @@ export function TranscriptVolumeChart({ data, isLoading = false }: TranscriptVol
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
-      </Card>
-    );
-  }
+      </CardContent>
+    </Card>
+  );
 }

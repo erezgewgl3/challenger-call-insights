@@ -87,7 +87,7 @@ export function AnalysisPerformanceChart({ data, isLoading = false }: AnalysisPe
             </AreaChart>
           </ResponsiveContainer>
         </ChartContainer>
-      </Card>
-    );
-  }
+      </CardContent>
+    </Card>
+  );
 }
