@@ -67,19 +67,14 @@ export function InviteManagement() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Create Invite Form - Left Column */}
-      <div className="lg:col-span-1">
+    <div className="space-y-8">
+      {/* Create Invite Form - Full Width on Mobile, Side by Side on Desktop */}
+      <div className="w-full">
         <CreateInviteForm />
       </div>
 
-      {/* Vertical Separator */}
-      <div className="hidden lg:flex items-center">
-        <Separator orientation="vertical" className="h-full" />
-      </div>
-
-      {/* Invites Table - Right Columns */}
-      <div className="lg:col-span-2">
+      {/* Invites Table - Full Width */}
+      <div className="w-full">
         <InvitesTable 
           invites={invites || []}
           isLoading={isLoading}

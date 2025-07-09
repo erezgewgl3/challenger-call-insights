@@ -299,24 +299,25 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
             ))}
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table className="min-w-[900px]">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12 py-4">
-                    <Checkbox
-                      checked={selectAll}
-                      onCheckedChange={handleSelectAll}
-                    />
-                  </TableHead>
-                  <TableHead className="min-w-[200px] py-4 px-6">Email</TableHead>
-                  <TableHead className="min-w-[300px] py-4 px-6">Token</TableHead>
-                  <TableHead className="w-32 py-4 px-6">Status</TableHead>
-                  <TableHead className="w-28 py-4 px-6">Created</TableHead>
-                  <TableHead className="w-28 py-4 px-6">Expires</TableHead>
-                  <TableHead className="w-12 py-4"></TableHead>
-                </TableRow>
-              </TableHeader>
+          <div className="overflow-x-auto -mx-6">
+            <div className="px-6">
+              <Table className="min-w-[1200px] w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-12 py-5">
+                      <Checkbox
+                        checked={selectAll}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
+                    <TableHead className="min-w-[220px] py-5 px-4">Email</TableHead>
+                    <TableHead className="min-w-[400px] py-5 px-4">Token</TableHead>
+                    <TableHead className="w-[120px] py-5 px-4">Status</TableHead>
+                    <TableHead className="w-[140px] py-5 px-4">Created</TableHead>
+                    <TableHead className="w-[140px] py-5 px-4">Expires</TableHead>
+                    <TableHead className="w-12 py-5"></TableHead>
+                  </TableRow>
+                </TableHeader>
               <TableBody>
                 {filteredInvites.map((invite) => {
                   const status = getInviteStatus(invite);
@@ -325,33 +326,33 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                   
                   return (
                     <TableRow key={invite.id} className="hover:bg-muted/30">
-                      <TableCell className="py-4 px-4">
+                      <TableCell className="py-5 px-4">
                         <Checkbox
                           checked={selectedInvites.includes(invite.id)}
                           onCheckedChange={(checked) => handleInviteSelect(invite.id, !!checked)}
                         />
                       </TableCell>
-                      <TableCell className="py-4 px-6">
+                      <TableCell className="py-5 px-4">
                         <div>
-                          <div className="font-medium text-foreground">{invite.email}</div>
+                          <div className="font-medium text-foreground truncate">{invite.email}</div>
                           {invite.created_by_user && (
-                            <div className="text-sm text-muted-foreground mt-1">
+                            <div className="text-sm text-muted-foreground mt-1 truncate">
                               Created by {invite.created_by_user.email}
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <code className="bg-muted/60 px-3 py-2 rounded-md text-sm font-mono tracking-wide text-foreground flex-1 min-w-0 border border-border/50">
+                      <TableCell className="py-5 px-4">
+                        <div className="flex items-center gap-3 min-w-0 max-w-full">
+                          <code className="bg-muted/60 px-4 py-2.5 rounded-md text-sm font-mono tracking-wider text-foreground flex-1 min-w-0 border border-border/50 overflow-hidden text-ellipsis whitespace-nowrap">
                             {formatToken(invite.token, visibleTokens.has(invite.id))}
                           </code>
-                          <div className="flex items-center gap-1 shrink-0">
+                          <div className="flex items-center gap-2 shrink-0">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => toggleTokenVisibility(invite.id)}
-                              className="h-8 w-8 p-0 hover:bg-muted"
+                              className="h-9 w-9 p-0 hover:bg-muted/80 border border-border/30"
                               title={visibleTokens.has(invite.id) ? "Hide token" : "Show token"}
                             >
                               {visibleTokens.has(invite.id) ? (
@@ -364,7 +365,7 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                               variant="ghost"
                               size="sm"
                               onClick={() => copyToken(invite.token)}
-                              className="h-8 w-8 p-0 hover:bg-muted"
+                              className="h-9 w-9 p-0 hover:bg-muted/80 border border-border/30"
                               title="Copy token"
                             >
                               <Copy className="h-4 w-4" />
@@ -372,18 +373,18 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="py-4 px-6">
-                        <Badge variant="outline" className={`${status.color} px-3 py-1`}>
+                      <TableCell className="py-5 px-4">
+                        <Badge variant="outline" className={`${status.color} px-3 py-1.5 font-medium`}>
                           <span className="mr-2">{status.icon}</span>
                           {status.label}
                         </Badge>
                       </TableCell>
-                      <TableCell className="py-4 px-6">
+                      <TableCell className="py-5 px-4">
                         <div className="text-sm text-muted-foreground">
                           {formatDistanceToNow(createdAt, { addSuffix: true })}
                         </div>
                       </TableCell>
-                      <TableCell className="py-4 px-6">
+                      <TableCell className="py-5 px-4">
                         <div className="text-sm">
                           {status.status === 'expired' ? (
                             <span className="text-destructive font-medium">
@@ -401,14 +402,14 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="py-4 px-4">
+                      <TableCell className="py-5 px-4">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-muted">
+                            <Button variant="ghost" size="sm" className="h-9 w-9 p-0 hover:bg-muted/80">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-48 bg-card border shadow-md">
+                          <DropdownMenuContent align="end" className="w-48 bg-card border shadow-md z-50">
                             <DropdownMenuItem onClick={() => copyInviteLink(invite.token)} className="cursor-pointer">
                               <Copy className="mr-2 h-4 w-4" />
                               Copy Invite Link
@@ -434,7 +435,8 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                   );
                 })}
               </TableBody>
-            </Table>
+              </Table>
+            </div>
           </div>
         )}
       </CardContent>
