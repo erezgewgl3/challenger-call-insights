@@ -293,23 +293,47 @@ export function UsersOverview() {
       return;
     }
 
-    const usersToDelete = paginatedUsers.filter(user => selectedUsers.includes(user.id));
+    console.log('Selected user IDs:', selectedUsers);
+    console.log('Total filtered users:', filteredUsers.length);
+    
+    // Fix: Filter from all filteredUsers, not just paginatedUsers
+    const usersToDelete = filteredUsers.filter(user => selectedUsers.includes(user.id));
+    console.log('Users found for deletion:', usersToDelete.map(u => ({ id: u.id, email: u.email })));
     
     // Check if only current user is selected
     const eligibleUsers = usersToDelete.filter(user => user.id !== currentUser?.id);
+    console.log('Eligible users after filtering out current user:', eligibleUsers.length);
     
-    if (eligibleUsers.length === 0) {
+    if (usersToDelete.length === 0) {
       toast({
-        title: "Cannot Delete Selected Users",
-        description: "You cannot delete your own account or no valid users were selected.",
+        title: "No Users Found",
+        description: `Selected users (${selectedUsers.length}) were not found in the current filtered list. Try refreshing the page.`,
         variant: "destructive",
       });
+      return;
+    }
+    
+    if (eligibleUsers.length === 0) {
+      const selfSelected = usersToDelete.find(user => user.id === currentUser?.id);
+      if (selfSelected) {
+        toast({
+          title: "Cannot Delete Own Account",
+          description: "You cannot delete your own admin account.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "No Eligible Users",
+          description: "No valid users were selected for deletion.",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
     setBulkDeletionDialog({
       isOpen: true,
-      users: usersToDelete
+      users: eligibleUsers
     });
   };
 
