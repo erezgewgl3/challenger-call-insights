@@ -283,9 +283,29 @@ export function UsersOverview() {
 
   // Bulk deletion handler
   const handleBulkDeletion = () => {
-    if (selectedUsers.length === 0) return;
+    if (selectedUsers.length === 0) {
+      toast({
+        title: "No Users Selected",
+        description: "Please select at least one user to delete.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const usersToDelete = paginatedUsers.filter(user => selectedUsers.includes(user.id));
+    
+    // Check if only current user is selected
+    const eligibleUsers = usersToDelete.filter(user => user.id !== currentUser?.id);
+    
+    if (eligibleUsers.length === 0) {
+      toast({
+        title: "Cannot Delete Selected Users",
+        description: "You cannot delete your own account or no valid users were selected.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setBulkDeletionDialog({
       isOpen: true,
       users: usersToDelete

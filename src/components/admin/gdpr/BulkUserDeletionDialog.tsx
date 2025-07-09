@@ -13,16 +13,20 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { AlertTriangle, Info, Users } from 'lucide-react';
 
-interface UserInfo {
+interface UserWithCounts {
   id: string;
   email: string;
   role: 'sales_user' | 'admin';
+  created_at: string;
+  last_login?: string;
+  transcript_count: number;
+  account_count: number;
 }
 
 interface BulkUserDeletionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  users: UserInfo[];
+  users: UserWithCounts[];
 }
 
 export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDeletionDialogProps) {
@@ -135,17 +139,6 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
   const handleImmediateDeleteChange = (checked: boolean | 'indeterminate') => {
     setImmediateDelete(checked === true);
   };
-
-  // Debug logging to see what's happening with validation
-  console.log('Validation debug:', {
-    reasonTrimmed: reason.trim(),
-    reasonLength: reason.trim().length,
-    confirmationText: confirmationText,
-    confirmationTrimmed: confirmationText.trim(),
-    expectedText: 'DELETE USERS',
-    textMatch: confirmationText.trim().toUpperCase() === 'DELETE USERS',
-    eligibleUsersLength: eligibleUsers.length
-  });
 
   const canProceed = reason.trim() && 
                     confirmationText.trim().toUpperCase() === 'DELETE USERS' && 
