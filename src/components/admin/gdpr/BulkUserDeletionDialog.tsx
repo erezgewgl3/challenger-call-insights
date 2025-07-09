@@ -171,9 +171,10 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
       resetForm();
     },
     onError: (error) => {
+      console.error('Bulk deletion error:', error);
       toast({
         title: "Bulk Deletion Failed",
-        description: "Failed to process bulk deletion request. Please try again.",
+        description: error.message || "Failed to process bulk deletion request. Please try again.",
         variant: "destructive",
       });
     }
