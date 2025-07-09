@@ -534,18 +534,21 @@ export type Database = {
           email: string
           id: string
           role: Database["public"]["Enums"]["user_role"] | null
+          status: Database["public"]["Enums"]["user_status"] | null
         }
         Insert: {
           created_at?: string | null
           email: string
           id: string
           role?: Database["public"]["Enums"]["user_role"] | null
+          status?: Database["public"]["Enums"]["user_status"] | null
         }
         Update: {
           created_at?: string | null
           email?: string
           id?: string
           role?: Database["public"]["Enums"]["user_role"] | null
+          status?: Database["public"]["Enums"]["user_status"] | null
         }
         Relationships: []
       }
@@ -579,10 +582,15 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      mark_users_pending_deletion: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       processing_status: "uploaded" | "processing" | "completed" | "error"
       user_role: "sales_user" | "admin"
+      user_status: "active" | "pending_deletion" | "deleted"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -712,6 +720,7 @@ export const Constants = {
     Enums: {
       processing_status: ["uploaded", "processing", "completed", "error"],
       user_role: ["sales_user", "admin"],
+      user_status: ["active", "pending_deletion", "deleted"],
     },
   },
 } as const

@@ -38,6 +38,7 @@ interface UserWithCounts {
   id: string;
   email: string;
   role: 'sales_user' | 'admin';
+  status?: 'active' | 'pending_deletion' | 'deleted';
   created_at: string;
   last_login?: string;
   transcript_count: number;
@@ -517,13 +518,15 @@ export function UsersOverview() {
                 <TableBody>
                   {paginatedUsers.map((user) => {
                     const status = getUserStatus(user.last_login);
+                    const isPendingDeletion = user.status === 'pending_deletion';
                     
                     return (
-                      <TableRow key={user.id}>
+                      <TableRow key={user.id} className={isPendingDeletion ? "opacity-60 bg-red-50" : ""}>
                         <TableCell>
                           <Checkbox
                             checked={selectedUsers.includes(user.id)}
                             onCheckedChange={(checked) => handleUserSelect(user.id, !!checked)}
+                            disabled={isPendingDeletion}
                           />
                         </TableCell>
                         <TableCell>
@@ -534,7 +537,14 @@ export function UsersOverview() {
                               </AvatarFallback>
                             </Avatar>
                             <div>
-                              <div className="font-medium">{user.email}</div>
+                              <div className="font-medium flex items-center gap-2">
+                                {user.email}
+                                {isPendingDeletion && (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Pending Deletion
+                                  </Badge>
+                                )}
+                              </div>
                               <div className="text-sm text-muted-foreground">
                                 Member since {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
                               </div>

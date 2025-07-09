@@ -17,6 +17,7 @@ interface UserWithCounts {
   id: string;
   email: string;
   role: 'sales_user' | 'admin';
+  status?: 'active' | 'pending_deletion' | 'deleted';
   created_at: string;
   last_login?: string;
   transcript_count: number;
@@ -38,9 +39,14 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
   const [immediateDelete, setImmediateDelete] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
 
-  // Filter out current user to prevent self-deletion
-  const eligibleUsers = users.filter(user => user.id !== currentUser?.id);
+  // Filter out current user and users already pending deletion to prevent issues
+  const eligibleUsers = users.filter(user => 
+    user.id !== currentUser?.id && 
+    user.status !== 'pending_deletion' && 
+    user.status !== 'deleted'
+  );
   const isCurrentUserSelected = users.some(user => user.id === currentUser?.id);
+  const hasPendingDeletionUsers = users.some(user => user.status === 'pending_deletion');
 
   const deletionMutation = useMutation({
     mutationFn: async () => {
@@ -90,16 +96,27 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
         .from('gdpr_audit_log')
         .insert(auditLogEntries);
 
+      // Mark users as pending deletion
+      await supabase
+        .from('users')
+        .update({ status: 'pending_deletion' })
+        .in('id', eligibleUsers.map(user => user.id));
+
       return data;
     },
     onSuccess: () => {
       const processedCount = eligibleUsers.length;
       const skippedCount = isCurrentUserSelected ? 1 : 0;
+      const pendingCount = hasPendingDeletionUsers ? users.filter(u => u.status === 'pending_deletion').length : 0;
       
       let description = `Deletion requested for ${processedCount} user${processedCount === 1 ? '' : 's'}.`;
       
       if (skippedCount > 0) {
         description += ` Your own account was skipped to prevent self-deletion.`;
+      }
+      
+      if (pendingCount > 0) {
+        description += ` ${pendingCount} user${pendingCount === 1 ? '' : 's'} already pending deletion ${pendingCount === 1 ? 'was' : 'were'} skipped.`;
       }
       
       if (!immediateDelete) {
@@ -146,120 +163,120 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
-      <AlertDialogContent className="max-w-3xl">
+      <AlertDialogContent className="max-w-2xl">
         <AlertDialogHeader>
-          <AlertDialogTitle className="text-red-600 flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Bulk Delete User Accounts - {users.length} User{users.length === 1 ? '' : 's'}
+          <AlertDialogTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-red-500" />
+            Bulk User Deletion Request
           </AlertDialogTitle>
-          <AlertDialogDescription asChild>
-            <div className="space-y-4">
-              <p>This action will permanently delete all data for the selected users including:</p>
-              <ul className="list-disc list-inside space-y-1 text-sm">
-                <li>User profiles and authentication data</li>
-                <li>All transcripts and uploaded content</li>
-                <li>AI analysis results and coaching data</li>
-                <li>Account information and deal tracking</li>
-                <li>Activity logs and usage history</li>
-              </ul>
-              
+          <AlertDialogDescription>
+            This action will request deletion for {users.length} selected user{users.length === 1 ? '' : 's'}.
+            {eligibleUsers.length !== users.length && (
+              <span className="block mt-2 text-amber-600">
+                Note: {users.length - eligibleUsers.length} user{users.length - eligibleUsers.length === 1 ? '' : 's'} will be skipped 
+                (your own account{hasPendingDeletionUsers ? ' and users already pending deletion' : ''}).
+              </span>
+            )}
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+
+        <div className="space-y-6">
+          {eligibleUsers.length === 0 ? (
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription>
+                No eligible users selected for deletion. You cannot delete your own account or users already pending deletion.
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <>
+              {/* Selected Users Preview */}
+              <div className="space-y-2">
+                <Label className="text-sm font-medium flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Users to be processed ({eligibleUsers.length})
+                </Label>
+                <div className="max-h-32 overflow-y-auto border rounded-md p-2 bg-gray-50">
+                  {eligibleUsers.map(user => (
+                    <div key={user.id} className="flex items-center justify-between py-1">
+                      <span className="text-sm">{user.email}</span>
+                      <Badge variant="outline">{user.role}</Badge>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Deletion Reason */}
+              <div className="space-y-2">
+                <Label htmlFor="reason">Reason for Deletion *</Label>
+                <Textarea
+                  id="reason"
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  placeholder="Provide a detailed reason for this bulk deletion request..."
+                  className="min-h-20"
+                />
+              </div>
+
+              {/* Immediate Delete Option */}
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="immediate-delete"
+                  checked={immediateDelete}
+                  onCheckedChange={handleImmediateDeleteChange}
+                />
+                <Label htmlFor="immediate-delete" className="text-sm">
+                  Immediate deletion (skip 30-day grace period)
+                </Label>
+              </div>
+
+              {/* Grace Period Alert */}
               {!immediateDelete && (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertDescription>
-                    Standard deletion includes a 30-day grace period for recovery.
-                    Data will be soft-deleted and can be restored during this period.
-                  </AlertDescription>
-                </Alert>
-              )}
-              
-              {immediateDelete && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertDescription>
-                    Immediate deletion bypasses the grace period. This action cannot be undone.
+                    Users will be marked for deletion with a 30-day grace period. During this time, 
+                    the deletion can be cancelled and user data will remain accessible.
                   </AlertDescription>
                 </Alert>
               )}
 
-              {isCurrentUserSelected && (
+              {/* Immediate Deletion Warning */}
+              {immediateDelete && (
                 <Alert variant="destructive">
                   <AlertTriangle className="h-4 w-4" />
                   <AlertDescription>
-                    Your own account is in the selection and will be skipped to prevent self-deletion.
-                    Only {eligibleUsers.length} user{eligibleUsers.length === 1 ? '' : 's'} will be processed.
+                    <strong>Warning:</strong> Immediate deletion will permanently remove all user data 
+                    without any recovery period. This action cannot be undone.
                   </AlertDescription>
                 </Alert>
               )}
-            </div>
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        
-        <div className="space-y-4">
-          <div>
-            <Label className="text-sm font-medium mb-2 block">Selected Users ({users.length})</Label>
-            <div className="max-h-32 overflow-y-auto border rounded-lg p-3 space-y-2 bg-gray-50">
-              {users.map((user) => (
-                <div key={user.id} className="flex items-center justify-between">
-                  <span className="text-sm">{user.email}</span>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'} className="text-xs">
-                      {user.role === 'admin' ? 'Admin' : 'Sales User'}
-                    </Badge>
-                    {user.id === currentUser?.id && (
-                      <Badge variant="destructive" className="text-xs">
-                        Will be skipped
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="reason">Reason for Bulk Deletion *</Label>
-            <Textarea
-              id="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Explain why these users' data is being deleted..."
-              className="mt-1"
-              required
-            />
-          </div>
-          
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="immediate"
-              checked={immediateDelete}
-              onCheckedChange={handleImmediateDeleteChange}
-            />
-            <Label htmlFor="immediate" className="text-sm">
-              Delete immediately (skip 30-day grace period)
-            </Label>
-          </div>
-          
-          <div>
-            <Label htmlFor="confirmation">Confirmation *</Label>
-            <Input
-              id="confirmation"
-              value={confirmationText}
-              onChange={(e) => setConfirmationText(e.target.value)}
-              placeholder="Type DELETE USERS to confirm"
-              className="mt-1"
-            />
-          </div>
+
+              {/* Confirmation Text */}
+              <div className="space-y-2">
+                <Label htmlFor="confirmation">
+                  Type "DELETE USERS" to confirm *
+                </Label>
+                <Input
+                  id="confirmation"
+                  value={confirmationText}
+                  onChange={(e) => setConfirmationText(e.target.value)}
+                  placeholder="DELETE USERS"
+                  className="font-mono"
+                />
+              </div>
+            </>
+          )}
         </div>
-        
+
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleClose}>Cancel</AlertDialogCancel>
           <AlertDialogAction
             onClick={() => deletionMutation.mutate()}
-            className="bg-red-600 hover:bg-red-700"
             disabled={!canProceed || deletionMutation.isPending}
+            className="bg-red-600 hover:bg-red-700"
           >
-            {deletionMutation.isPending ? 'Processing...' : `Delete ${eligibleUsers.length} User${eligibleUsers.length === 1 ? '' : 's'}`}
+            {deletionMutation.isPending ? 'Processing...' : `Delete ${eligibleUsers.length} Users`}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
