@@ -42,41 +42,29 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
   const [authVerified, setAuthVerified] = useState(false);
   const [verifyingAuth, setVerifyingAuth] = useState(false);
 
-  // Log everything we receive for debugging
-  console.log('=== BULK DELETION DIALOG RENDER ===');
-  console.log('isOpen:', isOpen);
-  console.log('users prop length:', users.length);
-  console.log('users prop details:', users.map(u => ({ id: u.id, email: u.email, status: u.status })));
   
   // Users are already filtered by UsersOverview, so trust them
   const eligibleUsers = users;
   
   // Track if any users were already filtered out before reaching this dialog
-  const isCurrentUserSelected = false; // Already filtered out by parent
-  const hasPendingDeletionUsers = false; // Already filtered out by parent
+  const isCurrentUserSelected = false;
+  const hasPendingDeletionUsers = false;
 
   // Authentication verification mutation
   const authVerificationMutation = useMutation({
     mutationFn: async () => {
-      console.log('Verifying authentication context...');
-      
       // Check if current session is valid
       if (!session || !currentUser) {
         throw new Error('No valid session found. Please log out and log back in.');
       }
-      
-      console.log('Session exists, verifying admin role...');
       
       // Test database auth context directly without refreshing session
       const { data: authTest, error: authError } = await supabase
         .rpc('get_current_user_role');
         
       if (authError) {
-        console.error('Auth context test failed:', authError);
         throw new Error(`Database authentication failed: ${authError.message}`);
       }
-      
-      console.log('Database auth context verified, user role:', authTest);
       
       if (!authTest || authTest !== 'admin') {
         throw new Error('Admin privileges required for bulk deletion');
@@ -92,7 +80,6 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
       });
     },
     onError: (error) => {
-      console.error('Auth verification error:', error);
       setAuthVerified(false);
       toast({
         title: "Authentication Failed",
@@ -112,14 +99,10 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
         throw new Error('Authentication must be verified before proceeding with bulk deletion');
       }
 
-      console.log('Starting bulk deletion for users:', eligibleUsers.map(u => ({ id: u.id, email: u.email })));
-
       // Verify current user authentication
       if (!currentUser?.id || !session) {
         throw new Error('Valid session required for bulk deletion');
       }
-
-      console.log('Current admin user:', currentUser.id, 'Session exists:', !!session);
 
       const gracePeriodEnd = immediateDelete 
         ? null 
@@ -140,19 +123,14 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
         status: 'pending'
       }));
 
-      console.log('Deletion requests to insert:', deletionRequests.length);
-
       const { data: deletionData, error: deletionError } = await supabase
         .from('deletion_requests')
         .insert(deletionRequests)
         .select();
 
       if (deletionError) {
-        console.error('Deletion request error:', deletionError);
         throw new Error(`Failed to create deletion requests: ${deletionError.message}`);
       }
-
-      console.log('Deletion requests created:', deletionData?.length || 0);
 
       // Create audit log entries for all users
       const auditLogEntries = eligibleUsers.map(user => ({
@@ -177,11 +155,8 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
         .select();
 
       if (auditError) {
-        console.error('Audit log error:', auditError);
         throw new Error(`Failed to create audit log entries: ${auditError.message}`);
       }
-
-      console.log('Audit entries created:', auditData?.length || 0);
 
       // Mark users as pending deletion
       const { data: statusData, error: statusError } = await supabase
@@ -191,11 +166,8 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
         .select();
 
       if (statusError) {
-        console.error('Status update error:', statusError);
         throw new Error(`Failed to update user status: ${statusError.message}`);
       }
-
-      console.log('User statuses updated:', statusData?.length || 0);
 
       return { processedCount: eligibleUsers.length };
     },
@@ -229,7 +201,6 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
       onSuccess();
     },
     onError: (error) => {
-      console.error('Bulk deletion error:', error);
       toast({
         title: "Bulk Deletion Failed",
         description: error.message || "Failed to process bulk deletion request. Please try again.",
@@ -267,14 +238,6 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
                     confirmationText.trim().toUpperCase() === 'DELETE USERS' && 
                     eligibleUsers.length > 0 &&
                     authVerified;
-                    
-  console.log('canProceed calculation:', {
-    hasReason: !!reason.trim(),
-    hasConfirmation: confirmationText.trim().toUpperCase() === 'DELETE USERS',
-    hasEligibleUsers: eligibleUsers.length > 0,
-    authVerified,
-    canProceed
-  });
 
   return (
     <AlertDialog open={isOpen}>

@@ -284,10 +284,6 @@ export function UsersOverview() {
 
   // Bulk deletion handler
   const handleBulkDeletion = () => {
-    console.log('=== BULK DELETION HANDLER START ===');
-    console.log('Selected user IDs:', selectedUsers);
-    console.log('Current bulkDeletionDialog state:', bulkDeletionDialog);
-    
     if (selectedUsers.length === 0) {
       toast({
         title: "No Users Selected",
@@ -296,13 +292,9 @@ export function UsersOverview() {
       });
       return;
     }
-
-    console.log('Total filtered users:', filteredUsers.length);
-    console.log('Filtered users sample:', filteredUsers.slice(0, 3).map(u => ({ id: u.id, email: u.email })));
     
     // Filter from all filteredUsers, not just paginatedUsers
     const usersToDelete = filteredUsers.filter(user => selectedUsers.includes(user.id));
-    console.log('Users found for deletion:', usersToDelete.map(u => ({ id: u.id, email: u.email, status: u.status })));
     
     // Filter out current user and users already pending deletion
     const eligibleUsers = usersToDelete.filter(user => 
@@ -310,7 +302,6 @@ export function UsersOverview() {
       user.status !== 'pending_deletion' && 
       user.status !== 'deleted'
     );
-    console.log('Eligible users after filtering:', eligibleUsers.map(u => ({ id: u.id, email: u.email, status: u.status })));
     
     if (usersToDelete.length === 0) {
       toast({
@@ -339,19 +330,11 @@ export function UsersOverview() {
       });
       return;
     }
-
-    console.log('About to set dialog state with users:', eligibleUsers.map(u => ({ id: u.id, email: u.email })));
     
-    // Create a completely new state object to ensure React detects the change
-    const newDialogState = {
+    setBulkDeletionDialog({
       isOpen: true,
-      users: [...eligibleUsers] // Create new array reference
-    };
-    
-    console.log('Setting bulkDeletionDialog to:', newDialogState);
-    setBulkDeletionDialog(newDialogState);
-    
-    console.log('=== BULK DELETION HANDLER END ===');
+      users: [...eligibleUsers]
+    });
   };
 
   // Clear selection after successful bulk operation
@@ -735,11 +718,9 @@ export function UsersOverview() {
       <BulkUserDeletionDialog
         isOpen={bulkDeletionDialog.isOpen}
         onClose={() => {
-          console.log('Bulk deletion dialog cancelled');
           setBulkDeletionDialog({ isOpen: false, users: [] });
         }}
         onSuccess={() => {
-          console.log('Bulk deletion completed successfully');
           setBulkDeletionDialog({ isOpen: false, users: [] });
           clearSelection();
         }}
