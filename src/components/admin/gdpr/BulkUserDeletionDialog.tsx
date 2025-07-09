@@ -27,10 +27,11 @@ interface UserWithCounts {
 interface BulkUserDeletionDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: () => void;
   users: UserWithCounts[];
 }
 
-export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDeletionDialogProps) {
+export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: BulkUserDeletionDialogProps) {
   const { toast } = useToast();
   const { user: currentUser, session } = useAuth();
   const queryClient = useQueryClient();
@@ -224,8 +225,8 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
       
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       queryClient.invalidateQueries({ queryKey: ['gdpr'] });
-      onClose();
       resetForm();
+      onSuccess();
     },
     onError: (error) => {
       console.error('Bulk deletion error:', error);

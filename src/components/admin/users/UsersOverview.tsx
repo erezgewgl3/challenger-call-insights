@@ -735,7 +735,11 @@ export function UsersOverview() {
       <BulkUserDeletionDialog
         isOpen={bulkDeletionDialog.isOpen}
         onClose={() => {
-          console.log('Closing bulk deletion dialog, clearing state');
+          console.log('Bulk deletion dialog cancelled');
+          setBulkDeletionDialog({ isOpen: false, users: [] });
+        }}
+        onSuccess={() => {
+          console.log('Bulk deletion completed successfully');
           setBulkDeletionDialog({ isOpen: false, users: [] });
           clearSelection();
         }}
