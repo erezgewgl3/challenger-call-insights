@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +25,7 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from '@/components/ui/pagination';
-import { Users, Shield, Clock, UserPlus, Search, MoreHorizontal, Eye, UserCog, Download, X, Trash2 } from 'lucide-react';
+import { Users, Shield, Clock, UserPlus, Search, MoreHorizontal, Eye, UserCog, Download, X, Trash2, RotateCcw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -63,6 +64,7 @@ export function UsersOverview() {
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
   
+  const [activeTab, setActiveTab] = useState<'active' | 'pending'>('active');
   const [searchEmail, setSearchEmail] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -162,18 +164,23 @@ export function UsersOverview() {
     }
   });
 
-  // Filter users based on search and filters
+  // Filter users based on tab, search and filters
   const filteredUsers = useMemo(() => {
     if (!users) return [];
     
     return users.filter(user => {
+      // Tab-based filtering
+      const tabMatch = activeTab === 'active' 
+        ? user.status !== 'pending_deletion' && user.status !== 'deleted'
+        : user.status === 'pending_deletion';
+      
       const emailMatch = user.email.toLowerCase().includes(searchEmail.toLowerCase());
       const roleMatch = roleFilter === 'all' || user.role === roleFilter;
       const statusMatch = statusFilter === 'all' || getUserStatus(user.last_login).status === statusFilter;
       
-      return emailMatch && roleMatch && statusMatch;
+      return tabMatch && emailMatch && roleMatch && statusMatch;
     });
-  }, [users, searchEmail, roleFilter, statusFilter]);
+  }, [users, activeTab, searchEmail, roleFilter, statusFilter]);
 
   // Pagination
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
@@ -182,18 +189,25 @@ export function UsersOverview() {
 
   // Summary calculations including invite statistics
   const summaryStats = useMemo(() => {
-    if (!users) return { totalUsers: 0, activeUsers: 0, adminUsers: 0, pendingInvites: 0 };
+    if (!users) return { totalUsers: 0, activeUsers: 0, adminUsers: 0, pendingInvites: 0, pendingDeletion: 0 };
     
     const now = new Date();
     const pendingInvites = invites?.filter(invite => 
       !invite.used_at && new Date(invite.expires_at) > now
     ).length || 0;
     
+    const activeUsers = users.filter(u => 
+      u.status !== 'pending_deletion' && 
+      u.status !== 'deleted' && 
+      getUserStatus(u.last_login).status === 'active'
+    ).length;
+    
     return {
-      totalUsers: users.length,
-      activeUsers: users.filter(u => getUserStatus(u.last_login).status === 'active').length,
-      adminUsers: users.filter(u => u.role === 'admin').length,
-      pendingInvites
+      totalUsers: users.filter(u => u.status !== 'pending_deletion' && u.status !== 'deleted').length,
+      activeUsers,
+      adminUsers: users.filter(u => u.role === 'admin' && u.status !== 'pending_deletion' && u.status !== 'deleted').length,
+      pendingInvites,
+      pendingDeletion: users.filter(u => u.status === 'pending_deletion').length
     };
   }, [users, invites]);
 
@@ -343,12 +357,54 @@ export function UsersOverview() {
     setSelectAll(false);
   };
 
-  // Clear filters
+  // Clear filters and reset page when switching tabs
   const clearFilters = () => {
     setSearchEmail('');
     setRoleFilter('all');
     setStatusFilter('all');
     setCurrentPage(1);
+    setSelectedUsers([]);
+    setSelectAll(false);
+  };
+
+  // Restore users from pending deletion
+  const restoreMutation = useMutation({
+    mutationFn: async (userIds: string[]) => {
+      const { error } = await supabase
+        .from('users')
+        .update({ status: 'active' })
+        .in('id', userIds);
+      
+      if (error) throw error;
+    },
+    onSuccess: (_, userIds) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      toast({
+        title: "Users Restored",
+        description: `${userIds.length} user(s) have been restored to active status.`,
+      });
+      clearFilters();
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to restore users. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleBulkRestore = () => {
+    if (selectedUsers.length === 0) {
+      toast({
+        title: "No Users Selected",
+        description: "Please select at least one user to restore.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    restoreMutation.mutate(selectedUsers);
   };
 
   const hasFilters = searchEmail || roleFilter !== 'all' || statusFilter !== 'all';
@@ -369,7 +425,7 @@ export function UsersOverview() {
   return (
     <div className="space-y-6">
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -418,6 +474,19 @@ export function UsersOverview() {
             <div className="text-2xl font-bold">{summaryStats.pendingInvites}</div>
             <p className="text-xs text-muted-foreground">
               Awaiting registration
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Deletion</CardTitle>
+            <Trash2 className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summaryStats.pendingDeletion}</div>
+            <p className="text-xs text-muted-foreground">
+              Awaiting deletion
             </p>
           </CardContent>
         </Card>
@@ -504,182 +573,29 @@ export function UsersOverview() {
         </CardHeader>
 
         <CardContent>
-          {isLoading ? (
-            <div className="space-y-4">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
-                  <div className="h-4 w-4 bg-gray-200 rounded" />
-                  <div className="h-10 w-10 bg-gray-200 rounded-full" />
-                  <div className="space-y-2 flex-1">
-                    <div className="h-4 bg-gray-200 rounded w-1/3" />
-                    <div className="h-3 bg-gray-200 rounded w-1/4" />
-                  </div>
-                  <div className="h-6 bg-gray-200 rounded w-20" />
-                  <div className="h-6 bg-gray-200 rounded w-16" />
-                  <div className="h-8 bg-gray-200 rounded w-8" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-12">
-                      <Checkbox
-                        checked={selectAll}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead>Activity</TableHead>
-                    <TableHead className="w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedUsers.map((user) => {
-                    const status = getUserStatus(user.last_login);
-                    const isPendingDeletion = user.status === 'pending_deletion';
-                    
-                    return (
-                      <TableRow key={user.id} className={isPendingDeletion ? "opacity-60 bg-red-50" : ""}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedUsers.includes(user.id)}
-                            onCheckedChange={(checked) => handleUserSelect(user.id, !!checked)}
-                            disabled={isPendingDeletion}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-3">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback className="text-xs">
-                                {user.email.slice(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="font-medium flex items-center gap-2">
-                                {user.email}
-                                {isPendingDeletion && (
-                                  <Badge variant="destructive" className="text-xs">
-                                    Pending Deletion
-                                  </Badge>
-                                )}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                Member since {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <RoleBadge role={user.role} />
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={status.color}>
-                            <span className="mr-1">{status.icon}</span>
-                            {status.label}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {user.last_login ? (
-                            <div className="text-sm">
-                              {formatDistanceToNow(new Date(user.last_login), { addSuffix: true })}
-                            </div>
-                          ) : (
-                            <div className="text-sm text-muted-foreground">Never</div>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-muted-foreground">
-                            {user.transcript_count} transcripts, {user.account_count} accounts
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                                <MoreHorizontal className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56">
-                              <DropdownMenuItem onClick={() => handleViewActivity(user)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                View Activity
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onClick={() => handleDataExport(user)}>
-                                <Download className="mr-2 h-4 w-4" />
-                                Export User Data
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleRoleChange(user, user.role === 'admin' ? 'sales_user' : 'admin')}
-                              >
-                                <UserCog className="mr-2 h-4 w-4" />
-                                {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem 
-                                onClick={() => handleUserDeletion(user)}
-                                className="text-red-600 focus:text-red-600"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Request Deletion
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-
-              {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Showing {startIndex + 1} to {Math.min(startIndex + usersPerPage, filteredUsers.length)} of{' '}
-                    {filteredUsers.length} users
-                  </p>
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        const page = i + 1;
-                        return (
-                          <PaginationItem key={page}>
-                            <PaginationLink
-                              onClick={() => setCurrentPage(page)}
-                              isActive={currentPage === page}
-                              className="cursor-pointer"
-                            >
-                              {page}
-                            </PaginationLink>
-                          </PaginationItem>
-                        );
-                      })}
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
-            </>
-          )}
+          <Tabs value={activeTab} onValueChange={(value) => {
+            setActiveTab(value as 'active' | 'pending');
+            clearFilters();
+          }}>
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="active" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Active Users ({summaryStats.totalUsers})
+              </TabsTrigger>
+              <TabsTrigger value="pending" className="flex items-center gap-2">
+                <Trash2 className="h-4 w-4" />
+                Pending Deletion ({summaryStats.pendingDeletion})
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="active" className="mt-6">
+              {renderUserTable('active')}
+            </TabsContent>
+            
+            <TabsContent value="pending" className="mt-6">
+              {renderUserTable('pending')}
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
 
@@ -728,4 +644,285 @@ export function UsersOverview() {
       />
     </div>
   );
+
+  function renderUserTable(tabType: 'active' | 'pending') {
+    return (
+      <div className="space-y-4">
+        {/* Search and Filter Controls */}
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-stretch sm:items-center">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by email..."
+              value={searchEmail}
+              onChange={(e) => setSearchEmail(e.target.value)}
+              className="pl-9 w-full sm:w-64"
+            />
+          </div>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
+            <SelectTrigger className="w-full sm:w-32">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="sales_user">Sales User</SelectItem>
+            </SelectContent>
+          </Select>
+          {tabType === 'active' && (
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full sm:w-32">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+                <SelectItem value="dormant">Dormant</SelectItem>
+                <SelectItem value="never">Never logged in</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
+          {hasFilters && (
+            <Button variant="outline" size="sm" onClick={clearFilters}>
+              <X className="h-4 w-4 mr-1" />
+              Clear
+            </Button>
+          )}
+        </div>
+        
+        {/* Results count and bulk actions */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            {filteredUsers.length} {filteredUsers.length === 1 ? 'user' : 'users'} found
+            {hasFilters && ` (filtered from ${tabType === 'active' ? summaryStats.totalUsers : summaryStats.pendingDeletion} total)`}
+          </p>
+          
+          {selectedUsers.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                {selectedUsers.length} selected
+              </span>
+              <Button variant="outline" size="sm">
+                <Download className="h-4 w-4 mr-1" />
+                Export Selected
+              </Button>
+              {tabType === 'active' ? (
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={handleBulkDeletion}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete Selected
+                </Button>
+              ) : (
+                <Button 
+                  variant="default" 
+                  size="sm" 
+                  onClick={handleBulkRestore}
+                  disabled={restoreMutation.isPending}
+                >
+                  <RotateCcw className="h-4 w-4 mr-1" />
+                  Restore Selected
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {isLoading ? (
+          <div className="space-y-4">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
+                <div className="h-4 w-4 bg-gray-200 rounded" />
+                <div className="h-10 w-10 bg-gray-200 rounded-full" />
+                <div className="space-y-2 flex-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/3" />
+                  <div className="h-3 bg-gray-200 rounded w-1/4" />
+                </div>
+                <div className="h-6 bg-gray-200 rounded w-20" />
+                <div className="h-6 bg-gray-200 rounded w-16" />
+                <div className="h-8 bg-gray-200 rounded w-8" />
+              </div>
+            ))}
+          </div>
+        ) : (
+          <>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12">
+                    <Checkbox
+                      checked={selectAll}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead>Activity</TableHead>
+                  <TableHead className="w-12"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {paginatedUsers.map((user) => {
+                  const status = getUserStatus(user.last_login);
+                  const isPendingDeletion = user.status === 'pending_deletion';
+                  
+                  return (
+                    <TableRow key={user.id} className={isPendingDeletion ? "opacity-60 bg-red-50" : ""}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUsers.includes(user.id)}
+                          onCheckedChange={(checked) => handleUserSelect(user.id, !!checked)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback className="text-xs">
+                              {user.email.slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium flex items-center gap-2">
+                              {user.email}
+                              {isPendingDeletion && (
+                                <Badge variant="destructive" className="text-xs">
+                                  Pending Deletion
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              Member since {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <RoleBadge role={user.role} />
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={status.color}>
+                          <span className="mr-1">{status.icon}</span>
+                          {status.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {user.last_login ? (
+                          <div className="text-sm">
+                            {formatDistanceToNow(new Date(user.last_login), { addSuffix: true })}
+                          </div>
+                        ) : (
+                          <div className="text-sm text-muted-foreground">Never</div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm text-muted-foreground">
+                          {user.transcript_count} transcripts, {user.account_count} accounts
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={() => handleViewActivity(user)}>
+                              <Eye className="mr-2 h-4 w-4" />
+                              View Activity
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDataExport(user)}>
+                              <Download className="mr-2 h-4 w-4" />
+                              Export User Data
+                            </DropdownMenuItem>
+                            {tabType === 'active' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleRoleChange(user, user.role === 'admin' ? 'sales_user' : 'admin')}
+                                >
+                                  <UserCog className="mr-2 h-4 w-4" />
+                                  {user.role === 'admin' ? 'Remove Admin' : 'Make Admin'}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handleUserDeletion(user)}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Request Deletion
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                            {tabType === 'pending' && (
+                              <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => restoreMutation.mutate([user.id])}
+                                  className="text-green-600 focus:text-green-600"
+                                >
+                                  <RotateCcw className="mr-2 h-4 w-4" />
+                                  Restore User
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4">
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(startIndex + usersPerPage, filteredUsers.length)} of{' '}
+                  {filteredUsers.length} users
+                </p>
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      const page = i + 1;
+                      return (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(page)}
+                            isActive={currentPage === page}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    })}
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    );
+  }
 }
