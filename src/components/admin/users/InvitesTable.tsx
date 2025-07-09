@@ -300,7 +300,7 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <Table className="min-w-[900px] w-full">
+            <Table className="min-w-[765px] w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12 py-5">

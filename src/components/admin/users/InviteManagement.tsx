@@ -69,7 +69,7 @@ export function InviteManagement() {
   return (
     <div className="space-y-6 max-w-full">
       {/* Create Invite Form */}
-      <div className="max-w-2xl">
+      <div className="max-w-lg">
         <CreateInviteForm />
       </div>
 
