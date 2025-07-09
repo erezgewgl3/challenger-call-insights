@@ -25,7 +25,9 @@ import {
   Trash2, 
   X,
   Download,
-  Clock
+  Clock,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Invite, InviteFilters } from './InviteManagement';
@@ -70,6 +72,7 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
   const queryClient = useQueryClient();
   const [selectedInvites, setSelectedInvites] = useState<string[]>([]);
   const [selectAll, setSelectAll] = useState(false);
+  const [visibleTokens, setVisibleTokens] = useState<Set<string>>(new Set());
 
   // Filter invites based on current filters
   const filteredInvites = useMemo(() => {
@@ -165,6 +168,44 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
       status: 'all',
       emailSearch: ''
     });
+  };
+
+  // Toggle token visibility
+  const toggleTokenVisibility = (inviteId: string) => {
+    setVisibleTokens(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(inviteId)) {
+        newSet.delete(inviteId);
+      } else {
+        newSet.add(inviteId);
+      }
+      return newSet;
+    });
+  };
+
+  // Copy token directly
+  const copyToken = async (token: string) => {
+    try {
+      await navigator.clipboard.writeText(token);
+      toast({
+        title: "Token Copied",
+        description: "Token copied to clipboard",
+      });
+    } catch (error) {
+      toast({
+        title: "Copy Failed",
+        description: "Please copy the token manually",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Format token for display
+  const formatToken = (token: string, isVisible: boolean) => {
+    if (!isVisible) {
+      return '•'.repeat(8) + token.slice(-4);
+    }
+    return token;
   };
 
   const hasFilters = filters.status !== 'all' || filters.emailSearch;
@@ -268,6 +309,7 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                   />
                 </TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Token</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Created</TableHead>
                 <TableHead>Expires</TableHead>
@@ -296,6 +338,35 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                             Created by {invite.created_by_user.email}
                           </div>
                         )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono truncate max-w-[200px]">
+                          {formatToken(invite.token, visibleTokens.has(invite.id))}
+                        </code>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleTokenVisibility(invite.id)}
+                            className="h-6 w-6 p-0"
+                          >
+                            {visibleTokens.has(invite.id) ? (
+                              <EyeOff className="h-3 w-3" />
+                            ) : (
+                              <Eye className="h-3 w-3" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => copyToken(invite.token)}
+                            className="h-6 w-6 p-0"
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>

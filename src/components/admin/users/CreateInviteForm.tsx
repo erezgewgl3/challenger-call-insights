@@ -23,6 +23,7 @@ import {
   FormMessage,
   FormDescription
 } from '@/components/ui/form';
+import { ExistingUserWarningDialog } from './ExistingUserWarningDialog';
 
 const createInviteSchema = z.object({
   email: z.string()
@@ -34,12 +35,22 @@ const createInviteSchema = z.object({
 
 type CreateInviteForm = z.infer<typeof createInviteSchema>;
 
+interface ExistingUserData {
+  type: 'user' | 'invite';
+  email: string;
+  userStatus?: string;
+  inviteStatus?: string;
+}
+
 export function CreateInviteForm() {
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [existingUserData, setExistingUserData] = useState<ExistingUserData | null>(null);
+  const [pendingFormData, setPendingFormData] = useState<CreateInviteForm | null>(null);
 
   const form = useForm<CreateInviteForm>({
     resolver: zodResolver(createInviteSchema),
@@ -50,31 +61,53 @@ export function CreateInviteForm() {
     }
   });
 
-  const createInviteMutation = useMutation({
-    mutationFn: async (data: CreateInviteForm) => {
+  // Check for existing users/invites
+  const checkExistingMutation = useMutation({
+    mutationFn: async (email: string) => {
       // Check for existing user
       const { data: existingUser } = await supabase
         .from('users')
-        .select('id')
-        .eq('email', data.email)
-        .single();
+        .select('id, status')
+        .eq('email', email)
+        .maybeSingle();
 
       if (existingUser) {
-        throw new Error('A user with this email already exists');
+        return {
+          type: 'user' as const,
+          email,
+          userStatus: existingUser.status
+        };
       }
 
       // Check for pending invites
       const { data: pendingInvite } = await supabase
         .from('invites')
-        .select('id')
-        .eq('email', data.email)
+        .select('id, expires_at')
+        .eq('email', email)
         .is('used_at', null)
         .gt('expires_at', new Date().toISOString())
-        .single();
+        .maybeSingle();
 
       if (pendingInvite) {
-        throw new Error('A pending invitation already exists for this email');
+        return {
+          type: 'invite' as const,
+          email,
+          inviteStatus: 'pending'
+        };
       }
+
+      return null;
+    }
+  });
+
+  const createInviteMutation = useMutation({
+    mutationFn: async (data: CreateInviteForm) => {
+      // Delete any existing pending invites for this email
+      await supabase
+        .from('invites')
+        .delete()
+        .eq('email', data.email)
+        .is('used_at', null);
 
       // Calculate expiration date
       const expiresAt = new Date();
@@ -123,8 +156,47 @@ export function CreateInviteForm() {
     }
   });
 
-  const onSubmit = (data: CreateInviteForm) => {
-    createInviteMutation.mutate(data);
+  // Handle form submission with checking
+  const onSubmit = async (data: CreateInviteForm) => {
+    // First check for existing users/invites
+    try {
+      const existingData = await checkExistingMutation.mutateAsync(data.email);
+      
+      if (existingData) {
+        // Show warning dialog
+        setExistingUserData(existingData);
+        setPendingFormData(data);
+        setShowWarningDialog(true);
+      } else {
+        // No conflicts, proceed directly
+        createInviteMutation.mutate(data);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to check existing users. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handle continuing after warning
+  const handleContinueAfterWarning = () => {
+    if (pendingFormData) {
+      createInviteMutation.mutate(pendingFormData);
+      setShowWarningDialog(false);
+      setExistingUserData(null);
+      setPendingFormData(null);
+    }
+  };
+
+  // Handle dialog close
+  const handleDialogClose = (open: boolean) => {
+    if (!open) {
+      setShowWarningDialog(false);
+      setExistingUserData(null);
+      setPendingFormData(null);
+    }
   };
 
   const copyToClipboard = async () => {
@@ -274,6 +346,14 @@ export function CreateInviteForm() {
             </div>
           </div>
         )}
+
+        {/* Warning Dialog */}
+        <ExistingUserWarningDialog
+          open={showWarningDialog}
+          onOpenChange={handleDialogClose}
+          existingData={existingUserData}
+          onContinue={handleContinueAfterWarning}
+        />
       </CardContent>
     </Card>
   );
