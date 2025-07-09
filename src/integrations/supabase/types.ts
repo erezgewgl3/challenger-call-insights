@@ -575,6 +575,10 @@ export type Database = {
           created_by: string
         }[]
       }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       processing_status: "uploaded" | "processing" | "completed" | "error"
