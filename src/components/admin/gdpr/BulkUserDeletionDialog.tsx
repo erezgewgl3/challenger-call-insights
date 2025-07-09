@@ -50,6 +50,19 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
 
   const deletionMutation = useMutation({
     mutationFn: async () => {
+      if (!eligibleUsers.length) {
+        throw new Error('No eligible users selected for deletion');
+      }
+
+      console.log('Starting bulk deletion for users:', eligibleUsers.map(u => ({ id: u.id, email: u.email })));
+
+      // Verify current user authentication
+      if (!currentUser?.id) {
+        throw new Error('Authentication required for bulk deletion');
+      }
+
+      console.log('Current admin user:', currentUser.id);
+
       const gracePeriodEnd = immediateDelete 
         ? null 
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
@@ -61,7 +74,7 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
       // Create deletion requests for all eligible users
       const deletionRequests = eligibleUsers.map(user => ({
         user_id: user.id,
-        requested_by: currentUser?.id,
+        requested_by: currentUser.id,
         reason,
         scheduled_for: scheduledFor,
         grace_period_end: gracePeriodEnd,
@@ -69,40 +82,64 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
         status: 'pending'
       }));
 
-      const { data, error } = await supabase
+      console.log('Deletion requests to insert:', deletionRequests.length);
+
+      const { data: deletionData, error: deletionError } = await supabase
         .from('deletion_requests')
         .insert(deletionRequests)
         .select();
 
-      if (error) throw error;
+      if (deletionError) {
+        console.error('Deletion request error:', deletionError);
+        throw new Error(`Failed to create deletion requests: ${deletionError.message}`);
+      }
+
+      console.log('Deletion requests created:', deletionData?.length || 0);
 
       // Create audit log entries for all users
       const auditLogEntries = eligibleUsers.map(user => ({
-        event_type: 'data_deletion',
+        event_type: 'bulk_deletion_requested',
         user_id: user.id,
-        admin_id: currentUser?.id,
+        admin_id: currentUser.id,
         details: {
           reason,
           immediate_delete: immediateDelete,
           grace_period_end: gracePeriodEnd,
           bulk_operation: true,
-          total_users: eligibleUsers.length
+          total_users: eligibleUsers.length,
+          user_email: user.email
         },
         legal_basis: 'Article 17 - Right to erasure',
-        status: 'pending'
+        status: 'completed'
       }));
 
-      await supabase
+      const { data: auditData, error: auditError } = await supabase
         .from('gdpr_audit_log')
-        .insert(auditLogEntries);
+        .insert(auditLogEntries)
+        .select();
+
+      if (auditError) {
+        console.error('Audit log error:', auditError);
+        throw new Error(`Failed to create audit log entries: ${auditError.message}`);
+      }
+
+      console.log('Audit entries created:', auditData?.length || 0);
 
       // Mark users as pending deletion
-      await supabase
+      const { data: statusData, error: statusError } = await supabase
         .from('users')
         .update({ status: 'pending_deletion' })
-        .in('id', eligibleUsers.map(user => user.id));
+        .in('id', eligibleUsers.map(user => user.id))
+        .select();
 
-      return data;
+      if (statusError) {
+        console.error('Status update error:', statusError);
+        throw new Error(`Failed to update user status: ${statusError.message}`);
+      }
+
+      console.log('User statuses updated:', statusData?.length || 0);
+
+      return { processedCount: eligibleUsers.length };
     },
     onSuccess: () => {
       const processedCount = eligibleUsers.length;
