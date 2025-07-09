@@ -277,7 +277,7 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
   });
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={handleClose}>
+    <AlertDialog open={isOpen}>
       <AlertDialogContent className="max-w-2xl">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
@@ -414,13 +414,13 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
 
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleClose}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
+          <Button
             onClick={() => deletionMutation.mutate()}
             disabled={!canProceed || deletionMutation.isPending}
-            className="bg-red-600 hover:bg-red-700"
+            variant="destructive"
           >
             {deletionMutation.isPending ? 'Processing...' : `Delete ${eligibleUsers.length} Users`}
-          </AlertDialogAction>
+          </Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
