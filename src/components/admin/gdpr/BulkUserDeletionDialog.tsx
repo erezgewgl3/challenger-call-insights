@@ -41,14 +41,13 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
   const [authVerified, setAuthVerified] = useState(false);
   const [verifyingAuth, setVerifyingAuth] = useState(false);
 
-  // Filter out current user and users already pending deletion to prevent issues
-  const eligibleUsers = users.filter(user => 
-    user.id !== currentUser?.id && 
-    user.status !== 'pending_deletion' && 
-    user.status !== 'deleted'
-  );
-  const isCurrentUserSelected = users.some(user => user.id === currentUser?.id);
-  const hasPendingDeletionUsers = users.some(user => user.status === 'pending_deletion');
+  // Users are already filtered by UsersOverview, so use them directly
+  const eligibleUsers = users;
+  console.log('Dialog received users:', users.map(u => ({ id: u.id, email: u.email, status: u.status })));
+  
+  // Track if any users were already filtered out before reaching this dialog
+  const isCurrentUserSelected = false; // Already filtered out by parent
+  const hasPendingDeletionUsers = false; // Already filtered out by parent
 
   // Authentication verification mutation
   const authVerificationMutation = useMutation({
