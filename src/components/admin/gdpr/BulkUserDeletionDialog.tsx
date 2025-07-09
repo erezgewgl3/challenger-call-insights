@@ -55,16 +55,14 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
     mutationFn: async () => {
       console.log('Verifying authentication context...');
       
-      // Force session refresh first
-      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.error('Session refresh failed:', refreshError);
-        throw new Error('Failed to refresh authentication session');
+      // Check if current session is valid
+      if (!session || !currentUser) {
+        throw new Error('No valid session found. Please log out and log back in.');
       }
       
-      console.log('Session refreshed successfully');
+      console.log('Session exists, verifying admin role...');
       
-      // Test database auth context
+      // Test database auth context directly without refreshing session
       const { data: authTest, error: authError } = await supabase
         .rpc('get_current_user_role');
         
