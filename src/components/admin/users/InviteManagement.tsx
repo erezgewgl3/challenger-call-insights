@@ -67,14 +67,14 @@ export function InviteManagement() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Create Invite Form - Full Width on Mobile, Side by Side on Desktop */}
-      <div className="w-full">
+    <div className="space-y-6 max-w-full">
+      {/* Create Invite Form */}
+      <div className="max-w-2xl">
         <CreateInviteForm />
       </div>
 
-      {/* Invites Table - Full Width */}
-      <div className="w-full">
+      {/* Invites Table */}
+      <div className="max-w-full overflow-hidden">
         <InvitesTable 
           invites={invites || []}
           isLoading={isLoading}
