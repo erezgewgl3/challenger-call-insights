@@ -136,7 +136,20 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
     setImmediateDelete(checked === true);
   };
 
-  const canProceed = reason.trim() && confirmationText === 'DELETE USERS' && eligibleUsers.length > 0;
+  // Debug logging to see what's happening with validation
+  console.log('Validation debug:', {
+    reasonTrimmed: reason.trim(),
+    reasonLength: reason.trim().length,
+    confirmationText: confirmationText,
+    confirmationTrimmed: confirmationText.trim(),
+    expectedText: 'DELETE USERS',
+    textMatch: confirmationText.trim().toUpperCase() === 'DELETE USERS',
+    eligibleUsersLength: eligibleUsers.length
+  });
+
+  const canProceed = reason.trim() && 
+                    confirmationText.trim().toUpperCase() === 'DELETE USERS' && 
+                    eligibleUsers.length > 0;
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
