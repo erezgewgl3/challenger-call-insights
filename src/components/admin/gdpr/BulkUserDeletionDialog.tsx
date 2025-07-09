@@ -32,12 +32,14 @@ interface BulkUserDeletionDialogProps {
 
 export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDeletionDialogProps) {
   const { toast } = useToast();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, session } = useAuth();
   const queryClient = useQueryClient();
   
   const [reason, setReason] = useState('');
   const [immediateDelete, setImmediateDelete] = useState(false);
   const [confirmationText, setConfirmationText] = useState('');
+  const [authVerified, setAuthVerified] = useState(false);
+  const [verifyingAuth, setVerifyingAuth] = useState(false);
 
   // Filter out current user and users already pending deletion to prevent issues
   const eligibleUsers = users.filter(user => 
@@ -48,20 +50,73 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
   const isCurrentUserSelected = users.some(user => user.id === currentUser?.id);
   const hasPendingDeletionUsers = users.some(user => user.status === 'pending_deletion');
 
+  // Authentication verification mutation
+  const authVerificationMutation = useMutation({
+    mutationFn: async () => {
+      console.log('Verifying authentication context...');
+      
+      // Force session refresh first
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Session refresh failed:', refreshError);
+        throw new Error('Failed to refresh authentication session');
+      }
+      
+      console.log('Session refreshed successfully');
+      
+      // Test database auth context
+      const { data: authTest, error: authError } = await supabase
+        .rpc('get_current_user_role');
+        
+      if (authError) {
+        console.error('Auth context test failed:', authError);
+        throw new Error(`Database authentication failed: ${authError.message}`);
+      }
+      
+      console.log('Database auth context verified, user role:', authTest);
+      
+      if (!authTest || authTest !== 'admin') {
+        throw new Error('Admin privileges required for bulk deletion');
+      }
+      
+      return { verified: true, role: authTest };
+    },
+    onSuccess: () => {
+      setAuthVerified(true);
+      toast({
+        title: "Authentication Verified",
+        description: "Admin privileges confirmed. You can now proceed with bulk deletion.",
+      });
+    },
+    onError: (error) => {
+      console.error('Auth verification error:', error);
+      setAuthVerified(false);
+      toast({
+        title: "Authentication Failed",
+        description: error.message || "Failed to verify admin privileges. Please log out and log back in.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const deletionMutation = useMutation({
     mutationFn: async () => {
       if (!eligibleUsers.length) {
         throw new Error('No eligible users selected for deletion');
       }
 
+      if (!authVerified) {
+        throw new Error('Authentication must be verified before proceeding with bulk deletion');
+      }
+
       console.log('Starting bulk deletion for users:', eligibleUsers.map(u => ({ id: u.id, email: u.email })));
 
       // Verify current user authentication
-      if (!currentUser?.id) {
-        throw new Error('Authentication required for bulk deletion');
+      if (!currentUser?.id || !session) {
+        throw new Error('Valid session required for bulk deletion');
       }
 
-      console.log('Current admin user:', currentUser.id);
+      console.log('Current admin user:', currentUser.id, 'Session exists:', !!session);
 
       const gracePeriodEnd = immediateDelete 
         ? null 
@@ -184,6 +239,16 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
     setReason('');
     setImmediateDelete(false);
     setConfirmationText('');
+    setAuthVerified(false);
+  };
+
+  const handleVerifyAuth = async () => {
+    setVerifyingAuth(true);
+    try {
+      await authVerificationMutation.mutateAsync();
+    } finally {
+      setVerifyingAuth(false);
+    }
   };
 
   const handleClose = () => {
@@ -197,7 +262,8 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
 
   const canProceed = reason.trim() && 
                     confirmationText.trim().toUpperCase() === 'DELETE USERS' && 
-                    eligibleUsers.length > 0;
+                    eligibleUsers.length > 0 &&
+                    authVerified;
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>
@@ -228,6 +294,34 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
             </Alert>
           ) : (
             <>
+              {/* Authentication Verification Section */}
+              <div className="space-y-4">
+                {!authVerified ? (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="space-y-3">
+                      <div>
+                        Authentication verification required before proceeding with bulk deletion.
+                      </div>
+                      <Button 
+                        onClick={handleVerifyAuth}
+                        disabled={verifyingAuth || authVerificationMutation.isPending}
+                        size="sm"
+                      >
+                        {verifyingAuth || authVerificationMutation.isPending ? 'Verifying...' : 'Verify Admin Access'}
+                      </Button>
+                    </AlertDescription>
+                  </Alert>
+                ) : (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertDescription>
+                      ✓ Authentication verified. Admin privileges confirmed.
+                    </AlertDescription>
+                  </Alert>
+                )}
+              </div>
+
               {/* Selected Users Preview */}
               <div className="space-y-2">
                 <Label className="text-sm font-medium flex items-center gap-2">
