@@ -41,9 +41,14 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
   const [authVerified, setAuthVerified] = useState(false);
   const [verifyingAuth, setVerifyingAuth] = useState(false);
 
-  // Users are already filtered by UsersOverview, so use them directly
+  // Log everything we receive for debugging
+  console.log('=== BULK DELETION DIALOG RENDER ===');
+  console.log('isOpen:', isOpen);
+  console.log('users prop length:', users.length);
+  console.log('users prop details:', users.map(u => ({ id: u.id, email: u.email, status: u.status })));
+  
+  // Users are already filtered by UsersOverview, so trust them
   const eligibleUsers = users;
-  console.log('Dialog received users:', users.map(u => ({ id: u.id, email: u.email, status: u.status })));
   
   // Track if any users were already filtered out before reaching this dialog
   const isCurrentUserSelected = false; // Already filtered out by parent
@@ -261,6 +266,14 @@ export function BulkUserDeletionDialog({ isOpen, onClose, users }: BulkUserDelet
                     confirmationText.trim().toUpperCase() === 'DELETE USERS' && 
                     eligibleUsers.length > 0 &&
                     authVerified;
+                    
+  console.log('canProceed calculation:', {
+    hasReason: !!reason.trim(),
+    hasConfirmation: confirmationText.trim().toUpperCase() === 'DELETE USERS',
+    hasEligibleUsers: eligibleUsers.length > 0,
+    authVerified,
+    canProceed
+  });
 
   return (
     <AlertDialog open={isOpen} onOpenChange={handleClose}>

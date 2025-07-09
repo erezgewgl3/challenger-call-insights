@@ -284,6 +284,10 @@ export function UsersOverview() {
 
   // Bulk deletion handler
   const handleBulkDeletion = () => {
+    console.log('=== BULK DELETION HANDLER START ===');
+    console.log('Selected user IDs:', selectedUsers);
+    console.log('Current bulkDeletionDialog state:', bulkDeletionDialog);
+    
     if (selectedUsers.length === 0) {
       toast({
         title: "No Users Selected",
@@ -293,16 +297,20 @@ export function UsersOverview() {
       return;
     }
 
-    console.log('Selected user IDs:', selectedUsers);
     console.log('Total filtered users:', filteredUsers.length);
+    console.log('Filtered users sample:', filteredUsers.slice(0, 3).map(u => ({ id: u.id, email: u.email })));
     
-    // Fix: Filter from all filteredUsers, not just paginatedUsers
+    // Filter from all filteredUsers, not just paginatedUsers
     const usersToDelete = filteredUsers.filter(user => selectedUsers.includes(user.id));
-    console.log('Users found for deletion:', usersToDelete.map(u => ({ id: u.id, email: u.email })));
+    console.log('Users found for deletion:', usersToDelete.map(u => ({ id: u.id, email: u.email, status: u.status })));
     
-    // Check if only current user is selected
-    const eligibleUsers = usersToDelete.filter(user => user.id !== currentUser?.id);
-    console.log('Eligible users after filtering out current user:', eligibleUsers.length);
+    // Filter out current user and users already pending deletion
+    const eligibleUsers = usersToDelete.filter(user => 
+      user.id !== currentUser?.id && 
+      user.status !== 'pending_deletion' && 
+      user.status !== 'deleted'
+    );
+    console.log('Eligible users after filtering:', eligibleUsers.map(u => ({ id: u.id, email: u.email, status: u.status })));
     
     if (usersToDelete.length === 0) {
       toast({
@@ -315,26 +323,35 @@ export function UsersOverview() {
     
     if (eligibleUsers.length === 0) {
       const selfSelected = usersToDelete.find(user => user.id === currentUser?.id);
+      const pendingSelected = usersToDelete.filter(user => user.status === 'pending_deletion');
+      
+      let message = "No valid users were selected for deletion.";
       if (selfSelected) {
-        toast({
-          title: "Cannot Delete Own Account",
-          description: "You cannot delete your own admin account.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "No Eligible Users",
-          description: "No valid users were selected for deletion.",
-          variant: "destructive",
-        });
+        message = "You cannot delete your own admin account.";
+      } else if (pendingSelected.length > 0) {
+        message = `${pendingSelected.length} user(s) are already pending deletion.`;
       }
+      
+      toast({
+        title: "No Eligible Users",
+        description: message,
+        variant: "destructive",
+      });
       return;
     }
 
-    setBulkDeletionDialog({
+    console.log('About to set dialog state with users:', eligibleUsers.map(u => ({ id: u.id, email: u.email })));
+    
+    // Create a completely new state object to ensure React detects the change
+    const newDialogState = {
       isOpen: true,
-      users: eligibleUsers
-    });
+      users: [...eligibleUsers] // Create new array reference
+    };
+    
+    console.log('Setting bulkDeletionDialog to:', newDialogState);
+    setBulkDeletionDialog(newDialogState);
+    
+    console.log('=== BULK DELETION HANDLER END ===');
   };
 
   // Clear selection after successful bulk operation
@@ -718,6 +735,7 @@ export function UsersOverview() {
       <BulkUserDeletionDialog
         isOpen={bulkDeletionDialog.isOpen}
         onClose={() => {
+          console.log('Closing bulk deletion dialog, clearing state');
           setBulkDeletionDialog({ isOpen: false, users: [] });
           clearSelection();
         }}
