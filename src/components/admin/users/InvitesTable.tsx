@@ -300,7 +300,7 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <Table className="min-w-[765px] w-full">
+            <Table className="min-w-[650px] w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12 py-5">
@@ -309,11 +309,11 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
-                  <TableHead className="min-w-[220px] py-5 px-4">Email</TableHead>
-                  <TableHead className="min-w-[300px] py-5 px-4">Token</TableHead>
-                  <TableHead className="w-[120px] py-5 px-4">Status</TableHead>
-                  <TableHead className="w-[140px] py-5 px-4">Created</TableHead>
-                  <TableHead className="w-[140px] py-5 px-4">Expires</TableHead>
+                  <TableHead className="min-w-[180px] py-5 px-4">Email</TableHead>
+                  <TableHead className="min-w-[200px] py-5 px-4">Token</TableHead>
+                  <TableHead className="w-[100px] py-5 px-4">Status</TableHead>
+                  <TableHead className="w-[120px] py-5 px-4">Created</TableHead>
+                  <TableHead className="w-[120px] py-5 px-4">Expires</TableHead>
                   <TableHead className="w-12 py-5"></TableHead>
                 </TableRow>
               </TableHeader>
