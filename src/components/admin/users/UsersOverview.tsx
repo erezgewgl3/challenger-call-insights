@@ -32,6 +32,7 @@ import { RoleBadge } from './RoleBadge';
 import { ChangeRoleDialog } from './ChangeRoleDialog';
 import { UserActivityModal } from './UserActivityModal';
 import { UserDeletionDialog } from '../gdpr/UserDeletionDialog';
+import { BulkUserDeletionDialog } from '../gdpr/BulkUserDeletionDialog';
 
 interface UserWithCounts {
   id: string;
@@ -88,6 +89,12 @@ export function UsersOverview() {
     isOpen: boolean;
     user?: UserWithCounts;
   }>({ isOpen: false });
+
+  // Bulk deletion dialog state
+  const [bulkDeletionDialog, setBulkDeletionDialog] = useState<{
+    isOpen: boolean;
+    users: UserWithCounts[];
+  }>({ isOpen: false, users: [] });
 
   const usersPerPage = 20;
 
@@ -274,6 +281,23 @@ export function UsersOverview() {
     });
   };
 
+  // Bulk deletion handler
+  const handleBulkDeletion = () => {
+    if (selectedUsers.length === 0) return;
+
+    const usersToDelete = paginatedUsers.filter(user => selectedUsers.includes(user.id));
+    setBulkDeletionDialog({
+      isOpen: true,
+      users: usersToDelete
+    });
+  };
+
+  // Clear selection after successful bulk operation
+  const clearSelection = () => {
+    setSelectedUsers([]);
+    setSelectAll(false);
+  };
+
   // Clear filters
   const clearFilters = () => {
     setSearchEmail('');
@@ -420,6 +444,14 @@ export function UsersOverview() {
                 <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-1" />
                   Export Selected
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  onClick={handleBulkDeletion}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Delete Selected
                 </Button>
               </div>
             )}
@@ -627,6 +659,16 @@ export function UsersOverview() {
           user={deletionDialog.user}
         />
       )}
+
+      {/* Bulk User Deletion Dialog */}
+      <BulkUserDeletionDialog
+        isOpen={bulkDeletionDialog.isOpen}
+        onClose={() => {
+          setBulkDeletionDialog({ isOpen: false, users: [] });
+          clearSelection();
+        }}
+        users={bulkDeletionDialog.users}
+      />
     </div>
   );
 }
