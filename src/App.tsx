@@ -10,7 +10,7 @@ import { AdminGuard } from "@/components/auth/AdminGuard";
 import { LoginForm } from "@/components/auth/LoginForm";
 import { RegisterForm } from "@/components/auth/RegisterForm";
 import Index from "./pages/Index";
-import WelcomeDashboard from "./pages/WelcomeDashboard";
+import SmartDashboard from "./pages/SmartDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import PromptManagement from "./pages/PromptManagement";
 import UserManagement from "./pages/admin/UserManagement";
@@ -33,7 +33,7 @@ function App() {
               <Route path="/register" element={<RegisterForm />} />
               <Route path="/dashboard" element={
                 <AuthGuard>
-                  <WelcomeDashboard />
+                  <SmartDashboard />
                 </AuthGuard>
               } />
               <Route path="/admin" element={
