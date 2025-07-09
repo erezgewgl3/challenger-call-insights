@@ -299,137 +299,143 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
             ))}
           </div>
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-12">
-                  <Checkbox
-                    checked={selectAll}
-                    onCheckedChange={handleSelectAll}
-                  />
-                </TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Token</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Expires</TableHead>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredInvites.map((invite) => {
-                const status = getInviteStatus(invite);
-                const expiresAt = new Date(invite.expires_at);
-                const createdAt = new Date(invite.created_at);
-                
-                return (
-                  <TableRow key={invite.id}>
-                    <TableCell>
-                      <Checkbox
-                        checked={selectedInvites.includes(invite.id)}
-                        onCheckedChange={(checked) => handleInviteSelect(invite.id, !!checked)}
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{invite.email}</div>
-                        {invite.created_by_user && (
-                          <div className="text-sm text-muted-foreground">
-                            Created by {invite.created_by_user.email}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <code className="bg-gray-100 px-2 py-1 rounded text-xs font-mono truncate max-w-[200px]">
-                          {formatToken(invite.token, visibleTokens.has(invite.id))}
-                        </code>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleTokenVisibility(invite.id)}
-                            className="h-6 w-6 p-0"
-                          >
-                            {visibleTokens.has(invite.id) ? (
-                              <EyeOff className="h-3 w-3" />
-                            ) : (
-                              <Eye className="h-3 w-3" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => copyToken(invite.token)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <Copy className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={status.color}>
-                        <span className="mr-1">{status.icon}</span>
-                        {status.label}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {formatDistanceToNow(createdAt, { addSuffix: true })}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-sm">
-                        {status.status === 'expired' ? (
-                          <span className="text-red-600">
-                            Expired {formatDistanceToNow(expiresAt, { addSuffix: true })}
-                          </span>
-                        ) : status.status === 'expiring' ? (
-                          <span className="text-orange-600 flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            {formatDistanceToNow(expiresAt, { addSuffix: true })}
-                          </span>
-                        ) : (
-                          formatDistanceToNow(expiresAt, { addSuffix: true })
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          <DropdownMenuItem onClick={() => copyInviteLink(invite.token)}>
-                            <Copy className="mr-2 h-4 w-4" />
-                            Copy Invite Link
-                          </DropdownMenuItem>
-                          {status.status === 'pending' && (
-                            <DropdownMenuItem>
-                              <Mail className="mr-2 h-4 w-4" />
-                              Resend Email
-                            </DropdownMenuItem>
+          <div className="overflow-x-auto">
+            <Table className="min-w-[900px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-12 py-4">
+                    <Checkbox
+                      checked={selectAll}
+                      onCheckedChange={handleSelectAll}
+                    />
+                  </TableHead>
+                  <TableHead className="min-w-[200px] py-4 px-6">Email</TableHead>
+                  <TableHead className="min-w-[300px] py-4 px-6">Token</TableHead>
+                  <TableHead className="w-32 py-4 px-6">Status</TableHead>
+                  <TableHead className="w-28 py-4 px-6">Created</TableHead>
+                  <TableHead className="w-28 py-4 px-6">Expires</TableHead>
+                  <TableHead className="w-12 py-4"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredInvites.map((invite) => {
+                  const status = getInviteStatus(invite);
+                  const expiresAt = new Date(invite.expires_at);
+                  const createdAt = new Date(invite.created_at);
+                  
+                  return (
+                    <TableRow key={invite.id} className="hover:bg-muted/30">
+                      <TableCell className="py-4 px-4">
+                        <Checkbox
+                          checked={selectedInvites.includes(invite.id)}
+                          onCheckedChange={(checked) => handleInviteSelect(invite.id, !!checked)}
+                        />
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <div>
+                          <div className="font-medium text-foreground">{invite.email}</div>
+                          {invite.created_by_user && (
+                            <div className="text-sm text-muted-foreground mt-1">
+                              Created by {invite.created_by_user.email}
+                            </div>
                           )}
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            onClick={() => revokeInviteMutation.mutate(invite.id)}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Revoke Invite
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <code className="bg-muted/60 px-3 py-2 rounded-md text-sm font-mono tracking-wide text-foreground flex-1 min-w-0 border border-border/50">
+                            {formatToken(invite.token, visibleTokens.has(invite.id))}
+                          </code>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => toggleTokenVisibility(invite.id)}
+                              className="h-8 w-8 p-0 hover:bg-muted"
+                              title={visibleTokens.has(invite.id) ? "Hide token" : "Show token"}
+                            >
+                              {visibleTokens.has(invite.id) ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => copyToken(invite.token)}
+                              className="h-8 w-8 p-0 hover:bg-muted"
+                              title="Copy token"
+                            >
+                              <Copy className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <Badge variant="outline" className={`${status.color} px-3 py-1`}>
+                          <span className="mr-2">{status.icon}</span>
+                          {status.label}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <div className="text-sm text-muted-foreground">
+                          {formatDistanceToNow(createdAt, { addSuffix: true })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-6">
+                        <div className="text-sm">
+                          {status.status === 'expired' ? (
+                            <span className="text-destructive font-medium">
+                              Expired {formatDistanceToNow(expiresAt, { addSuffix: true })}
+                            </span>
+                          ) : status.status === 'expiring' ? (
+                            <span className="text-orange-600 flex items-center gap-1 font-medium">
+                              <Clock className="h-3 w-3" />
+                              {formatDistanceToNow(expiresAt, { addSuffix: true })}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">
+                              {formatDistanceToNow(expiresAt, { addSuffix: true })}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="py-4 px-4">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-muted">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48 bg-card border shadow-md">
+                            <DropdownMenuItem onClick={() => copyInviteLink(invite.token)} className="cursor-pointer">
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copy Invite Link
+                            </DropdownMenuItem>
+                            {status.status === 'pending' && (
+                              <DropdownMenuItem className="cursor-pointer">
+                                <Mail className="mr-2 h-4 w-4" />
+                                Resend Email
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => revokeInviteMutation.mutate(invite.id)}
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 cursor-pointer"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Revoke Invite
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </CardContent>
     </Card>
