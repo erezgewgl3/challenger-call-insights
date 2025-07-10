@@ -22,30 +22,39 @@ serve(async (req) => {
       )
     }
 
-    const supabaseClient = createClient(
+    // Create client for user verification (with JWT)
+    const userClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
       { global: { headers: { Authorization: authHeader } } }
+    )
+
+    // Create admin client for deletions (with service role)
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { userId, userIds } = await req.json()
     
-    // Get current user and verify admin role
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    // Get current user and verify admin role using the user client
+    const { data: { user }, error: userError } = await userClient.auth.getUser()
     if (userError || !user) {
+      console.error('Auth error:', userError)
       return new Response(
         JSON.stringify({ error: 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    const { data: currentUser, error: currentUserError } = await supabaseClient
+    const { data: currentUser, error: currentUserError } = await userClient
       .from('users')
       .select('role')
       .eq('id', user.id)
       .single()
 
     if (currentUserError || currentUser?.role !== 'admin') {
+      console.error('Authorization error:', currentUserError, 'Role:', currentUser?.role)
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -54,7 +63,7 @@ serve(async (req) => {
 
     // Handle single user deletion
     if (userId) {
-      await deleteSingleUser(supabaseClient, userId, user.id)
+      await deleteSingleUser(adminClient, userId, user.id)
       return new Response(
         JSON.stringify({ success: true, deletedCount: 1 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -63,7 +72,7 @@ serve(async (req) => {
 
     // Handle bulk user deletion
     if (userIds && Array.isArray(userIds)) {
-      const deletedCount = await deleteBulkUsers(supabaseClient, userIds, user.id)
+      const deletedCount = await deleteBulkUsers(adminClient, userIds, user.id)
       return new Response(
         JSON.stringify({ success: true, deletedCount }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -84,12 +93,12 @@ serve(async (req) => {
   }
 })
 
-async function deleteSingleUser(supabaseClient: any, userId: string, adminId: string) {
+async function deleteSingleUser(adminClient: any, userId: string, adminId: string) {
   console.log(`Starting permanent deletion for user: ${userId}`)
   
   try {
     // Log the deletion attempt
-    await supabaseClient
+    await adminClient
       .from('gdpr_audit_log')
       .insert({
         event_type: 'permanent_deletion_started',
@@ -99,8 +108,49 @@ async function deleteSingleUser(supabaseClient: any, userId: string, adminId: st
         legal_basis: 'GDPR Article 17 - Right to erasure'
       })
 
-    // Simply delete the user - foreign key constraints will handle cascading
-    const { error: userError } = await supabaseClient
+    // Manually delete related records since there are no foreign key constraints
+    // Delete in order: conversation_analysis, transcripts, accounts, user_consent, then user
+    
+    console.log(`Deleting conversation analysis for user: ${userId}`)
+    await adminClient
+      .from('conversation_analysis')
+      .delete()
+      .in('transcript_id', 
+        adminClient.from('transcripts').select('id').eq('user_id', userId)
+      )
+
+    console.log(`Deleting transcripts for user: ${userId}`)
+    await adminClient
+      .from('transcripts')
+      .delete()
+      .eq('user_id', userId)
+
+    console.log(`Deleting accounts for user: ${userId}`)
+    await adminClient
+      .from('accounts')
+      .delete()
+      .eq('user_id', userId)
+
+    console.log(`Deleting user consent for user: ${userId}`)
+    await adminClient
+      .from('user_consent')
+      .delete()
+      .eq('user_id', userId)
+
+    console.log(`Deleting data export requests for user: ${userId}`)
+    await adminClient
+      .from('data_export_requests')
+      .delete()
+      .eq('user_id', userId)
+
+    console.log(`Deleting deletion requests for user: ${userId}`)
+    await adminClient
+      .from('deletion_requests')
+      .delete()
+      .eq('user_id', userId)
+
+    console.log(`Finally deleting user: ${userId}`)
+    const { error: userError } = await adminClient
       .from('users')
       .delete()
       .eq('id', userId)
@@ -110,10 +160,10 @@ async function deleteSingleUser(supabaseClient: any, userId: string, adminId: st
       throw new Error(`Failed to delete user: ${userError.message}`)
     }
 
-    console.log(`Successfully deleted user: ${userId}`)
+    console.log(`Successfully deleted user and all related data: ${userId}`)
 
     // Log completion
-    await supabaseClient
+    await adminClient
       .from('gdpr_audit_log')
       .insert({
         event_type: 'permanent_deletion_completed',
@@ -127,7 +177,7 @@ async function deleteSingleUser(supabaseClient: any, userId: string, adminId: st
     console.error(`Failed to permanently delete user ${userId}:`, error)
     
     // Log the failure
-    await supabaseClient
+    await adminClient
       .from('gdpr_audit_log')
       .insert({
         event_type: 'permanent_deletion_failed',
@@ -141,20 +191,20 @@ async function deleteSingleUser(supabaseClient: any, userId: string, adminId: st
   }
 }
 
-async function deleteBulkUsers(supabaseClient: any, userIds: string[], adminId: string): Promise<number> {
+async function deleteBulkUsers(adminClient: any, userIds: string[], adminId: string): Promise<number> {
   console.log(`Starting bulk permanent deletion for ${userIds.length} users`)
   
   let deletedCount = 0
   
   for (const userId of userIds) {
     try {
-      await deleteSingleUser(supabaseClient, userId, adminId)
+      await deleteSingleUser(adminClient, userId, adminId)
       deletedCount++
     } catch (error) {
       console.error(`Failed to delete user ${userId}:`, error)
       
       // Log the failure
-      await supabaseClient
+      await adminClient
         .from('gdpr_audit_log')
         .insert({
           event_type: 'permanent_deletion_failed',
