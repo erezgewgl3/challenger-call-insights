@@ -48,11 +48,45 @@ export function RegisterForm() {
     }
 
     try {
-      const { valid, invite, error: validationError } = await authHelpers.validateInviteToken(inviteToken, email)
+      const { valid, invite, requiresPasswordReset, existingUser, error: validationError } = await authHelpers.validateInviteToken(inviteToken, email)
 
       if (!valid) {
         setError(validationError || 'Invalid invite token')
-        toast.error('Invalid invite token')
+        toast.error(validationError || 'Invalid invite token')
+      } else if (requiresPasswordReset && existingUser) {
+        // Handle password reset for existing user with pending_deletion status
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/login`
+        })
+
+        if (resetError) {
+          // Check for rate limiting error
+          if (resetError.message.includes('For security purposes, you can only request this after')) {
+            const match = resetError.message.match(/after (\d+) seconds/)
+            const seconds = match ? match[1] : 'a few'
+            setError(`Rate limited. Please wait ${seconds} seconds before requesting another password reset.`)
+            toast.error(`Please wait ${seconds} seconds before trying again`)
+          } else {
+            setError('Failed to send password reset email: ' + resetError.message)
+            toast.error('Failed to send password reset email')
+          }
+        } else {
+          // Mark invite as used after successful password reset email
+          const { success } = await authHelpers.markInviteAsUsed(invite.id)
+          
+          if (!success) {
+            console.warn('Could not mark invite as used, but password reset was sent')
+          }
+
+          // Update user status back to active
+          await supabase
+            .from('users')
+            .update({ status: 'active' })
+            .eq('id', existingUser.id)
+
+          toast.success('Password reset email sent! Check your email and follow the link to reset your password.')
+          navigate('/login')
+        }
       } else {
         setValidatedInvite(invite)
         setStep('register')

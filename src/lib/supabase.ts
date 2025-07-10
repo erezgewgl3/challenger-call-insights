@@ -21,21 +21,51 @@ export type InviteToken = Database['public']['Tables']['invites']['Row']
 export const authHelpers = {
   async validateInviteToken(token: string, email: string) {
     try {
-      const { data, error } = await supabase
+      // First, check if invite exists and is valid
+      const { data: invite, error: inviteError } = await supabase
         .from('invites')
         .select('*')
         .eq('token', token)
         .eq('email', email)
-        .is('used_at', null)
         .gt('expires_at', new Date().toISOString())
         .single()
 
-      if (error) {
-        console.error('Invite validation error:', error)
+      if (inviteError) {
+        console.error('Invite validation error:', inviteError)
         return { valid: false, error: 'Invalid or expired invite token' }
       }
 
-      return { valid: true, invite: data }
+      // Check if user already exists
+      const { data: existingUser, error: userError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .single()
+
+      if (existingUser) {
+        // If user exists with pending_deletion status, allow password reset
+        if (existingUser.status === 'pending_deletion') {
+          return { 
+            valid: true, 
+            invite, 
+            requiresPasswordReset: true,
+            existingUser 
+          }
+        }
+        // If user exists and is active, they shouldn't be using an invite
+        return { 
+          valid: false, 
+          error: 'User already exists and is active. Please log in instead.' 
+        }
+      }
+
+      // If invite is already used and no existing user with pending_deletion, reject
+      if (invite.used_at) {
+        return { valid: false, error: 'Invite token has already been used' }
+      }
+
+      // Valid invite for new user registration
+      return { valid: true, invite }
     } catch (error) {
       console.error('Invite validation error:', error)
       return { valid: false, error: 'Failed to validate invite token' }
