@@ -85,6 +85,33 @@ export function RegisterForm() {
       })
 
       if (error) {
+        // Check if user already exists
+        if (error.message.includes('User already registered')) {
+          // Switch to password reset mode for existing users
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/login`
+          })
+
+          if (resetError) {
+            setError('Failed to send password reset email: ' + resetError.message)
+            toast.error('Failed to send password reset email')
+            return
+          }
+
+          // Mark invite as used since we're treating this as a password reset
+          if (validatedInvite) {
+            const { success, error: markError } = await authHelpers.markInviteAsUsed(validatedInvite.id)
+            
+            if (!success) {
+              toast.error('Warning: Invite token could not be marked as used. Please contact support.')
+            }
+          }
+
+          toast.success('Password reset email sent! Check your email and follow the link to reset your password.')
+          navigate('/login')
+          return
+        }
+
         setError(error.message)
         toast.error('Registration failed: ' + error.message)
         return
