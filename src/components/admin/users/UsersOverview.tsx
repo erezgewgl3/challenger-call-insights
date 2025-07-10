@@ -34,6 +34,8 @@ import { ChangeRoleDialog } from './ChangeRoleDialog';
 import { UserActivityModal } from './UserActivityModal';
 import { UserDeletionDialog } from '../gdpr/UserDeletionDialog';
 import { BulkUserDeletionDialog } from '../gdpr/BulkUserDeletionDialog';
+import { PermanentDeletionDialog } from './PermanentDeletionDialog';
+import { BulkPermanentDeletionDialog } from './BulkPermanentDeletionDialog';
 
 interface UserWithCounts {
   id: string;
@@ -96,6 +98,17 @@ export function UsersOverview() {
 
   // Bulk deletion dialog state
   const [bulkDeletionDialog, setBulkDeletionDialog] = useState<{
+    isOpen: boolean;
+    users: UserWithCounts[];
+  }>({ isOpen: false, users: [] });
+
+  // Permanent deletion dialog state
+  const [permanentDeletionDialog, setPermanentDeletionDialog] = useState<{
+    isOpen: boolean;
+    user?: { id: string; email: string };
+  }>({ isOpen: false });
+
+  const [bulkPermanentDeletionDialog, setBulkPermanentDeletionDialog] = useState<{
     isOpen: boolean;
     users: UserWithCounts[];
   }>({ isOpen: false, users: [] });
@@ -353,6 +366,75 @@ export function UsersOverview() {
     setBulkDeletionDialog({
       isOpen: true,
       users: [...eligibleUsers]
+    });
+  };
+
+  // Bulk permanent deletion handler
+  const handleBulkPermanentDeletion = () => {
+    if (selectedUsers.length === 0) {
+      toast({
+        title: "No Users Selected",
+        description: "Please select at least one user to permanently delete.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Filter from all filteredUsers, only pending deletion users
+    const usersToDelete = filteredUsers.filter(user => 
+      selectedUsers.includes(user.id) && user.status === 'pending_deletion'
+    );
+    
+    // Filter out current user
+    const eligibleUsers = usersToDelete.filter(user => user.id !== currentUser?.id);
+    
+    if (usersToDelete.length === 0) {
+      toast({
+        title: "No Eligible Users",
+        description: "Only users with 'Pending Deletion' status can be permanently deleted.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (eligibleUsers.length === 0) {
+      toast({
+        title: "No Eligible Users",
+        description: "You cannot permanently delete your own admin account.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setBulkPermanentDeletionDialog({
+      isOpen: true,
+      users: [...eligibleUsers]
+    });
+  };
+
+  // Handle permanent deletion for single user
+  const handlePermanentDeletion = (user: UserWithCounts) => {
+    if (user.id === currentUser?.id) {
+      toast({
+        title: "Cannot Delete Own Account",
+        description: "You cannot permanently delete your own admin account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (user.status !== 'pending_deletion') {
+      toast({
+        title: "Invalid User Status",
+        description: "Only users with 'Pending Deletion' status can be permanently deleted.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPermanentDeletionDialog({
+      isOpen: true,
+      user: { id: user.id, email: user.email }
     });
   };
 
@@ -647,6 +729,28 @@ export function UsersOverview() {
         }}
         users={bulkDeletionDialog.users}
       />
+
+      {/* Permanent Deletion Dialog */}
+      {permanentDeletionDialog.user && (
+        <PermanentDeletionDialog
+          isOpen={permanentDeletionDialog.isOpen}
+          onClose={() => setPermanentDeletionDialog({ isOpen: false })}
+          user={permanentDeletionDialog.user}
+        />
+      )}
+
+      {/* Bulk Permanent Deletion Dialog */}
+      <BulkPermanentDeletionDialog
+        isOpen={bulkPermanentDeletionDialog.isOpen}
+        onClose={() => {
+          setBulkPermanentDeletionDialog({ isOpen: false, users: [] });
+        }}
+        onSuccess={() => {
+          setBulkPermanentDeletionDialog({ isOpen: false, users: [] });
+          clearSelection();
+        }}
+        users={bulkPermanentDeletionDialog.users}
+      />
     </div>
   );
 
@@ -712,25 +816,38 @@ export function UsersOverview() {
                 <Download className="h-4 w-4 mr-1" />
                 Export Selected
               </Button>
-              {tabType === 'active' ? (
+               {tabType === 'active' ? (
                 <Button 
                   variant="destructive" 
                   size="sm" 
                   onClick={handleBulkDeletion}
+                  disabled={selectedUsers.length === 0}
                 >
                   <Trash2 className="h-4 w-4 mr-1" />
-                  Delete Selected
+                  Delete Selected ({selectedUsers.length})
                 </Button>
               ) : (
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  onClick={handleBulkRestore}
-                  disabled={restoreMutation.isPending}
-                >
-                  <RotateCcw className="h-4 w-4 mr-1" />
-                  Restore Selected
-                </Button>
+                <>
+                  <Button 
+                    variant="default" 
+                    size="sm" 
+                    onClick={handleBulkRestore}
+                    disabled={restoreMutation.isPending || selectedUsers.length === 0}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-1" />
+                    Restore Selected ({selectedUsers.length})
+                  </Button>
+                  <Button 
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkPermanentDeletion}
+                    disabled={selectedUsers.length === 0}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Permanently Delete ({selectedUsers.length})
+                  </Button>
+                </>
               )}
             </div>
           )}
@@ -880,6 +997,14 @@ export function UsersOverview() {
                                 >
                                   <RotateCcw className="mr-2 h-4 w-4" />
                                   Restore User
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem 
+                                  onClick={() => handlePermanentDeletion(user)}
+                                  className="text-red-600 focus:text-red-600"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Permanently Delete
                                 </DropdownMenuItem>
                               </>
                             )}
