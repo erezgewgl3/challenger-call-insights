@@ -11,6 +11,9 @@ import { AuthButton } from './AuthButton'
 import { LoginHeader } from './LoginHeader'
 import { LoginFooter } from './LoginFooter'
 import { useAuthForm } from '@/hooks/useAuthForm'
+import { useAuth } from '@/hooks/useAuth'
+import { authService } from '@/services/authService'
+import { AUTH_ROLES } from '@/constants/auth'
 
 export function LoginForm() {
   const {
@@ -28,6 +31,10 @@ export function LoginForm() {
   } = useAuthForm()
   
   const navigate = useNavigate()
+
+  const getRedirectPath = (userRole: string) => {
+    return userRole === AUTH_ROLES.ADMIN ? '/admin' : '/dashboard'
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -56,7 +63,17 @@ export function LoginForm() {
         toast.error('Login failed: ' + error.message)
       } else if (data.user) {
         toast.success('Welcome back!')
-        navigate('/dashboard')
+        
+        // Get user role and redirect appropriately
+        try {
+          const userRole = await authService.fetchUserRole(data.user.id)
+          const redirectPath = getRedirectPath(userRole)
+          navigate(redirectPath)
+        } catch (roleError) {
+          console.error('Failed to fetch user role:', roleError)
+          // Fallback to dashboard on role fetch error
+          navigate('/dashboard')
+        }
       } else {
         setError('Login failed - no user data returned')
         toast.error('Login failed')
