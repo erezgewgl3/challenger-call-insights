@@ -80,81 +80,167 @@ async function deleteSingleUser(supabaseClient: any, userId: string, adminId: st
       legal_basis: 'GDPR Article 17 - Right to erasure'
     })
 
-  // Delete in proper order to handle foreign key constraints
-  const deletionSteps = [
-    // 1. Delete conversation analysis (references transcripts)
-    { table: 'conversation_analysis', condition: 'transcript_id IN (SELECT id FROM transcripts WHERE user_id = $1)' },
-    
-    // 2. Delete transcript progress (references transcripts)
-    { table: 'transcript_progress', condition: 'transcript_id IN (SELECT id FROM transcripts WHERE user_id = $1)' },
-    
-    // 3. Delete transcripts
-    { table: 'transcripts', condition: 'user_id = $1' },
-    
-    // 4. Delete accounts
-    { table: 'accounts', condition: 'user_id = $1' },
-    
-    // 5. Delete user-specific prompts
-    { table: 'prompts', condition: 'user_id = $1' },
-    
-    // 6. Delete user consent
-    { table: 'user_consent', condition: 'user_id = $1' },
-    
-    // 7. Delete data export requests
-    { table: 'data_export_requests', condition: 'user_id = $1' },
-    
-    // 8. Update deletion request to completed
-    { table: 'deletion_requests', condition: 'user_id = $1', action: 'update' },
-    
-    // 9. Finally delete the user
-    { table: 'users', condition: 'id = $1' }
-  ]
+  try {
+    // Step 1: Get all transcripts for the user first
+    const { data: transcripts, error: transcriptsError } = await supabaseClient
+      .from('transcripts')
+      .select('id')
+      .eq('user_id', userId)
 
-  for (const step of deletionSteps) {
-    try {
-      if (step.action === 'update') {
+    if (transcriptsError) {
+      console.error('Error fetching transcripts:', transcriptsError)
+    }
+
+    const transcriptIds = transcripts?.map(t => t.id) || []
+    console.log(`Found ${transcriptIds.length} transcripts to delete`)
+
+    // Step 2: Delete conversation analysis for each transcript
+    if (transcriptIds.length > 0) {
+      for (const transcriptId of transcriptIds) {
         const { error } = await supabaseClient
-          .from(step.table)
-          .update({ 
-            status: 'completed', 
-            completed_at: new Date().toISOString() 
-          })
-          .eq('user_id', userId)
-        
-        if (error) {
-          console.error(`Error updating ${step.table}:`, error)
-        } else {
-          console.log(`Updated ${step.table} for user ${userId}`)
-        }
-      } else {
-        const { error } = await supabaseClient
-          .from(step.table)
+          .from('conversation_analysis')
           .delete()
-          .eq(step.table === 'users' ? 'id' : 'user_id', userId)
+          .eq('transcript_id', transcriptId)
         
         if (error && !error.message.includes('No rows found')) {
-          console.error(`Error deleting from ${step.table}:`, error)
-        } else {
-          console.log(`Deleted from ${step.table} for user ${userId}`)
+          console.error(`Error deleting conversation analysis for transcript ${transcriptId}:`, error)
         }
       }
-    } catch (error) {
-      console.error(`Failed to process ${step.table}:`, error)
+      console.log('Deleted conversation analysis records')
     }
+
+    // Step 3: Delete transcript progress for each transcript
+    if (transcriptIds.length > 0) {
+      for (const transcriptId of transcriptIds) {
+        const { error } = await supabaseClient
+          .from('transcript_progress')
+          .delete()
+          .eq('transcript_id', transcriptId)
+        
+        if (error && !error.message.includes('No rows found')) {
+          console.error(`Error deleting transcript progress for transcript ${transcriptId}:`, error)
+        }
+      }
+      console.log('Deleted transcript progress records')
+    }
+
+    // Step 4: Delete transcripts
+    const { error: transcriptDeleteError } = await supabaseClient
+      .from('transcripts')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (transcriptDeleteError && !transcriptDeleteError.message.includes('No rows found')) {
+      console.error('Error deleting transcripts:', transcriptDeleteError)
+    } else {
+      console.log('Deleted transcripts')
+    }
+
+    // Step 5: Delete accounts
+    const { error: accountsError } = await supabaseClient
+      .from('accounts')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (accountsError && !accountsError.message.includes('No rows found')) {
+      console.error('Error deleting accounts:', accountsError)
+    } else {
+      console.log('Deleted accounts')
+    }
+
+    // Step 6: Delete user-specific prompts
+    const { error: promptsError } = await supabaseClient
+      .from('prompts')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (promptsError && !promptsError.message.includes('No rows found')) {
+      console.error('Error deleting prompts:', promptsError)
+    } else {
+      console.log('Deleted prompts')
+    }
+
+    // Step 7: Delete user consent
+    const { error: consentError } = await supabaseClient
+      .from('user_consent')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (consentError && !consentError.message.includes('No rows found')) {
+      console.error('Error deleting user consent:', consentError)
+    } else {
+      console.log('Deleted user consent')
+    }
+
+    // Step 8: Delete data export requests
+    const { error: exportError } = await supabaseClient
+      .from('data_export_requests')
+      .delete()
+      .eq('user_id', userId)
+    
+    if (exportError && !exportError.message.includes('No rows found')) {
+      console.error('Error deleting data export requests:', exportError)
+    } else {
+      console.log('Deleted data export requests')
+    }
+
+    // Step 9: Update deletion request to completed
+    const { error: deletionRequestError } = await supabaseClient
+      .from('deletion_requests')
+      .update({ 
+        status: 'completed', 
+        completed_at: new Date().toISOString() 
+      })
+      .eq('user_id', userId)
+    
+    if (deletionRequestError && !deletionRequestError.message.includes('No rows found')) {
+      console.error('Error updating deletion request:', deletionRequestError)
+    } else {
+      console.log('Updated deletion request to completed')
+    }
+
+    // Step 10: Finally delete the user
+    const { error: userError } = await supabaseClient
+      .from('users')
+      .delete()
+      .eq('id', userId)
+    
+    if (userError) {
+      console.error('Error deleting user:', userError)
+      throw userError
+    } else {
+      console.log('Deleted user')
+    }
+
+    // Log completion
+    await supabaseClient
+      .from('gdpr_audit_log')
+      .insert({
+        event_type: 'permanent_deletion_completed',
+        user_id: userId,
+        admin_id: adminId,
+        details: { status: 'success' },
+        legal_basis: 'GDPR Article 17 - Right to erasure'
+      })
+
+    console.log(`Completed permanent deletion for user: ${userId}`)
+
+  } catch (error) {
+    console.error(`Failed to permanently delete user ${userId}:`, error)
+    
+    // Log the failure
+    await supabaseClient
+      .from('gdpr_audit_log')
+      .insert({
+        event_type: 'permanent_deletion_failed',
+        user_id: userId,
+        admin_id: adminId,
+        details: { error: error.message },
+        legal_basis: 'GDPR Article 17 - Right to erasure'
+      })
+    
+    throw error
   }
-
-  // Log completion
-  await supabaseClient
-    .from('gdpr_audit_log')
-    .insert({
-      event_type: 'permanent_deletion_completed',
-      user_id: userId,
-      admin_id: adminId,
-      details: { status: 'success' },
-      legal_basis: 'GDPR Article 17 - Right to erasure'
-    })
-
-  console.log(`Completed permanent deletion for user: ${userId}`)
 }
 
 async function deleteBulkUsers(supabaseClient: any, userIds: string[], adminId: string): Promise<number> {
