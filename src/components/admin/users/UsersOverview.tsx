@@ -44,6 +44,7 @@ interface UserWithCounts {
   last_login?: string;
   transcript_count: number;
   account_count: number;
+  deletion_requested_at?: string;
 }
 
 type UserStatus = 'active' | 'inactive' | 'dormant' | 'never';
@@ -110,7 +111,8 @@ export function UsersOverview() {
         .select(`
           *,
           transcript_count:transcripts(count),
-          account_count:accounts(count)
+          account_count:accounts(count),
+          deletion_requests!left(created_at)
         `)
         .order('created_at', { ascending: false });
       
@@ -119,7 +121,10 @@ export function UsersOverview() {
       return data.map(user => ({
         ...user,
         transcript_count: user.transcript_count?.[0]?.count || 0,
-        account_count: user.account_count?.[0]?.count || 0
+        account_count: user.account_count?.[0]?.count || 0,
+        deletion_requested_at: user.deletion_requests && user.deletion_requests.length > 0 
+          ? user.deletion_requests[0].created_at 
+          : null
       })) as UserWithCounts[];
     }
   });
@@ -796,7 +801,13 @@ export function UsersOverview() {
                               )}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              Member since {formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}
+                              {isPendingDeletion && user.deletion_requested_at ? (
+                                <span className="text-red-600">
+                                  Deletion requested {formatDistanceToNow(new Date(user.deletion_requested_at), { addSuffix: true })}
+                                </span>
+                              ) : (
+                                `Member since ${formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}`
+                              )}
                             </div>
                           </div>
                         </div>
