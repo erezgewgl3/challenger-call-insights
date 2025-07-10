@@ -1,4 +1,10 @@
 project_id = "pzpwedpkifojwhqspibv"
 
+[functions.analyze-transcript]
+verify_jwt = true
+
+[functions.execute-ai-prompt]
+verify_jwt = true
+
 [functions.permanent-user-deletion]
 verify_jwt = false
