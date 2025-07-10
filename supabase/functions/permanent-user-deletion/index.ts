@@ -13,21 +13,39 @@ serve(async (req) => {
   }
 
   try {
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Missing authorization header' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader } } }
     )
 
-    const { userId, userIds, adminId } = await req.json()
+    const { userId, userIds } = await req.json()
     
-    // Validate admin permission
-    const { data: adminUser, error: adminError } = await supabaseClient
+    // Get current user and verify admin role
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser()
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid token' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const { data: currentUser, error: currentUserError } = await supabaseClient
       .from('users')
       .select('role')
-      .eq('id', adminId)
+      .eq('id', user.id)
       .single()
 
-    if (adminError || adminUser?.role !== 'admin') {
+    if (currentUserError || currentUser?.role !== 'admin') {
       return new Response(
         JSON.stringify({ error: 'Unauthorized: Admin access required' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -36,7 +54,7 @@ serve(async (req) => {
 
     // Handle single user deletion
     if (userId) {
-      await deleteSingleUser(supabaseClient, userId, adminId)
+      await deleteSingleUser(supabaseClient, userId, user.id)
       return new Response(
         JSON.stringify({ success: true, deletedCount: 1 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,7 +63,7 @@ serve(async (req) => {
 
     // Handle bulk user deletion
     if (userIds && Array.isArray(userIds)) {
-      const deletedCount = await deleteBulkUsers(supabaseClient, userIds, adminId)
+      const deletedCount = await deleteBulkUsers(supabaseClient, userIds, user.id)
       return new Response(
         JSON.stringify({ success: true, deletedCount }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -60,7 +78,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Permanent deletion error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: error.message || 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
@@ -69,137 +87,19 @@ serve(async (req) => {
 async function deleteSingleUser(supabaseClient: any, userId: string, adminId: string) {
   console.log(`Starting permanent deletion for user: ${userId}`)
   
-  // Log the deletion attempt
-  await supabaseClient
-    .from('gdpr_audit_log')
-    .insert({
-      event_type: 'permanent_deletion_started',
-      user_id: userId,
-      admin_id: adminId,
-      details: { reason: 'Admin initiated permanent deletion' },
-      legal_basis: 'GDPR Article 17 - Right to erasure'
-    })
-
   try {
-    // Step 1: Get all transcripts for the user first
-    const { data: transcripts, error: transcriptsError } = await supabaseClient
-      .from('transcripts')
-      .select('id')
-      .eq('user_id', userId)
-
-    if (transcriptsError) {
-      console.error('Error fetching transcripts:', transcriptsError)
-    }
-
-    const transcriptIds = transcripts?.map(t => t.id) || []
-    console.log(`Found ${transcriptIds.length} transcripts to delete`)
-
-    // Step 2: Delete conversation analysis for each transcript
-    if (transcriptIds.length > 0) {
-      for (const transcriptId of transcriptIds) {
-        const { error } = await supabaseClient
-          .from('conversation_analysis')
-          .delete()
-          .eq('transcript_id', transcriptId)
-        
-        if (error && !error.message.includes('No rows found')) {
-          console.error(`Error deleting conversation analysis for transcript ${transcriptId}:`, error)
-        }
-      }
-      console.log('Deleted conversation analysis records')
-    }
-
-    // Step 3: Delete transcript progress for each transcript
-    if (transcriptIds.length > 0) {
-      for (const transcriptId of transcriptIds) {
-        const { error } = await supabaseClient
-          .from('transcript_progress')
-          .delete()
-          .eq('transcript_id', transcriptId)
-        
-        if (error && !error.message.includes('No rows found')) {
-          console.error(`Error deleting transcript progress for transcript ${transcriptId}:`, error)
-        }
-      }
-      console.log('Deleted transcript progress records')
-    }
-
-    // Step 4: Delete transcripts
-    const { error: transcriptDeleteError } = await supabaseClient
-      .from('transcripts')
-      .delete()
-      .eq('user_id', userId)
-    
-    if (transcriptDeleteError && !transcriptDeleteError.message.includes('No rows found')) {
-      console.error('Error deleting transcripts:', transcriptDeleteError)
-    } else {
-      console.log('Deleted transcripts')
-    }
-
-    // Step 5: Delete accounts
-    const { error: accountsError } = await supabaseClient
-      .from('accounts')
-      .delete()
-      .eq('user_id', userId)
-    
-    if (accountsError && !accountsError.message.includes('No rows found')) {
-      console.error('Error deleting accounts:', accountsError)
-    } else {
-      console.log('Deleted accounts')
-    }
-
-    // Step 6: Delete user-specific prompts
-    const { error: promptsError } = await supabaseClient
-      .from('prompts')
-      .delete()
-      .eq('user_id', userId)
-    
-    if (promptsError && !promptsError.message.includes('No rows found')) {
-      console.error('Error deleting prompts:', promptsError)
-    } else {
-      console.log('Deleted prompts')
-    }
-
-    // Step 7: Delete user consent
-    const { error: consentError } = await supabaseClient
-      .from('user_consent')
-      .delete()
-      .eq('user_id', userId)
-    
-    if (consentError && !consentError.message.includes('No rows found')) {
-      console.error('Error deleting user consent:', consentError)
-    } else {
-      console.log('Deleted user consent')
-    }
-
-    // Step 8: Delete data export requests
-    const { error: exportError } = await supabaseClient
-      .from('data_export_requests')
-      .delete()
-      .eq('user_id', userId)
-    
-    if (exportError && !exportError.message.includes('No rows found')) {
-      console.error('Error deleting data export requests:', exportError)
-    } else {
-      console.log('Deleted data export requests')
-    }
-
-    // Step 9: Update deletion request to completed
-    const { error: deletionRequestError } = await supabaseClient
-      .from('deletion_requests')
-      .update({ 
-        status: 'completed', 
-        completed_at: new Date().toISOString() 
+    // Log the deletion attempt
+    await supabaseClient
+      .from('gdpr_audit_log')
+      .insert({
+        event_type: 'permanent_deletion_started',
+        user_id: userId,
+        admin_id: adminId,
+        details: { reason: 'Admin initiated permanent deletion' },
+        legal_basis: 'GDPR Article 17 - Right to erasure'
       })
-      .eq('user_id', userId)
-    
-    if (deletionRequestError && !deletionRequestError.message.includes('No rows found')) {
-      console.error('Error updating deletion request:', deletionRequestError)
-    } else {
-      console.log('Updated deletion request to completed')
-    }
 
-    // Step 10: Finally delete the user
+    // Simply delete the user - foreign key constraints will handle cascading
     const { error: userError } = await supabaseClient
       .from('users')
       .delete()
@@ -207,10 +107,10 @@ async function deleteSingleUser(supabaseClient: any, userId: string, adminId: st
     
     if (userError) {
       console.error('Error deleting user:', userError)
-      throw userError
-    } else {
-      console.log('Deleted user')
+      throw new Error(`Failed to delete user: ${userError.message}`)
     }
+
+    console.log(`Successfully deleted user: ${userId}`)
 
     // Log completion
     await supabaseClient
@@ -222,8 +122,6 @@ async function deleteSingleUser(supabaseClient: any, userId: string, adminId: st
         details: { status: 'success' },
         legal_basis: 'GDPR Article 17 - Right to erasure'
       })
-
-    console.log(`Completed permanent deletion for user: ${userId}`)
 
   } catch (error) {
     console.error(`Failed to permanently delete user ${userId}:`, error)
@@ -237,7 +135,7 @@ async function deleteSingleUser(supabaseClient: any, userId: string, adminId: st
         admin_id: adminId,
         details: { error: error.message },
         legal_basis: 'GDPR Article 17 - Right to erasure'
-      })
+      }).catch(logError => console.error('Failed to log deletion failure:', logError))
     
     throw error
   }
