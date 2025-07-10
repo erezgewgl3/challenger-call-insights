@@ -7,215 +7,61 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Create client for user verification (with JWT)
-    const userClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      { global: { headers: { Authorization: authHeader } } }
-    )
-
-    // Create admin client for deletions (with service role)
-    const adminClient = createClient(
+    console.log('Starting permanent deletion request')
+    
+    const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { userId, userIds } = await req.json()
-    
-    // Get current user and verify admin role using the user client
-    const { data: { user }, error: userError } = await userClient.auth.getUser()
-    if (userError || !user) {
-      console.error('Auth error:', userError)
-      return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
+    console.log('Received request:', { userId, userIds })
 
-    const { data: currentUser, error: currentUserError } = await userClient
-      .from('users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-
-    if (currentUserError || currentUser?.role !== 'admin') {
-      console.error('Authorization error:', currentUserError, 'Role:', currentUser?.role)
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized: Admin access required' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Handle single user deletion
     if (userId) {
-      await deleteSingleUser(adminClient, userId, user.id)
+      // Delete single user
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId)
+      
+      if (error) throw error
+      
       return new Response(
         JSON.stringify({ success: true, deletedCount: 1 }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Handle bulk user deletion
     if (userIds && Array.isArray(userIds)) {
-      const deletedCount = await deleteBulkUsers(adminClient, userIds, user.id)
+      // Delete multiple users
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .in('id', userIds)
+      
+      if (error) throw error
+      
       return new Response(
-        JSON.stringify({ success: true, deletedCount }),
+        JSON.stringify({ success: true, deletedCount: userIds.length }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     return new Response(
-      JSON.stringify({ error: 'Invalid request: userId or userIds required' }),
+      JSON.stringify({ error: 'Missing userId or userIds' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
-    console.error('Permanent deletion error:', error)
+    console.error('Error:', error)
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
-
-async function deleteSingleUser(adminClient: any, userId: string, adminId: string) {
-  console.log(`Starting permanent deletion for user: ${userId}`)
-  
-  try {
-    // Log the deletion attempt
-    await adminClient
-      .from('gdpr_audit_log')
-      .insert({
-        event_type: 'permanent_deletion_started',
-        user_id: userId,
-        admin_id: adminId,
-        details: { reason: 'Admin initiated permanent deletion' },
-        legal_basis: 'GDPR Article 17 - Right to erasure'
-      })
-
-    // Manually delete related records since there are no foreign key constraints
-    // Delete in order: conversation_analysis, transcripts, accounts, user_consent, then user
-    
-    console.log(`Deleting conversation analysis for user: ${userId}`)
-    await adminClient
-      .from('conversation_analysis')
-      .delete()
-      .in('transcript_id', 
-        adminClient.from('transcripts').select('id').eq('user_id', userId)
-      )
-
-    console.log(`Deleting transcripts for user: ${userId}`)
-    await adminClient
-      .from('transcripts')
-      .delete()
-      .eq('user_id', userId)
-
-    console.log(`Deleting accounts for user: ${userId}`)
-    await adminClient
-      .from('accounts')
-      .delete()
-      .eq('user_id', userId)
-
-    console.log(`Deleting user consent for user: ${userId}`)
-    await adminClient
-      .from('user_consent')
-      .delete()
-      .eq('user_id', userId)
-
-    console.log(`Deleting data export requests for user: ${userId}`)
-    await adminClient
-      .from('data_export_requests')
-      .delete()
-      .eq('user_id', userId)
-
-    console.log(`Deleting deletion requests for user: ${userId}`)
-    await adminClient
-      .from('deletion_requests')
-      .delete()
-      .eq('user_id', userId)
-
-    console.log(`Finally deleting user: ${userId}`)
-    const { error: userError } = await adminClient
-      .from('users')
-      .delete()
-      .eq('id', userId)
-    
-    if (userError) {
-      console.error('Error deleting user:', userError)
-      throw new Error(`Failed to delete user: ${userError.message}`)
-    }
-
-    console.log(`Successfully deleted user and all related data: ${userId}`)
-
-    // Log completion
-    await adminClient
-      .from('gdpr_audit_log')
-      .insert({
-        event_type: 'permanent_deletion_completed',
-        user_id: userId,
-        admin_id: adminId,
-        details: { status: 'success' },
-        legal_basis: 'GDPR Article 17 - Right to erasure'
-      })
-
-  } catch (error) {
-    console.error(`Failed to permanently delete user ${userId}:`, error)
-    
-    // Log the failure
-    await adminClient
-      .from('gdpr_audit_log')
-      .insert({
-        event_type: 'permanent_deletion_failed',
-        user_id: userId,
-        admin_id: adminId,
-        details: { error: error.message },
-        legal_basis: 'GDPR Article 17 - Right to erasure'
-      }).catch(logError => console.error('Failed to log deletion failure:', logError))
-    
-    throw error
-  }
-}
-
-async function deleteBulkUsers(adminClient: any, userIds: string[], adminId: string): Promise<number> {
-  console.log(`Starting bulk permanent deletion for ${userIds.length} users`)
-  
-  let deletedCount = 0
-  
-  for (const userId of userIds) {
-    try {
-      await deleteSingleUser(adminClient, userId, adminId)
-      deletedCount++
-    } catch (error) {
-      console.error(`Failed to delete user ${userId}:`, error)
-      
-      // Log the failure
-      await adminClient
-        .from('gdpr_audit_log')
-        .insert({
-          event_type: 'permanent_deletion_failed',
-          user_id: userId,
-          admin_id: adminId,
-          details: { error: error.message },
-          legal_basis: 'GDPR Article 17 - Right to erasure'
-        })
-    }
-  }
-
-  console.log(`Completed bulk deletion: ${deletedCount}/${userIds.length} users deleted`)
-  return deletedCount
-}
