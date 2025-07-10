@@ -112,7 +112,7 @@ export function UsersOverview() {
           *,
           transcript_count:transcripts(count),
           account_count:accounts(count),
-          deletion_requests!left(created_at)
+          deletion_requests!deletion_requests_user_id_fkey(created_at)
         `)
         .order('created_at', { ascending: false });
       
