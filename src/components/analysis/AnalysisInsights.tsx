@@ -16,7 +16,7 @@ export function AnalysisInsights({ insights, improvements }: AnalysisInsightsPro
         </h4>
         <ul className="space-y-2">
           {insights.map((insight, index) => (
-            <li key={index} className="flex items-start space-x-2">
+            <li key={`insight-${index}-${insight.slice(0, 20)}`} className="flex items-start space-x-2">
               <div className="w-2 h-2 bg-green-600 rounded-full mt-2 flex-shrink-0" />
               <span className="text-sm text-slate-700">{insight}</span>
             </li>
@@ -31,7 +31,7 @@ export function AnalysisInsights({ insights, improvements }: AnalysisInsightsPro
         </h4>
         <ul className="space-y-2">
           {improvements.map((improvement, index) => (
-            <li key={index} className="flex items-start space-x-2">
+            <li key={`improvement-${index}-${improvement.slice(0, 20)}`} className="flex items-start space-x-2">
               <div className="w-2 h-2 bg-amber-600 rounded-full mt-2 flex-shrink-0" />
               <span className="text-sm text-slate-700">{improvement}</span>
             </li>

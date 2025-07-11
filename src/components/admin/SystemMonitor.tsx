@@ -130,8 +130,8 @@ export function SystemMonitor() {
 
         <TabsContent value="performance" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {performanceData.map((item, index) => (
-              <Card key={index}>
+            {performanceData.map((item) => (
+              <Card key={`perf-${item.metric}`}>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">{item.metric}</CardTitle>
                   <Clock className="h-4 w-4 text-muted-foreground" />
