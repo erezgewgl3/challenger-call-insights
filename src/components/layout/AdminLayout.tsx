@@ -211,7 +211,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <nav className="flex items-center space-x-2 text-sm">
             {breadcrumbs.map((breadcrumb, index) => (
-              <React.Fragment key={breadcrumb.href}>
+              <div key={breadcrumb.href} className="flex items-center space-x-2">
                 {index > 0 && <ChevronRight className="w-4 h-4 text-gray-400" />}
                 <Link
                   to={breadcrumb.href}
@@ -224,7 +224,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 >
                   {breadcrumb.label}
                 </Link>
-              </React.Fragment>
+              </div>
             ))}
           </nav>
         </div>
