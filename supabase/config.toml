@@ -1,4 +1,4 @@
-project_id = "jtunkyfoadoowpymibjr"
+project_id = "pzpwedpkifojwhqspibv"
 
 [functions.analyze-transcript]
 verify_jwt = true
@@ -7,4 +7,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.permanent-user-deletion]
-verify_jwt = false
+verify_jwt = true
