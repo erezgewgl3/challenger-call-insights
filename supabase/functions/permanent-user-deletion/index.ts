@@ -13,8 +13,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  console.log('🗑️ Permanent user deletion function called');
-
   try {
     // Get authenticated user from JWT (handled automatically by verify_jwt = true)
     const authHeader = req.headers.get('authorization');
@@ -25,52 +23,35 @@ serve(async (req) => {
     // Initialize Supabase client with service role for admin operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
-    console.log('🔧 Environment check:', { 
-      hasUrl: !!supabaseUrl, 
-      hasKey: !!supabaseKey 
-    });
 
     if (!supabaseUrl || !supabaseKey) {
       throw new Error('Missing required environment variables');
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-
     const requestBody = await req.json();
-    console.log('📝 Request body:', requestBody);
     
     const { userId, userIds, adminId } = requestBody;
     
     // Handle single user deletion
     if (userId) {
-      console.log(`🗑️ Deleting single user: ${userId}`);
-      
       try {
         // Delete all related data first
-        console.log('🗑️ Getting transcript IDs...');
         const { data: transcriptIds, error: transcriptError } = await supabase
           .from('transcripts')
           .select('id')
           .eq('user_id', userId);
 
         if (transcriptError) {
-          console.error('❌ Error fetching transcripts:', transcriptError);
+          console.error('Error fetching transcripts:', transcriptError);
           throw new Error(`Failed to fetch transcripts: ${transcriptError.message}`);
         }
 
-        console.log(`📊 Found ${transcriptIds?.length || 0} transcripts for user`);
-
         // Delete conversation analysis if transcripts exist
         if (transcriptIds && Array.isArray(transcriptIds) && transcriptIds.length > 0) {
-          console.log('🗑️ Deleting conversation analysis...');
-          
-          // Validate and filter transcript IDs
           const ids = transcriptIds
             .map(t => t?.id)
             .filter(id => id != null && typeof id === 'string');
-          
-          console.log(`📊 Valid transcript IDs: ${ids.length}`);
           
           if (ids.length > 0) {
             const { error: analysisError } = await supabase
@@ -79,20 +60,13 @@ serve(async (req) => {
               .in('transcript_id', ids);
             
             if (analysisError) {
-              console.error('❌ Analysis deletion error:', analysisError);
-            } else {
-              console.log('✅ Analysis deleted');
+              console.error('Analysis deletion error:', analysisError);
             }
           }
-        } else {
-          console.log('ℹ️ No transcripts found, skipping analysis deletion');
         }
 
         // Delete transcript progress if transcripts exist
         if (transcriptIds && Array.isArray(transcriptIds) && transcriptIds.length > 0) {
-          console.log('🗑️ Deleting transcript progress...');
-          
-          // Validate and filter transcript IDs
           const ids = transcriptIds
             .map(t => t?.id)
             .filter(id => id != null && typeof id === 'string');
@@ -104,125 +78,96 @@ serve(async (req) => {
               .in('transcript_id', ids);
             
             if (progressError) {
-              console.error('❌ Progress deletion error:', progressError);
-            } else {
-              console.log('✅ Progress deleted');
+              console.error('Progress deletion error:', progressError);
             }
           }
         }
       } catch (error) {
-        console.error('❌ Error in transcript cleanup:', error);
+        console.error('Error in transcript cleanup:', error);
         throw error;
       }
 
-      console.log('🗑️ Deleting transcripts...');
       const { error: transcriptsError } = await supabase
         .from('transcripts')
         .delete()
         .eq('user_id', userId);
       
       if (transcriptsError) {
-        console.error('❌ Transcripts deletion error:', transcriptsError);
-      } else {
-        console.log('✅ Transcripts deleted');
+        console.error('Transcripts deletion error:', transcriptsError);
       }
 
-      console.log('🗑️ Deleting accounts...');
       const { error: accountsError } = await supabase
         .from('accounts')
         .delete()
         .eq('user_id', userId);
       
       if (accountsError) {
-        console.error('❌ Accounts deletion error:', accountsError);
-      } else {
-        console.log('✅ Accounts deleted');
+        console.error('Accounts deletion error:', accountsError);
       }
 
-      console.log('🗑️ Deleting user consent...');
       const { error: consentError } = await supabase
         .from('user_consent')
         .delete()
         .eq('user_id', userId);
       
       if (consentError) {
-        console.error('❌ Consent deletion error:', consentError);
-      } else {
-        console.log('✅ Consent deleted');
+        console.error('Consent deletion error:', consentError);
       }
 
-      console.log('🗑️ Deleting GDPR audit log...');
       const { error: gdprError } = await supabase
         .from('gdpr_audit_log')
         .delete()
         .or(`user_id.eq.${userId},admin_id.eq.${userId}`);
       
       if (gdprError) {
-        console.error('❌ GDPR audit log deletion error:', gdprError);
-      } else {
-        console.log('✅ GDPR audit log deleted');
+        console.error('GDPR audit log deletion error:', gdprError);
       }
 
-      console.log('🗑️ Deleting data export requests...');
       const { error: exportError } = await supabase
         .from('data_export_requests')
         .delete()
         .or(`user_id.eq.${userId},requested_by.eq.${userId}`);
       
       if (exportError) {
-        console.error('❌ Data export requests deletion error:', exportError);
-      } else {
-        console.log('✅ Data export requests deleted');
+        console.error('Data export requests deletion error:', exportError);
       }
 
-      console.log('🗑️ Deleting deletion requests...');
       const { error: deletionError } = await supabase
         .from('deletion_requests')
         .delete()
         .or(`user_id.eq.${userId},requested_by.eq.${userId}`);
       
       if (deletionError) {
-        console.error('❌ Deletion requests deletion error:', deletionError);
-      } else {
-        console.log('✅ Deletion requests deleted');
+        console.error('Deletion requests deletion error:', deletionError);
       }
 
-      console.log('🗑️ Deleting invites...');
       const { error: invitesError } = await supabase
         .from('invites')
         .delete()
         .eq('created_by', userId);
       
       if (invitesError) {
-        console.error('❌ Invites deletion error:', invitesError);
-      } else {
-        console.log('✅ Invites deleted');
+        console.error('Invites deletion error:', invitesError);
       }
 
-      console.log('🗑️ Deleting prompts...');
       const { error: promptsError } = await supabase
         .from('prompts')
         .delete()
         .eq('created_by', userId);
       
       if (promptsError) {
-        console.error('❌ Prompts deletion error:', promptsError);
-      } else {
-        console.log('✅ Prompts deleted');
+        console.error('Prompts deletion error:', promptsError);
       }
 
-      console.log('🗑️ Deleting user record...');
       const { error: userError } = await supabase
         .from('users')
         .delete()
         .eq('id', userId);
       
       if (userError) {
-        console.error('❌ User deletion error:', userError);
+        console.error('User deletion error:', userError);
         throw userError;
       }
-      
-      console.log('✅ User deleted successfully');
       
       return new Response(
         JSON.stringify({ 
@@ -236,37 +181,25 @@ serve(async (req) => {
 
     // Handle bulk user deletion
     if (userIds && Array.isArray(userIds)) {
-      console.log(`🗑️ Deleting ${userIds.length} users`);
-      
       try {
         for (const uid of userIds) {
-          console.log(`🗑️ Processing user: ${uid}`);
-          
           try {
             // Get transcript IDs for this user
-            console.log(`🗑️ Getting transcript IDs for user: ${uid}`);
             const { data: transcriptIds, error: transcriptError } = await supabase
               .from('transcripts')
               .select('id')
               .eq('user_id', uid);
 
             if (transcriptError) {
-              console.error(`❌ Error fetching transcripts for user ${uid}:`, transcriptError);
+              console.error(`Error fetching transcripts for user ${uid}:`, transcriptError);
               throw new Error(`Failed to fetch transcripts for user ${uid}: ${transcriptError.message}`);
             }
 
-            console.log(`📊 Found ${transcriptIds?.length || 0} transcripts for user ${uid}`);
-
             // Delete conversation analysis if transcripts exist
             if (transcriptIds && Array.isArray(transcriptIds) && transcriptIds.length > 0) {
-              console.log(`🗑️ Deleting conversation analysis for user: ${uid}`);
-              
-              // Validate and filter transcript IDs
               const ids = transcriptIds
                 .map(t => t?.id)
                 .filter(id => id != null && typeof id === 'string');
-              
-              console.log(`📊 Valid transcript IDs for user ${uid}: ${ids.length}`);
               
               if (ids.length > 0) {
                 const { error: analysisError } = await supabase
@@ -275,18 +208,13 @@ serve(async (req) => {
                   .in('transcript_id', ids);
                 
                 if (analysisError) {
-                  console.error(`❌ Analysis deletion error for user ${uid}:`, analysisError);
+                  console.error(`Analysis deletion error for user ${uid}:`, analysisError);
                 }
               }
-            } else {
-              console.log(`ℹ️ No transcripts found for user ${uid}, skipping analysis deletion`);
             }
 
             // Delete transcript progress if transcripts exist
             if (transcriptIds && Array.isArray(transcriptIds) && transcriptIds.length > 0) {
-              console.log(`🗑️ Deleting transcript progress for user: ${uid}`);
-              
-              // Validate and filter transcript IDs
               const ids = transcriptIds
                 .map(t => t?.id)
                 .filter(id => id != null && typeof id === 'string');
@@ -298,45 +226,28 @@ serve(async (req) => {
                   .in('transcript_id', ids);
                 
                 if (progressError) {
-                  console.error(`❌ Progress deletion error for user ${uid}:`, progressError);
+                  console.error(`Progress deletion error for user ${uid}:`, progressError);
                 }
               }
             }
             
             // Delete remaining user data
-            console.log(`🗑️ Deleting transcripts for user: ${uid}`);
             await supabase.from('transcripts').delete().eq('user_id', uid);
-            
-            console.log(`🗑️ Deleting accounts for user: ${uid}`);
             await supabase.from('accounts').delete().eq('user_id', uid);
-            
-            console.log(`🗑️ Deleting user consent for user: ${uid}`);
             await supabase.from('user_consent').delete().eq('user_id', uid);
-            
-            console.log(`🗑️ Deleting GDPR audit log for user: ${uid}`);
             await supabase.from('gdpr_audit_log').delete().or(`user_id.eq.${uid},admin_id.eq.${uid}`);
-            
-            console.log(`🗑️ Deleting data export requests for user: ${uid}`);
             await supabase.from('data_export_requests').delete().or(`user_id.eq.${uid},requested_by.eq.${uid}`);
-            
-            console.log(`🗑️ Deleting deletion requests for user: ${uid}`);
             await supabase.from('deletion_requests').delete().or(`user_id.eq.${uid},requested_by.eq.${uid}`);
-            
-            console.log(`🗑️ Deleting invites for user: ${uid}`);
             await supabase.from('invites').delete().eq('created_by', uid);
-            
-            console.log(`🗑️ Deleting prompts for user: ${uid}`);
             await supabase.from('prompts').delete().eq('created_by', uid);
             
-            console.log(`✅ Successfully processed user: ${uid}`);
-            
           } catch (userError) {
-            console.error(`❌ Error processing user ${uid}:`, userError);
+            console.error(`Error processing user ${uid}:`, userError);
             throw new Error(`Failed to process user ${uid}: ${userError.message}`);
           }
         }
       } catch (error) {
-        console.error('❌ Error in bulk user processing:', error);
+        console.error('Error in bulk user processing:', error);
         throw error;
       }
       
@@ -346,11 +257,9 @@ serve(async (req) => {
         .in('id', userIds);
       
       if (bulkUserError) {
-        console.error('❌ Bulk user deletion error:', bulkUserError);
+        console.error('Bulk user deletion error:', bulkUserError);
         throw bulkUserError;
       }
-      
-      console.log('✅ Users deleted successfully');
       
       return new Response(
         JSON.stringify({ 
@@ -365,7 +274,7 @@ serve(async (req) => {
     throw new Error('Either userId or userIds must be provided');
 
   } catch (error) {
-    console.error('❌ Error in permanent-user-deletion:', error);
+    console.error('Error in permanent-user-deletion:', error);
     return new Response(
       JSON.stringify({ 
         success: false,

@@ -45,7 +45,6 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
     
     // LEGACY FALLBACK: Only for old records that don't have heat_level in database
     // This should become rare as new analyses will always have heat_level
-    console.log('🔍 [FALLBACK] Using legacy heat calculation for old record')
     return analysis?.recommendations?.heat_level || 
            analysis?.guidance?.heat_level || 
            analysis?.call_summary?.heat_level ||

@@ -102,7 +102,6 @@ export function NewAnalysisView({
     }
     
     // FALLBACK: Calculate using shared utility for older records without heat_level
-    console.log('🔍 [FALLBACK] Using client-side heat calculation for older record')
     return calculateDealHeat(analysis)
   }
 

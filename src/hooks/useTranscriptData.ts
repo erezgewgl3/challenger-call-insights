@@ -52,10 +52,6 @@ export function useTranscriptData() {
 
       if (transcriptsError) throw transcriptsError
 
-      // Debug logging to verify data structure
-      console.log('🔍 DEBUG: Raw transcripts data:', transcriptsData)
-      console.log('🔍 DEBUG: First transcript analysis:', transcriptsData?.[0]?.conversation_analysis)
-
       const formattedTranscripts: TranscriptSummary[] = transcriptsData.map(t => ({
         id: t.id,
         title: t.title,
@@ -73,24 +69,6 @@ export function useTranscriptData() {
         analysis_created_at: (t.conversation_analysis as any)?.[0]?.created_at
       }))
 
-      // Debug logging for heat level analysis
-      const completedWithAnalysis = formattedTranscripts.filter(t => 
-        t.status === 'completed' && t.conversation_analysis?.length > 0
-      )
-      console.log('🔍 DEBUG: Completed transcripts with analysis:', completedWithAnalysis.length)
-      
-      completedWithAnalysis.forEach((transcript, index) => {
-        const analysis = transcript.conversation_analysis?.[0]
-        console.log(`🔍 DEBUG: Transcript ${index + 1} (${transcript.title}):`, {
-          heat_level: analysis?.heat_level,
-          hasRecommendations: !!analysis?.recommendations,
-          hasGuidance: !!analysis?.guidance,
-          hasCallSummary: !!analysis?.call_summary,
-          analysis_created_at: transcript.analysis_created_at,
-          fullAnalysis: analysis
-        })
-      })
-
       setTranscripts(formattedTranscripts)
 
       // Only keep totalTranscripts stat (the only one being used)
@@ -107,7 +85,6 @@ export function useTranscriptData() {
 
   // Manual refresh function that can be called externally
   const refreshData = useCallback(() => {
-    console.log('🔄 Manual refresh triggered')
     setIsLoading(true)
     fetchData()
   }, [fetchData])
