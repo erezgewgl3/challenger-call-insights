@@ -151,6 +151,66 @@ serve(async (req) => {
         console.log('✅ Consent deleted');
       }
 
+      console.log('🗑️ Deleting GDPR audit log...');
+      const { error: gdprError } = await supabase
+        .from('gdpr_audit_log')
+        .delete()
+        .or(`user_id.eq.${userId},admin_id.eq.${userId}`);
+      
+      if (gdprError) {
+        console.error('❌ GDPR audit log deletion error:', gdprError);
+      } else {
+        console.log('✅ GDPR audit log deleted');
+      }
+
+      console.log('🗑️ Deleting data export requests...');
+      const { error: exportError } = await supabase
+        .from('data_export_requests')
+        .delete()
+        .or(`user_id.eq.${userId},requested_by.eq.${userId}`);
+      
+      if (exportError) {
+        console.error('❌ Data export requests deletion error:', exportError);
+      } else {
+        console.log('✅ Data export requests deleted');
+      }
+
+      console.log('🗑️ Deleting deletion requests...');
+      const { error: deletionError } = await supabase
+        .from('deletion_requests')
+        .delete()
+        .or(`user_id.eq.${userId},requested_by.eq.${userId}`);
+      
+      if (deletionError) {
+        console.error('❌ Deletion requests deletion error:', deletionError);
+      } else {
+        console.log('✅ Deletion requests deleted');
+      }
+
+      console.log('🗑️ Deleting invites...');
+      const { error: invitesError } = await supabase
+        .from('invites')
+        .delete()
+        .eq('created_by', userId);
+      
+      if (invitesError) {
+        console.error('❌ Invites deletion error:', invitesError);
+      } else {
+        console.log('✅ Invites deleted');
+      }
+
+      console.log('🗑️ Deleting prompts...');
+      const { error: promptsError } = await supabase
+        .from('prompts')
+        .delete()
+        .eq('created_by', userId);
+      
+      if (promptsError) {
+        console.error('❌ Prompts deletion error:', promptsError);
+      } else {
+        console.log('✅ Prompts deleted');
+      }
+
       console.log('🗑️ Deleting user record...');
       const { error: userError } = await supabase
         .from('users')
@@ -252,6 +312,21 @@ serve(async (req) => {
             
             console.log(`🗑️ Deleting user consent for user: ${uid}`);
             await supabase.from('user_consent').delete().eq('user_id', uid);
+            
+            console.log(`🗑️ Deleting GDPR audit log for user: ${uid}`);
+            await supabase.from('gdpr_audit_log').delete().or(`user_id.eq.${uid},admin_id.eq.${uid}`);
+            
+            console.log(`🗑️ Deleting data export requests for user: ${uid}`);
+            await supabase.from('data_export_requests').delete().or(`user_id.eq.${uid},requested_by.eq.${uid}`);
+            
+            console.log(`🗑️ Deleting deletion requests for user: ${uid}`);
+            await supabase.from('deletion_requests').delete().or(`user_id.eq.${uid},requested_by.eq.${uid}`);
+            
+            console.log(`🗑️ Deleting invites for user: ${uid}`);
+            await supabase.from('invites').delete().eq('created_by', uid);
+            
+            console.log(`🗑️ Deleting prompts for user: ${uid}`);
+            await supabase.from('prompts').delete().eq('created_by', uid);
             
             console.log(`✅ Successfully processed user: ${uid}`);
             
