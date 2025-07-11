@@ -46,45 +46,73 @@ serve(async (req) => {
     if (userId) {
       console.log(`🗑️ Deleting single user: ${userId}`);
       
-      // Delete all related data first
-      console.log('🗑️ Getting transcript IDs...');
-      const { data: transcriptIds } = await supabase
-        .from('transcripts')
-        .select('id')
-        .eq('user_id', userId);
+      try {
+        // Delete all related data first
+        console.log('🗑️ Getting transcript IDs...');
+        const { data: transcriptIds, error: transcriptError } = await supabase
+          .from('transcripts')
+          .select('id')
+          .eq('user_id', userId);
 
-      // Delete conversation analysis if transcripts exist
-      if (transcriptIds && transcriptIds.length > 0) {
-        console.log('🗑️ Deleting conversation analysis...');
-        const ids = transcriptIds.map(t => t.id);
-        const { error: analysisError } = await supabase
-          .from('conversation_analysis')
-          .delete()
-          .in('transcript_id', ids);
-        
-        if (analysisError) {
-          console.error('❌ Analysis deletion error:', analysisError);
-        } else {
-          console.log('✅ Analysis deleted');
+        if (transcriptError) {
+          console.error('❌ Error fetching transcripts:', transcriptError);
+          throw new Error(`Failed to fetch transcripts: ${transcriptError.message}`);
         }
-      } else {
-        console.log('ℹ️ No transcripts found, skipping analysis deletion');
-      }
 
-      // Delete transcript progress if transcripts exist
-      if (transcriptIds && transcriptIds.length > 0) {
-        console.log('🗑️ Deleting transcript progress...');
-        const ids = transcriptIds.map(t => t.id);
-        const { error: progressError } = await supabase
-          .from('transcript_progress')
-          .delete()
-          .in('transcript_id', ids);
-        
-        if (progressError) {
-          console.error('❌ Progress deletion error:', progressError);
+        console.log(`📊 Found ${transcriptIds?.length || 0} transcripts for user`);
+
+        // Delete conversation analysis if transcripts exist
+        if (transcriptIds && Array.isArray(transcriptIds) && transcriptIds.length > 0) {
+          console.log('🗑️ Deleting conversation analysis...');
+          
+          // Validate and filter transcript IDs
+          const ids = transcriptIds
+            .map(t => t?.id)
+            .filter(id => id != null && typeof id === 'string');
+          
+          console.log(`📊 Valid transcript IDs: ${ids.length}`);
+          
+          if (ids.length > 0) {
+            const { error: analysisError } = await supabase
+              .from('conversation_analysis')
+              .delete()
+              .in('transcript_id', ids);
+            
+            if (analysisError) {
+              console.error('❌ Analysis deletion error:', analysisError);
+            } else {
+              console.log('✅ Analysis deleted');
+            }
+          }
         } else {
-          console.log('✅ Progress deleted');
+          console.log('ℹ️ No transcripts found, skipping analysis deletion');
         }
+
+        // Delete transcript progress if transcripts exist
+        if (transcriptIds && Array.isArray(transcriptIds) && transcriptIds.length > 0) {
+          console.log('🗑️ Deleting transcript progress...');
+          
+          // Validate and filter transcript IDs
+          const ids = transcriptIds
+            .map(t => t?.id)
+            .filter(id => id != null && typeof id === 'string');
+          
+          if (ids.length > 0) {
+            const { error: progressError } = await supabase
+              .from('transcript_progress')
+              .delete()
+              .in('transcript_id', ids);
+            
+            if (progressError) {
+              console.error('❌ Progress deletion error:', progressError);
+            } else {
+              console.log('✅ Progress deleted');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error in transcript cleanup:', error);
+        throw error;
       }
 
       console.log('🗑️ Deleting transcripts...');
@@ -150,36 +178,91 @@ serve(async (req) => {
     if (userIds && Array.isArray(userIds)) {
       console.log(`🗑️ Deleting ${userIds.length} users`);
       
-      for (const uid of userIds) {
-        console.log(`🗑️ Processing user: ${uid}`);
-        
-        // Get transcript IDs for this user
-        const { data: transcriptIds } = await supabase
-          .from('transcripts')
-          .select('id')
-          .eq('user_id', uid);
+      try {
+        for (const uid of userIds) {
+          console.log(`🗑️ Processing user: ${uid}`);
+          
+          try {
+            // Get transcript IDs for this user
+            console.log(`🗑️ Getting transcript IDs for user: ${uid}`);
+            const { data: transcriptIds, error: transcriptError } = await supabase
+              .from('transcripts')
+              .select('id')
+              .eq('user_id', uid);
 
-        // Delete conversation analysis if transcripts exist
-        if (transcriptIds && transcriptIds.length > 0) {
-          const ids = transcriptIds.map(t => t.id);
-          await supabase
-            .from('conversation_analysis')
-            .delete()
-            .in('transcript_id', ids);
-        }
+            if (transcriptError) {
+              console.error(`❌ Error fetching transcripts for user ${uid}:`, transcriptError);
+              throw new Error(`Failed to fetch transcripts for user ${uid}: ${transcriptError.message}`);
+            }
 
-        // Delete transcript progress if transcripts exist
-        if (transcriptIds && transcriptIds.length > 0) {
-          const ids = transcriptIds.map(t => t.id);
-          await supabase
-            .from('transcript_progress')
-            .delete()
-            .in('transcript_id', ids);
+            console.log(`📊 Found ${transcriptIds?.length || 0} transcripts for user ${uid}`);
+
+            // Delete conversation analysis if transcripts exist
+            if (transcriptIds && Array.isArray(transcriptIds) && transcriptIds.length > 0) {
+              console.log(`🗑️ Deleting conversation analysis for user: ${uid}`);
+              
+              // Validate and filter transcript IDs
+              const ids = transcriptIds
+                .map(t => t?.id)
+                .filter(id => id != null && typeof id === 'string');
+              
+              console.log(`📊 Valid transcript IDs for user ${uid}: ${ids.length}`);
+              
+              if (ids.length > 0) {
+                const { error: analysisError } = await supabase
+                  .from('conversation_analysis')
+                  .delete()
+                  .in('transcript_id', ids);
+                
+                if (analysisError) {
+                  console.error(`❌ Analysis deletion error for user ${uid}:`, analysisError);
+                }
+              }
+            } else {
+              console.log(`ℹ️ No transcripts found for user ${uid}, skipping analysis deletion`);
+            }
+
+            // Delete transcript progress if transcripts exist
+            if (transcriptIds && Array.isArray(transcriptIds) && transcriptIds.length > 0) {
+              console.log(`🗑️ Deleting transcript progress for user: ${uid}`);
+              
+              // Validate and filter transcript IDs
+              const ids = transcriptIds
+                .map(t => t?.id)
+                .filter(id => id != null && typeof id === 'string');
+              
+              if (ids.length > 0) {
+                const { error: progressError } = await supabase
+                  .from('transcript_progress')
+                  .delete()
+                  .in('transcript_id', ids);
+                
+                if (progressError) {
+                  console.error(`❌ Progress deletion error for user ${uid}:`, progressError);
+                }
+              }
+            }
+            
+            // Delete remaining user data
+            console.log(`🗑️ Deleting transcripts for user: ${uid}`);
+            await supabase.from('transcripts').delete().eq('user_id', uid);
+            
+            console.log(`🗑️ Deleting accounts for user: ${uid}`);
+            await supabase.from('accounts').delete().eq('user_id', uid);
+            
+            console.log(`🗑️ Deleting user consent for user: ${uid}`);
+            await supabase.from('user_consent').delete().eq('user_id', uid);
+            
+            console.log(`✅ Successfully processed user: ${uid}`);
+            
+          } catch (userError) {
+            console.error(`❌ Error processing user ${uid}:`, userError);
+            throw new Error(`Failed to process user ${uid}: ${userError.message}`);
+          }
         }
-        
-        await supabase.from('transcripts').delete().eq('user_id', uid);
-        await supabase.from('accounts').delete().eq('user_id', uid);
-        await supabase.from('user_consent').delete().eq('user_id', uid);
+      } catch (error) {
+        console.error('❌ Error in bulk user processing:', error);
+        throw error;
       }
       
       const { error: bulkUserError } = await supabase
