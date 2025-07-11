@@ -47,18 +47,44 @@ serve(async (req) => {
       console.log(`🗑️ Deleting single user: ${userId}`);
       
       // Delete all related data first
-      console.log('🗑️ Deleting conversation analysis...');
-      const { error: analysisError } = await supabase
-        .from('conversation_analysis')
-        .delete()
-        .in('transcript_id', 
-          supabase.from('transcripts').select('id').eq('user_id', userId)
-        );
-      
-      if (analysisError) {
-        console.error('❌ Analysis deletion error:', analysisError);
+      console.log('🗑️ Getting transcript IDs...');
+      const { data: transcriptIds } = await supabase
+        .from('transcripts')
+        .select('id')
+        .eq('user_id', userId);
+
+      // Delete conversation analysis if transcripts exist
+      if (transcriptIds && transcriptIds.length > 0) {
+        console.log('🗑️ Deleting conversation analysis...');
+        const ids = transcriptIds.map(t => t.id);
+        const { error: analysisError } = await supabase
+          .from('conversation_analysis')
+          .delete()
+          .in('transcript_id', ids);
+        
+        if (analysisError) {
+          console.error('❌ Analysis deletion error:', analysisError);
+        } else {
+          console.log('✅ Analysis deleted');
+        }
       } else {
-        console.log('✅ Analysis deleted');
+        console.log('ℹ️ No transcripts found, skipping analysis deletion');
+      }
+
+      // Delete transcript progress if transcripts exist
+      if (transcriptIds && transcriptIds.length > 0) {
+        console.log('🗑️ Deleting transcript progress...');
+        const ids = transcriptIds.map(t => t.id);
+        const { error: progressError } = await supabase
+          .from('transcript_progress')
+          .delete()
+          .in('transcript_id', ids);
+        
+        if (progressError) {
+          console.error('❌ Progress deletion error:', progressError);
+        } else {
+          console.log('✅ Progress deleted');
+        }
       }
 
       console.log('🗑️ Deleting transcripts...');
@@ -127,11 +153,29 @@ serve(async (req) => {
       for (const uid of userIds) {
         console.log(`🗑️ Processing user: ${uid}`);
         
-        // Delete all related data for each user
-        await supabase.from('conversation_analysis').delete()
-          .in('transcript_id', 
-            supabase.from('transcripts').select('id').eq('user_id', uid)
-          );
+        // Get transcript IDs for this user
+        const { data: transcriptIds } = await supabase
+          .from('transcripts')
+          .select('id')
+          .eq('user_id', uid);
+
+        // Delete conversation analysis if transcripts exist
+        if (transcriptIds && transcriptIds.length > 0) {
+          const ids = transcriptIds.map(t => t.id);
+          await supabase
+            .from('conversation_analysis')
+            .delete()
+            .in('transcript_id', ids);
+        }
+
+        // Delete transcript progress if transcripts exist
+        if (transcriptIds && transcriptIds.length > 0) {
+          const ids = transcriptIds.map(t => t.id);
+          await supabase
+            .from('transcript_progress')
+            .delete()
+            .in('transcript_id', ids);
+        }
         
         await supabase.from('transcripts').delete().eq('user_id', uid);
         await supabase.from('accounts').delete().eq('user_id', uid);
