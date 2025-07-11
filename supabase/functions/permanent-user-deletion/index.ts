@@ -16,7 +16,13 @@ serve(async (req) => {
   console.log('🗑️ Permanent user deletion function called');
 
   try {
-    // Check environment variables
+    // Get authenticated user from JWT (handled automatically by verify_jwt = true)
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader) {
+      throw new Error('No authorization header');
+    }
+
+    // Initialize Supabase client with service role for admin operations
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     
