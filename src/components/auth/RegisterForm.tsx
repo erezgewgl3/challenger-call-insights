@@ -115,7 +115,10 @@ export function RegisterForm() {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
-        password
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`
+        }
       })
 
       if (error) {
@@ -152,6 +155,14 @@ export function RegisterForm() {
       }
 
       if (data.user) {
+        // Validate that both auth and public user records were created
+        const validationResult = await validateUserRegistration(data.user.id, email)
+        
+        if (!validationResult.isValid) {
+          console.error('User registration validation failed:', validationResult.issue)
+          toast.error('Registration partially failed. Please contact support if you cannot log in.')
+        }
+
         if (validatedInvite) {
           const { success, error: markError } = await authHelpers.markInviteAsUsed(validatedInvite.id)
           
@@ -164,10 +175,47 @@ export function RegisterForm() {
         navigate('/login')
       }
     } catch (error) {
+      console.error('Registration error:', error)
       setError('An unexpected error occurred')
       toast.error('Registration failed')
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Helper function to validate user registration
+  const validateUserRegistration = async (userId: string, email: string) => {
+    try {
+      // Check if public user record exists
+      const { data: publicUser, error } = await supabase
+        .from('users')
+        .select('id, email, role, status')
+        .eq('id', userId)
+        .single()
+
+      if (error || !publicUser) {
+        console.error('Public user record missing for:', userId, error)
+        return {
+          isValid: false,
+          issue: 'Public user record not created'
+        }
+      }
+
+      if (publicUser.email !== email) {
+        console.error('Email mismatch in public user record:', publicUser.email, 'vs', email)
+        return {
+          isValid: false,
+          issue: 'Email mismatch in public user record'
+        }
+      }
+
+      return { isValid: true }
+    } catch (error) {
+      console.error('Error validating user registration:', error)
+      return {
+        isValid: false,
+        issue: 'Validation check failed'
+      }
     }
   }
 

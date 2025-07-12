@@ -26,12 +26,93 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!mounted) return
     
     try {
+      // First validate that both auth and public user records exist
+      const validationResult = await validateUserConsistency(authUser)
+      
+      if (!validationResult.isValid) {
+        console.warn('User consistency issue detected:', validationResult.issue)
+        
+        // Attempt auto-repair if possible
+        if (validationResult.canRepair) {
+          const repairResult = await repairUserRecord(authUser)
+          if (repairResult.success) {
+            console.log('Successfully repaired user record for:', authUser.email)
+          } else {
+            console.error('Failed to repair user record:', repairResult.error)
+          }
+        }
+      }
+
       const enhancedUser = await authService.enhanceUserWithRole(authUser)
       if (mounted) {
         setUser(enhancedUser)
       }
     } catch (error) {
       console.error('Failed to enhance user with role:', error)
+    }
+  }
+
+  // Validate user consistency between auth and public tables
+  const validateUserConsistency = async (authUser: User) => {
+    try {
+      const { data: publicUser, error } = await supabase
+        .from('users')
+        .select('id, email, role, status')
+        .eq('id', authUser.id)
+        .single()
+
+      if (error || !publicUser) {
+        return {
+          isValid: false,
+          canRepair: true,
+          issue: 'Public user record missing'
+        }
+      }
+
+      if (publicUser.email !== authUser.email) {
+        return {
+          isValid: false,
+          canRepair: false,
+          issue: 'Email mismatch between auth and public records'
+        }
+      }
+
+      return { isValid: true }
+    } catch (error) {
+      console.error('Error validating user consistency:', error)
+      return {
+        isValid: false,
+        canRepair: false,
+        issue: 'Validation check failed'
+      }
+    }
+  }
+
+  // Repair missing public user record
+  const repairUserRecord = async (authUser: User) => {
+    try {
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          id: authUser.id,
+          email: authUser.email,
+          role: 'sales_user',
+          status: 'active'
+        })
+
+      if (error) {
+        return {
+          success: false,
+          error: error.message
+        }
+      }
+
+      return { success: true }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
     }
   }
 

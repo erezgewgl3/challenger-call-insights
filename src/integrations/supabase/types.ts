@@ -561,6 +561,13 @@ export type Database = {
         Args: { prompt_id_param: string }
         Returns: undefined
       }
+      fix_orphaned_auth_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          fixed_user_id: string
+          fixed_email: string
+        }[]
+      }
       get_active_prompt: {
         Args: Record<PropertyKey, never>
         Returns: {
