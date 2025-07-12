@@ -55,9 +55,7 @@ export function RegisterForm() {
         toast.error(validationError || 'Invalid invite token')
       } else if (requiresPasswordReset && existingUser) {
         // Handle password reset for existing user with pending_deletion status
-        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/login`
-        })
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(email)
 
         if (resetError) {
           // Check for rate limiting error
@@ -115,19 +113,14 @@ export function RegisterForm() {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
-        password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/login`
-        }
+        password
       })
 
       if (error) {
         // Check if user already exists
         if (error.message.includes('User already registered')) {
           // Switch to password reset mode for existing users
-          const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/login`
-          })
+          const { error: resetError } = await supabase.auth.resetPasswordForEmail(email)
 
           if (resetError) {
             setError('Failed to send password reset email: ' + resetError.message)
