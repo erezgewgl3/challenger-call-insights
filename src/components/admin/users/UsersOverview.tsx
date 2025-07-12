@@ -571,7 +571,14 @@ export function UsersOverview() {
             <Trash2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summaryStats.pendingDeletion}</div>
+            <div className="text-2xl font-bold">
+              <button
+                onClick={() => setActiveTab('pending')}
+                className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+              >
+                {summaryStats.pendingDeletion}
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground">
               Awaiting deletion
             </p>
