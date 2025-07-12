@@ -62,7 +62,11 @@ const getUserStatus = (lastLogin?: string): { status: UserStatus; label: string;
   return { status: 'dormant', label: 'Dormant', color: 'bg-red-100 text-red-800', icon: '🔴' };
 };
 
-export function UsersOverview() {
+interface UsersOverviewProps {
+  onNavigateToInvites?: () => void;
+}
+
+export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
   const { toast } = useToast();
   const { user: currentUser } = useAuth();
   const queryClient = useQueryClient();
@@ -558,7 +562,14 @@ export function UsersOverview() {
             <UserPlus className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{summaryStats.pendingInvites}</div>
+            <div className="text-2xl font-bold">
+              <button
+                onClick={onNavigateToInvites}
+                className="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer transition-colors"
+              >
+                {summaryStats.pendingInvites}
+              </button>
+            </div>
             <p className="text-xs text-muted-foreground">
               Awaiting registration
             </p>

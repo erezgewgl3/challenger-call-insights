@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AdminLayout } from '@/components/layout/AdminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,12 @@ import { Shield, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function UserManagement() {
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const navigateToInvites = () => {
+    setActiveTab("invites");
+  };
+
   return (
     <AdminLayout>
       <div className="p-6 space-y-6">
@@ -33,7 +39,7 @@ export default function UserManagement() {
         </div>
 
         {/* Tabbed Interface */}
-        <Tabs defaultValue="overview" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Users Overview</TabsTrigger>
             <TabsTrigger value="invites">Invite Management</TabsTrigger>
@@ -47,7 +53,7 @@ export default function UserManagement() {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <UsersOverview />
+            <UsersOverview onNavigateToInvites={navigateToInvites} />
           </TabsContent>
 
           <TabsContent value="invites" className="space-y-6">
