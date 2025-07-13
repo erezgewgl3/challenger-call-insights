@@ -37,20 +37,49 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
   const { data: userProfile, isLoading, error } = useQuery({
     queryKey: ['user-profile', userId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // Get basic user info
+      const { data: user, error: userError } = await supabase
         .from('users')
-        .select(`
-          *,
-          transcript_count:transcripts(count),
-          analysis_count:transcripts!inner(
-            conversation_analysis(count)
-          ),
-          account_count:accounts(count)
-        `)
+        .select('*')
         .eq('id', userId)
         .single();
       
-      if (error) throw error;
+      if (userError) throw userError;
+      
+      // Get transcript count
+      const { count: transcriptCount, error: transcriptError } = await supabase
+        .from('transcripts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      if (transcriptError) throw transcriptError;
+      
+      // Get analysis count - first get user's transcript IDs, then count analyses
+      const { data: userTranscripts } = await supabase
+        .from('transcripts')
+        .select('id')
+        .eq('user_id', userId);
+      
+      const transcriptIds = userTranscripts?.map(t => t.id) || [];
+      
+      let analysisCount = 0;
+      if (transcriptIds.length > 0) {
+        const { count, error: analysisError } = await supabase
+          .from('conversation_analysis')
+          .select('*', { count: 'exact', head: true })
+          .in('transcript_id', transcriptIds);
+        
+        if (analysisError) throw analysisError;
+        analysisCount = count || 0;
+      }
+      
+      // Get account count
+      const { count: accountCount, error: accountError } = await supabase
+        .from('accounts')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+      
+      if (accountError) throw accountError;
       
       // Get last activity from transcripts
       const { data: lastTranscript } = await supabase
@@ -59,13 +88,13 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
       
       return {
-        ...data,
-        transcript_count: data.transcript_count?.[0]?.count || 0,
-        analysis_count: data.analysis_count?.[0]?.conversation_analysis?.[0]?.count || 0,
-        account_count: data.account_count?.[0]?.count || 0,
+        ...user,
+        transcript_count: transcriptCount || 0,
+        analysis_count: analysisCount || 0,
+        account_count: accountCount || 0,
         last_activity: lastTranscript?.created_at || null
       } as UserProfile;
     }
