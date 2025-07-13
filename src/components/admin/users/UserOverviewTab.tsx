@@ -52,7 +52,9 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
         .select('id', { count: 'exact' })
         .eq('user_id', userId);
       
-      if (transcriptError) throw transcriptError;
+      console.log('Debug - userId:', userId);
+      console.log('Debug - transcriptCount:', transcriptCount);
+      console.log('Debug - transcriptError:', transcriptError);
       
       // Get analysis count - first get user's transcript IDs, then count analyses
       const { data: userTranscripts } = await supabase
@@ -69,6 +71,8 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
           .select('id', { count: 'exact' })
           .in('transcript_id', transcriptIds);
         
+        console.log('Debug - analysisCount:', count);
+        console.log('Debug - analysisError:', analysisError);
         if (analysisError) throw analysisError;
         analysisCount = count || 0;
       }
@@ -79,6 +83,8 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
         .select('id', { count: 'exact' })
         .eq('user_id', userId);
       
+      console.log('Debug - accountCount:', accountCount);
+      console.log('Debug - accountError:', accountError);
       if (accountError) throw accountError;
       
       // Get last activity from transcripts
