@@ -49,7 +49,7 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
       // Get transcript count
       const { count: transcriptCount, error: transcriptError } = await supabase
         .from('transcripts')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact' })
         .eq('user_id', userId);
       
       if (transcriptError) throw transcriptError;
@@ -66,7 +66,7 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
       if (transcriptIds.length > 0) {
         const { count, error: analysisError } = await supabase
           .from('conversation_analysis')
-          .select('*', { count: 'exact', head: true })
+          .select('id', { count: 'exact' })
           .in('transcript_id', transcriptIds);
         
         if (analysisError) throw analysisError;
@@ -76,7 +76,7 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
       // Get account count
       const { count: accountCount, error: accountError } = await supabase
         .from('accounts')
-        .select('*', { count: 'exact', head: true })
+        .select('id', { count: 'exact' })
         .eq('user_id', userId);
       
       if (accountError) throw accountError;
