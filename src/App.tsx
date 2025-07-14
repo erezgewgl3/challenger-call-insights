@@ -14,6 +14,7 @@ import SmartDashboard from "./pages/SmartDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import PromptManagement from "./pages/PromptManagement";
 import UserManagement from "./pages/admin/UserManagement";
+import GDPRCompliance from "./pages/admin/GDPRCompliance";
 import NotFound from "./pages/NotFound";
 import TranscriptAnalysis from "./pages/TranscriptAnalysis";
 
@@ -49,6 +50,11 @@ function App() {
               <Route path="/admin/users" element={
                 <AdminGuard>
                   <UserManagement />
+                </AdminGuard>
+              } />
+              <Route path="/admin/gdpr-compliance" element={
+                <AdminGuard>
+                  <GDPRCompliance />
                 </AdminGuard>
               } />
               <Route path="/analysis/:transcriptId" element={
