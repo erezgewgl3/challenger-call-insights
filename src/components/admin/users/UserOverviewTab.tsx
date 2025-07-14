@@ -32,9 +32,10 @@ interface UserProfile {
 
 interface UserOverviewTabProps {
   userId: string;
+  onTabChange?: (tab: string) => void;
 }
 
-export function UserOverviewTab({ userId }: UserOverviewTabProps) {
+export function UserOverviewTab({ userId, onTabChange }: UserOverviewTabProps) {
   const { data: userProfile, isLoading, error } = useQuery({
     queryKey: ['user-profile', userId],
     queryFn: async () => {
@@ -236,7 +237,12 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
             <Brain className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userProfile.analysis_count}</div>
+            <div 
+              className="text-2xl font-bold text-blue-600 hover:text-blue-800 cursor-pointer hover:underline transition-colors"
+              onClick={() => onTabChange?.('timeline')}
+            >
+              {userProfile.analysis_count}
+            </div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
               <span>{userProfile.transcript_count > 0 ? Math.round((userProfile.analysis_count / userProfile.transcript_count) * 100) : 0}% success rate</span>

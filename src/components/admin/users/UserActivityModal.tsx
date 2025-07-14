@@ -77,7 +77,7 @@ export function UserActivityModal({
 
             <div className="flex-1 overflow-auto p-6">
               <TabsContent value="overview" className="mt-0 h-full">
-                <UserOverviewTab userId={userId} />
+                <UserOverviewTab userId={userId} onTabChange={setActiveTab} />
               </TabsContent>
 
               <TabsContent value="timeline" className="mt-0 h-full">
