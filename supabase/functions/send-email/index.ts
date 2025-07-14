@@ -158,7 +158,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Prepare email payload for Resend
     const emailPayload = {
-      from: from || "Sales Whisperer <noreply@send.saleswhisperer.net>",
+      from: from || "Sales Whisperer <noreply@saleswhisperer.net>",
       to: Array.isArray(to) ? to : [to],
       subject: emailSubject,
       html: emailContent.html,
