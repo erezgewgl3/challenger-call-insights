@@ -155,15 +155,29 @@ const handler = async (req: Request): Promise<Response> => {
       template 
     });
 
-    // Send email with Resend
+    // Check if RESEND_API_KEY is available
+    const apiKey = Deno.env.get("RESEND_API_KEY");
+    console.log("RESEND_API_KEY available:", !!apiKey);
+    
+    if (!apiKey) {
+      throw new Error("RESEND_API_KEY environment variable is not set");
+    }
+
+    // Send email with Resend (using default domain for testing)
     const emailResponse = await resend.emails.send({
-      from: from || "Sales Whisperer <noreply@saleswhisperer.com>",
+      from: from || "Sales Whisperer <onboarding@resend.dev>",
       to: Array.isArray(to) ? to : [to],
       subject: emailSubject,
       html: emailContent.html,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Resend API response:", JSON.stringify(emailResponse, null, 2));
+    
+    // Check if the response indicates success
+    if (emailResponse.error) {
+      console.error("Resend API returned error:", emailResponse.error);
+      throw new Error(`Resend API error: ${JSON.stringify(emailResponse.error)}`);
+    }
 
     return new Response(
       JSON.stringify({ 
