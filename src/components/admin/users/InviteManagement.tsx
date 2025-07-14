@@ -15,6 +15,9 @@ export interface Invite {
   used_at: string | null;
   created_at: string;
   created_by: string;
+  email_sent: boolean;
+  email_sent_at: string | null;
+  email_error: string | null;
   created_by_user?: {
     email: string;
   };

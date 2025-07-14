@@ -123,12 +123,63 @@ export function CreateInviteForm() {
           email: data.email,
           token,
           expires_at: expiresAt.toISOString(),
-          created_by: user?.id
+          created_by: user?.id,
+          email_sent: false
         })
         .select()
         .single();
 
       if (error) throw error;
+
+      // Send email if requested
+      if (data.sendEmail) {
+        try {
+          const baseUrl = window.location.origin;
+          const inviteLink = `${baseUrl}/register?token=${token}`;
+          
+          const { error: emailError } = await supabase.functions.invoke('send-email', {
+            body: {
+              type: 'invite',
+              to: data.email,
+              data: {
+                email: data.email,
+                inviteLink,
+                expiresAt: expiresAt.toISOString(),
+                invitedBy: user?.email || 'Sales Whisperer Team'
+              }
+            }
+          });
+
+          if (emailError) {
+            console.error('Email send error:', emailError);
+            // Update invite with error
+            await supabase
+              .from('invites')
+              .update({ 
+                email_error: emailError.message || 'Failed to send email'
+              })
+              .eq('id', invite.id);
+          } else {
+            // Update invite as email sent
+            await supabase
+              .from('invites')
+              .update({ 
+                email_sent: true,
+                email_sent_at: new Date().toISOString()
+              })
+              .eq('id', invite.id);
+          }
+        } catch (emailError: any) {
+          console.error('Email send error:', emailError);
+          // Update invite with error
+          await supabase
+            .from('invites')
+            .update({ 
+              email_error: emailError.message || 'Failed to send email'
+            })
+            .eq('id', invite.id);
+        }
+      }
 
       return { invite, token };
     },

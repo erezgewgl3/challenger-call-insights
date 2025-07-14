@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import React from 'npm:react@18.3.1';
+import { renderAsync } from 'npm:@react-email/components@0.0.22';
+import { InviteEmail } from './_templates/invite-email.tsx';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -9,7 +12,8 @@ const corsHeaders = {
 interface EmailRequest {
   to: string | string[];
   subject?: string;
-  template: 'invite' | 'password-reset' | 'welcome' | 'custom';
+  template?: 'invite' | 'password-reset' | 'welcome' | 'custom';
+  type?: 'invite' | 'password-reset' | 'welcome' | 'custom';
   data: Record<string, any>;
   from?: string;
 }
@@ -114,14 +118,15 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, template, data, from }: EmailRequest = await req.json();
-    console.log("Email request received:", { to, template, hasData: !!data });
+    const { to, subject, template, type, data, from }: EmailRequest = await req.json();
+    const emailType = type || template;
+    console.log("Email request received:", { to, template, type, emailType, hasData: !!data });
 
     // Validate required fields
-    if (!to || !template) {
-      console.error("Missing required fields:", { to: !!to, template });
+    if (!to || !emailType) {
+      console.error("Missing required fields:", { to: !!to, emailType });
       return new Response(
-        JSON.stringify({ error: "Missing required fields: to, template" }),
+        JSON.stringify({ error: "Missing required fields: to, type/template" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -129,22 +134,41 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Validate template
-    if (!emailTemplates[template]) {
-      console.error("Invalid template:", template);
-      return new Response(
-        JSON.stringify({ 
-          error: "Invalid template. Must be one of: invite, password-reset, welcome, custom" 
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
+    let emailContent: EmailTemplate;
+
+    // Handle React Email templates
+    if (emailType === 'invite') {
+      const html = await renderAsync(
+        React.createElement(InviteEmail, {
+          email: data.email,
+          inviteLink: data.inviteLink,
+          expiresAt: data.expiresAt,
+          invitedBy: data.invitedBy
+        })
       );
+      
+      emailContent = {
+        subject: "You're invited to join Sales Whisperer",
+        html
+      };
+    } else {
+      // Use legacy templates for other types
+      if (!emailTemplates[emailType]) {
+        console.error("Invalid template:", emailType);
+        return new Response(
+          JSON.stringify({ 
+            error: "Invalid template. Must be one of: invite, password-reset, welcome, custom" 
+          }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+      
+      emailContent = emailTemplates[emailType](data || {});
     }
 
-    // Generate email content from template
-    const emailContent = emailTemplates[template](data || {});
     const emailSubject = subject || emailContent.subject;
 
     // Check if RESEND_API_KEY is available

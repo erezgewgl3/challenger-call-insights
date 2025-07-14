@@ -272,6 +272,9 @@ export type Database = {
           created_at: string | null
           created_by: string | null
           email: string
+          email_error: string | null
+          email_sent: boolean | null
+          email_sent_at: string | null
           expires_at: string
           id: string
           token: string
@@ -281,6 +284,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           email: string
+          email_error?: string | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
           expires_at: string
           id?: string
           token: string
@@ -290,6 +296,9 @@ export type Database = {
           created_at?: string | null
           created_by?: string | null
           email?: string
+          email_error?: string | null
+          email_sent?: boolean | null
+          email_sent_at?: string | null
           expires_at?: string
           id?: string
           token?: string

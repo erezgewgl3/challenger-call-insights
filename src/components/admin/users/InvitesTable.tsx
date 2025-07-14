@@ -27,7 +27,10 @@ import {
   Download,
   Clock,
   Eye,
-  EyeOff
+  EyeOff,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Invite, InviteFilters } from './InviteManagement';
@@ -107,6 +110,55 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
       toast({
         title: "Error",
         description: "Failed to revoke invitation. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Resend email mutation
+  const resendEmailMutation = useMutation({
+    mutationFn: async (invite: Invite) => {
+      const baseUrl = window.location.origin;
+      const inviteLink = `${baseUrl}/register?token=${invite.token}`;
+      
+      const { error } = await supabase.functions.invoke('send-email', {
+        body: {
+          type: 'invite',
+          to: invite.email,
+          data: {
+            email: invite.email,
+            inviteLink,
+            expiresAt: invite.expires_at,
+            invitedBy: invite.created_by_user?.email || 'Sales Whisperer Team'
+          }
+        }
+      });
+
+      if (error) throw error;
+
+      // Update invite status
+      const { error: updateError } = await supabase
+        .from('invites')
+        .update({ 
+          email_sent: true,
+          email_sent_at: new Date().toISOString(),
+          email_error: null
+        })
+        .eq('id', invite.id);
+
+      if (updateError) throw updateError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] });
+      toast({
+        title: "Email Resent",
+        description: "Invitation email has been resent successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to Resend",
+        description: "Failed to resend invitation email. Please try again.",
         variant: "destructive",
       });
     }
@@ -312,6 +364,7 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                   <TableHead className="min-w-[180px] py-5 px-4">Email</TableHead>
                   <TableHead className="min-w-[200px] py-5 px-4">Token</TableHead>
                   <TableHead className="w-[100px] py-5 px-4">Status</TableHead>
+                  <TableHead className="w-[100px] py-5 px-4">Email Status</TableHead>
                   <TableHead className="w-[120px] py-5 px-4">Created</TableHead>
                   <TableHead className="w-[120px] py-5 px-4">Expires</TableHead>
                   <TableHead className="w-12 py-5"></TableHead>
@@ -379,6 +432,24 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                         </Badge>
                       </TableCell>
                       <TableCell className="py-5 px-4">
+                        {invite.email_error ? (
+                          <Badge variant="outline" className="bg-red-100 text-red-800 px-2 py-1">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Failed
+                          </Badge>
+                        ) : invite.email_sent ? (
+                          <Badge variant="outline" className="bg-green-100 text-green-800 px-2 py-1">
+                            <CheckCircle className="h-3 w-3 mr-1" />
+                            Sent
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-100 text-gray-800 px-2 py-1">
+                            <AlertCircle className="h-3 w-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-5 px-4">
                         <div className="text-sm text-muted-foreground">
                           {formatDistanceToNow(createdAt, { addSuffix: true })}
                         </div>
@@ -414,7 +485,11 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
                               Copy Invite Link
                             </DropdownMenuItem>
                             {status.status === 'pending' && (
-                              <DropdownMenuItem className="cursor-pointer">
+                              <DropdownMenuItem 
+                                onClick={() => resendEmailMutation.mutate(invite)}
+                                disabled={resendEmailMutation.isPending}
+                                className="cursor-pointer"
+                              >
                                 <Mail className="mr-2 h-4 w-4" />
                                 Resend Email
                               </DropdownMenuItem>
