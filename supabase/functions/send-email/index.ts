@@ -1,8 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -174,6 +172,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     console.log("Full Resend API request payload:", JSON.stringify(emailPayload, null, 2));
+
+    // Initialize Resend client with validated API key
+    const resend = new Resend(apiKey);
+    console.log("Resend client initialized successfully");
 
     // Send email with Resend
     const emailResponse = await resend.emails.send(emailPayload);
