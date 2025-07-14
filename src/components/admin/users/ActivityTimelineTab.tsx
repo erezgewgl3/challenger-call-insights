@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,8 @@ import {
   Filter,
   ChevronDown,
   Calendar,
-  RefreshCw
+  RefreshCw,
+  ExternalLink
 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 
@@ -38,6 +40,7 @@ interface ActivityTimelineTabProps {
 }
 
 export function ActivityTimelineTab({ userId }: ActivityTimelineTabProps) {
+  const navigate = useNavigate();
   const [filters, setFilters] = useState<ActivityFilters>({
     eventTypes: ['all'],
     dateRange: '30d',
@@ -62,7 +65,7 @@ export function ActivityTimelineTab({ userId }: ActivityTimelineTabProps) {
       .select(`
         id, 
         created_at,
-        transcript:transcripts!inner(title, user_id)
+        transcript:transcripts!inner(id, title, user_id)
       `)
       .eq('transcript.user_id', userId)
       .order('created_at', { ascending: false })
@@ -100,7 +103,7 @@ export function ActivityTimelineTab({ userId }: ActivityTimelineTabProps) {
         type: 'analysis' as const,
         timestamp: a.created_at,
         description: `Completed AI analysis for: ${a.transcript.title}`,
-        metadata: { analysisId: a.id, transcriptTitle: a.transcript.title }
+        metadata: { analysisId: a.id, transcriptId: a.transcript.id, transcriptTitle: a.transcript.title }
       })),
       ...(accountResult.data || []).map(acc => ({
         id: `account-${acc.id}`,
@@ -147,6 +150,21 @@ export function ActivityTimelineTab({ userId }: ActivityTimelineTabProps) {
   }, [data]);
 
   // Apply client-side filtering
+  // Helper function to handle event clicks
+  const handleEventClick = (event: ActivityEvent) => {
+    if (event.type === 'upload' && event.metadata.transcriptId && event.metadata.status === 'completed') {
+      navigate(`/analysis/${event.metadata.transcriptId}`);
+    } else if (event.type === 'analysis' && event.metadata.transcriptId) {
+      navigate(`/analysis/${event.metadata.transcriptId}`);
+    }
+  };
+
+  // Helper function to determine if an event is clickable
+  const isClickable = (event: ActivityEvent) => {
+    return (event.type === 'upload' && event.metadata.status === 'completed') || 
+           (event.type === 'analysis' && event.metadata.transcriptId);
+  };
+
   const filteredEvents = useMemo(() => {
     let filtered = allEvents;
 
@@ -268,16 +286,31 @@ export function ActivityTimelineTab({ userId }: ActivityTimelineTabProps) {
                 const config = eventTypeConfig[event.type];
                 const Icon = config.icon;
                 
+                const clickable = isClickable(event);
+                
                 return (
-                  <div key={event.id} className="flex items-start space-x-4 p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                  <div 
+                    key={event.id} 
+                    className={`flex items-start space-x-4 p-4 border rounded-lg transition-colors ${
+                      clickable 
+                        ? 'hover:bg-gray-50 cursor-pointer hover:border-primary/50' 
+                        : 'hover:bg-gray-50'
+                    }`}
+                    onClick={() => clickable && handleEventClick(event)}
+                  >
                     <div className={`flex items-center justify-center w-10 h-10 rounded-full ${config.color}`}>
                       <Icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900">
-                          {event.description}
-                        </p>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-sm font-medium text-gray-900">
+                            {event.description}
+                          </p>
+                          {clickable && (
+                            <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                          )}
+                        </div>
                         <Badge variant="outline" className={config.color}>
                           {config.label}
                         </Badge>
