@@ -27,6 +27,7 @@ interface UserProfile {
   analysis_count: number;
   account_count: number;
   last_activity: string | null;
+  active_days_count: number;
 }
 
 interface UserOverviewTabProps {
@@ -95,13 +96,31 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+
+      // Get active days count (last 14 days)
+      let activeDaysCount = 0;
+      if (transcriptIds.length > 0) {
+        const { data: activeDays } = await supabase
+          .from('conversation_analysis')
+          .select('created_at')
+          .in('transcript_id', transcriptIds)
+          .gte('created_at', new Date(Date.now() - 14 * 24 * 60 * 60 * 1000).toISOString());
+        
+        if (activeDays) {
+          const uniqueDays = new Set(
+            activeDays.map(analysis => analysis.created_at.split('T')[0])
+          );
+          activeDaysCount = uniqueDays.size;
+        }
+      }
       
       return {
         ...user,
         transcript_count: transcriptCount || 0,
         analysis_count: analysisCount || 0,
         account_count: accountCount || 0,
-        last_activity: lastTranscript?.created_at || null
+        last_activity: lastTranscript?.created_at || null,
+        active_days_count: activeDaysCount
       } as UserProfile;
     }
   });
@@ -241,16 +260,14 @@ export function UserOverviewTab({ userId }: UserOverviewTabProps) {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">System Usage</CardTitle>
+            <CardTitle className="text-sm font-medium">Active Days (Last 14 Days)</CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {Math.floor((Date.now() - new Date(userProfile.created_at).getTime()) / (1000 * 60 * 60 * 24))}d
-            </div>
+            <div className="text-2xl font-bold">{userProfile.active_days_count}</div>
             <div className="flex items-center text-xs text-muted-foreground mt-1">
               <TrendingUp className="h-3 w-3 mr-1" />
-              <span>Days since joining</span>
+              <span>Days with analyses</span>
             </div>
           </CardContent>
         </Card>
