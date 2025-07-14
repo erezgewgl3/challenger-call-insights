@@ -35,6 +35,7 @@ interface UsageStats {
   mostActiveDay: string;
   successRate: number;
   totalActiveDays: number;
+  totalActiveDays30: number;
   engagementScore: number;
 }
 
@@ -67,6 +68,15 @@ export function UsageAnalyticsTab({ userId }: UsageAnalyticsTabProps) {
       // Calculate statistics
       const totalDays = Math.floor((Date.now() - new Date(user.created_at).getTime()) / (1000 * 60 * 60 * 24));
       const activeDays = new Set(transcripts.map(t => new Date(t.created_at).toDateString())).size;
+      
+      // Calculate 30-day active days
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const activeDays30 = new Set(
+        transcripts
+          .filter(t => new Date(t.created_at) >= thirtyDaysAgo)
+          .map(t => new Date(t.created_at).toDateString())
+      ).size;
       const successRate = transcripts.length > 0 ? (analyses.length / transcripts.length) * 100 : 0;
       const avgDuration = transcripts
         .filter(t => t.duration_minutes)
@@ -98,6 +108,7 @@ export function UsageAnalyticsTab({ userId }: UsageAnalyticsTabProps) {
         mostActiveDay,
         successRate: Math.round(successRate),
         totalActiveDays: activeDays,
+        totalActiveDays30: activeDays30,
         engagementScore: Math.round((activeDays / Math.max(totalDays, 1)) * 100)
       } as UsageStats;
     }
@@ -268,6 +279,10 @@ export function UsageAnalyticsTab({ userId }: UsageAnalyticsTabProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Total Active Days (last 30 days)</span>
+                <span className="text-2xl font-bold">{usageStats?.totalActiveDays30 || 0}</span>
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">Total Active Days</span>
                 <span className="text-2xl font-bold">{usageStats?.totalActiveDays || 0}</span>
