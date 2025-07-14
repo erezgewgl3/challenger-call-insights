@@ -261,7 +261,7 @@ export function UsageAnalyticsTab({ userId }: UsageAnalyticsTabProps) {
       </Card>
 
       {/* Engagement Metrics */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Engagement Overview</CardTitle>
@@ -285,32 +285,6 @@ export function UsageAnalyticsTab({ userId }: UsageAnalyticsTabProps) {
               <p className="text-xs text-muted-foreground">
                 Based on days active since joining
               </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Feature Utilization</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Account Management</span>
-                <span className="text-sm font-medium text-green-600">Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Multiple Uploads</span>
-                <span className="text-sm font-medium text-green-600">Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Analysis Review</span>
-                <span className="text-sm font-medium text-green-600">Active</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm">Advanced Features</span>
-                <span className="text-sm font-medium text-gray-500">Coming Soon</span>
-              </div>
             </div>
           </CardContent>
         </Card>
