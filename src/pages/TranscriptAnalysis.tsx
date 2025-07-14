@@ -8,6 +8,7 @@ import { SalesIntelligenceView } from '@/components/analysis/SalesIntelligenceVi
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
+import { useAuth } from '@/hooks/useAuth'
 import { ArrowLeft } from 'lucide-react'
 
 interface TranscriptData {
@@ -29,6 +30,7 @@ export default function TranscriptAnalysis() {
   
   const { status } = useAnalysisStatus(transcriptId)
   const { refreshData } = useTranscriptData()
+  const { isAdmin } = useAuth()
 
   useEffect(() => {
     if (!transcriptId) return
@@ -70,7 +72,8 @@ export default function TranscriptAnalysis() {
   const handleBackToDashboard = () => {
     // Refresh dashboard data before navigating back
     refreshData()
-    navigate('/dashboard')
+    // Navigate to admin users page if user is admin, otherwise to regular dashboard
+    navigate(isAdmin ? '/admin/users' : '/dashboard')
   }
 
   const handleUploadAnother = () => {
