@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, MessageSquare, Settings, Activity, BarChart3, TrendingUp } from 'lucide-react'
+import { Users, MessageSquare, Settings, Activity, BarChart3, TrendingUp, Shield } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { SystemMonitor } from '@/components/admin/SystemMonitor'
@@ -12,6 +12,9 @@ import { TranscriptVolumeChart } from '@/components/admin/analytics/TranscriptVo
 import { AnalysisPerformanceChart } from '@/components/admin/analytics/AnalysisPerformanceChart'
 import { RecentActivityFeed } from '@/components/admin/analytics/RecentActivityFeed'
 import { AnalyticsCard } from '@/components/admin/AnalyticsCard'
+import { RegistrationFailuresCard } from '@/components/admin/system/RegistrationFailuresCard'
+import { RegistrationFailuresTable } from '@/components/admin/system/RegistrationFailuresTable'
+import { SystemHealthActions } from '@/components/admin/system/SystemHealthActions'
 import { useSystemMetrics } from '@/hooks/useSystemMetrics'
 import { useUserGrowthData, useTranscriptVolumeData, useAnalysisPerformanceData } from '@/hooks/useChartData'
 
@@ -32,7 +35,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Overview</span>
@@ -41,11 +44,15 @@ export default function AdminDashboard() {
               <TrendingUp className="h-4 w-4" />
               <span>Analytics</span>
             </TabsTrigger>
+            <TabsTrigger value="system-health" className="flex items-center space-x-2">
+              <Shield className="h-4 w-4" />
+              <span>System Health</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview">
             {/* Real-time Analytics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
               <AnalyticsCard
                 title="Total Users"
                 value={systemMetrics?.totalUsers || 0}
@@ -80,6 +87,9 @@ export default function AdminDashboard() {
                 isLoading={isLoading}
                 status={systemMetrics?.systemStatus || 'healthy'}
               />
+
+              {/* Registration Health Card */}
+              <RegistrationFailuresCard />
             </div>
 
             {/* Interactive Charts Grid */}
@@ -185,6 +195,33 @@ export default function AdminDashboard() {
                 <SystemMonitor />
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="system-health">
+            <div className="space-y-6">
+              {/* System Health Overview */}
+              <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
+                <CardHeader>
+                  <CardTitle className="text-xl text-slate-900 flex items-center space-x-2">
+                    <Shield className="h-5 w-5 text-blue-600" />
+                    <span>System Health & Monitoring</span>
+                  </CardTitle>
+                  <CardDescription className="text-slate-600">
+                    Monitor and manage system health, registration issues, and automated repairs
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2">
+                      <RegistrationFailuresTable />
+                    </div>
+                    <div>
+                      <SystemHealthActions />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
