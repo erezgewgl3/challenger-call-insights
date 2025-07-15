@@ -156,6 +156,22 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
+    // Mark token as used after successful password update
+    console.log('Marking reset token as used');
+    const { error: markUsedError } = await supabaseAdmin.rpc(
+      'mark_password_reset_token_used',
+      {
+        p_token_hash: validationResult.token_hash,
+        p_ip_address: ipAddress,
+        p_user_agent: userAgent
+      }
+    );
+
+    if (markUsedError) {
+      console.error('Error marking token as used:', markUsedError);
+      // Continue since password was updated successfully
+    }
+
     // Cleanup expired tokens for maintenance (guide rail)
     try {
       await supabaseAdmin.rpc('cleanup_expired_password_reset_tokens');

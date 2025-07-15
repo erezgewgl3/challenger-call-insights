@@ -681,6 +681,14 @@ export type Database = {
         Args: { token: string }
         Returns: string
       }
+      mark_password_reset_token_used: {
+        Args: {
+          p_token_hash: string
+          p_ip_address?: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
       mark_users_pending_deletion: {
         Args: Record<PropertyKey, never>
         Returns: undefined
