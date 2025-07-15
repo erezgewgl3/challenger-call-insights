@@ -14,6 +14,7 @@ import { useAuthForm } from '@/hooks/useAuthForm'
 import { useAuth } from '@/hooks/useAuth'
 import { authService } from '@/services/authService'
 import { AUTH_ROLES } from '@/constants/auth'
+import { resetPasswordForUser } from '@/utils/passwordResetUtils'
 
 export function LoginForm() {
   const {
@@ -87,25 +88,61 @@ export function LoginForm() {
   }
 
   const handlePasswordReset = async () => {
-    if (!email) {
+    // Input validation guardrail
+    if (!email || !email.trim()) {
       toast.error('Please enter your email address first')
       return
     }
 
-    setResetLoading(true)
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/login`
-      })
+    const trimmedEmail = email.trim().toLowerCase()
+    
+    // Email format validation guardrail
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(trimmedEmail)) {
+      toast.error('Please enter a valid email address')
+      return
+    }
 
-      if (error) {
-        toast.error('Failed to send reset email: ' + error.message)
+    setResetLoading(true)
+    
+    try {
+      console.log('Initiating password reset for:', trimmedEmail)
+      
+      // Use custom password reset function for consistent branding
+      const result = await resetPasswordForUser(trimmedEmail)
+      
+      if (result.success) {
+        toast.success('Password reset email sent! Check your inbox and spam folder.')
+        console.log('Password reset email sent successfully')
       } else {
-        toast.success('Password reset email sent! Check your inbox.')
+        // Error handling guardrail - map specific errors to user-friendly messages
+        let errorMessage = 'Failed to send reset email'
+        
+        if (result.error?.includes('rate limit')) {
+          errorMessage = 'Too many reset attempts. Please wait before trying again.'
+        } else if (result.error?.includes('not found') || result.error?.includes('invalid')) {
+          errorMessage = 'If this email is registered, you will receive a reset link shortly.'
+        } else if (result.error?.includes('network') || result.error?.includes('connection')) {
+          errorMessage = 'Network error. Please check your connection and try again.'
+        }
+        
+        toast.error(errorMessage)
+        console.error('Password reset failed:', result.error)
       }
-    } catch (error) {
-      toast.error('Failed to send reset email')
+    } catch (error: any) {
+      // Comprehensive error handling guardrail
+      console.error('Password reset error:', error)
+      
+      let errorMessage = 'Failed to send reset email'
+      if (error?.message?.includes('network') || error?.name === 'NetworkError') {
+        errorMessage = 'Network error. Please check your connection and try again.'
+      } else if (error?.message?.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again.'
+      }
+      
+      toast.error(errorMessage)
     } finally {
+      // State management guardrail
       setResetLoading(false)
     }
   }
