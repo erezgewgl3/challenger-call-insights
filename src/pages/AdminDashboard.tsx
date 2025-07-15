@@ -79,14 +79,8 @@ export default function AdminDashboard() {
                 trend={systemMetrics?.analysesTrend}
               />
               
-              <AnalyticsCard
-                title="System Health"
-                value="Operational"
-                description={`${systemMetrics?.uptime || 99.9}% uptime`}
-                icon={Settings}
-                isLoading={isLoading}
-                status={systemMetrics?.systemStatus || 'healthy'}
-              />
+              {/* Registration Health Card */}
+              <RegistrationFailuresCard />
 
             </div>
 
