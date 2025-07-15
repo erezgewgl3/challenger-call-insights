@@ -148,38 +148,172 @@ export function LoginForm() {
   }
 
   return (
-    <AuthContainer
-      title="Sign In"
-      description="Enter your credentials to access Sales Whisperer"
-      header={<LoginHeader />}
-    >
-      <form onSubmit={handleLogin} className="space-y-4">
-        {error && (
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex">
+      {/* Left Side - Value Proposition */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 flex-col justify-center px-12 xl:px-16 bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 text-white relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="relative z-10">
+          <div className="mb-8">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-sm font-medium mb-6">
+              🏆 Invite-Only Platform
+            </div>
+            <h1 className="text-4xl xl:text-5xl font-bold mb-4 leading-tight">
+              Transform Every Call Into 
+              <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent"> Closed Deals</span>
+            </h1>
+            <p className="text-xl text-blue-100 mb-8 leading-relaxed">
+              AI-powered Challenger Sales coaching trusted by elite B2B sales professionals
+            </p>
+          </div>
 
-        <EmailField value={email} onChange={setEmail} />
-        <PasswordField label="Password" value={password} onChange={setPassword} />
+          <div className="space-y-6 mb-8">
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">AI Challenger Sales Analysis</h3>
+                <p className="text-blue-200">Every conversation analyzed using proven Challenger methodology</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">Personalized Coaching</h3>
+                <p className="text-blue-200">Get instant, actionable feedback after every sales call</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-4">
+              <div className="flex-shrink-0 w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white mb-1">Winning Follow-up Strategies</h3>
+                <p className="text-blue-200">Transform insights into compelling next steps that close deals</p>
+              </div>
+            </div>
+          </div>
 
-        <AuthButton loading={loading} loadingText="Signing In...">
-          Sign In
-        </AuthButton>
+          <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
+            <div className="flex items-center space-x-4 mb-3">
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 bg-blue-500 rounded-full border-2 border-white"></div>
+                <div className="w-8 h-8 bg-indigo-500 rounded-full border-2 border-white"></div>
+                <div className="w-8 h-8 bg-purple-500 rounded-full border-2 border-white"></div>
+              </div>
+              <div className="text-blue-100">
+                <div className="font-semibold">Trusted by 500+ top performers</div>
+                <div className="text-sm opacity-90">Average 23% increase in close rates</div>
+              </div>
+            </div>
+          </div>
 
-        <AuthButton 
-          type="button"
-          variant="outline"
-          loading={resetLoading}
-          loadingText="Sending Reset Email..."
-          onClick={handlePasswordReset}
+          <div className="mt-8 flex items-center space-x-6 text-sm text-blue-200">
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+              </svg>
+              <span>Enterprise Security</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>Challenger Sales Certified</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-8">
+        <AuthContainer
+          title="Access Your Sales Intelligence"
+          description="Welcome to your command center for closing more deals"
+          header={<LoginHeader />}
         >
-          Reset Password
-        </AuthButton>
-      </form>
+          <div className="mb-6 text-center">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-sm font-medium">
+              🔒 Secure Professional Access
+            </div>
+          </div>
 
-      <LoginFooter />
-    </AuthContainer>
+          <form onSubmit={handleLogin} className="space-y-5">
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <EmailField value={email} onChange={setEmail} />
+            <PasswordField label="Password" value={password} onChange={setPassword} />
+
+            <AuthButton loading={loading} loadingText="Accessing Platform..." className="w-full h-12 text-lg font-semibold">
+              Access My Sales Intelligence
+            </AuthButton>
+
+            <AuthButton 
+              type="button"
+              variant="outline"
+              loading={resetLoading}
+              loadingText="Sending Secure Reset..."
+              onClick={handlePasswordReset}
+              className="w-full h-11"
+            >
+              Reset Password
+            </AuthButton>
+          </form>
+
+          <div className="mt-8 text-center">
+            <p className="text-sm text-slate-600 mb-4">
+              New to Sales Whisperer?{" "}
+              <span className="font-medium text-slate-800">Contact your sales manager for exclusive access</span>
+            </p>
+            <p className="text-xs text-slate-500">
+              This platform is invite-only for enterprise customers
+            </p>
+          </div>
+
+          <div className="text-center mt-8">
+            <a href="/" className="text-sm text-slate-600 hover:text-slate-900 transition-colors">
+              ← Back to Home
+            </a>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-slate-200">
+            <div className="flex items-center justify-center space-x-6 text-xs text-slate-500">
+              <div className="flex items-center space-x-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                </svg>
+                <span>SOC2 Compliant</span>
+              </div>
+              <div className="flex items-center space-x-1">
+                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Powered by OpenAI & Claude</span>
+              </div>
+            </div>
+          </div>
+        </AuthContainer>
+      </div>
+    </div>
   )
 }
