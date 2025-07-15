@@ -1,0 +1,145 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const handler = async (req: Request): Promise<Response> => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    console.log('Starting scheduled registration failure monitoring...');
+
+    // Initialize Supabase client
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Call the monitor-registration-failures function
+    const { data: monitorResult, error: monitorError } = await supabase.functions.invoke('monitor-registration-failures', {
+      body: { scheduledRun: true }
+    });
+
+    if (monitorError) {
+      console.error('Error calling monitor function:', monitorError);
+      throw monitorError;
+    }
+
+    console.log('Monitor function result:', monitorResult);
+
+    // Additionally, run the fix_orphaned_auth_users function to automatically repair any issues
+    const { data: fixResult, error: fixError } = await supabase.rpc('fix_orphaned_auth_users');
+
+    if (fixError) {
+      console.error('Error running fix_orphaned_auth_users:', fixError);
+      // Don't throw here, just log the error as the monitoring is still valuable
+    } else if (fixResult && fixResult.length > 0) {
+      console.log(`Automatically fixed ${fixResult.length} orphaned users:`, fixResult);
+      
+      // Mark the fixed users as resolved in the registration_failures table
+      const userEmails = fixResult.map((user: any) => user.fixed_email);
+      
+      const { error: updateError } = await supabase
+        .from('registration_failures')
+        .update({ 
+          resolved: true, 
+          resolved_at: new Date().toISOString(),
+          resolution_method: 'automatic_fix_via_scheduled_job'
+        })
+        .in('user_email', userEmails)
+        .eq('resolved', false);
+
+      if (updateError) {
+        console.error('Error updating resolved status:', updateError);
+      } else {
+        console.log(`Marked ${userEmails.length} registration failures as resolved`);
+      }
+
+      // Send a success notification email
+      const successEmailData = {
+        to: 'erezgew@yahoo.com',
+        subject: 'SUCCESS: Orphaned Users Auto-Fixed - Sales Whisperer',
+        type: 'custom',
+        data: {
+          subject: 'SUCCESS: Orphaned Users Auto-Fixed - Sales Whisperer',
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <div style="background-color: #f0f9ff; border: 2px solid #10b981; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                <h1 style="color: #059669; margin: 0; display: flex; align-items: center;">
+                  ✅ SUCCESS: Orphaned Users Automatically Fixed
+                </h1>
+              </div>
+              
+              <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+                <h2 style="color: #333; margin-top: 0;">Auto-Fix Summary</h2>
+                <p style="margin: 5px 0;"><strong>Fixed Users:</strong> ${fixResult.length}</p>
+                <p style="margin: 5px 0;"><strong>Fix Time:</strong> ${new Date().toLocaleString()}</p>
+                <p style="margin: 5px 0;"><strong>Method:</strong> Scheduled automatic repair</p>
+              </div>
+
+              <h3 style="color: #333;">Fixed User Accounts:</h3>
+              <ul style="list-style: none; padding: 0;">
+                ${fixResult.map((user: any) => `
+                  <li style="margin-bottom: 10px; padding: 10px; background-color: #f0f9ff; border-left: 3px solid #10b981;">
+                    <strong>Email:</strong> ${user.fixed_email}<br>
+                    <strong>User ID:</strong> ${user.fixed_user_id}
+                  </li>
+                `).join('')}
+              </ul>
+
+              <div style="background-color: #ecfdf5; padding: 15px; border-radius: 5px; border-left: 4px solid #10b981;">
+                <h4 style="color: #047857; margin-top: 0;">Status:</h4>
+                <p style="color: #047857; font-size: 14px; margin: 0;">
+                  All affected users can now upload transcripts and use the platform normally.
+                  The registration failures have been automatically resolved.
+                </p>
+              </div>
+
+              <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+              
+              <p style="color: #999; font-size: 12px; text-align: center;">
+                This success notification was automatically generated by Sales Whisperer monitoring system at ${new Date().toLocaleString()}
+              </p>
+            </div>
+          `
+        }
+      };
+
+      const { error: emailError } = await supabase.functions.invoke('send-email', {
+        body: successEmailData
+      });
+
+      if (emailError) {
+        console.error('Error sending success notification email:', emailError);
+      } else {
+        console.log('Success notification email sent');
+      }
+    }
+
+    return new Response(JSON.stringify({ 
+      success: true,
+      message: 'Scheduled monitoring completed',
+      monitorResult,
+      fixedUsers: fixResult?.length || 0
+    }), {
+      status: 200,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error in scheduled-registration-monitor function:', error);
+    return new Response(JSON.stringify({ 
+      error: error.message,
+      success: false
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+};
+
+serve(handler);

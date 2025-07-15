@@ -11,3 +11,9 @@ verify_jwt = true
 
 [functions.send-email]
 verify_jwt = true
+
+[functions.monitor-registration-failures]
+verify_jwt = false
+
+[functions.scheduled-registration-monitor]
+verify_jwt = false

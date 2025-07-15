@@ -374,6 +374,45 @@ export type Database = {
           },
         ]
       }
+      registration_failures: {
+        Row: {
+          alert_sent: boolean | null
+          alert_sent_at: string | null
+          attempted_at: string | null
+          error_message: string
+          id: string
+          resolution_method: string | null
+          resolved: boolean | null
+          resolved_at: string | null
+          user_email: string
+          user_id: string
+        }
+        Insert: {
+          alert_sent?: boolean | null
+          alert_sent_at?: string | null
+          attempted_at?: string | null
+          error_message: string
+          id?: string
+          resolution_method?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          user_email: string
+          user_id: string
+        }
+        Update: {
+          alert_sent?: boolean | null
+          alert_sent_at?: string | null
+          attempted_at?: string | null
+          error_message?: string
+          id?: string
+          resolution_method?: string | null
+          resolved?: boolean | null
+          resolved_at?: string | null
+          user_email?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_settings: {
         Row: {
           created_at: string | null

@@ -3,6 +3,7 @@ import { Resend } from "npm:resend@2.0.0";
 import React from 'npm:react@18.3.1';
 import { renderAsync } from 'npm:@react-email/components@0.0.22';
 import { InviteEmail } from './_templates/invite-email.tsx';
+import { RegistrationFailureEmail } from './_templates/registration-failure-email.tsx';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,8 +13,8 @@ const corsHeaders = {
 interface EmailRequest {
   to: string | string[];
   subject?: string;
-  template?: 'invite' | 'password-reset' | 'welcome' | 'custom';
-  type?: 'invite' | 'password-reset' | 'welcome' | 'custom';
+  template?: 'invite' | 'password-reset' | 'welcome' | 'custom' | 'registration-failure';
+  type?: 'invite' | 'password-reset' | 'welcome' | 'custom' | 'registration-failure';
   data: Record<string, any>;
   from?: string;
 }
@@ -149,6 +150,20 @@ const handler = async (req: Request): Promise<Response> => {
       
       emailContent = {
         subject: "You're invited to join Sales Whisperer",
+        html
+      };
+    } else if (emailType === 'registration-failure') {
+      const html = await renderAsync(
+        React.createElement(RegistrationFailureEmail, {
+          failures: data.failures,
+          totalCount: data.totalCount,
+          timestamp: data.timestamp,
+          adminDashboardUrl: data.adminDashboardUrl
+        })
+      );
+      
+      emailContent = {
+        subject: `FAILURE: User Registration Issues Detected - Sales Whisperer (${data.totalCount} affected)`,
         html
       };
     } else {
