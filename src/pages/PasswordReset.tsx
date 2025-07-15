@@ -14,6 +14,7 @@ export default function PasswordReset() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isValidatingToken, setIsValidatingToken] = useState(true);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchParams] = useSearchParams();
@@ -21,28 +22,44 @@ export default function PasswordReset() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if we have valid token and email parameters
-    const validateToken = () => {
+    // Secure token validation using database (guide rail implementation)
+    const validateTokenSecurely = async () => {
+      setIsValidatingToken(true);
       const token = searchParams.get('token');
       const email = searchParams.get('email');
       
+      console.log('Starting secure token validation');
+      
       if (!token || !email) {
+        console.error('Missing token or email parameters');
         setIsValidToken(false);
         setError('Invalid reset link. Token or email parameter is missing.');
+        setIsValidatingToken(false);
         return;
       }
       
-      const validation = validateResetToken(token, email);
-      if (!validation.valid) {
+      try {
+        // Use secure database validation (guide rail)
+        const validation = await validateResetToken(token, email);
+        if (!validation.valid) {
+          console.error('Token validation failed:', validation.error);
+          setIsValidToken(false);
+          setError(validation.error || 'Invalid or expired reset token.');
+        } else {
+          console.log('Token validated successfully');
+          setIsValidToken(true);
+          setError(null);
+        }
+      } catch (error) {
+        console.error('Token validation error:', error);
         setIsValidToken(false);
-        setError(validation.error || 'Invalid or expired reset token.');
-        return;
+        setError('Failed to validate reset token. Please try again.');
       }
       
-      setIsValidToken(true);
+      setIsValidatingToken(false);
     };
 
-    validateToken();
+    validateTokenSecurely();
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -71,7 +88,9 @@ export default function PasswordReset() {
     setError(null);
 
     try {
-      // Call the reset-password edge function to update password securely
+      console.log('Updating password via secure edge function');
+      
+      // Call the secure reset-password edge function (guide rail implementation)
       const { data: resetData, error: resetError } = await supabase.functions.invoke('reset-password', {
         body: {
           email,
@@ -80,28 +99,55 @@ export default function PasswordReset() {
         }
       });
 
+      console.log('Password reset response:', { data: resetData, error: resetError });
+
+      // Comprehensive error handling (guide rail)
       if (resetError) {
         console.error('Password update error:', resetError);
-        setError(resetError.message || 'Failed to update password. Please try again.');
+        
+        // Handle specific error types (guide rail)
+        if (resetError.message.includes('rate limit')) {
+          setError('Too many password reset attempts. Please wait before trying again.');
+        } else if (resetError.message.includes('expired')) {
+          setError('Reset token has expired. Please request a new password reset.');
+        } else {
+          setError(resetError.message || 'Failed to update password. Please try again.');
+        }
         return;
       }
 
-      if (!resetData?.success) {
+      // Validate response structure (guide rail)
+      if (!resetData || resetData.error) {
+        console.error('Invalid response from password reset function:', resetData);
+        setError(resetData?.error || 'Failed to update password. Please try again.');
+        return;
+      }
+
+      if (!resetData.success) {
+        console.error('Password update was not successful:', resetData);
         setError('Failed to update password. Please try again.');
         return;
       }
 
-      // Mark token as used
-      markTokenAsUsed(token);
+      console.log('Password updated successfully');
 
+      // Mark token as used (dual cleanup for both database and localStorage)
+      await markTokenAsUsed(token);
+
+      // Success feedback (guide rail)
       toast({
-        title: 'Password Updated',
-        description: 'Your password has been successfully updated. You can now sign in with your new password.',
+        title: 'Password Updated Successfully',
+        description: 'Your password has been securely updated. You can now sign in with your new password.',
       });
       
-      // Redirect to login after a short delay
+      // Secure redirect with cleanup (guide rail)
       setTimeout(() => {
-        navigate('/login');
+        // Clear form data for security
+        setPassword('');
+        setConfirmPassword('');
+        
+        // Navigate to login
+        navigate('/login', { replace: true });
       }, 2000);
 
     } catch (err) {
@@ -116,14 +162,14 @@ export default function PasswordReset() {
     navigate('/login');
   };
 
-  // Loading state while checking token
-  if (isValidToken === null) {
+  // Loading state while securely validating token (guide rail)
+  if (isValidatingToken || isValidToken === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Card className="w-full max-w-md">
           <CardContent className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
-            <span className="ml-2">Validating reset token...</span>
+            <span className="ml-2">Securely validating reset token...</span>
           </CardContent>
         </Card>
       </div>

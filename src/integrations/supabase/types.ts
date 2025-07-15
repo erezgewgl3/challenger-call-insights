@@ -314,6 +314,42 @@ export type Database = {
           },
         ]
       }
+      password_reset_tokens: {
+        Row: {
+          attempts: number | null
+          created_at: string | null
+          email: string
+          expires_at: string
+          id: string
+          ip_address: string | null
+          token_hash: string
+          used_at: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          created_at?: string | null
+          email: string
+          expires_at: string
+          id?: string
+          ip_address?: string | null
+          token_hash: string
+          used_at?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          created_at?: string | null
+          email?: string
+          expires_at?: string
+          id?: string
+          ip_address?: string | null
+          token_hash?: string
+          used_at?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       prompts: {
         Row: {
           activated_at: string | null
@@ -609,6 +645,10 @@ export type Database = {
         Args: { prompt_id_param: string }
         Returns: undefined
       }
+      cleanup_expired_password_reset_tokens: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       fix_orphaned_auth_users: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -637,9 +677,22 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      hash_token: {
+        Args: { token: string }
+        Returns: string
+      }
       mark_users_pending_deletion: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      validate_password_reset_token: {
+        Args: {
+          p_token: string
+          p_email: string
+          p_ip_address?: string
+          p_user_agent?: string
+        }
+        Returns: Json
       }
     }
     Enums: {

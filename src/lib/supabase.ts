@@ -17,7 +17,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 export type AuthUser = Database['public']['Tables']['users']['Row']
 export type InviteToken = Database['public']['Tables']['invites']['Row']
 
-// Auth helper functions
+// Auth helper functions (enhanced with password reset support)
 export const authHelpers = {
   async validateInviteToken(token: string, email: string) {
     try {
@@ -88,6 +88,47 @@ export const authHelpers = {
     } catch (error) {
       console.error('Error marking invite as used:', error)
       return { success: false, error: 'Failed to mark invite as used' }
+    }
+  },
+
+  // Secure password reset token validation (guide rail implementation)
+  async validatePasswordResetToken(token: string, email: string) {
+    try {
+      console.log('Validating password reset token via database');
+      
+      // Get IP and user agent for security tracking
+      const ipAddress = await fetch('https://api.ipify.org?format=text').then(r => r.text()).catch(() => 'unknown');
+      const userAgent = navigator.userAgent;
+      
+      // Use secure database validation function
+      const { data: validationResult, error: validationError } = await supabase.rpc(
+        'validate_password_reset_token', 
+        { 
+          p_token: token, 
+          p_email: email,
+          p_ip_address: ipAddress,
+          p_user_agent: userAgent
+        }
+      );
+      
+      if (validationError) {
+        console.error('Password reset token validation error:', validationError);
+        return { valid: false, error: 'Failed to validate reset token' };
+      }
+      
+      // Type-safe validation result handling
+      const result = validationResult as any;
+      if (!result || !result.valid) {
+        return { 
+          valid: false, 
+          error: result?.error || 'Invalid or expired reset token' 
+        };
+      }
+      
+      return { valid: true, resetId: result.reset_id };
+    } catch (error) {
+      console.error('Password reset token validation error:', error);
+      return { valid: false, error: 'Failed to validate reset token' };
     }
   }
 }

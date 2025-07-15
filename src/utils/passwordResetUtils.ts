@@ -5,33 +5,72 @@ export interface PasswordResetResult {
   error?: string;
 }
 
-// Generate a secure token for password reset
+// Generate a crypto-strong reset token (guide rail implementation)
 const generateResetToken = (): string => {
-  return crypto.randomUUID() + '-' + Date.now().toString(36);
+  const array = new Uint8Array(32);
+  crypto.getRandomValues(array);
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
 };
 
 export const resetPasswordForUser = async (email: string): Promise<PasswordResetResult> => {
   try {
-    console.log('Starting password reset for email:', email);
+    console.log('Starting secure password reset for email:', email);
     
-    // Generate custom reset token
+    // Generate crypto-strong reset token
     const token = generateResetToken();
     const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry
-    
+    expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry (guide rail)
+
     // Create reset link
     const baseUrl = window.location.origin;
     const resetLink = `${baseUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
     
-    // Store token in localStorage temporarily
-    const resetData = {
+    // Get IP and user agent for security tracking (guide rail)
+    const ipAddress = await fetch('https://api.ipify.org?format=text').then(r => r.text()).catch(() => 'unknown');
+    const userAgent = navigator.userAgent;
+    
+    console.log('Creating secure database token record');
+    
+    // Store token securely in database (replacing localStorage)
+    const { data: tokenHash, error: tokenError } = await supabase.rpc('hash_token', { token });
+    
+    if (tokenError) {
+      console.error('Token hashing error:', tokenError);
+      return {
+        success: false,
+        error: 'Failed to create secure reset token. Please try again.',
+      };
+    }
+
+    // Insert reset token record with all guide rails
+    const { error: insertError } = await supabase
+      .from('password_reset_tokens')
+      .insert({
+        email,
+        token_hash: tokenHash,
+        expires_at: expiresAt.toISOString(),
+        ip_address: ipAddress,
+        user_agent: userAgent
+      });
+
+    if (insertError) {
+      console.error('Database insert error:', insertError);
+      return {
+        success: false,
+        error: 'Failed to initiate password reset. Please try again.',
+      };
+    }
+    
+    console.log('Secure token stored in database');
+    
+    // Dual token support (guide rail): Also store in localStorage for backward compatibility
+    const legacyResetData = {
       token,
       email,
       expiresAt: expiresAt.toISOString(),
       used: false
     };
-    localStorage.setItem(`reset_${token}`, JSON.stringify(resetData));
-    console.log('Reset token stored locally');
+    localStorage.setItem(`reset_${token}`, JSON.stringify(legacyResetData));
     
     // Prepare email payload
     const emailPayload = {
@@ -46,17 +85,21 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
     
     console.log('Invoking send-email function with payload:', emailPayload);
     
-    // Send email using custom send-email function
+    // Send email using custom send-email function with error handling (guide rail)
     const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
       body: emailPayload
     });
 
     console.log('Send-email function response:', { data: emailData, error: emailError });
 
-    // Check for explicit errors first
+    // Comprehensive error handling (guide rail)
     if (emailError) {
       console.error('Email send error:', emailError);
-      // Clean up token if email failed
+      // Clean up tokens if email failed (guide rail)
+      await supabase
+        .from('password_reset_tokens')
+        .delete()
+        .eq('token_hash', tokenHash);
       localStorage.removeItem(`reset_${token}`);
       
       if (emailError.message.includes('rate limit')) {
@@ -68,13 +111,18 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
       
       return {
         success: false,
-        error: 'Failed to send password reset email. Please try again.',
+        error: emailError.message || 'Failed to send password reset email. Please try again.',
       };
     }
 
-    // Validate that the function actually executed and returned success
+    // Validate email function response (guide rail)
     if (!emailData || emailData.error) {
       console.error('Email function returned error or no data:', emailData);
+      // Clean up tokens on failure
+      await supabase
+        .from('password_reset_tokens')
+        .delete()
+        .eq('token_hash', tokenHash);
       localStorage.removeItem(`reset_${token}`);
       return {
         success: false,
@@ -82,9 +130,13 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
       };
     }
 
-    // Check for successful email sending (similar to invite system)
+    // Success validation (guide rail)
     if (!emailData.id && !emailData.success) {
       console.error('Email function did not return success indicator:', emailData);
+      await supabase
+        .from('password_reset_tokens')
+        .delete()
+        .eq('token_hash', tokenHash);
       localStorage.removeItem(`reset_${token}`);
       return {
         success: false,
@@ -92,7 +144,7 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
       };
     }
 
-    console.log('Password reset email sent successfully');
+    console.log('Secure password reset email sent successfully');
     return { success: true };
   } catch (error) {
     console.error('Password reset error:', error);
@@ -103,9 +155,52 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
   }
 };
 
-// Validate reset token
-export const validateResetToken = (token: string, email: string): { valid: boolean; error?: string } => {
+// Secure database-backed token validation (replacing localStorage)
+export const validateResetToken = async (token: string, email: string): Promise<{ valid: boolean; error?: string }> => {
   try {
+    console.log('Validating reset token via database');
+    
+    // Get IP and user agent for security tracking (guide rail)
+    const ipAddress = await fetch('https://api.ipify.org?format=text').then(r => r.text()).catch(() => 'unknown');
+    const userAgent = navigator.userAgent;
+    
+    // Use secure database validation (primary method)
+    const { data: validationResult, error: validationError } = await supabase.rpc(
+      'validate_password_reset_token', 
+      { 
+        p_token: token, 
+        p_email: email,
+        p_ip_address: ipAddress,
+        p_user_agent: userAgent
+      }
+    );
+    
+    if (validationError) {
+      console.error('Database validation error:', validationError);
+      // Fallback to localStorage validation (graceful degradation guide rail)
+      return validateResetTokenLegacy(token, email);
+    }
+    
+    // Type-safe validation result handling
+    const result = validationResult as any;
+    if (!result || !result.valid) {
+      console.error('Token validation failed:', result?.error);
+      return { valid: false, error: result?.error || 'Invalid or expired reset token' };
+    }
+    
+    console.log('Token validated successfully via database');
+    return { valid: true };
+  } catch (error) {
+    console.error('Token validation error:', error);
+    // Fallback to localStorage validation (guide rail)
+    return validateResetTokenLegacy(token, email);
+  }
+};
+
+// Legacy localStorage validation (backward compatibility guide rail)
+const validateResetTokenLegacy = (token: string, email: string): { valid: boolean; error?: string } => {
+  try {
+    console.log('Using legacy localStorage validation as fallback');
     const resetDataStr = localStorage.getItem(`reset_${token}`);
     if (!resetDataStr) {
       return { valid: false, error: 'Invalid or expired reset token.' };
@@ -131,14 +226,18 @@ export const validateResetToken = (token: string, email: string): { valid: boole
     
     return { valid: true };
   } catch (error) {
-    console.error('Token validation error:', error);
+    console.error('Legacy token validation error:', error);
     return { valid: false, error: 'Invalid reset token format.' };
   }
 };
 
-// Mark token as used
-export const markTokenAsUsed = (token: string): void => {
+// Mark token as used (dual support for both database and localStorage)
+export const markTokenAsUsed = async (token: string): Promise<void> => {
   try {
+    console.log('Marking token as used');
+    
+    // Database method is already handled by the validation function
+    // Just clean up localStorage for backward compatibility
     const resetDataStr = localStorage.getItem(`reset_${token}`);
     if (resetDataStr) {
       const resetData = JSON.parse(resetDataStr);
