@@ -264,7 +264,7 @@ export function LoginForm() {
             <EmailField value={email} onChange={setEmail} />
             <PasswordField label="Password" value={password} onChange={setPassword} />
 
-            <AuthButton loading={loading} loadingText="Accessing Platform..." className="w-full h-12 text-lg font-semibold">
+            <AuthButton loading={loading} loadingText="Accessing Platform..." className="w-full h-12 text-lg font-semibold hover:shadow-xl hover:shadow-blue-500/25 hover:bg-blue-700 transform hover:scale-[1.02] transition-all duration-200 ease-out">
               Access My Sales Intelligence
             </AuthButton>
 
