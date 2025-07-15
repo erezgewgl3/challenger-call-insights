@@ -157,8 +157,10 @@ export function LoginForm() {
         
         <div className="relative z-10">
           <div className="mb-4">
-            <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-sm font-medium mb-3">
-              🏆 Invite-Only Platform
+            <div className="flex justify-center mb-3">
+              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-sm font-medium">
+                🏆 Invite-Only Platform
+              </div>
             </div>
             <h1 className="text-2xl xl:text-3xl font-bold mb-2 leading-tight">
               Transform Every Call Into 
@@ -259,6 +261,12 @@ export function LoginForm() {
                 Email support@saleswhisperer.com
               </a>{" "}
               to request exclusive access
+            </p>
+            <p className="text-xs text-slate-500 mb-2">
+              Have an invite?{" "}
+              <a href="/register" className="text-blue-600 hover:underline">
+                Register here
+              </a>
             </p>
             <p className="text-xs text-slate-400">
               This platform is invite-only for serious sales professionals
