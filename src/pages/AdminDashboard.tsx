@@ -88,8 +88,6 @@ export default function AdminDashboard() {
                 status={systemMetrics?.systemStatus || 'healthy'}
               />
 
-              {/* Registration Health Card */}
-              <RegistrationFailuresCard />
             </div>
 
             {/* Interactive Charts Grid */}
