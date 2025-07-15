@@ -206,10 +206,16 @@ export function LoginForm() {
           </form>
 
           <div className="mt-8 text-center">
-            <p className="text-sm text-slate-500">
-              Want access?{" "}
+            <p className="text-sm text-slate-500 mb-3">
+              Want exclusive access?{" "}
               <a href="mailto:support@saleswhisperer.com" className="text-blue-600 hover:underline">
                 Email support@saleswhisperer.com
+              </a>
+            </p>
+            <p className="text-xs text-slate-400">
+              Have an invite?{" "}
+              <a href="/register" className="text-blue-600 hover:underline">
+                Register here
               </a>
             </p>
           </div>
