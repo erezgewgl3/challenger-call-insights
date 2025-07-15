@@ -147,87 +147,34 @@ export function LoginForm() {
 
   return (
     <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex overflow-hidden">
-      {/* Left Side - Value Proposition */}
-      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 flex-col justify-center px-6 xl:px-8 bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 text-white relative overflow-hidden">
+      {/* Left Side - Simplified Value Proposition */}
+      <div className="hidden lg:flex lg:w-1/2 xl:w-3/5 flex-col justify-center items-center px-12 xl:px-16 bg-gradient-to-br from-blue-900 via-indigo-900 to-slate-900 text-white relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500 rounded-full blur-3xl"></div>
           <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-indigo-500 rounded-full blur-3xl"></div>
         </div>
         
-        <div className="relative z-10">
-          <div className="mb-4">
-            <div className="flex justify-center mb-3">
-              <div className="inline-flex items-center px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-sm font-medium">
-                🏆 Invite-Only Platform
-              </div>
-            </div>
-            <h1 className="text-2xl xl:text-3xl font-bold mb-2 leading-tight">
-              Transform Every Call Into 
-              <span className="bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent"> Closed Deals</span>
-            </h1>
-            <p className="text-base text-blue-100 mb-3 leading-relaxed">
-              AI-powered sales coaching for high-performing teams
-            </p>
-          </div>
-
-          <div className="space-y-2 mb-4">
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-5 h-5 bg-green-500/20 rounded-lg flex items-center justify-center mt-0.5">
-                <svg className="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">Get AI coaching after every sales conversation</h3>
-                <p className="text-xs text-blue-200">Instant feedback using proven sales methodologies</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3">
-              <div className="flex-shrink-0 w-5 h-5 bg-green-500/20 rounded-lg flex items-center justify-center mt-0.5">
-                <svg className="w-3 h-3 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <div>
-                <h3 className="text-sm font-semibold text-white">Transform insights into winning follow-up strategies</h3>
-                <p className="text-xs text-blue-200">AI-generated next steps that actually close deals</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3 text-xs text-blue-200">
-            <div className="flex items-center space-x-1">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 616 0z" clipRule="evenodd" />
-              </svg>
-              <span>Enterprise Security</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Challenger Sales Methodology</span>
-            </div>
-            <div className="flex items-center space-x-1">
-              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Powered by OpenAI & Claude</span>
-            </div>
-          </div>
+        <div className="relative z-10 text-center max-w-lg">
+          <h1 className="text-4xl xl:text-5xl font-light mb-8 leading-tight text-white">
+            Transform Every Call Into Closed Deals
+          </h1>
+          <p className="text-xl xl:text-2xl text-blue-100 font-light">
+            AI-powered sales coaching
+          </p>
         </div>
       </div>
 
-      {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-4">
-        <AuthContainer
-          title="Access Your Sales Intelligence"
-          description="Welcome to your command center for closing more deals"
-          header={<LoginHeader />}
-        >
-          <form onSubmit={handleLogin} className="space-y-3">
+      {/* Right Side - Minimal Form */}
+      <div className="w-full lg:w-1/2 xl:w-2/5 flex items-center justify-center p-8">
+        <div className="w-full max-w-sm">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-2">
+              Access Your Sales Intelligence
+            </h2>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -238,11 +185,15 @@ export function LoginForm() {
             <EmailField value={email} onChange={setEmail} />
             <PasswordField label="Password" value={password} onChange={setPassword} />
 
-            <AuthButton loading={loading} loadingText="Accessing Platform..." className="w-full h-11 text-base font-semibold hover:shadow-xl hover:shadow-blue-500/25 hover:bg-blue-700 transform hover:scale-[1.02] transition-all duration-200 ease-out">
+            <AuthButton 
+              loading={loading} 
+              loadingText="Accessing Platform..." 
+              className="w-full h-12 text-base font-medium hover:shadow-lg transition-all duration-200"
+            >
               Access My Sales Intelligence
             </AuthButton>
 
-            <div className="text-center pt-2">
+            <div className="text-center pt-4">
               <button 
                 type="button"
                 onClick={handlePasswordReset}
@@ -254,31 +205,15 @@ export function LoginForm() {
             </div>
           </form>
 
-          <div className="mt-4 text-center">
-            <p className="text-xs text-slate-500 mb-2">
-              Want access to Sales Whisperer?{" "}
+          <div className="mt-8 text-center">
+            <p className="text-sm text-slate-500">
+              Want access?{" "}
               <a href="mailto:support@saleswhisperer.com" className="text-blue-600 hover:underline">
                 Email support@saleswhisperer.com
-              </a>{" "}
-              to request exclusive access
-            </p>
-            <p className="text-xs text-slate-500 mb-2">
-              Have an invite?{" "}
-              <a href="/register" className="text-blue-600 hover:underline">
-                Register here
               </a>
             </p>
-            <p className="text-xs text-slate-400">
-              This platform is invite-only for serious sales professionals
-            </p>
           </div>
-
-          <div className="text-center mt-3">
-            <a href="/" className="text-xs text-slate-500 hover:text-slate-700 transition-colors">
-              ← Back to Home
-            </a>
-          </div>
-        </AuthContainer>
+        </div>
       </div>
     </div>
   )
