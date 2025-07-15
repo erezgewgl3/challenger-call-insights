@@ -12,6 +12,12 @@ interface AnalyticsCardProps {
   isLoading?: boolean;
   trend?: 'up' | 'down' | 'neutral';
   status?: 'healthy' | 'warning' | 'error';
+  secondaryMetrics?: Array<{
+    label: string;
+    value: string | number;
+    icon?: React.ComponentType<{ className?: string }>;
+    color?: string;
+  }>;
 }
 
 export const AnalyticsCard: React.FC<AnalyticsCardProps> = ({
@@ -21,7 +27,8 @@ export const AnalyticsCard: React.FC<AnalyticsCardProps> = ({
   icon: Icon,
   isLoading = false,
   trend,
-  status
+  status,
+  secondaryMetrics
 }) => {
   const getTrendIcon = () => {
     switch (trend) {
@@ -75,6 +82,23 @@ export const AnalyticsCard: React.FC<AnalyticsCardProps> = ({
             </div>
           )}
         </div>
+        
+        {/* Secondary Metrics */}
+        {secondaryMetrics && secondaryMetrics.length > 0 && (
+          <div className="mt-4 space-y-2">
+            {secondaryMetrics.map((metric, index) => (
+              <div key={index} className="flex items-center justify-between text-sm">
+                <div className="flex items-center space-x-2">
+                  {metric.icon && <metric.icon className={`h-3 w-3 ${metric.color || 'text-muted-foreground'}`} />}
+                  <span className="text-muted-foreground">{metric.label}</span>
+                </div>
+                <span className={`font-medium ${metric.color || 'text-foreground'}`}>
+                  {typeof metric.value === 'number' ? metric.value.toLocaleString() : metric.value}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
