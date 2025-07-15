@@ -12,6 +12,8 @@ const generateResetToken = (): string => {
 
 export const resetPasswordForUser = async (email: string): Promise<PasswordResetResult> => {
   try {
+    console.log('Starting password reset for email:', email);
+    
     // Generate custom reset token
     const token = generateResetToken();
     const expiresAt = new Date();
@@ -21,7 +23,7 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
     const baseUrl = window.location.origin;
     const resetLink = `${baseUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
     
-    // Store token in localStorage temporarily (could be improved with database storage)
+    // Store token in localStorage temporarily
     const resetData = {
       token,
       email,
@@ -29,20 +31,29 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
       used: false
     };
     localStorage.setItem(`reset_${token}`, JSON.stringify(resetData));
+    console.log('Reset token stored locally');
+    
+    // Prepare email payload
+    const emailPayload = {
+      type: 'password-reset',
+      to: email,
+      data: {
+        email,
+        resetLink,
+        expiresIn: '1 hour'
+      }
+    };
+    
+    console.log('Invoking send-email function with payload:', emailPayload);
     
     // Send email using custom send-email function
-    const { error: emailError } = await supabase.functions.invoke('send-email', {
-      body: {
-        type: 'password-reset',
-        to: email,
-        data: {
-          email,
-          resetLink,
-          expiresIn: '1 hour'
-        }
-      }
+    const { data: emailData, error: emailError } = await supabase.functions.invoke('send-email', {
+      body: emailPayload
     });
 
+    console.log('Send-email function response:', { data: emailData, error: emailError });
+
+    // Check for explicit errors first
     if (emailError) {
       console.error('Email send error:', emailError);
       // Clean up token if email failed
@@ -61,6 +72,27 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
       };
     }
 
+    // Validate that the function actually executed and returned success
+    if (!emailData || emailData.error) {
+      console.error('Email function returned error or no data:', emailData);
+      localStorage.removeItem(`reset_${token}`);
+      return {
+        success: false,
+        error: emailData?.error || 'Failed to send password reset email. Please try again.',
+      };
+    }
+
+    // Check for successful email sending (similar to invite system)
+    if (!emailData.id && !emailData.success) {
+      console.error('Email function did not return success indicator:', emailData);
+      localStorage.removeItem(`reset_${token}`);
+      return {
+        success: false,
+        error: 'Failed to send password reset email. Please try again.',
+      };
+    }
+
+    console.log('Password reset email sent successfully');
     return { success: true };
   } catch (error) {
     console.error('Password reset error:', error);
