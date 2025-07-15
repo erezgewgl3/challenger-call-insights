@@ -8,7 +8,7 @@ export interface PasswordResetResult {
 export const resetPasswordForUser = async (email: string): Promise<PasswordResetResult> => {
   try {
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/`,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     if (error) {

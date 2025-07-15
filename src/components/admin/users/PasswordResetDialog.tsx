@@ -36,8 +36,8 @@ export function PasswordResetDialog({
               <span className="font-medium text-foreground">{userEmail}</span>?
             </p>
             <p className="text-sm text-muted-foreground">
-              This will send a password reset email to the user. They will need to check their email 
-              and follow the instructions to set a new password.
+              This will send a password reset email to the user. They will receive a secure link 
+              that will take them to a password reset page where they can set their new password.
             </p>
           </AlertDialogDescription>
         </AlertDialogHeader>

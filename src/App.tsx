@@ -17,6 +17,7 @@ import UserManagement from "./pages/admin/UserManagement";
 import GDPRCompliance from "./pages/admin/GDPRCompliance";
 import NotFound from "./pages/NotFound";
 import TranscriptAnalysis from "./pages/TranscriptAnalysis";
+import PasswordReset from "./pages/PasswordReset";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ function App() {
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<LoginForm />} />
               <Route path="/register" element={<RegisterForm />} />
+              <Route path="/reset-password" element={<PasswordReset />} />
               <Route path="/dashboard" element={
                 <AuthGuard>
                   <SmartDashboard />
