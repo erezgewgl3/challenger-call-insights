@@ -25,7 +25,7 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from '@/components/ui/pagination';
-import { Users, Shield, Clock, UserPlus, Search, MoreHorizontal, Eye, UserCog, Download, X, Trash2, RotateCcw } from 'lucide-react';
+import { Users, Shield, Clock, UserPlus, Search, MoreHorizontal, Eye, UserCog, Download, X, Trash2, RotateCcw, Key } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -36,6 +36,8 @@ import { UserDeletionDialog } from '../gdpr/UserDeletionDialog';
 import { BulkUserDeletionDialog } from '../gdpr/BulkUserDeletionDialog';
 import { PermanentDeletionDialog } from './PermanentDeletionDialog';
 import { BulkPermanentDeletionDialog } from './BulkPermanentDeletionDialog';
+import { PasswordResetDialog } from './PasswordResetDialog';
+import { resetPasswordForUser } from '@/utils/passwordResetUtils';
 
 interface UserWithCounts {
   id: string;
@@ -116,6 +118,13 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
     isOpen: boolean;
     users: UserWithCounts[];
   }>({ isOpen: false, users: [] });
+
+  // Password reset dialog state
+  const [passwordResetDialog, setPasswordResetDialog] = useState<{
+    isOpen: boolean;
+    user?: UserWithCounts;
+  }>({ isOpen: false });
+  const [isPasswordResetLoading, setIsPasswordResetLoading] = useState(false);
 
   const usersPerPage = 20;
 
@@ -510,6 +519,57 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
     }
   });
 
+  // Password reset handler
+  const handlePasswordReset = (user: UserWithCounts) => {
+    // Prevent admin from resetting their own password through this flow
+    if (currentUser?.id === user.id) {
+      toast({
+        title: "Cannot Reset Own Password",
+        description: "Please use the standard password reset flow for your own account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPasswordResetDialog({
+      isOpen: true,
+      user
+    });
+  };
+
+  const confirmPasswordReset = async () => {
+    if (!passwordResetDialog.user) return;
+    
+    setIsPasswordResetLoading(true);
+    
+    try {
+      const result = await resetPasswordForUser(passwordResetDialog.user.email);
+      
+      if (result.success) {
+        toast({
+          title: "Password Reset Sent",
+          description: `Password reset email sent to ${passwordResetDialog.user.email}`,
+        });
+        setPasswordResetDialog({ isOpen: false });
+      } else {
+        toast({
+          title: "Error",
+          description: result.error || "Failed to send password reset email",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error('Error sending password reset:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send password reset email. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsPasswordResetLoading(false);
+    }
+  };
+
   const handleBulkRestore = () => {
     if (selectedUsers.length === 0) {
       toast({
@@ -794,6 +854,15 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
         }}
         users={bulkPermanentDeletionDialog.users}
       />
+
+      {/* Password Reset Dialog */}
+      <PasswordResetDialog
+        isOpen={passwordResetDialog.isOpen}
+        onClose={() => setPasswordResetDialog({ isOpen: false })}
+        onConfirm={confirmPasswordReset}
+        userEmail={passwordResetDialog.user?.email || ''}
+        isLoading={isPasswordResetLoading}
+      />
     </div>
   );
 
@@ -1014,6 +1083,11 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
                             </DropdownMenuItem>
                             {tabType === 'active' && (
                               <>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => handlePasswordReset(user)}>
+                                  <Key className="mr-2 h-4 w-4" />
+                                  Reset Password
+                                </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   onClick={() => handleRoleChange(user, user.role === 'admin' ? 'sales_user' : 'admin')}
