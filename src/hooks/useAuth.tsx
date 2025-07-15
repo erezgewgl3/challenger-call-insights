@@ -122,6 +122,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(session)
 
     if (session?.user) {
+      // Update last_login timestamp for this user
+      setTimeout(() => {
+        updateLastLogin(session.user.id)
+      }, 0)
+
       // Set user with default role immediately
       const userWithDefaultRole: AuthUser = {
         ...session.user,
@@ -138,6 +143,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     setLoading(false)
+  }
+
+  // Update last_login timestamp for the user
+  const updateLastLogin = async (userId: string) => {
+    try {
+      await supabase
+        .from('users')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userId)
+    } catch (error) {
+      console.error('Failed to update last_login:', error)
+    }
   }
 
   useEffect(() => {

@@ -45,7 +45,7 @@ interface UserWithCounts {
   role: 'sales_user' | 'admin';
   status?: 'active' | 'pending_deletion' | 'deleted';
   created_at: string;
-  last_activity?: string;
+  last_login?: string;
   transcript_count: number;
   account_count: number;
   deletion_requested_at?: string;
@@ -138,35 +138,17 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
           *,
           transcript_count:transcripts(count),
           account_count:accounts(count),
-          deletion_requests!deletion_requests_user_id_fkey(created_at),
-          last_transcript:transcripts(created_at),
-          last_account:accounts(created_at)
+          deletion_requests!deletion_requests_user_id_fkey(created_at)
         `)
         .order('created_at', { ascending: false });
       
       if (error) throw error;
       
       return data.map(user => {
-        // Calculate last activity from transcripts and accounts
-        const lastTranscriptActivity = user.last_transcript?.[0]?.created_at;
-        const lastAccountActivity = user.last_account?.[0]?.created_at;
-        
-        let lastActivity = null;
-        if (lastTranscriptActivity && lastAccountActivity) {
-          lastActivity = new Date(lastTranscriptActivity) > new Date(lastAccountActivity) 
-            ? lastTranscriptActivity 
-            : lastAccountActivity;
-        } else if (lastTranscriptActivity) {
-          lastActivity = lastTranscriptActivity;
-        } else if (lastAccountActivity) {
-          lastActivity = lastAccountActivity;
-        }
-        
         return {
           ...user,
           transcript_count: user.transcript_count?.[0]?.count || 0,
           account_count: user.account_count?.[0]?.count || 0,
-          last_activity: lastActivity,
           deletion_requested_at: user.deletion_requests && user.deletion_requests.length > 0 
             ? user.deletion_requests[0].created_at 
             : null
@@ -227,7 +209,7 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
       
       const emailMatch = user.email.toLowerCase().includes(searchEmail.toLowerCase());
       const roleMatch = roleFilter === 'all' || user.role === roleFilter;
-      const statusMatch = statusFilter === 'all' || getUserStatus(user.last_activity).status === statusFilter;
+      const statusMatch = statusFilter === 'all' || getUserStatus(user.last_login).status === statusFilter;
       
       return tabMatch && emailMatch && roleMatch && statusMatch;
     });
@@ -250,12 +232,12 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
     const activeUsers = users.filter(u => {
       if (u.status === 'pending_deletion' || u.status === 'deleted') return false;
       
-      if (!u.last_activity) return false;
+      if (!u.last_login) return false;
       
-      const lastActivityDate = new Date(u.last_activity);
-      const daysSinceActivity = (Date.now() - lastActivityDate.getTime()) / (1000 * 60 * 60 * 24);
+      const lastLoginDate = new Date(u.last_login);
+      const daysSinceLogin = (Date.now() - lastLoginDate.getTime()) / (1000 * 60 * 60 * 24);
       
-      return daysSinceActivity <= 14;
+      return daysSinceLogin <= 14;
     }).length;
     
     return {
@@ -1002,7 +984,7 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
               </TableHeader>
               <TableBody>
                 {paginatedUsers.map((user) => {
-                  const status = getUserStatus(user.last_activity);
+                  const status = getUserStatus(user.last_login);
                   const isPendingDeletion = user.status === 'pending_deletion';
                   
                   return (
@@ -1050,15 +1032,15 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
                           {status.label}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        {user.last_activity ? (
-                          <div className="text-sm">
-                            {formatDistanceToNow(new Date(user.last_activity), { addSuffix: true })}
-                          </div>
-                        ) : (
-                          <div className="text-sm text-muted-foreground">Never</div>
-                        )}
-                      </TableCell>
+                       <TableCell>
+                         {user.last_login ? (
+                           <div className="text-sm">
+                             {formatDistanceToNow(new Date(user.last_login), { addSuffix: true })}
+                           </div>
+                         ) : (
+                           <div className="text-sm text-muted-foreground">Never</div>
+                         )}
+                       </TableCell>
                       <TableCell>
                         <div className="text-sm text-muted-foreground">
                           {user.transcript_count} transcripts, {user.account_count} accounts
