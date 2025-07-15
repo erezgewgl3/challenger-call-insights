@@ -7,7 +7,6 @@ import { UsersOverview } from '@/components/admin/users/UsersOverview';
 import { InviteManagement } from '@/components/admin/users/InviteManagement';
 import { AdvancedAnalytics } from '@/components/admin/analytics/AdvancedAnalytics';
 import UsageAnalytics from '@/components/admin/analytics/UsageAnalytics';
-import { EmailTestComponent } from '@/components/admin/EmailTestComponent';
 import { Shield, BarChart3 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -30,7 +29,6 @@ export default function UserManagement() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <EmailTestComponent />
             <Link to="/admin/gdpr-compliance">
               <Button variant="outline" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
