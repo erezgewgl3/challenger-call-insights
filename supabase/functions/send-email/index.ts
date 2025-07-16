@@ -22,6 +22,7 @@ interface EmailRequest {
 interface EmailTemplate {
   subject: string;
   html: string;
+  text: string;
 }
 
 const emailTemplates: Record<string, (data: Record<string, any>) => EmailTemplate> = {
@@ -43,7 +44,24 @@ const emailTemplates: Record<string, (data: Record<string, any>) => EmailTemplat
         <p>If you have any questions, please don't hesitate to reach out to our support team.</p>
         <p>Best regards,<br>The Sales Whisperer Team</p>
       </div>
-    `
+    `,
+    text: `
+WELCOME TO SALES WHISPERER
+
+Hi there,
+
+You've been invited to join Sales Whisperer, the AI-powered sales coaching platform.
+
+To create your account, please visit the following link:
+${data.inviteLink}
+
+This invitation will expire on ${new Date(data.expiresAt).toLocaleDateString()}.
+
+If you have any questions, please don't hesitate to reach out to our support team.
+
+Best regards,
+The Sales Whisperer Team
+    `.trim()
   }),
 
   'password-reset': (data) => ({
@@ -64,7 +82,24 @@ const emailTemplates: Record<string, (data: Record<string, any>) => EmailTemplat
         <p>If you didn't request this password reset, please ignore this email.</p>
         <p>Best regards,<br>The Sales Whisperer Team</p>
       </div>
-    `
+    `,
+    text: `
+PASSWORD RESET
+
+Hi ${data.name || 'there'},
+
+We received a request to reset your password for your Sales Whisperer account.
+
+To reset your password, please visit the following link:
+${data.resetLink}
+
+This link will expire in ${data.expiresIn || '1 hour'}.
+
+If you didn't request this password reset, please ignore this email.
+
+Best regards,
+The Sales Whisperer Team
+    `.trim()
   }),
 
   welcome: (data) => ({
@@ -89,12 +124,33 @@ const emailTemplates: Record<string, (data: Record<string, any>) => EmailTemplat
         <p>If you have any questions or need help getting started, our support team is here to help.</p>
         <p>Best regards,<br>The Sales Whisperer Team</p>
       </div>
-    `
+    `,
+    text: `
+WELCOME TO SALES WHISPERER!
+
+Hi ${data.name || 'there'},
+
+Welcome to Sales Whisperer! We're excited to help you transform your sales conversations with AI-powered insights.
+
+GETTING STARTED:
+
+1. Upload your first transcript - Start by uploading a sales call transcript
+2. Get AI insights - Our AI will analyze your call using the Challenger Sales methodology  
+3. Improve your approach - Use the guidance to enhance your sales performance
+
+Visit your dashboard: ${data.dashboardLink || 'https://saleswhisperer.com/dashboard'}
+
+If you have any questions or need help getting started, our support team is here to help.
+
+Best regards,
+The Sales Whisperer Team
+    `.trim()
   }),
 
   custom: (data) => ({
     subject: data.subject || "Message from Sales Whisperer",
-    html: data.html || data.message || "<p>Custom message content</p>"
+    html: data.html || data.message || "<p>Custom message content</p>",
+    text: data.text || data.message || "Custom message content"
   })
 };
 
@@ -148,9 +204,28 @@ const handler = async (req: Request): Promise<Response> => {
         })
       );
       
+      const text = `
+WELCOME TO SALES WHISPERER
+
+Hi there,
+
+You've been invited to join Sales Whisperer, the AI-powered sales coaching platform.
+
+To create your account, please visit the following link:
+${data.inviteLink}
+
+This invitation will expire on ${new Date(data.expiresAt).toLocaleDateString()}.
+
+If you have any questions, please don't hesitate to reach out to our support team.
+
+Best regards,
+The Sales Whisperer Team
+      `.trim();
+      
       emailContent = {
         subject: "You're invited to join Sales Whisperer",
-        html
+        html,
+        text
       };
     } else if (emailType === 'registration-failure') {
       const html = await renderAsync(
@@ -162,9 +237,23 @@ const handler = async (req: Request): Promise<Response> => {
         })
       );
       
+      const text = `
+SALES WHISPERER - REGISTRATION FAILURE ALERT
+
+${data.totalCount} user registration failure(s) detected at ${data.timestamp}.
+
+Recent failures:
+${data.failures.map((f: any) => `- ${f.user_email}: ${f.error_message}`).join('\n')}
+
+Please review these issues in the admin dashboard: ${data.adminDashboardUrl}
+
+Sales Whisperer Admin System
+      `.trim();
+      
       emailContent = {
         subject: `FAILURE: User Registration Issues Detected - Sales Whisperer (${data.totalCount} affected)`,
-        html
+        html,
+        text
       };
     } else {
       // Use legacy templates for other types
@@ -201,6 +290,7 @@ const handler = async (req: Request): Promise<Response> => {
       to: Array.isArray(to) ? to : [to],
       subject: emailSubject,
       html: emailContent.html,
+      text: emailContent.text,
     };
 
     console.log("Sending email with Resend:", { 
