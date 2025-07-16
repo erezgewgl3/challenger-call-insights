@@ -267,6 +267,165 @@ export type Database = {
           },
         ]
       }
+      integration_configs: {
+        Row: {
+          config_key: string
+          config_value: Json
+          created_at: string
+          id: string
+          integration_type: string
+          is_encrypted: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          config_key: string
+          config_value?: Json
+          created_at?: string
+          id?: string
+          integration_type: string
+          is_encrypted?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          config_key?: string
+          config_value?: Json
+          created_at?: string
+          id?: string
+          integration_type?: string
+          is_encrypted?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      integration_connections: {
+        Row: {
+          configuration: Json
+          connection_name: string
+          connection_status: string
+          created_at: string
+          credentials: Json
+          id: string
+          integration_type: string
+          last_sync_at: string | null
+          sync_frequency_minutes: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          configuration?: Json
+          connection_name: string
+          connection_status?: string
+          created_at?: string
+          credentials?: Json
+          id?: string
+          integration_type: string
+          last_sync_at?: string | null
+          sync_frequency_minutes?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          configuration?: Json
+          connection_name?: string
+          connection_status?: string
+          created_at?: string
+          credentials?: Json
+          id?: string
+          integration_type?: string
+          last_sync_at?: string | null
+          sync_frequency_minutes?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      integration_sync_operations: {
+        Row: {
+          completed_at: string | null
+          connection_id: string
+          created_at: string
+          error_details: Json | null
+          id: string
+          operation_data: Json
+          operation_status: string
+          operation_type: string
+          progress_percentage: number | null
+          records_processed: number | null
+          records_total: number | null
+          started_at: string | null
+        }
+        Insert: {
+          completed_at?: string | null
+          connection_id: string
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          operation_data?: Json
+          operation_status?: string
+          operation_type: string
+          progress_percentage?: number | null
+          records_processed?: number | null
+          records_total?: number | null
+          started_at?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          connection_id?: string
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          operation_data?: Json
+          operation_status?: string
+          operation_type?: string
+          progress_percentage?: number | null
+          records_processed?: number | null
+          records_total?: number | null
+          started_at?: string | null
+        }
+        Relationships: []
+      }
+      integration_webhook_logs: {
+        Row: {
+          connection_id: string
+          created_at: string
+          error_message: string | null
+          headers: Json
+          id: string
+          payload: Json
+          processed_at: string | null
+          processing_status: string
+          retry_count: number
+          webhook_event: string
+        }
+        Insert: {
+          connection_id: string
+          created_at?: string
+          error_message?: string | null
+          headers?: Json
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          processing_status?: string
+          retry_count?: number
+          webhook_event: string
+        }
+        Update: {
+          connection_id?: string
+          created_at?: string
+          error_message?: string | null
+          headers?: Json
+          id?: string
+          payload?: Json
+          processed_at?: string | null
+          processing_status?: string
+          retry_count?: number
+          webhook_event?: string
+        }
+        Relationships: []
+      }
       invites: {
         Row: {
           created_at: string | null
