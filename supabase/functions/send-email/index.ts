@@ -116,7 +116,7 @@ The Sales Whisperer Team
           <li><strong>Improve your approach</strong> - Use the guidance to enhance your sales performance</li>
         </ol>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.dashboardLink || '#'}" 
+          <a href="${data.dashboardLink || 'https://app.saleswhisperer.net/dashboard'}" 
              style="background-color: #16a34a; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
             Go to Dashboard
           </a>
@@ -138,7 +138,7 @@ GETTING STARTED:
 2. Get AI insights - Our AI will analyze your call using the Challenger Sales methodology  
 3. Improve your approach - Use the guidance to enhance your sales performance
 
-Visit your dashboard: ${data.dashboardLink || 'https://saleswhisperer.com/dashboard'}
+Visit your dashboard: ${data.dashboardLink || 'https://app.saleswhisperer.net/dashboard'}
 
 If you have any questions or need help getting started, our support team is here to help.
 
