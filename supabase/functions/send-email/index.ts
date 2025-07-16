@@ -4,6 +4,10 @@ import React from 'npm:react@18.3.1';
 import { renderAsync } from 'npm:@react-email/components@0.0.22';
 import { InviteEmail } from './_templates/invite-email.tsx';
 import { RegistrationFailureEmail } from './_templates/registration-failure-email.tsx';
+import { IntegrationConnectedEmail } from './_templates/integration-connected-email.tsx';
+import { IntegrationFailedEmail } from './_templates/integration-failed-email.tsx';
+import { IntegrationErrorEmail } from './_templates/integration-error-email.tsx';
+import { IntegrationTipsEmail } from './_templates/integration-tips-email.tsx';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,8 +17,8 @@ const corsHeaders = {
 interface EmailRequest {
   to: string | string[];
   subject?: string;
-  template?: 'invite' | 'password-reset' | 'welcome' | 'custom' | 'registration-failure';
-  type?: 'invite' | 'password-reset' | 'welcome' | 'custom' | 'registration-failure';
+  template?: 'invite' | 'password-reset' | 'welcome' | 'custom' | 'registration-failure' | 'integration-connected' | 'integration-failed' | 'integration-error' | 'integration-tips';
+  type?: 'invite' | 'password-reset' | 'welcome' | 'custom' | 'registration-failure' | 'integration-connected' | 'integration-failed' | 'integration-error' | 'integration-tips';
   data: Record<string, any>;
   from?: string;
 }
@@ -255,13 +259,84 @@ Sales Whisperer Admin System
         html,
         text
       };
+    } else if (emailType === 'integration-connected') {
+      const html = await renderAsync(
+        React.createElement(IntegrationConnectedEmail, {
+          integrationName: data.integrationName,
+          integrationIcon: data.integrationIcon,
+          userEmail: data.userEmail,
+          features: data.features || [],
+          dashboardUrl: data.dashboardUrl,
+          connectedAt: data.connectedAt
+        })
+      );
+      
+      emailContent = {
+        subject: `✅ ${data.integrationName} Integration Connected`,
+        html,
+        text: `✅ ${data.integrationName} Integration Connected\n\nYour ${data.integrationName} integration is now active and ready to use!\n\nConnected: ${new Date(data.connectedAt).toLocaleString()}\nAccount: ${data.userEmail}\n\nGo to your dashboard: ${data.dashboardUrl || 'https://app.saleswhisperer.net/dashboard'}\n\nSales Whisperer Team`
+      };
+    } else if (emailType === 'integration-failed') {
+      const html = await renderAsync(
+        React.createElement(IntegrationFailedEmail, {
+          integrationName: data.integrationName,
+          integrationIcon: data.integrationIcon,
+          userEmail: data.userEmail,
+          errorMessage: data.errorMessage,
+          troubleshootingUrl: data.troubleshootingUrl,
+          supportUrl: data.supportUrl,
+          attemptedAt: data.attemptedAt
+        })
+      );
+      
+      emailContent = {
+        subject: `❌ ${data.integrationName} Integration Failed`,
+        html,
+        text: `❌ ${data.integrationName} Integration Connection Failed\n\nAttempt Time: ${new Date(data.attemptedAt).toLocaleString()}\nAccount: ${data.userEmail}\nError: ${data.errorMessage}\n\nPlease check your account permissions and try again.\n\nTroubleshooting: ${data.troubleshootingUrl || 'https://saleswhisperer.net/help/integrations'}\n\nSales Whisperer Team`
+      };
+    } else if (emailType === 'integration-error') {
+      const html = await renderAsync(
+        React.createElement(IntegrationErrorEmail, {
+          integrationName: data.integrationName,
+          integrationIcon: data.integrationIcon,
+          userEmail: data.userEmail,
+          errorType: data.errorType,
+          errorMessage: data.errorMessage,
+          errorDetails: data.errorDetails,
+          dashboardUrl: data.dashboardUrl,
+          occurredAt: data.occurredAt
+        })
+      );
+      
+      emailContent = {
+        subject: `⚠️ ${data.integrationName} Integration Error`,
+        html,
+        text: `⚠️ ${data.integrationName} Integration Error\n\nError Type: ${data.errorType}\nTime: ${new Date(data.occurredAt).toLocaleString()}\nAccount: ${data.userEmail}\nError: ${data.errorMessage}\n\nCheck your dashboard: ${data.dashboardUrl || 'https://app.saleswhisperer.net/dashboard'}\n\nSales Whisperer Team`
+      };
+    } else if (emailType === 'integration-tips') {
+      const html = await renderAsync(
+        React.createElement(IntegrationTipsEmail, {
+          userEmail: data.userEmail,
+          integrationName: data.integrationName,
+          integrationIcon: data.integrationIcon,
+          tips: data.tips || [],
+          dashboardUrl: data.dashboardUrl,
+          helpUrl: data.helpUrl
+        })
+      );
+      
+      emailContent = {
+        subject: `💡 Tips to maximize your ${data.integrationName || 'integration'}`,
+        html,
+        text: `💡 Integration Pro Tips\n\nHi there!\n\nHere are some expert tips to help you maximize your ${data.integrationName || 'integration'} results:\n\n${data.tips?.map((tip: any, i: number) => `${i + 1}. ${tip.title}: ${tip.description}`).join('\n\n') || 'Check your dashboard for personalized tips.'}\n\nDashboard: ${data.dashboardUrl || 'https://app.saleswhisperer.net/dashboard'}\n\nSales Whisperer Team`
+      };
     } else {
       // Use legacy templates for other types
       if (!emailTemplates[emailType]) {
         console.error("Invalid template:", emailType);
         return new Response(
           JSON.stringify({ 
-            error: "Invalid template. Must be one of: invite, password-reset, welcome, custom" 
+            error: "Invalid template. Must be one of: invite, password-reset, welcome, custom, registration-failure, integration-connected, integration-failed, integration-error, integration-tips" 
           }),
           {
             status: 400,
