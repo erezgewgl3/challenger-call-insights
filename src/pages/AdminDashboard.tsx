@@ -2,7 +2,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, MessageSquare, Settings, Activity, BarChart3, TrendingUp, Shield } from 'lucide-react'
+import { Users, MessageSquare, Settings, Activity, BarChart3, TrendingUp, Shield, Plug } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { SystemMonitor } from '@/components/admin/SystemMonitor'
@@ -15,6 +15,7 @@ import { AnalyticsCard } from '@/components/admin/AnalyticsCard'
 import { RegistrationFailuresCard } from '@/components/admin/system/RegistrationFailuresCard'
 import { RegistrationFailuresTable } from '@/components/admin/system/RegistrationFailuresTable'
 import { SystemHealthActions } from '@/components/admin/system/SystemHealthActions'
+import { IntegrationManagement } from '@/components/integrations-framework/admin/IntegrationManagement'
 import { useSystemMetrics } from '@/hooks/useSystemMetrics'
 import { useUserGrowthData, useTranscriptVolumeData, useAnalysisPerformanceData } from '@/hooks/useChartData'
 
@@ -35,7 +36,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-4 mb-8">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Overview</span>
@@ -43,6 +44,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="analytics" className="flex items-center space-x-2">
               <TrendingUp className="h-4 w-4" />
               <span>Analytics</span>
+            </TabsTrigger>
+            <TabsTrigger value="integrations" className="flex items-center space-x-2">
+              <Plug className="h-4 w-4" />
+              <span>Integrations</span>
             </TabsTrigger>
             <TabsTrigger value="system-health" className="flex items-center space-x-2">
               <Shield className="h-4 w-4" />
@@ -185,6 +190,23 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <SystemMonitor />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="integrations">
+            <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
+              <CardHeader>
+                <CardTitle className="text-xl text-slate-900 flex items-center space-x-2">
+                  <Plug className="h-5 w-5 text-blue-600" />
+                  <span>Integration Management</span>
+                </CardTitle>
+                <CardDescription className="text-slate-600">
+                  Manage external integrations, monitor activity, and configure settings
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <IntegrationManagement />
               </CardContent>
             </Card>
           </TabsContent>
