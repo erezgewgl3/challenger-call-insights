@@ -843,6 +843,94 @@ export type Database = {
         Args: { token: string }
         Returns: string
       }
+      integration_framework_complete_sync: {
+        Args: { sync_id: string; result_data: Json; sync_status?: string }
+        Returns: Json
+      }
+      integration_framework_create_connection: {
+        Args: {
+          user_uuid: string
+          integration_type: string
+          connection_name: string
+          credentials: Json
+          configuration?: Json
+        }
+        Returns: Json
+      }
+      integration_framework_delete_connection: {
+        Args: { connection_id: string }
+        Returns: Json
+      }
+      integration_framework_get_config: {
+        Args: {
+          user_uuid: string
+          integration_type: string
+          config_key: string
+        }
+        Returns: Json
+      }
+      integration_framework_get_connection: {
+        Args: { user_uuid: string; integration_type: string }
+        Returns: Json
+      }
+      integration_framework_get_connection_health: {
+        Args: { connection_id: string }
+        Returns: Json
+      }
+      integration_framework_get_connection_status: {
+        Args: { user_uuid: string; integration_type: string }
+        Returns: Json
+      }
+      integration_framework_get_sync_status: {
+        Args: { sync_id: string }
+        Returns: Json
+      }
+      integration_framework_get_system_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      integration_framework_get_user_stats: {
+        Args: { user_uuid: string }
+        Returns: Json
+      }
+      integration_framework_get_webhook_logs: {
+        Args: { connection_id: string; limit_count?: number }
+        Returns: Json
+      }
+      integration_framework_log_webhook: {
+        Args: {
+          connection_id: string
+          webhook_event: string
+          payload: Json
+          headers?: Json
+        }
+        Returns: Json
+      }
+      integration_framework_start_sync: {
+        Args: {
+          connection_id: string
+          operation_type: string
+          operation_data?: Json
+        }
+        Returns: Json
+      }
+      integration_framework_update_config: {
+        Args: {
+          user_uuid: string
+          integration_type: string
+          config_key: string
+          config_value: Json
+        }
+        Returns: Json
+      }
+      integration_framework_update_connection: {
+        Args: { connection_id: string; updates: Json }
+        Returns: Json
+      }
+      integration_framework_update_connection_status: {
+        Args: { connection_id: string; new_status: string }
+        Returns: Json
+      }
       mark_password_reset_token_used: {
         Args: {
           p_token_hash: string
