@@ -22,7 +22,7 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
     expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry (guide rail)
 
     // Create reset link
-    const baseUrl = window.location.origin;
+    const baseUrl = 'https://app.saleswhisperer.net';
     const resetLink = `${baseUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
     
     // Get IP and user agent for security tracking (guide rail)

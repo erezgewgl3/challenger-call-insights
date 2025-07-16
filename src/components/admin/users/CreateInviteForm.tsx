@@ -134,7 +134,7 @@ export function CreateInviteForm() {
       // Send email if requested
       if (data.sendEmail) {
         try {
-          const baseUrl = window.location.origin;
+          const baseUrl = 'https://app.saleswhisperer.net';
           const inviteLink = `${baseUrl}/register?token=${token}`;
           
           const { error: emailError } = await supabase.functions.invoke('send-email', {
@@ -184,7 +184,7 @@ export function CreateInviteForm() {
       return { invite, token };
     },
     onSuccess: ({ invite, token }) => {
-      const baseUrl = window.location.origin;
+      const baseUrl = 'https://app.saleswhisperer.net';
       const inviteLink = `${baseUrl}/register?token=${token}`;
       
       setGeneratedLink(inviteLink);

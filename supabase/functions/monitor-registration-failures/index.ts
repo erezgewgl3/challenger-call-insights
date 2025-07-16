@@ -79,7 +79,7 @@ const handler = async (req: Request): Promise<Response> => {
         failures: recentFailures,
         totalCount: recentFailures.length,
         timestamp: new Date().toISOString(),
-        adminDashboardUrl: `${supabaseUrl.replace('supabase.co', 'lovableproject.com')}/admin/user-management`
+        adminDashboardUrl: 'https://app.saleswhisperer.net/admin/user-management'
       }
     };
 

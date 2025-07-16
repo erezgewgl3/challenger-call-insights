@@ -118,7 +118,7 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
   // Resend email mutation
   const resendEmailMutation = useMutation({
     mutationFn: async (invite: Invite) => {
-      const baseUrl = window.location.origin;
+      const baseUrl = 'https://app.saleswhisperer.net';
       const inviteLink = `${baseUrl}/register?token=${invite.token}`;
       
       const { error } = await supabase.functions.invoke('send-email', {
