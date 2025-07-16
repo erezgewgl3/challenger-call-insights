@@ -18,6 +18,7 @@ import GDPRCompliance from "./pages/admin/GDPRCompliance";
 import NotFound from "./pages/NotFound";
 import TranscriptAnalysis from "./pages/TranscriptAnalysis";
 import PasswordReset from "./pages/PasswordReset";
+import IntegrationCallback from "./pages/IntegrationCallback";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,7 @@ function App() {
                   <TranscriptAnalysis />
                 </AuthGuard>
               } />
+              <Route path="/integrations/callback" element={<IntegrationCallback />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
