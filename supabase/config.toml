@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.scheduled-registration-monitor]
 verify_jwt = false
+
+[functions.zoom-webhook-processor]
+verify_jwt = false

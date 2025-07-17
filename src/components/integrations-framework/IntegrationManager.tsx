@@ -15,18 +15,22 @@ const AVAILABLE_INTEGRATIONS: IntegrationConfig[] = [
   {
     id: 'zoom',
     name: 'Zoom',
-    description: 'Video conferencing and meeting recordings',
+    description: 'Connect your Zoom account to automatically analyze meeting transcripts and get AI-powered sales insights',
     version: '1.0.0',
     category: 'communication',
     authType: 'oauth2',
     requiredFields: ['client_id', 'client_secret'],
-    optionalFields: [],
+    optionalFields: ['webhook_secret'],
     capabilities: [
-      { type: 'webhook', name: 'Webhook Support', description: 'Receive real-time updates', dataTypes: ['recordings', 'meetings'] },
-      { type: 'sync', name: 'Data Sync', description: 'Sync meeting data', dataTypes: ['recordings'] }
+      { type: 'webhook', name: 'Real-time Events', description: 'Receive webhook notifications for meetings and recordings', dataTypes: ['recordings', 'meetings', 'transcripts'] },
+      { type: 'sync', name: 'Transcript Processing', description: 'Automatically process meeting transcripts with AI', dataTypes: ['transcripts', 'analysis'] },
+      { type: 'export', name: 'Meeting Data Export', description: 'Export meeting data and analysis results', dataTypes: ['meetings', 'analysis'] }
     ],
     webhookSupport: true,
     syncFrequencyMinutes: 15,
+    iconUrl: '/integrations/zoom-icon.svg',
+    documentationUrl: 'https://marketplace.zoom.us/docs/api-reference',
+    supportUrl: 'mailto:support@saleswhisperer.com?subject=Zoom Integration Support',
     isActive: true,
     isDeprecated: false
   },
