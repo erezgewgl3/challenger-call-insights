@@ -10,6 +10,7 @@ import { Video, Zap, Settings, Globe, Clock, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { ZoomAdminConfig } from '../../integrations/zoom/ZoomAdminConfig';
 
 interface IntegrationConfig {
   id: string;
@@ -125,89 +126,9 @@ export function IntegrationSettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Common Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor={`${integrationType}-enabled`}>Enable Integration</Label>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id={`${integrationType}-enabled`}
-                  checked={getConfigValue(integrationType, 'enabled', false)}
-                  onCheckedChange={(checked) => updateConfig(integrationType, 'enabled', checked)}
-                  disabled={pendingUpdates.has(`${integrationType}-enabled`)}
-                />
-                <span className="text-sm text-gray-600">
-                  {getConfigValue(integrationType, 'enabled', false) ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor={`${integrationType}-auto-sync`}>Auto-sync</Label>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id={`${integrationType}-auto-sync`}
-                  checked={getConfigValue(integrationType, 'auto_sync', false)}
-                  onCheckedChange={(checked) => updateConfig(integrationType, 'auto_sync', checked)}
-                  disabled={pendingUpdates.has(`${integrationType}-auto_sync`)}
-                />
-                <span className="text-sm text-gray-600">
-                  {getConfigValue(integrationType, 'auto_sync', false) ? 'Enabled' : 'Disabled'}
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Integration-specific Settings */}
           {integrationType === 'zoom' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="zoom-client-id">Zoom Client ID</Label>
-                <Input
-                  id="zoom-client-id"
-                  value={getConfigValue('zoom', 'client_id', '')}
-                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'zoom-client_id': e.target.value }))}
-                  onBlur={(e) => updateConfig('zoom', 'client_id', e.target.value)}
-                  placeholder="Enter Zoom OAuth Client ID"
-                  disabled={pendingUpdates.has('zoom-client_id')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zoom-client-secret">Client Secret</Label>
-                <Input
-                  id="zoom-client-secret"
-                  type="password"
-                  value={getConfigValue('zoom', 'client_secret', '')}
-                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'zoom-client_secret': e.target.value }))}
-                  onBlur={(e) => updateConfig('zoom', 'client_secret', e.target.value)}
-                  placeholder="Enter Zoom OAuth Client Secret"
-                  disabled={pendingUpdates.has('zoom-client_secret')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zoom-webhook-secret">Webhook Secret</Label>
-                <Input
-                  id="zoom-webhook-secret"
-                  type="password"
-                  value={getConfigValue('zoom', 'webhook_secret', '')}
-                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'zoom-webhook_secret': e.target.value }))}
-                  onBlur={(e) => updateConfig('zoom', 'webhook_secret', e.target.value)}
-                  placeholder="Enter Zoom webhook secret"
-                  disabled={pendingUpdates.has('zoom-webhook_secret')}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="zoom-scopes">Required Scopes</Label>
-                <Input
-                  id="zoom-scopes"
-                  value={getConfigValue('zoom', 'scopes', 'recording:read,user:read')}
-                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'zoom-scopes': e.target.value }))}
-                  onBlur={(e) => updateConfig('zoom', 'scopes', e.target.value)}
-                  placeholder="recording:read,user:read"
-                  disabled={pendingUpdates.has('zoom-scopes')}
-                />
-              </div>
-            </div>
+            <ZoomAdminConfig onConfigUpdate={(config) => loadConfigs()} />
           )}
 
           {integrationType === 'zapier' && (

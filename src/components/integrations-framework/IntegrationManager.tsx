@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { IntegrationList } from './IntegrationList';
+import { ZoomUserConnection } from '../integrations/zoom/ZoomUserConnection';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -324,16 +325,28 @@ export const IntegrationManager: React.FC = () => {
         </TabsList>
 
         <TabsContent value="integrations" className="space-y-4">
+          {/* Zoom User Connection Section */}
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-lg font-semibold">Your Integrations</h3>
+              <p className="text-sm text-muted-foreground">
+                Connect your personal accounts to enable automatic transcript processing
+              </p>
+            </div>
+            <ZoomUserConnection />
+          </div>
+          
+          {/* Other Available Integrations */}
           <Card>
             <CardHeader>
-              <CardTitle>Available Integrations</CardTitle>
+              <CardTitle>Additional Integrations</CardTitle>
               <CardDescription>
-                Connect external services to sync data and automate workflows
+                More integrations coming soon
               </CardDescription>
             </CardHeader>
             <CardContent>
               <IntegrationList
-                integrations={AVAILABLE_INTEGRATIONS}
+                integrations={AVAILABLE_INTEGRATIONS.filter(i => i.id !== 'zoom')}
                 connections={connections}
                 onConnect={handleConnect}
                 onDisconnect={handleDisconnect}

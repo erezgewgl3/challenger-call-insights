@@ -45,22 +45,11 @@ serve(async (req) => {
     const state = `${userData.user.id}:${integrationId}:${Date.now()}`;
 
     switch (integrationId.toLowerCase()) {
-      case 'github':
-        const githubClientId = configuration?.client_id || Deno.env.get('GITHUB_CLIENT_ID');
-        if (!githubClientId) throw new Error('GitHub client ID not configured');
-        authUrl = `https://github.com/login/oauth/authorize?client_id=${githubClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=repo,user:email&state=${state}`;
-        break;
-
-      case 'google':
-        const googleClientId = configuration?.client_id || Deno.env.get('GOOGLE_CLIENT_ID');
-        if (!googleClientId) throw new Error('Google client ID not configured');
-        authUrl = `https://accounts.google.com/oauth2/authorize?client_id=${googleClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=profile email&response_type=code&state=${state}`;
-        break;
-
-      case 'slack':
-        const slackClientId = configuration?.client_id || Deno.env.get('SLACK_CLIENT_ID');
-        if (!slackClientId) throw new Error('Slack client ID not configured');
-        authUrl = `https://slack.com/oauth/v2/authorize?client_id=${slackClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=chat:write,channels:read&state=${state}`;
+      case 'zoom':
+        const zoomClientId = configuration?.client_id || Deno.env.get('ZOOM_CLIENT_ID');
+        if (!zoomClientId) throw new Error('Zoom client ID not configured');
+        const zoomScopes = configuration?.scopes || 'recording:read,user:read';
+        authUrl = `https://zoom.us/oauth/authorize?client_id=${zoomClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(zoomScopes)}&response_type=code&state=${state}`;
         break;
 
       case 'salesforce':
