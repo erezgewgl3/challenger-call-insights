@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,6 +31,7 @@ export function IntegrationSettings() {
   const [configs, setConfigs] = useState<IntegrationConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIntegration, setActiveIntegration] = useState('github');
+  const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadConfigs();
@@ -52,7 +53,7 @@ export function IntegrationSettings() {
     }
   };
 
-  const updateConfig = async (integrationType: string, configKey: string, value: any) => {
+  const updateConfig = useCallback(async (integrationType: string, configKey: string, value: any) => {
     if (!user?.id) {
       toast({
         title: "Error",
@@ -61,6 +62,9 @@ export function IntegrationSettings() {
       });
       return;
     }
+
+    const updateKey = `${integrationType}-${configKey}`;
+    setPendingUpdates(prev => new Set([...prev, updateKey]));
 
     try {
       const { data, error } = await supabase.rpc('integration_framework_update_config', {
@@ -75,7 +79,7 @@ export function IntegrationSettings() {
       if (data && typeof data === 'object' && 'status' in data && data.status === 'success') {
         toast({
           title: "Configuration Updated",
-          description: `${integrationType} settings have been saved successfully.`,
+          description: `${configKey} has been saved successfully.`,
         });
         await loadConfigs();
       } else {
@@ -89,8 +93,14 @@ export function IntegrationSettings() {
         description: "Failed to update configuration. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setPendingUpdates(prev => {
+        const updated = new Set(prev);
+        updated.delete(updateKey);
+        return updated;
+      });
     }
-  };
+  }, [user?.id, toast]);
 
   const getConfigValue = (integrationType: string, configKey: string, defaultValue: any = '') => {
     const config = configs.find(c => c.integration_type === integrationType && c.config_key === configKey);
@@ -124,6 +134,7 @@ export function IntegrationSettings() {
                   id={`${integrationType}-enabled`}
                   checked={getConfigValue(integrationType, 'enabled', false)}
                   onCheckedChange={(checked) => updateConfig(integrationType, 'enabled', checked)}
+                  disabled={pendingUpdates.has(`${integrationType}-enabled`)}
                 />
                 <span className="text-sm text-gray-600">
                   {getConfigValue(integrationType, 'enabled', false) ? 'Enabled' : 'Disabled'}
@@ -138,6 +149,7 @@ export function IntegrationSettings() {
                   id={`${integrationType}-auto-sync`}
                   checked={getConfigValue(integrationType, 'auto_sync', false)}
                   onCheckedChange={(checked) => updateConfig(integrationType, 'auto_sync', checked)}
+                  disabled={pendingUpdates.has(`${integrationType}-auto_sync`)}
                 />
                 <span className="text-sm text-gray-600">
                   {getConfigValue(integrationType, 'auto_sync', false) ? 'Enabled' : 'Disabled'}
@@ -154,8 +166,9 @@ export function IntegrationSettings() {
                 <Input
                   id="github-client-id"
                   value={getConfigValue('github', 'client_id', '')}
-                  onChange={(e) => updateConfig('github', 'client_id', e.target.value)}
+                  onBlur={(e) => updateConfig('github', 'client_id', e.target.value)}
                   placeholder="Enter GitHub OAuth Client ID"
+                  disabled={pendingUpdates.has('github-client_id')}
                 />
               </div>
               <div className="space-y-2">
@@ -164,8 +177,9 @@ export function IntegrationSettings() {
                   id="github-webhook-secret"
                   type="password"
                   value={getConfigValue('github', 'webhook_secret', '')}
-                  onChange={(e) => updateConfig('github', 'webhook_secret', e.target.value)}
+                  onBlur={(e) => updateConfig('github', 'webhook_secret', e.target.value)}
                   placeholder="Enter GitHub webhook secret"
+                  disabled={pendingUpdates.has('github-webhook_secret')}
                 />
               </div>
               <div className="space-y-2">
@@ -173,8 +187,9 @@ export function IntegrationSettings() {
                 <Input
                   id="github-scopes"
                   value={getConfigValue('github', 'scopes', 'repo,user:email')}
-                  onChange={(e) => updateConfig('github', 'scopes', e.target.value)}
+                  onBlur={(e) => updateConfig('github', 'scopes', e.target.value)}
                   placeholder="repo,user:email"
+                  disabled={pendingUpdates.has('github-scopes')}
                 />
               </div>
             </div>
@@ -368,13 +383,14 @@ export function IntegrationSettings() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="global-timeout">Default Timeout (seconds)</Label>
-              <Input
-                id="global-timeout"
-                type="number"
-                value={getConfigValue('global', 'timeout', '30')}
-                onChange={(e) => updateConfig('global', 'timeout', e.target.value)}
-                placeholder="30"
-              />
+                <Input
+                  id="global-timeout"
+                  type="number"
+                  value={getConfigValue('global', 'timeout', '30')}
+                  onBlur={(e) => updateConfig('global', 'timeout', e.target.value)}
+                  placeholder="30"
+                  disabled={pendingUpdates.has('global-timeout')}
+                />
             </div>
             <div className="space-y-2">
               <Label htmlFor="global-max-retries">Max Retries</Label>
@@ -392,6 +408,7 @@ export function IntegrationSettings() {
               id="global-logging"
               checked={getConfigValue('global', 'enable_logging', true)}
               onCheckedChange={(checked) => updateConfig('global', 'enable_logging', checked)}
+              disabled={pendingUpdates.has('global-enable_logging')}
             />
             <Label htmlFor="global-logging">Enable Integration Logging</Label>
           </div>
