@@ -917,8 +917,8 @@ export type Database = {
       integration_framework_update_config: {
         Args: {
           user_uuid: string
-          integration_type: string
-          config_key: string
+          integration_type_param: string
+          config_key_param: string
           config_value: Json
         }
         Returns: Json

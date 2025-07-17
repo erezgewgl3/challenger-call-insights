@@ -32,6 +32,7 @@ export function IntegrationSettings() {
   const [isLoading, setIsLoading] = useState(true);
   const [activeIntegration, setActiveIntegration] = useState('github');
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
+  const [localValues, setLocalValues] = useState<Record<string, any>>({});
 
   useEffect(() => {
     loadConfigs();
@@ -69,8 +70,8 @@ export function IntegrationSettings() {
     try {
       const { data, error } = await supabase.rpc('integration_framework_update_config', {
         user_uuid: user.id,
-        integration_type: integrationType,
-        config_key: configKey,
+        integration_type_param: integrationType,
+        config_key_param: configKey,
         config_value: value
       });
 
@@ -166,6 +167,7 @@ export function IntegrationSettings() {
                 <Input
                   id="github-client-id"
                   value={getConfigValue('github', 'client_id', '')}
+                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'github-client_id': e.target.value }))}
                   onBlur={(e) => updateConfig('github', 'client_id', e.target.value)}
                   placeholder="Enter GitHub OAuth Client ID"
                   disabled={pendingUpdates.has('github-client_id')}
@@ -177,6 +179,7 @@ export function IntegrationSettings() {
                   id="github-webhook-secret"
                   type="password"
                   value={getConfigValue('github', 'webhook_secret', '')}
+                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'github-webhook_secret': e.target.value }))}
                   onBlur={(e) => updateConfig('github', 'webhook_secret', e.target.value)}
                   placeholder="Enter GitHub webhook secret"
                   disabled={pendingUpdates.has('github-webhook_secret')}
@@ -187,6 +190,7 @@ export function IntegrationSettings() {
                 <Input
                   id="github-scopes"
                   value={getConfigValue('github', 'scopes', 'repo,user:email')}
+                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'github-scopes': e.target.value }))}
                   onBlur={(e) => updateConfig('github', 'scopes', e.target.value)}
                   placeholder="repo,user:email"
                   disabled={pendingUpdates.has('github-scopes')}
@@ -387,6 +391,7 @@ export function IntegrationSettings() {
                   id="global-timeout"
                   type="number"
                   value={getConfigValue('global', 'timeout', '30')}
+                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'global-timeout': e.target.value }))}
                   onBlur={(e) => updateConfig('global', 'timeout', e.target.value)}
                   placeholder="30"
                   disabled={pendingUpdates.has('global-timeout')}
