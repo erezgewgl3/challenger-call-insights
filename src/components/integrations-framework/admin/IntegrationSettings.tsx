@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Github, Slack, Zap, Settings, Globe, Clock, Shield } from 'lucide-react';
+import { Video, Zap, Settings, Globe, Clock, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -20,8 +20,7 @@ interface IntegrationConfig {
 }
 
 const INTEGRATION_TYPES = [
-  { id: 'github', name: 'GitHub', icon: Github, description: 'Connect to GitHub repositories' },
-  { id: 'slack', name: 'Slack', icon: Slack, description: 'Integrate with Slack workspace' },
+  { id: 'zoom', name: 'Zoom', icon: Video, description: 'Connect to Zoom for meeting transcripts' },
   { id: 'zapier', name: 'Zapier', icon: Zap, description: 'Automate workflows with Zapier' },
   { id: 'salesforce', name: 'Salesforce', icon: Globe, description: 'Sync with Salesforce CRM' },
 ];
@@ -30,7 +29,7 @@ export function IntegrationSettings() {
   const { user } = useAuth();
   const [configs, setConfigs] = useState<IntegrationConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeIntegration, setActiveIntegration] = useState('github');
+  const [activeIntegration, setActiveIntegration] = useState('zoom');
   const [pendingUpdates, setPendingUpdates] = useState<Set<string>>(new Set());
   const [localValues, setLocalValues] = useState<Record<string, any>>({});
 
@@ -160,73 +159,52 @@ export function IntegrationSettings() {
           </div>
 
           {/* Integration-specific Settings */}
-          {integrationType === 'github' && (
+          {integrationType === 'zoom' && (
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="github-client-id">GitHub Client ID</Label>
+                <Label htmlFor="zoom-client-id">Zoom Client ID</Label>
                 <Input
-                  id="github-client-id"
-                  value={getConfigValue('github', 'client_id', '')}
-                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'github-client_id': e.target.value }))}
-                  onBlur={(e) => updateConfig('github', 'client_id', e.target.value)}
-                  placeholder="Enter GitHub OAuth Client ID"
-                  disabled={pendingUpdates.has('github-client_id')}
+                  id="zoom-client-id"
+                  value={getConfigValue('zoom', 'client_id', '')}
+                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'zoom-client_id': e.target.value }))}
+                  onBlur={(e) => updateConfig('zoom', 'client_id', e.target.value)}
+                  placeholder="Enter Zoom OAuth Client ID"
+                  disabled={pendingUpdates.has('zoom-client_id')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="github-webhook-secret">Webhook Secret</Label>
+                <Label htmlFor="zoom-client-secret">Client Secret</Label>
                 <Input
-                  id="github-webhook-secret"
+                  id="zoom-client-secret"
                   type="password"
-                  value={getConfigValue('github', 'webhook_secret', '')}
-                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'github-webhook_secret': e.target.value }))}
-                  onBlur={(e) => updateConfig('github', 'webhook_secret', e.target.value)}
-                  placeholder="Enter GitHub webhook secret"
-                  disabled={pendingUpdates.has('github-webhook_secret')}
+                  value={getConfigValue('zoom', 'client_secret', '')}
+                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'zoom-client_secret': e.target.value }))}
+                  onBlur={(e) => updateConfig('zoom', 'client_secret', e.target.value)}
+                  placeholder="Enter Zoom OAuth Client Secret"
+                  disabled={pendingUpdates.has('zoom-client_secret')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="github-scopes">Required Scopes</Label>
+                <Label htmlFor="zoom-webhook-secret">Webhook Secret</Label>
                 <Input
-                  id="github-scopes"
-                  value={getConfigValue('github', 'scopes', 'repo,user:email')}
-                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'github-scopes': e.target.value }))}
-                  onBlur={(e) => updateConfig('github', 'scopes', e.target.value)}
-                  placeholder="repo,user:email"
-                  disabled={pendingUpdates.has('github-scopes')}
-                />
-              </div>
-            </div>
-          )}
-
-          {integrationType === 'slack' && (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="slack-client-id">Slack Client ID</Label>
-                <Input
-                  id="slack-client-id"
-                  value={getConfigValue('slack', 'client_id', '')}
-                  onChange={(e) => updateConfig('slack', 'client_id', e.target.value)}
-                  placeholder="Enter Slack OAuth Client ID"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="slack-signing-secret">Signing Secret</Label>
-                <Input
-                  id="slack-signing-secret"
+                  id="zoom-webhook-secret"
                   type="password"
-                  value={getConfigValue('slack', 'signing_secret', '')}
-                  onChange={(e) => updateConfig('slack', 'signing_secret', e.target.value)}
-                  placeholder="Enter Slack signing secret"
+                  value={getConfigValue('zoom', 'webhook_secret', '')}
+                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'zoom-webhook_secret': e.target.value }))}
+                  onBlur={(e) => updateConfig('zoom', 'webhook_secret', e.target.value)}
+                  placeholder="Enter Zoom webhook secret"
+                  disabled={pendingUpdates.has('zoom-webhook_secret')}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="slack-scopes">Required Scopes</Label>
+                <Label htmlFor="zoom-scopes">Required Scopes</Label>
                 <Input
-                  id="slack-scopes"
-                  value={getConfigValue('slack', 'scopes', 'chat:write,channels:read')}
-                  onChange={(e) => updateConfig('slack', 'scopes', e.target.value)}
-                  placeholder="chat:write,channels:read"
+                  id="zoom-scopes"
+                  value={getConfigValue('zoom', 'scopes', 'recording:read,user:read')}
+                  onChange={(e) => setLocalValues(prev => ({ ...prev, 'zoom-scopes': e.target.value }))}
+                  onBlur={(e) => updateConfig('zoom', 'scopes', e.target.value)}
+                  placeholder="recording:read,user:read"
+                  disabled={pendingUpdates.has('zoom-scopes')}
                 />
               </div>
             </div>
@@ -353,7 +331,7 @@ export function IntegrationSettings() {
       </div>
 
       <Tabs value={activeIntegration} onValueChange={setActiveIntegration} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           {INTEGRATION_TYPES.map((integration) => {
             const Icon = integration.icon;
             return (

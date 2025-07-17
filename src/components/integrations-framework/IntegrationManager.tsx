@@ -35,41 +35,6 @@ const AVAILABLE_INTEGRATIONS: IntegrationConfig[] = [
     isDeprecated: false
   },
   {
-    id: 'github',
-    name: 'GitHub',
-    description: 'Code repository and project management',
-    version: '1.0.0',
-    category: 'other',
-    authType: 'oauth2',
-    requiredFields: ['client_id', 'client_secret'],
-    optionalFields: [],
-    capabilities: [
-      { type: 'webhook', name: 'Webhook Support', description: 'Receive repository events', dataTypes: ['commits', 'issues', 'pull_requests'] },
-      { type: 'sync', name: 'API Sync', description: 'Sync repository data', dataTypes: ['repositories', 'commits'] }
-    ],
-    webhookSupport: true,
-    syncFrequencyMinutes: 30,
-    isActive: true,
-    isDeprecated: false
-  },
-  {
-    id: 'slack',
-    name: 'Slack',
-    description: 'Team communication and collaboration',
-    version: '1.0.0',
-    category: 'communication',
-    authType: 'oauth2',
-    requiredFields: ['client_id', 'client_secret'],
-    optionalFields: [],
-    capabilities: [
-      { type: 'webhook', name: 'Event Subscriptions', description: 'Receive workspace events', dataTypes: ['messages', 'channels'] },
-      { type: 'bidirectional', name: 'Real-time Messaging', description: 'Send and receive messages', dataTypes: ['messages'] }
-    ],
-    webhookSupport: true,
-    isActive: true,
-    isDeprecated: false
-  },
-  {
     id: 'salesforce',
     name: 'Salesforce',
     description: 'Customer relationship management',
@@ -84,23 +49,6 @@ const AVAILABLE_INTEGRATIONS: IntegrationConfig[] = [
     ],
     webhookSupport: true,
     syncFrequencyMinutes: 60,
-    isActive: true,
-    isDeprecated: false
-  },
-  {
-    id: 'google-drive',
-    name: 'Google Drive',
-    description: 'Cloud storage and file sharing',
-    version: '1.0.0',
-    category: 'storage',
-    authType: 'oauth2',
-    requiredFields: ['client_id', 'client_secret'],
-    optionalFields: [],
-    capabilities: [
-      { type: 'sync', name: 'File Sync', description: 'Sync files and folders', dataTypes: ['files', 'folders'] }
-    ],
-    webhookSupport: false,
-    syncFrequencyMinutes: 120,
     isActive: true,
     isDeprecated: false
   },
