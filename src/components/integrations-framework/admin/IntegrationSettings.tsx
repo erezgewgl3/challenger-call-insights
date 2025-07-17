@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Github, Slack, Zap, Settings, Globe, Clock, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 interface IntegrationConfig {
   id: string;
@@ -26,6 +27,7 @@ const INTEGRATION_TYPES = [
 ];
 
 export function IntegrationSettings() {
+  const { user } = useAuth();
   const [configs, setConfigs] = useState<IntegrationConfig[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeIntegration, setActiveIntegration] = useState('github');
@@ -51,23 +53,35 @@ export function IntegrationSettings() {
   };
 
   const updateConfig = async (integrationType: string, configKey: string, value: any) => {
+    if (!user?.id) {
+      toast({
+        title: "Error",
+        description: "User not authenticated.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const { error } = await supabase.functions.invoke('integration-framework-update-config', {
-        body: {
-          integration_type: integrationType,
-          config_key: configKey,
-          config_value: value
-        }
+      const { data, error } = await supabase.rpc('integration_framework_update_config', {
+        user_uuid: user.id,
+        integration_type: integrationType,
+        config_key: configKey,
+        config_value: value
       });
 
       if (error) throw error;
       
-      toast({
-        title: "Configuration Updated",
-        description: `${integrationType} settings have been saved successfully.`,
-      });
-      
-      await loadConfigs();
+      if (data && typeof data === 'object' && 'status' in data && data.status === 'success') {
+        toast({
+          title: "Configuration Updated",
+          description: `${integrationType} settings have been saved successfully.`,
+        });
+        await loadConfigs();
+      } else {
+        const errorMsg = data && typeof data === 'object' && 'error' in data ? String(data.error) : 'Unknown error';
+        throw new Error(errorMsg);
+      }
     } catch (error) {
       console.error('Error updating config:', error);
       toast({

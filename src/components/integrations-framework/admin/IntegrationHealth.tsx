@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { AlertTriangle, CheckCircle, Clock, Shield, Activity, TrendingUp, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ConnectionHealth {
   connection_id: string;
@@ -28,6 +29,7 @@ interface SystemHealth {
 }
 
 export function IntegrationHealth() {
+  const { user } = useAuth();
   const [healthData, setHealthData] = useState<ConnectionHealth[]>([]);
   const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,16 +50,16 @@ export function IntegrationHealth() {
 
       // Load health data for each connection
       const healthPromises = (connections || []).map(async (connection) => {
-        const { data, error } = await supabase.functions.invoke('integration-framework-get-connection-health', {
-          body: { connection_id: connection.id }
+        const { data, error } = await supabase.rpc('integration_framework_get_connection_health', {
+          connection_id: connection.id
         });
 
         if (error) throw error;
-        return data?.status === 'success' ? data.data : null;
+        return (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data) ? data.data : null;
       });
 
       const healthResults = await Promise.all(healthPromises);
-      const validHealthData = healthResults.filter(Boolean);
+      const validHealthData = healthResults.filter(Boolean) as unknown as ConnectionHealth[];
       
       setHealthData(validHealthData);
       
@@ -115,12 +117,15 @@ export function IntegrationHealth() {
 
   const runHealthCheck = async (connectionId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('integration-status', {
-        body: { connection_id: connectionId }
+      const { data, error } = await supabase.rpc('integration_framework_get_connection_health', {
+        connection_id: connectionId
       });
       
       if (error) throw error;
-      await loadHealthData();
+      
+      if (data && typeof data === 'object' && 'status' in data && data.status === 'success') {
+        await loadHealthData();
+      }
     } catch (error) {
       console.error('Error running health check:', error);
     }

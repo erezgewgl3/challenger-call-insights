@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { IntegrationSettings } from './IntegrationSettings';
 import { IntegrationActivity } from './IntegrationActivity';
 import { IntegrationHealth } from './IntegrationHealth';
+import { useAuth } from '@/hooks/useAuth';
 
 interface Integration {
   id: string;
@@ -27,6 +28,7 @@ interface IntegrationStats {
 }
 
 export function IntegrationManagement() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [stats, setStats] = useState<IntegrationStats | null>(null);
@@ -53,11 +55,11 @@ export function IntegrationManagement() {
 
   const loadStats = async () => {
     try {
-      const { data, error } = await supabase.functions.invoke('integration-framework-get-system-stats');
+      const { data, error } = await supabase.rpc('integration_framework_get_system_stats');
       if (error) throw error;
       
-      if (data?.status === 'success') {
-        setStats(data.data);
+      if (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data) {
+        setStats(data.data as unknown as IntegrationStats);
       }
     } catch (error) {
       console.error('Error loading integration stats:', error);
@@ -86,12 +88,18 @@ export function IntegrationManagement() {
 
   const handleDisconnect = async (connectionId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('integration-disconnect', {
-        body: { connectionId }
+      const { data, error } = await supabase.rpc('integration_framework_delete_connection', {
+        connection_id: connectionId
       });
       
       if (error) throw error;
-      await loadIntegrations();
+      
+      if (data && typeof data === 'object' && 'status' in data && data.status === 'success') {
+        await loadIntegrations();
+      } else {
+        const errorMsg = data && typeof data === 'object' && 'message' in data ? String(data.message) : 'Failed to disconnect integration';
+        throw new Error(errorMsg);
+      }
     } catch (error) {
       console.error('Error disconnecting integration:', error);
     }
