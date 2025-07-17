@@ -161,6 +161,30 @@ serve(async (req) => {
 
     console.log(`[CALLBACK-INTEGRATION] Successfully connected ${integrationId} for user ${userId}`);
 
+    // Send success email notification
+    try {
+      const { data: userResult } = await supabase.auth.admin.getUserById(userId);
+      if (userResult.user?.email) {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            template: 'integration-connected',
+            to: userResult.user.email,
+            data: {
+              integration_name: integrationId,
+              integration_icon: getIntegrationIcon(integrationId),
+              user_email: userResult.user.email,
+              features: getIntegrationFeatures(integrationId),
+              dashboard_url: 'https://app.saleswhisperer.net/dashboard',
+              connected_at: new Date().toISOString()
+            }
+          }
+        })
+      }
+    } catch (emailError) {
+      console.error('Failed to send connection success email:', emailError)
+      // Don't fail the main operation for email errors
+    }
+
     return new Response(`
       <html>
         <head>
@@ -192,6 +216,34 @@ serve(async (req) => {
   } catch (error) {
     console.error('[CALLBACK-INTEGRATION] Error:', error);
     
+    // Send failure email notification if we have user context
+    try {
+      const url = new URL(req.url);
+      const state = url.searchParams.get('state');
+      if (state) {
+        const [userId] = state.split(':');
+        const { data: userResult } = await supabase.auth.admin.getUserById(userId);
+        if (userResult.user?.email) {
+          await supabase.functions.invoke('send-email', {
+            body: {
+              template: 'integration-failed',
+              to: userResult.user.email,
+              data: {
+                integration_name: url.searchParams.get('integration_id') || 'Integration',
+                integration_icon: getIntegrationIcon(url.searchParams.get('integration_id') || ''),
+                user_email: userResult.user.email,
+                error_message: error.message,
+                retry_url: 'https://app.saleswhisperer.net/dashboard/integrations',
+                failed_at: new Date().toISOString()
+              }
+            }
+          })
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send connection failure email:', emailError)
+    }
+    
     return new Response(`
       <html>
         <body>
@@ -206,3 +258,46 @@ serve(async (req) => {
     });
   }
 });
+
+// Helper functions for email data
+function getIntegrationIcon(integrationType: string): string {
+  const icons: Record<string, string> = {
+    github: '🐙',
+    google: '🔍',
+    slack: '💬',
+    salesforce: '☁️',
+    zoom: '📹',
+    hubspot: '🔶'
+  }
+  return icons[integrationType.toLowerCase()] || '🔗'
+}
+
+function getIntegrationFeatures(integrationType: string): string[] {
+  const features: Record<string, string[]> = {
+    github: [
+      'Sync repositories and commit data',
+      'Track development activity and metrics',
+      'Integrate code review feedback into sales insights'
+    ],
+    google: [
+      'Import calendar events and meeting data',
+      'Sync Google Drive documents and presentations',
+      'Analyze meeting patterns and follow-ups'
+    ],
+    slack: [
+      'Import conversation transcripts from channels',
+      'Track team communication patterns',
+      'Analyze customer interaction frequency'
+    ],
+    salesforce: [
+      'Sync accounts, contacts, and opportunities',
+      'Import call logs and meeting notes',
+      'Track deal progression and sales activities'
+    ]
+  }
+  return features[integrationType.toLowerCase()] || [
+    'Sync data from your platform',
+    'Analyze performance metrics',
+    'Get AI-powered insights'
+  ]
+}

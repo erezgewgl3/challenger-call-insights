@@ -142,6 +142,31 @@ serve(async (req) => {
         })
         .eq('id', syncOperation.id);
 
+      // Send error email notification
+      try {
+        const { data: userResult } = await supabase.auth.admin.getUserById(userData.user.id);
+        if (userResult.user?.email) {
+          await supabase.functions.invoke('send-email', {
+            body: {
+              template: 'integration-error',
+              to: userResult.user.email,
+              data: {
+                integration_name: connection.integration_type,
+                integration_icon: getIntegrationIcon(connection.integration_type),
+                user_email: userResult.user.email,
+                error_type: 'Sync Error',
+                error_message: syncError.message,
+                sync_id: syncOperation.id,
+                dashboard_url: 'https://app.saleswhisperer.net/dashboard',
+                occurred_at: new Date().toISOString()
+              }
+            }
+          })
+        }
+      } catch (emailError) {
+        console.error('Failed to send sync error email:', emailError)
+      }
+
       throw syncError;
     }
 
@@ -260,4 +285,17 @@ async function performSalesforceSync(connection: any, operationType: string) {
     records_processed: accountsData.recentItems?.length || 0,
     records_total: accountsData.recentItems?.length || 0,
   };
+}
+
+// Helper function for email data
+function getIntegrationIcon(integrationType: string): string {
+  const icons: Record<string, string> = {
+    github: '🐙',
+    google: '🔍',
+    slack: '💬',
+    salesforce: '☁️',
+    zoom: '📹',
+    hubspot: '🔶'
+  }
+  return icons[integrationType.toLowerCase()] || '🔗'
 }
