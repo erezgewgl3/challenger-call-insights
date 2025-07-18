@@ -19,6 +19,7 @@ import NotFound from "./pages/NotFound";
 import TranscriptAnalysis from "./pages/TranscriptAnalysis";
 import PasswordReset from "./pages/PasswordReset";
 import IntegrationCallback from "./pages/IntegrationCallback";
+import UserIntegrations from "./pages/UserIntegrations";
 
 const queryClient = new QueryClient();
 
@@ -38,6 +39,11 @@ function App() {
               <Route path="/dashboard" element={
                 <AuthGuard>
                   <SmartDashboard />
+                </AuthGuard>
+              } />
+              <Route path="/integrations" element={
+                <AuthGuard>
+                  <UserIntegrations />
                 </AuthGuard>
               } />
               <Route path="/admin" element={
