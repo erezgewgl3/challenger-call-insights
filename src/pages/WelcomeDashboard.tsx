@@ -37,6 +37,52 @@ export default function WelcomeDashboard() {
     enabled: !!user?.id,
   });
 
+  const { data: transcripts = [], isLoading: transcriptsLoading } = useQuery({
+    queryKey: ['heat-transcripts'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('transcripts')
+        .select(`
+          *,
+          accounts(name),
+          conversation_analysis(
+            challenger_scores,
+            heat_level,
+            guidance,
+            recommendations,
+            call_summary,
+            created_at
+          )
+        `)
+        .eq('user_id', user?.id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      return data?.map(transcript => ({
+        id: transcript.id,
+        title: transcript.title || '',
+        participants: Array.isArray(transcript.participants) 
+          ? (transcript.participants as string[])
+          : typeof transcript.participants === 'string' 
+            ? [transcript.participants] 
+            : [],
+        duration_minutes: transcript.duration_minutes || 0,
+        created_at: transcript.created_at || '',
+        status: transcript.status as 'uploaded' | 'processing' | 'completed' | 'error',
+        account_name: transcript.accounts?.name,
+        challenger_scores: transcript.conversation_analysis?.[0]?.challenger_scores as {
+          teaching: number;
+          tailoring: number;
+          control: number;
+        } | undefined,
+        conversation_analysis: transcript.conversation_analysis || [],
+        analysis_created_at: transcript.conversation_analysis?.[0]?.created_at
+      })) || [];
+    },
+    enabled: !!user?.id,
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -142,7 +188,11 @@ export default function WelcomeDashboard() {
 
             {/* Heat Deals */}
             <div className="space-y-6">
-              <HeatDealsSection />
+              <HeatDealsSection 
+                heatLevel="HIGH" 
+                transcripts={transcripts} 
+                isLoading={transcriptsLoading} 
+              />
             </div>
           </div>
 
