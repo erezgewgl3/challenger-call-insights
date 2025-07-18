@@ -41,7 +41,7 @@ serve(async (req) => {
 
     // Generic OAuth URL generation based on integration type
     let authUrl = '';
-    const redirectUri = `${url.origin}/api/integrations-framework/callback?integration_id=${integrationId}`;
+    const redirectUri = `${url.origin}/integrations/callback?integration_id=${integrationId}`;
     const state = `${userData.user.id}:${integrationId}:${Date.now()}`;
 
     switch (integrationId.toLowerCase()) {
