@@ -1,8 +1,10 @@
+
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function IntegrationCallback() {
   const location = useLocation();
@@ -22,27 +24,53 @@ export default function IntegrationCallback() {
       const error = searchParams.get('error');
       const integrationId = searchParams.get('integration_id');
 
-      console.log('Callback parameters:', { code, state, error, integrationId });
+      console.log('User callback parameters:', { code: code?.substring(0, 10) + '...', state, error, integrationId });
 
+      // Handle OAuth error (user cancelled, permission denied, etc.)
       if (error) {
         setStatus('error');
         setMessage(`Connection failed: ${error}`);
         return;
       }
 
-      if (code && state && integrationId) {
-        setStatus('success');
-        setMessage('Integration connected successfully!');
-        
-        setTimeout(() => {
-          navigate('/integrations');
-        }, 2000);
-      } else {
+      // Validate required parameters
+      if (!code || !state || !integrationId) {
         setStatus('error');
         setMessage('Invalid callback parameters. Missing required data.');
+        return;
       }
+
+      // Call the integration-callback Edge Function to process the OAuth callback
+      console.log('Calling integration-callback Edge Function for user integration');
+      const { data: result, error: callbackError } = await supabase.functions.invoke(
+        'integration-callback',
+        {
+          body: {
+            code,
+            state,
+            integration_id: integrationId,
+          },
+        }
+      );
+
+      if (callbackError) {
+        console.error('User callback error:', callbackError);
+        setStatus('error');
+        setMessage(callbackError.message || 'Failed to process connection');
+        return;
+      }
+
+      console.log('User OAuth callback successful:', result);
+      setStatus('success');
+      setMessage('Integration connected successfully!');
+      
+      // Redirect to user integrations page after 2 seconds
+      setTimeout(() => {
+        navigate('/integrations');
+      }, 2000);
+
     } catch (err) {
-      console.error('Callback processing error:', err);
+      console.error('User callback processing error:', err);
       setStatus('error');
       setMessage('Failed to process connection');
     }

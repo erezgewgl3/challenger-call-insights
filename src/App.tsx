@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -19,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import TranscriptAnalysis from "./pages/TranscriptAnalysis";
 import PasswordReset from "./pages/PasswordReset";
 import IntegrationCallback from "./pages/IntegrationCallback";
+import AdminIntegrationCallback from "./pages/AdminIntegrationCallback";
 import UserIntegrations from "./pages/UserIntegrations";
 
 const queryClient = new QueryClient();
@@ -72,6 +72,11 @@ function App() {
                 </AuthGuard>
               } />
               <Route path="/integrations/callback" element={<IntegrationCallback />} />
+              <Route path="/admin/integrations/callback" element={
+                <AdminGuard>
+                  <AdminIntegrationCallback />
+                </AdminGuard>
+              } />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

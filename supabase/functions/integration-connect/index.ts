@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -29,6 +30,17 @@ serve(async (req) => {
       throw new Error('Invalid authentication token');
     }
 
+    // Get user role to determine callback URL
+    const { data: userRole, error: roleError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userData.user.id)
+      .single();
+
+    if (roleError) {
+      console.error('Error fetching user role:', roleError);
+    }
+
     const url = new URL(req.url);
     const integrationId = url.searchParams.get('integration_id');
     const { configuration } = await req.json();
@@ -37,12 +49,16 @@ serve(async (req) => {
       throw new Error('Missing integration_id parameter');
     }
 
-    console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}`);
+    console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}, user role: ${userRole?.role}`);
+
+    // Determine callback URL based on user role
+    const isAdmin = userRole?.role === 'admin';
+    const callbackPath = isAdmin ? '/admin/integrations/callback' : '/integrations/callback';
+    const redirectUri = `${url.origin}${callbackPath}?integration_id=${integrationId}`;
+    const state = `${userData.user.id}:${integrationId}:${Date.now()}`;
 
     // Generic OAuth URL generation based on integration type
     let authUrl = '';
-    const redirectUri = `${url.origin}/integrations/callback?integration_id=${integrationId}`;
-    const state = `${userData.user.id}:${integrationId}:${Date.now()}`;
 
     switch (integrationId.toLowerCase()) {
       case 'zoom':
@@ -72,7 +88,7 @@ serve(async (req) => {
       is_encrypted: false
     });
 
-    console.log(`[CONNECT-INTEGRATION] Generated auth URL for ${integrationId}`);
+    console.log(`[CONNECT-INTEGRATION] Generated auth URL for ${integrationId}, callback: ${callbackPath}`);
 
     return new Response(JSON.stringify({
       success: true,
