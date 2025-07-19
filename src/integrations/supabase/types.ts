@@ -809,7 +809,17 @@ export type Database = {
       }
       cleanup_expired_password_reset_tokens: {
         Args: Record<PropertyKey, never>
-        Returns: undefined
+        Returns: Json
+      }
+      enhanced_file_validation: {
+        Args: {
+          p_file_name: string
+          p_file_size: number
+          p_content_type: string
+          p_user_id: string
+          p_ip_address?: string
+        }
+        Returns: Json
       }
       fix_orphaned_auth_users: {
         Args: Record<PropertyKey, never>
@@ -819,7 +829,9 @@ export type Database = {
         }[]
       }
       get_active_prompt: {
-        Args: Record<PropertyKey, never>
+        Args:
+          | Record<PropertyKey, never>
+          | { p_user_id?: string; p_prompt_type?: string }
         Returns: {
           id: string
           version_number: number
