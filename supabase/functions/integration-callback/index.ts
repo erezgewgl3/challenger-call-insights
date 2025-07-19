@@ -6,12 +6,69 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting map for callback endpoint
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(identifier: string): boolean {
+  const now = Date.now();
+  const limit = rateLimitMap.get(identifier);
+  
+  if (!limit || now > limit.resetTime) {
+    rateLimitMap.set(identifier, { count: 1, resetTime: now + 300000 }); // 5 minute window for callbacks
+    return true;
+  }
+  
+  if (limit.count >= 5) { // 5 callback attempts per 5 minutes
+    return false;
+  }
+  
+  limit.count++;
+  return true;
+}
+
+function sanitizeInput(input: string): string {
+  // Remove potentially dangerous characters
+  return input.replace(/[<>\"'&]/g, '');
+}
+
+function validateOAuthState(state: string, userId: string, integrationType: string): boolean {
+  const parts = state.split(':');
+  if (parts.length !== 3) return false;
+  
+  const [stateUserId, stateIntegrationType, stateTimestamp] = parts;
+  const timestamp = parseInt(stateTimestamp, 10);
+  const now = Date.now();
+  
+  // Validate format and expiry (1 hour)
+  return stateUserId === userId && 
+         stateIntegrationType === integrationType && 
+         !isNaN(timestamp) && 
+         (now - timestamp) < 3600000;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Rate limiting
+    const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    if (!checkRateLimit(clientIP)) {
+      console.warn(`[CALLBACK-INTEGRATION] Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(`
+        <html>
+          <body>
+            <h1>Too Many Requests</h1>
+            <p>Please try again later.</p>
+            <script>setTimeout(() => window.close(), 3000);</script>
+          </body>
+        </html>
+      `, {
+        headers: { 'Content-Type': 'text/html' },
+        status: 429,
+      });
+    }
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -44,17 +101,29 @@ serve(async (req) => {
       throw new Error('Missing required parameters');
     }
 
-    // Validate OAuth state
-    const [userId, integrationType, timestamp] = state.split(':');
-    const { data: stateData } = await supabase
-      .from('integration_configs')
-      .select('config_value')
-      .eq('user_id', userId)
-      .eq('integration_type', integrationType)
-      .eq('config_key', 'oauth_state')
-      .single();
+    // Input sanitization
+    const sanitizedIntegrationId = sanitizeInput(integrationId);
+    const sanitizedCode = sanitizeInput(code);
+    const sanitizedState = sanitizeInput(state);
 
-    if (!stateData || stateData.config_value.state !== state) {
+    // Enhanced OAuth state validation
+    const [userId, integrationType, timestamp] = sanitizedState.split(':');
+    
+    // Validate state format and expiry
+    if (!validateOAuthState(sanitizedState, userId, integrationType)) {
+      throw new Error('Invalid or expired OAuth state');
+    }
+
+    // Use the new secure validation function
+    const { data: validationResult } = await supabase.rpc('validate_oauth_state', {
+      p_state: sanitizedState,
+      p_user_id: userId,
+      p_integration_type: integrationType
+    });
+
+    if (!validationResult || !validationResult.valid) {
+      const errorMessage = validationResult?.error || 'OAuth state validation failed';
+      console.error(`[CALLBACK-INTEGRATION] State validation failed: ${errorMessage}`);
       throw new Error('Invalid OAuth state');
     }
 
@@ -98,7 +167,7 @@ serve(async (req) => {
             client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') || '',
             code: code,
             grant_type: 'authorization_code',
-            redirect_uri: stateData.config_value.redirect_uri,
+            redirect_uri: validationResult.state_data.redirect_uri,
           }),
         });
         const googleTokenData = await googleTokenResponse.json();
@@ -118,7 +187,7 @@ serve(async (req) => {
             client_id: Deno.env.get('SLACK_CLIENT_ID') || '',
             client_secret: Deno.env.get('SLACK_CLIENT_SECRET') || '',
             code: code,
-            redirect_uri: stateData.config_value.redirect_uri,
+            redirect_uri: validationResult.state_data.redirect_uri,
           }),
         });
         const slackTokenData = await slackTokenResponse.json();

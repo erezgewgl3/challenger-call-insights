@@ -7,12 +7,73 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Rate limiting map (in production, use Redis or similar)
+const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+
+function checkRateLimit(identifier: string): boolean {
+  const now = Date.now();
+  const limit = rateLimitMap.get(identifier);
+  
+  if (!limit || now > limit.resetTime) {
+    rateLimitMap.set(identifier, { count: 1, resetTime: now + 60000 }); // 1 minute window
+    return true;
+  }
+  
+  if (limit.count >= 10) { // 10 requests per minute
+    return false;
+  }
+  
+  limit.count++;
+  return true;
+}
+
+function validateInput(integrationId: string): string | null {
+  // Validate integration_id
+  const validIntegrations = ['zoom', 'github', 'google', 'slack', 'salesforce'];
+  if (!validIntegrations.includes(integrationId.toLowerCase())) {
+    return 'Invalid integration type';
+  }
+  
+  // Sanitize integration ID
+  if (!/^[a-zA-Z0-9_-]+$/.test(integrationId)) {
+    return 'Integration ID contains invalid characters';
+  }
+  
+  return null;
+}
+
+function sanitizeErrorMessage(error: Error): string {
+  // Remove sensitive information from error messages
+  const message = error.message;
+  if (message.includes('secret') || message.includes('key') || message.includes('token')) {
+    return 'Configuration error occurred';
+  }
+  return message.substring(0, 200); // Limit error message length
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Get client IP for rate limiting
+    const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    
+    // Rate limiting check
+    if (!checkRateLimit(clientIP)) {
+      console.warn(`[CONNECT-INTEGRATION] Rate limit exceeded for IP: ${clientIP}`);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Rate limit exceeded. Please try again later.' 
+        }),
+        { 
+          status: 429, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -43,11 +104,24 @@ serve(async (req) => {
 
     const url = new URL(req.url);
     const integrationId = url.searchParams.get('integration_id');
-    const { configuration } = await req.json();
-
+    
+    // Input validation
     if (!integrationId) {
       throw new Error('Missing integration_id parameter');
     }
+    
+    const validationError = validateInput(integrationId);
+    if (validationError) {
+      return new Response(
+        JSON.stringify({ success: false, error: validationError }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    const { configuration } = await req.json();
 
     console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}, user role: ${userRole?.role}`);
 
@@ -104,7 +178,7 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: sanitizeErrorMessage(error as Error)
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
