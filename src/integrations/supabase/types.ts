@@ -821,6 +821,14 @@ export type Database = {
         }
         Returns: Json
       }
+      execute_role_change: {
+        Args: {
+          p_target_user_id: string
+          p_new_role: string
+          p_admin_user_id: string
+        }
+        Returns: Json
+      }
       fix_orphaned_auth_users: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -942,6 +950,16 @@ export type Database = {
       integration_framework_update_connection_status: {
         Args: { connection_id: string; new_status: string }
         Returns: Json
+      }
+      log_role_change_attempt: {
+        Args: {
+          p_admin_id: string
+          p_target_id: string
+          p_attempted_role: string
+          p_success: boolean
+          p_reason?: string
+        }
+        Returns: undefined
       }
       log_security_event: {
         Args: {
