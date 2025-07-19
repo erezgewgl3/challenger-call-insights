@@ -99,10 +99,52 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
 
     setUploadFiles(prev => [...prev, ...newFiles])
 
+    // Get authenticated user once at the start
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      const errorMsg = 'User not authenticated'
+      newFiles.forEach(uploadFile => {
+        updateFileStatus(uploadFile.id, {
+          status: 'error',
+          error: errorMsg
+        })
+      })
+      return
+    }
+
     for (const uploadFile of newFiles) {
       try {
-        // Validation phase
+        // Enhanced validation phase with security checks
         updateFileStatus(uploadFile.id, { status: 'validating', progress: 20 })
+        
+        // Client-side basic validation
+        const allowedTypes = ['text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/vtt']
+        const maxSize = 10 * 1024 * 1024 // 10MB
+        
+        if (!allowedTypes.includes(uploadFile.file.type)) {
+          throw new Error('Invalid file type. Only .txt, .docx, and .vtt files are allowed')
+        }
+        
+        if (uploadFile.file.size > maxSize) {
+          throw new Error('File size exceeds 10MB limit')
+        }
+
+        // Log security validation event (non-blocking)
+        try {
+          await supabase.rpc('log_security_event', {
+            p_event_type: 'file_upload_validated',
+            p_user_id: user.id,
+            p_details: {
+              file_name: uploadFile.file.name,
+              file_size: uploadFile.file.size,
+              content_type: uploadFile.file.type
+            }
+          })
+        } catch (logError) {
+          console.warn('Failed to log security event:', logError)
+        }
+        
+        updateFileStatus(uploadFile.id, { progress: 30 })
         
         // Extract text content
         const textContent = await extractTextFromFile(uploadFile.file)
@@ -114,9 +156,6 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
 
         // Upload phase
         updateFileStatus(uploadFile.id, { status: 'uploading', progress: 70 })
-
-        const { data: { user } } = await supabase.auth.getUser()
-        if (!user) throw new Error('User not authenticated')
 
         // Create transcript record
         const { data: transcript, error: transcriptError } = await supabase

@@ -34,6 +34,13 @@ export function ChangeRoleDialog({
 }: ChangeRoleDialogProps) {
   const isDemotion = currentRole === 'admin' && newRole === 'sales_user';
 
+  // Enhanced security context for role changes
+  const handleSecureRoleChange = () => {
+    // This will trigger the parent component's onConfirm which should use
+    // the new secure database functions for validation and execution
+    onConfirm();
+  };
+
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent>
@@ -72,7 +79,7 @@ export function ChangeRoleDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={isLoading}>Cancel</AlertDialogCancel>
           <AlertDialogAction 
-            onClick={onConfirm}
+            onClick={handleSecureRoleChange}
             disabled={isLoading}
             className={isDemotion ? 'bg-amber-600 hover:bg-amber-700' : ''}
           >
