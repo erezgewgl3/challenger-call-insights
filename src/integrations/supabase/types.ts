@@ -931,6 +931,16 @@ export type Database = {
         Args: { connection_id: string; new_status: string }
         Returns: Json
       }
+      log_security_event: {
+        Args: {
+          p_event_type: string
+          p_user_id: string
+          p_details?: Json
+          p_ip_address?: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
       mark_password_reset_token_used: {
         Args: {
           p_token_hash: string
@@ -942,6 +952,15 @@ export type Database = {
       mark_users_pending_deletion: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      validate_file_upload: {
+        Args: {
+          p_file_name: string
+          p_file_size: number
+          p_content_type: string
+          p_user_id: string
+        }
+        Returns: Json
       }
       validate_password_reset_token: {
         Args: {
