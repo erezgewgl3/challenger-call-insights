@@ -138,9 +138,6 @@ export default function WelcomeDashboard() {
                   Track deal temperature and get actionable insights to close faster
                 </p>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Organized by opportunity heat level
-              </p>
             </div>
 
             {/* Three-column layout for all heat levels */}
