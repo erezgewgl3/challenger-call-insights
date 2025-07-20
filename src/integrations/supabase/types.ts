@@ -952,7 +952,7 @@ export type Database = {
         Returns: Json
       }
       integration_framework_get_connection: {
-        Args: { user_uuid: string; integration_type: string }
+        Args: { user_uuid: string; integration_type_param: string }
         Returns: Json
       }
       integration_framework_get_connection_health: {

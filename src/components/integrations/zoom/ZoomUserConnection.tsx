@@ -53,7 +53,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
       console.log('Loading Zoom connection for user:', user.id);
       const { data, error } = await supabase.rpc('integration_framework_get_connection', {
         user_uuid: user.id,
-        integration_type: 'zoom'
+        integration_type_param: 'zoom'
       });
 
       console.log('RPC response:', data, error);

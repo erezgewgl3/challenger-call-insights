@@ -332,39 +332,89 @@ serve(async (req) => {
 
     console.log(`[CALLBACK-INTEGRATION] Token exchange successful, creating connection`);
 
-    // Store the connection (use consistent connection_name to avoid conflicts)
-    const connectionName = userInfo.email || userInfo.login || userInfo.name || `${integrationId} Connection`;
-    const { data: connection, error: connectionError } = await supabase.from('integration_connections').upsert({
-      user_id: userId,
-      integration_type: integrationId,
-      connection_name: connectionName,
-      connection_status: 'active',
-      credentials: {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: Date.now() + (3600 * 1000), // 1 hour default
-      },
-      configuration: {
-        user_info: userInfo,
-        connected_at: new Date().toISOString(),
-      },
-      last_sync_at: new Date().toISOString(),
-    }, {
-      onConflict: 'user_id,connection_name',
-      ignoreDuplicates: false
-    }).select().single();
+    // Check if connection already exists to handle duplicate callbacks
+    const { data: existingConnection } = await supabase
+      .from('integration_connections')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('integration_type', integrationId)
+      .eq('connection_status', 'active')
+      .maybeSingle();
 
-    if (connectionError) {
-      console.error(`[CALLBACK-INTEGRATION] Failed to store connection:`, connectionError);
-      const errorMsg = `Failed to store connection: ${connectionError.message}`;
-      if (isApiCall) {
-        return new Response(JSON.stringify({ error: errorMsg }), {
-          headers: { 'Content-Type': 'application/json', ...corsHeaders },
-          status: 500,
-        });
-      } else {
-        throw new Error(errorMsg);
+    let connection = existingConnection;
+
+    if (existingConnection) {
+      console.log(`[CALLBACK-INTEGRATION] Connection already exists for user ${userId}, updating existing connection`);
+      // Update existing connection with new tokens
+      const { data: updatedConnection, error: updateError } = await supabase
+        .from('integration_connections')
+        .update({
+          credentials: {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_at: Date.now() + (3600 * 1000), // 1 hour default
+          },
+          configuration: {
+            user_info: userInfo,
+            connected_at: new Date().toISOString(),
+          },
+          last_sync_at: new Date().toISOString(),
+        })
+        .eq('id', existingConnection.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error(`[CALLBACK-INTEGRATION] Failed to update existing connection:`, updateError);
+        const errorMsg = `Failed to update connection: ${updateError.message}`;
+        if (isApiCall) {
+          return new Response(JSON.stringify({ error: errorMsg }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+            status: 500,
+          });
+        } else {
+          throw new Error(errorMsg);
+        }
       }
+      connection = updatedConnection;
+    } else {
+      // Create new connection
+      console.log(`[CALLBACK-INTEGRATION] Creating new connection for user ${userId}`);
+      const connectionName = userInfo.email || userInfo.login || userInfo.name || `${integrationId} Connection`;
+      const { data: newConnection, error: connectionError } = await supabase
+        .from('integration_connections')
+        .insert({
+          user_id: userId,
+          integration_type: integrationId,
+          connection_name: connectionName,
+          connection_status: 'active',
+          credentials: {
+            access_token: accessToken,
+            refresh_token: refreshToken,
+            expires_at: Date.now() + (3600 * 1000), // 1 hour default
+          },
+          configuration: {
+            user_info: userInfo,
+            connected_at: new Date().toISOString(),
+          },
+          last_sync_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (connectionError) {
+        console.error(`[CALLBACK-INTEGRATION] Failed to store connection:`, connectionError);
+        const errorMsg = `Failed to store connection: ${connectionError.message}`;
+        if (isApiCall) {
+          return new Response(JSON.stringify({ error: errorMsg }), {
+            headers: { 'Content-Type': 'application/json', ...corsHeaders },
+            status: 500,
+          });
+        } else {
+          throw new Error(errorMsg);
+        }
+      }
+      connection = newConnection;
     }
 
     // Clean up OAuth state

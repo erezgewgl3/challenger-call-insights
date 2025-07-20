@@ -21,7 +21,7 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
 
       const { data, error } = await supabase.rpc('integration_framework_get_connection', {
         user_uuid: user.id,
-        integration_type: 'zoom'
+        integration_type_param: 'zoom'
       });
 
       if (error) {
