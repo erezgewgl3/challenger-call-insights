@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { getSecureBaseUrl } from './domainUtils';
 
 export interface PasswordResetResult {
   success: boolean;
@@ -21,8 +22,8 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
     const expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + 1); // 1 hour expiry (guide rail)
 
-    // Create reset link
-    const baseUrl = 'https://app.saleswhisperer.net';
+    // Create reset link using secure domain utility
+    const baseUrl = getSecureBaseUrl();
     const resetLink = `${baseUrl}/reset-password?token=${token}&email=${encodeURIComponent(email)}`;
     
     // Get IP and user agent for security tracking (guide rail)
