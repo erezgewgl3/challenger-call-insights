@@ -47,11 +47,11 @@ export const ZoomStatusBadge: React.FC = () => {
 
     return {
       variant: 'outline' as const,
-      className: 'cursor-pointer hover:bg-muted transition-colors text-muted-foreground',
+      className: 'cursor-pointer hover:bg-muted transition-colors text-muted-foreground bg-gray-50',
       children: (
         <>
           <Video className="h-3 w-3 mr-1" />
-          <span className="text-xs">Not Connected</span>
+          <span className="text-xs">ZOOM Not Connected</span>
         </>
       )
     };
