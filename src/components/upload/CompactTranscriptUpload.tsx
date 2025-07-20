@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TranscriptNameDialog } from './TranscriptNameDialog'
 import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
-import { Upload, Plus } from 'lucide-react'
+import { Upload, Plus, FileText, Info, Eye, MessageSquare, ArrowRight } from 'lucide-react'
 
 interface CompactTranscriptUploadProps {
   onAnalysisComplete?: (transcriptId: string) => void
@@ -70,33 +70,58 @@ export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscrip
 
   return (
     <>
-      <Card className="h-full border-dashed border-2 hover:border-primary/50 transition-colors">
-        <CardContent className="p-4 h-full">
-          <div
-            {...getRootProps()}
-            className={`
-              h-full flex flex-col items-center justify-center text-center cursor-pointer
-              ${isDragActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'}
-              transition-colors
-            `}
-          >
-            <input {...getInputProps()} />
-            <div className="flex items-center justify-center mb-2">
-              {isDragActive ? (
-                <Upload className="h-6 w-6" />
-              ) : (
-                <Plus className="h-6 w-6" />
-              )}
+      <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
+        <Card className="bg-white rounded-lg">
+          <CardContent className="p-8">
+            <div
+              {...getRootProps()}
+              className={`
+                border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer
+                ${isDragActive ? 'border-primary bg-primary/5' : 'hover:border-primary/50 hover:bg-gray-50'}
+                transition-all duration-200
+              `}
+            >
+              <input {...getInputProps()} />
+              <div className="flex items-center justify-center mb-4">
+                <FileText className="h-8 w-8 text-blue-500" />
+              </div>
+              <p className="text-lg font-medium text-gray-900 mb-2">
+                {isDragActive ? 'Drop here' : 'Drag & drop transcript or'} <span className="text-blue-500 underline">browse files</span>
+              </p>
+              <p className="text-sm text-gray-500">
+                Supports .txt, .docx, and .vtt files up to 10MB
+              </p>
             </div>
-            <p className="text-sm font-medium mb-1">
-              {isDragActive ? 'Drop here' : 'Upload Transcript'}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              .txt, .docx, .vtt
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+            
+            <div className="mt-6 bg-gray-50 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
+                  <Info className="h-3 w-3 text-emerald-600" />
+                </div>
+                <h3 className="font-medium text-gray-900">What You'll Get</h3>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                  <span className="text-sm text-gray-700">Client intelligence</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                  <span className="text-sm text-gray-700">Strategic insights</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                  <span className="text-sm text-gray-700">Follow-up content</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  <span className="text-sm text-gray-700">Next steps</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <TranscriptNameDialog
         isOpen={showNameDialog}
