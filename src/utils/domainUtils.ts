@@ -14,7 +14,8 @@ const ALLOWED_DOMAINS = {
   staging: [
     // Lovable staging domains pattern
     /^[a-zA-Z0-9-]+\.lovable\.app$/,
-    /^[a-zA-Z0-9-]+\.lovableproject\.com$/
+    /^[a-zA-Z0-9-]+\.lovableproject\.com$/,
+    /^[a-zA-Z0-9-]+\.lovable\.dev$/
   ],
   production: [
     'app.saleswhisperer.net',
@@ -78,13 +79,8 @@ export function getSecureBaseUrl(): string {
     if (hostname.includes('localhost') || hostname.includes('127.0.0.1')) {
       baseUrl = 'http://localhost:3000';
     } else if (hostname.includes('lovable')) {
-      // Keep the current Lovable domain if it matches pattern
-      const lovableMatch = hostname.match(/^([a-zA-Z0-9-]+)\.lovable\.app$/);
-      if (lovableMatch) {
-        baseUrl = `https://${hostname}`;
-      } else {
-        baseUrl = 'https://app.saleswhisperer.net';
-      }
+      // Keep the current Lovable domain - any lovable subdomain
+      baseUrl = `https://${hostname}`;
     } else {
       baseUrl = 'https://app.saleswhisperer.net';
     }
