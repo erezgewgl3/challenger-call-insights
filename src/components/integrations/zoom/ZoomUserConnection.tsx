@@ -17,8 +17,8 @@ interface ZoomUserConnectionProps {
 
 interface ZoomConnection {
   id: string;
-  connectionName: string;
-  connectionStatus: 'active' | 'inactive' | 'error';
+  connection_name: string;
+  connection_status: 'active' | 'inactive' | 'error';
   credentials: {
     access_token?: string;
     email?: string;
@@ -28,9 +28,10 @@ interface ZoomConnection {
     auto_process?: boolean;
     notifications?: boolean;
     meeting_types?: string[];
+    user_info?: any;
   };
-  lastSyncAt?: string;
-  createdAt: string;
+  last_sync_at?: string;
+  created_at: string;
 }
 
 export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnectionChange }) => {
@@ -49,17 +50,22 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
     if (!user?.id) return;
 
     try {
+      console.log('Loading Zoom connection for user:', user.id);
       const { data, error } = await supabase.rpc('integration_framework_get_connection', {
         user_uuid: user.id,
         integration_type: 'zoom'
       });
 
+      console.log('RPC response:', data, error);
+
       if (error) throw error;
 
       if (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data && data.data) {
+        console.log('Setting connection data:', data.data);
         setConnection(data.data as unknown as ZoomConnection);
         onConnectionChange?.(true);
       } else {
+        console.log('No connection found, data:', data);
         setConnection(null);
         onConnectionChange?.(false);
       }
@@ -209,8 +215,8 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
                   Your Zoom account is connected and ready to analyze meeting transcripts
                 </CardDescription>
               </div>
-              <Badge variant={connection.connectionStatus === 'active' ? 'default' : 'secondary'}>
-                {connection.connectionStatus}
+              <Badge variant={connection.connection_status === 'active' ? 'default' : 'secondary'}>
+                {connection.connection_status}
               </Badge>
             </div>
           </CardHeader>
@@ -220,16 +226,16 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Account:</span>
-                <span className="font-medium">{connection.credentials.email || 'Connected'}</span>
+                <span className="font-medium">{connection.configuration.user_info?.email || connection.connection_name || 'Connected'}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Connected:</span>
-                <span>{new Date(connection.createdAt).toLocaleDateString()}</span>
+                <span>{new Date(connection.created_at).toLocaleDateString()}</span>
               </div>
-              {connection.lastSyncAt && (
+              {connection.last_sync_at && (
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Last Activity:</span>
-                  <span>{new Date(connection.lastSyncAt).toLocaleDateString()}</span>
+                  <span>{new Date(connection.last_sync_at).toLocaleDateString()}</span>
                 </div>
               )}
             </div>
