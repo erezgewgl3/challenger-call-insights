@@ -153,7 +153,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
 
   return (
     <Card className={`${theme.border} border-l-4 hover:shadow-lg transition-all duration-200 bg-white`}>
-      <CardHeader className={theme.bg}>
+      <CardHeader className={`${theme.bg} pb-3`}>
         <CardTitle className={`flex items-center space-x-3 text-lg ${theme.title}`}>
           <div className={`p-2 ${theme.iconBg} rounded-lg`}>
             <span className="text-lg">{theme.icon}</span>
@@ -164,7 +164,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
           {filteredTranscripts.length} active opportunities
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-4">
         {filteredTranscripts.length === 0 ? (
           <div className="text-center py-6">
             <div className={`p-4 ${theme.bg} rounded-lg border border-gray-200`}>
