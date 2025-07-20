@@ -1,9 +1,9 @@
+
 import { useState, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 // @ts-ignore - mammoth types may not be available
 import mammoth from 'mammoth'
-import { validateFileSecurely, sanitizeFileName, getClientIP } from '@/utils/fileSecurityUtils'
 
 type UploadStatus = 'idle' | 'validating' | 'uploading' | 'processing' | 'completed' | 'error'
 
@@ -90,6 +90,32 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
     }
   }
 
+  // Basic file validation function as fallback
+  const basicFileValidation = (file: File): { valid: boolean; error?: string } => {
+    const allowedTypes = [
+      'text/plain',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/vtt'
+    ]
+    const maxSize = 10 * 1024 * 1024 // 10MB
+    
+    if (!allowedTypes.includes(file.type)) {
+      return {
+        valid: false,
+        error: 'Invalid file type. Only .txt, .docx, and .vtt files are allowed'
+      }
+    }
+    
+    if (file.size > maxSize) {
+      return {
+        valid: false,
+        error: 'File size exceeds 10MB limit'
+      }
+    }
+    
+    return { valid: true }
+  }
+
   const processFiles = useCallback(async (files: File[], customName?: string) => {
     const newFiles: UploadFile[] = files.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -115,95 +141,103 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
 
     for (const uploadFile of newFiles) {
       try {
-        // Enhanced security validation phase
+        // Security validation phase
         updateFileStatus(uploadFile.id, { status: 'validating', progress: 10 })
         
-        // Sanitize filename to prevent path traversal attacks
-        const sanitizedFileName = sanitizeFileName(uploadFile.file.name)
-        
-        // Perform comprehensive client-side security validation
-        const securityValidation = await validateFileSecurely(uploadFile.file)
+        // Start with basic validation
+        const basicValidation = basicFileValidation(uploadFile.file)
+        if (!basicValidation.valid) {
+          throw new Error(basicValidation.error)
+        }
         
         updateFileStatus(uploadFile.id, { progress: 20 })
         
-        // Handle security validation results
-        if (!securityValidation.valid) {
-          throw new Error(securityValidation.errors.join('; '))
-        }
+        // Try enhanced validation (with fallback)
+        let enhancedValidationPassed = true
+        let securityWarnings: string[] = []
         
-        // Show warnings but don't block (for non-critical security issues)
-        if (securityValidation.warnings.length > 0) {
-          console.warn('File security warnings:', securityValidation.warnings)
-          toast.info(`Security notice: ${securityValidation.warnings[0]}`)
-        }
-
-        // Get client IP for enhanced server-side validation
-        const clientIP = getClientIP()
-        
-        // Extract text content early for server-side validation
-        updateFileStatus(uploadFile.id, { progress: 30 })
-        const textContent = await extractTextFromFile(uploadFile.file)
-        
-        // Call enhanced server-side validation with content
         try {
-          const { data: validationResult, error: validationError } = await supabase.rpc('enhanced_file_validation', {
-            p_file_name: sanitizedFileName,
-            p_file_size: uploadFile.file.size,
-            p_content_type: uploadFile.file.type,
-            p_user_id: user.id,
-            p_ip_address: clientIP,
-            p_file_content: textContent
-          })
+          // Dynamic import with error handling
+          const { validateFileSecurely, sanitizeFileName, getClientIP } = await import('@/utils/fileSecurityUtils')
           
-          if (validationError) {
-            console.error('Server validation error:', validationError)
-            throw new Error('File validation failed on server')
+          // Sanitize filename to prevent path traversal attacks
+          const sanitizedFileName = sanitizeFileName(uploadFile.file.name)
+          
+          // Perform comprehensive client-side security validation
+          const securityValidation = await validateFileSecurely(uploadFile.file)
+          
+          updateFileStatus(uploadFile.id, { progress: 30 })
+          
+          // Handle security validation results
+          if (!securityValidation.valid) {
+            throw new Error(securityValidation.errors.join('; '))
           }
           
-          // Type guard for validation result
-          const result = validationResult as any
-          if (result && typeof result === 'object' && !result.valid) {
-            throw new Error(result.error || 'File validation failed')
+          // Show warnings but don't block (for non-critical security issues)
+          if (securityValidation.warnings.length > 0) {
+            securityWarnings = securityValidation.warnings
+            console.warn('File security warnings:', securityValidation.warnings)
           }
+
+          // Get client IP for enhanced server-side validation
+          const clientIP = getClientIP()
           
-          // Log successful enhanced validation
-          console.log('Enhanced file validation passed:', validationResult)
+          // Extract text content early for server-side validation
+          updateFileStatus(uploadFile.id, { progress: 40 })
+          const textContent = await extractTextFromFile(uploadFile.file)
           
-        } catch (validationError) {
-          console.error('Enhanced validation failed:', validationError)
-          // Fallback to basic validation for backward compatibility
-          const allowedTypes = ['text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/vtt']
-          const maxSize = 10 * 1024 * 1024 // 10MB
-          
-          if (!allowedTypes.includes(uploadFile.file.type)) {
-            throw new Error('Invalid file type. Only .txt, .docx, and .vtt files are allowed')
-          }
-          
-          if (uploadFile.file.size > maxSize) {
-            throw new Error('File size exceeds 10MB limit')
-          }
-          
-          // Log fallback to basic validation
+          // Call enhanced server-side validation with content
           try {
-            await supabase.rpc('log_security_event', {
-              p_event_type: 'file_upload_fallback_validation',
+            const { data: validationResult, error: validationError } = await supabase.rpc('enhanced_file_validation', {
+              p_file_name: sanitizedFileName,
+              p_file_size: uploadFile.file.size,
+              p_content_type: uploadFile.file.type,
               p_user_id: user.id,
-              p_details: {
-                file_name: sanitizedFileName,
-                file_size: uploadFile.file.size,
-                content_type: uploadFile.file.type,
-                fallback_reason: validationError instanceof Error ? validationError.message : 'Unknown validation error'
-              }
+              p_ip_address: clientIP,
+              p_file_content: textContent
             })
-          } catch (logError) {
-            console.warn('Failed to log security event:', logError)
+            
+            if (validationError) {
+              console.error('Server validation error:', validationError)
+              enhancedValidationPassed = false
+            } else {
+              // Type guard for validation result
+              const result = validationResult as any
+              if (result && typeof result === 'object' && !result.valid) {
+                throw new Error(result.error || 'File validation failed')
+              }
+              
+              // Log successful enhanced validation
+              console.log('Enhanced file validation passed:', validationResult)
+            }
+          } catch (validationError) {
+            console.error('Enhanced validation failed:', validationError)
+            enhancedValidationPassed = false
           }
+          
+        } catch (securityError) {
+          console.warn('Enhanced security validation failed, using basic validation:', securityError)
+          enhancedValidationPassed = false
+          securityWarnings.push('Enhanced security validation unavailable')
         }
         
-        updateFileStatus(uploadFile.id, { progress: 40 })
+        // Show security warnings as info toasts
+        if (securityWarnings.length > 0) {
+          toast.info(`Security notice: ${securityWarnings[0]}`)
+        }
+        
+        updateFileStatus(uploadFile.id, { progress: 50 })
+        
+        // Extract text content if not already done
+        let textContent: string
+        try {
+          textContent = await extractTextFromFile(uploadFile.file)
+        } catch (extractError) {
+          throw new Error('Failed to extract text from file')
+        }
         
         // Extract metadata with custom name
-        const metadata = extractMetadataFromText(textContent, sanitizedFileName, customName)
+        const metadata = extractMetadataFromText(textContent, uploadFile.file.name, customName)
         updateFileStatus(uploadFile.id, { metadata, progress: 60 })
 
         // Upload phase

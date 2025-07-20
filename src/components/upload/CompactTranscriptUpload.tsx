@@ -12,15 +12,35 @@ interface CompactTranscriptUploadProps {
 }
 
 export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscriptUploadProps) {
-  const { uploadFiles, processFiles, isUploading } = useTranscriptUpload(onAnalysisComplete)
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [showNameDialog, setShowNameDialog] = useState(false)
+  const [hasError, setHasError] = useState(false)
+
+  // Initialize upload hook with error handling
+  let uploadHook
+  try {
+    uploadHook = useTranscriptUpload(onAnalysisComplete)
+  } catch (error) {
+    console.error('Failed to initialize upload hook:', error)
+    setHasError(true)
+  }
+
+  const { uploadFiles, processFiles, isUploading } = uploadHook || {
+    uploadFiles: [],
+    processFiles: () => Promise.resolve(),
+    isUploading: false
+  }
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
-    if (acceptedFiles.length > 0) {
-      const file = acceptedFiles[0]
-      setPendingFile(file)
-      setShowNameDialog(true)
+    try {
+      if (acceptedFiles.length > 0) {
+        const file = acceptedFiles[0]
+        setPendingFile(file)
+        setShowNameDialog(true)
+      }
+    } catch (error) {
+      console.error('Error handling file drop:', error)
+      setHasError(true)
     }
   }, [])
 
@@ -35,21 +55,50 @@ export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscrip
     multiple: false
   })
 
-  const handleNameConfirm = (customName: string) => {
-    if (pendingFile) {
-      processFiles([pendingFile], customName)
-      setPendingFile(null)
-      setShowNameDialog(false)
+  const handleNameConfirm = useCallback((customName: string) => {
+    try {
+      if (pendingFile && processFiles) {
+        processFiles([pendingFile], customName)
+        setPendingFile(null)
+        setShowNameDialog(false)
+      }
+    } catch (error) {
+      console.error('Error processing file:', error)
+      setHasError(true)
     }
-  }
+  }, [pendingFile, processFiles])
 
-  const handleNameCancel = () => {
+  const handleNameCancel = useCallback(() => {
     setPendingFile(null)
     setShowNameDialog(false)
-  }
+  }, [])
 
-  const getDefaultName = (file: File) => {
+  const getDefaultName = useCallback((file: File) => {
     return file.name.replace(/\.[^/.]+$/, "")
+  }, [])
+
+  // Error fallback UI
+  if (hasError) {
+    return (
+      <Card className="h-full">
+        <CardContent className="p-4 flex items-center justify-center h-full">
+          <div className="text-center">
+            <Info className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+            <p className="text-sm text-muted-foreground">
+              Upload temporarily unavailable. Please refresh the page.
+            </p>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="mt-2"
+              onClick={() => window.location.reload()}
+            >
+              Refresh Page
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    )
   }
 
   // Show upload progress if files are being processed

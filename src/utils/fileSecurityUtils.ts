@@ -1,3 +1,4 @@
+
 /**
  * File Security Utilities for enhanced file validation
  * Provides client-side security checks for file uploads
@@ -149,95 +150,112 @@ export function scanFileContent(content: string, fileName: string): {
     description: string;
   }> = [];
   
-  const contentLower = content.toLowerCase();
-  
-  // Check for suspicious script patterns
-  for (const pattern of DANGEROUS_PATTERNS) {
-    if (pattern.test(content)) {
-      securityScore -= 20;
+  try {
+    const contentLower = content.toLowerCase();
+    
+    // Check for suspicious script patterns
+    for (const pattern of DANGEROUS_PATTERNS) {
+      if (pattern.test(content)) {
+        securityScore -= 20;
+        threats.push({
+          type: 'suspicious_script',
+          pattern: pattern.source,
+          severity: 'medium',
+          description: 'Potentially malicious script pattern detected'
+        });
+      }
+    }
+    
+    // Check for executable file patterns in filename
+    const executableExtensions = ['.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js'];
+    const lowerFileName = fileName.toLowerCase();
+    
+    for (const ext of executableExtensions) {
+      if (lowerFileName.includes(ext)) {
+        securityScore -= 50;
+        threats.push({
+          type: 'executable_pattern',
+          severity: 'high',
+          description: `Filename contains executable extension: ${ext}`
+        });
+      }
+    }
+    
+    // Check for excessive special characters (obfuscation)
+    const specialChars = content.match(/[!@#$%^&*(){}[\]<>/\\|]/g) || [];
+    const specialCharRatio = specialChars.length / content.length;
+    
+    if (specialCharRatio > 0.3) {
+      securityScore -= 15;
       threats.push({
-        type: 'suspicious_script',
-        pattern: pattern.source,
+        type: 'high_special_char_ratio',
+        severity: 'low',
+        description: 'High ratio of special characters detected (possible obfuscation)'
+      });
+    }
+    
+    // Check for very long lines (obfuscation)
+    const lines = content.split('\n');
+    const hasVeryLongLine = lines.some(line => line.length > 10000);
+    
+    if (hasVeryLongLine && lines.length === 1) {
+      securityScore -= 10;
+      threats.push({
+        type: 'single_long_line',
+        severity: 'low',
+        description: 'File contains a single very long line (possible obfuscation)'
+      });
+    }
+    
+    return {
+      safe: securityScore >= 70,
+      threats,
+      securityScore: Math.max(0, securityScore)
+    };
+  } catch (error) {
+    return {
+      safe: false,
+      threats: [{
+        type: 'scan_error',
         severity: 'medium',
-        description: 'Potentially malicious script pattern detected'
-      });
-    }
+        description: `Content scanning failed: ${error}`
+      }],
+      securityScore: 0
+    };
   }
-  
-  // Check for executable file patterns in filename
-  const executableExtensions = ['.exe', '.bat', '.cmd', '.com', '.pif', '.scr', '.vbs', '.js'];
-  const lowerFileName = fileName.toLowerCase();
-  
-  for (const ext of executableExtensions) {
-    if (lowerFileName.includes(ext)) {
-      securityScore -= 50;
-      threats.push({
-        type: 'executable_pattern',
-        severity: 'high',
-        description: `Filename contains executable extension: ${ext}`
-      });
-    }
-  }
-  
-  // Check for excessive special characters (obfuscation)
-  const specialChars = content.match(/[!@#$%^&*(){}[\]<>/\\|]/g) || [];
-  const specialCharRatio = specialChars.length / content.length;
-  
-  if (specialCharRatio > 0.3) {
-    securityScore -= 15;
-    threats.push({
-      type: 'high_special_char_ratio',
-      severity: 'low',
-      description: 'High ratio of special characters detected (possible obfuscation)'
-    });
-  }
-  
-  // Check for very long lines (obfuscation)
-  const lines = content.split('\n');
-  const hasVeryLongLine = lines.some(line => line.length > 10000);
-  
-  if (hasVeryLongLine && lines.length === 1) {
-    securityScore -= 10;
-    threats.push({
-      type: 'single_long_line',
-      severity: 'low',
-      description: 'File contains a single very long line (possible obfuscation)'
-    });
-  }
-  
-  return {
-    safe: securityScore >= 70,
-    threats,
-    securityScore: Math.max(0, securityScore)
-  };
 }
 
 /**
  * Sanitizes filename to prevent path traversal attacks
  */
 export function sanitizeFileName(fileName: string): string {
-  // Remove path traversal patterns
-  let sanitized = fileName.replace(/\.\./g, '');
-  
-  // Remove illegal characters
-  sanitized = sanitized.replace(/[<>:"|?*\x00-\x1f]/g, '');
-  
-  // Remove path separators
-  sanitized = sanitized.replace(/[/\\]/g, '');
-  
-  // Limit length
-  if (sanitized.length > 255) {
-    const extension = sanitized.substring(sanitized.lastIndexOf('.'));
-    const baseName = sanitized.substring(0, 255 - extension.length);
-    sanitized = baseName + extension;
+  try {
+    // Remove path traversal patterns
+    let sanitized = fileName.replace(/\.\./g, '');
+    
+    // Remove illegal characters
+    sanitized = sanitized.replace(/[<>:"|?*\x00-\x1f]/g, '');
+    
+    // Remove path separators
+    sanitized = sanitized.replace(/[/\\]/g, '');
+    
+    // Limit length
+    if (sanitized.length > 255) {
+      const extension = sanitized.substring(sanitized.lastIndexOf('.'));
+      const baseName = sanitized.substring(0, 255 - extension.length);
+      sanitized = baseName + extension;
+    }
+    
+    // Ensure it's not empty
+    if (!sanitized.trim()) {
+      sanitized = 'transcript.txt';
+    }
+    
+    return sanitized;
+  } catch (error) {
+    console.warn('Filename sanitization failed:', error);
+    return 'transcript.txt';
   }
-  
-  // Ensure it's not empty
-  if (!sanitized.trim()) {
-    sanitized = 'transcript.txt';
-  }
-  
-  return sanitized;
 }
 
 /**
@@ -266,56 +284,73 @@ export async function validateFileSecurely(file: File): Promise<{
   const errors: string[] = [];
   const warnings: string[] = [];
   
-  // Basic validations
-  if (file.size > 10 * 1024 * 1024) { // 10MB
-    errors.push('File size exceeds 10MB limit');
-  }
-  
-  const allowedTypes = [
-    'text/plain',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/vtt'
-  ];
-  
-  if (!allowedTypes.includes(file.type)) {
-    errors.push('Unsupported file type. Only .txt, .docx, and .vtt files are allowed');
-  }
-  
-  // Enhanced validations
   try {
-    // Signature validation
-    const signatureResult = await validateFileSignature(file);
-    if (!signatureResult.valid) {
-      if (signatureResult.confidence > 0.7) {
-        errors.push(signatureResult.error || 'File signature validation failed');
-      } else {
-        warnings.push(signatureResult.error || 'File signature could not be verified');
-      }
+    // Basic validations
+    if (file.size > 10 * 1024 * 1024) { // 10MB
+      errors.push('File size exceeds 10MB limit');
     }
     
-    // For text files, also check content
-    if (file.type === 'text/plain' || file.type === 'text/vtt') {
-      const content = await file.text();
-      const contentScan = scanFileContent(content, file.name);
-      
-      if (!contentScan.safe) {
-        const highSeverityThreats = contentScan.threats.filter(t => t.severity === 'high');
-        if (highSeverityThreats.length > 0) {
-          errors.push('File content contains potentially dangerous patterns');
+    const allowedTypes = [
+      'text/plain',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'text/vtt'
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      errors.push('Unsupported file type. Only .txt, .docx, and .vtt files are allowed');
+    }
+    
+    // Enhanced validations (with error handling)
+    try {
+      // Signature validation
+      const signatureResult = await validateFileSignature(file);
+      if (!signatureResult.valid) {
+        if (signatureResult.confidence > 0.7) {
+          errors.push(signatureResult.error || 'File signature validation failed');
         } else {
-          warnings.push('File content has suspicious characteristics');
+          warnings.push(signatureResult.error || 'File signature could not be verified');
         }
       }
+      
+      // For text files, also check content
+      if (file.type === 'text/plain' || file.type === 'text/vtt') {
+        try {
+          const content = await file.text();
+          const contentScan = scanFileContent(content, file.name);
+          
+          if (!contentScan.safe) {
+            const highSeverityThreats = contentScan.threats.filter(t => t.severity === 'high');
+            if (highSeverityThreats.length > 0) {
+              errors.push('File content contains potentially dangerous patterns');
+            } else {
+              warnings.push('File content has suspicious characteristics');
+            }
+          }
+        } catch (contentError) {
+          warnings.push('Could not analyze file content for security threats');
+        }
+      }
+    } catch (enhancedError) {
+      warnings.push('Enhanced security validation partially failed');
     }
     
+    return {
+      valid: errors.length === 0,
+      errors,
+      warnings,
+      securityLevel: 'enhanced'
+    };
   } catch (error) {
-    warnings.push('Could not perform enhanced security validation');
+    // Fallback to basic validation
+    return {
+      valid: file.size <= 10 * 1024 * 1024 && [
+        'text/plain',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/vtt'
+      ].includes(file.type),
+      errors: errors.length > 0 ? errors : ['Basic file validation failed'],
+      warnings: ['Enhanced security validation unavailable'],
+      securityLevel: 'basic'
+    };
   }
-  
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-    securityLevel: 'enhanced'
-  };
 }
