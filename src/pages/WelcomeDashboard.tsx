@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -8,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { CompactTranscriptUpload } from '@/components/upload/CompactTranscriptUpload';
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
 import { ZoomStatusBadge } from '@/components/dashboard/ZoomStatusBadge';
-import { FileText, TrendingUp, Thermometer, Clock, LogOut } from 'lucide-react';
+import { FileText, TrendingUp, Thermometer, Clock, LogOut, Brain } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function WelcomeDashboard() {
@@ -87,13 +86,9 @@ export default function WelcomeDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              {/* Logo - Blue circle with stopwatch icon */}
+              {/* Logo - Blue circle with brain icon */}
               <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                <div className="relative">
-                  <div className="w-5 h-5 border-2 border-white rounded-full"></div>
-                  <div className="absolute top-0 left-1/2 w-0.5 h-2 bg-white transform -translate-x-1/2 -translate-y-0.5"></div>
-                  <div className="absolute top-1/2 left-1/2 w-1 h-1 bg-white rounded-full transform -translate-x-1/2 -translate-y-1/2"></div>
-                </div>
+                <Brain className="h-5 w-5 text-white" />
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-foreground">Sales Whisperer</h1>
