@@ -332,11 +332,12 @@ serve(async (req) => {
 
     console.log(`[CALLBACK-INTEGRATION] Token exchange successful, creating connection`);
 
-    // Store the connection
+    // Store the connection (use consistent connection_name to avoid conflicts)
+    const connectionName = userInfo.email || userInfo.login || userInfo.name || `${integrationId} Connection`;
     const { data: connection, error: connectionError } = await supabase.from('integration_connections').upsert({
       user_id: userId,
       integration_type: integrationId,
-      connection_name: userInfo.name || userInfo.login || userInfo.email || `${integrationId} Connection`,
+      connection_name: connectionName,
       connection_status: 'active',
       credentials: {
         access_token: accessToken,
@@ -347,6 +348,10 @@ serve(async (req) => {
         user_info: userInfo,
         connected_at: new Date().toISOString(),
       },
+      last_sync_at: new Date().toISOString(),
+    }, {
+      onConflict: 'user_id,connection_name',
+      ignoreDuplicates: false
     }).select().single();
 
     if (connectionError) {
