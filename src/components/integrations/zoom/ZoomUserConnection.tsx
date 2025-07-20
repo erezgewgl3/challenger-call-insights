@@ -74,7 +74,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
     try {
       // First check if Zoom integration is enabled by admin
       const { data: systemConfig } = await supabase
-        .from('integration_configs')
+        .from('system_integration_configs')
         .select('config_value')
         .eq('integration_type', 'zoom')
         .eq('config_key', 'system_config')
