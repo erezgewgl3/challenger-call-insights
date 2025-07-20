@@ -816,13 +816,22 @@ export type Database = {
         Returns: Json
       }
       enhanced_file_validation: {
-        Args: {
-          p_file_name: string
-          p_file_size: number
-          p_content_type: string
-          p_user_id: string
-          p_ip_address?: string
-        }
+        Args:
+          | {
+              p_file_name: string
+              p_file_size: number
+              p_content_type: string
+              p_user_id: string
+              p_ip_address?: string
+            }
+          | {
+              p_file_name: string
+              p_file_size: number
+              p_content_type: string
+              p_user_id: string
+              p_ip_address?: string
+              p_file_content?: string
+            }
         Returns: Json
       }
       execute_role_change: {
@@ -984,6 +993,14 @@ export type Database = {
       mark_users_pending_deletion: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      scan_file_content_security: {
+        Args: { p_content: string; p_file_name: string }
+        Returns: Json
+      }
+      validate_file_signature: {
+        Args: { p_file_content: string; p_declared_type: string }
+        Returns: Json
       }
       validate_file_upload: {
         Args: {

@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 // @ts-ignore - mammoth types may not be available
 import mammoth from 'mammoth'
+import { validateFileSecurely, sanitizeFileName, getClientIP } from '@/utils/fileSecurityUtils'
 
 type UploadStatus = 'idle' | 'validating' | 'uploading' | 'processing' | 'completed' | 'error'
 
@@ -114,44 +115,95 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
 
     for (const uploadFile of newFiles) {
       try {
-        // Enhanced validation phase with security checks
-        updateFileStatus(uploadFile.id, { status: 'validating', progress: 20 })
+        // Enhanced security validation phase
+        updateFileStatus(uploadFile.id, { status: 'validating', progress: 10 })
         
-        // Client-side basic validation
-        const allowedTypes = ['text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/vtt']
-        const maxSize = 10 * 1024 * 1024 // 10MB
+        // Sanitize filename to prevent path traversal attacks
+        const sanitizedFileName = sanitizeFileName(uploadFile.file.name)
         
-        if (!allowedTypes.includes(uploadFile.file.type)) {
-          throw new Error('Invalid file type. Only .txt, .docx, and .vtt files are allowed')
+        // Perform comprehensive client-side security validation
+        const securityValidation = await validateFileSecurely(uploadFile.file)
+        
+        updateFileStatus(uploadFile.id, { progress: 20 })
+        
+        // Handle security validation results
+        if (!securityValidation.valid) {
+          throw new Error(securityValidation.errors.join('; '))
         }
         
-        if (uploadFile.file.size > maxSize) {
-          throw new Error('File size exceeds 10MB limit')
+        // Show warnings but don't block (for non-critical security issues)
+        if (securityValidation.warnings.length > 0) {
+          console.warn('File security warnings:', securityValidation.warnings)
+          toast.info(`Security notice: ${securityValidation.warnings[0]}`)
         }
 
-        // Log security validation event (non-blocking)
+        // Get client IP for enhanced server-side validation
+        const clientIP = getClientIP()
+        
+        // Extract text content early for server-side validation
+        updateFileStatus(uploadFile.id, { progress: 30 })
+        const textContent = await extractTextFromFile(uploadFile.file)
+        
+        // Call enhanced server-side validation with content
         try {
-          await supabase.rpc('log_security_event', {
-            p_event_type: 'file_upload_validated',
+          const { data: validationResult, error: validationError } = await supabase.rpc('enhanced_file_validation', {
+            p_file_name: sanitizedFileName,
+            p_file_size: uploadFile.file.size,
+            p_content_type: uploadFile.file.type,
             p_user_id: user.id,
-            p_details: {
-              file_name: uploadFile.file.name,
-              file_size: uploadFile.file.size,
-              content_type: uploadFile.file.type
-            }
+            p_ip_address: clientIP,
+            p_file_content: textContent
           })
-        } catch (logError) {
-          console.warn('Failed to log security event:', logError)
+          
+          if (validationError) {
+            console.error('Server validation error:', validationError)
+            throw new Error('File validation failed on server')
+          }
+          
+          // Type guard for validation result
+          const result = validationResult as any
+          if (result && typeof result === 'object' && !result.valid) {
+            throw new Error(result.error || 'File validation failed')
+          }
+          
+          // Log successful enhanced validation
+          console.log('Enhanced file validation passed:', validationResult)
+          
+        } catch (validationError) {
+          console.error('Enhanced validation failed:', validationError)
+          // Fallback to basic validation for backward compatibility
+          const allowedTypes = ['text/plain', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/vtt']
+          const maxSize = 10 * 1024 * 1024 // 10MB
+          
+          if (!allowedTypes.includes(uploadFile.file.type)) {
+            throw new Error('Invalid file type. Only .txt, .docx, and .vtt files are allowed')
+          }
+          
+          if (uploadFile.file.size > maxSize) {
+            throw new Error('File size exceeds 10MB limit')
+          }
+          
+          // Log fallback to basic validation
+          try {
+            await supabase.rpc('log_security_event', {
+              p_event_type: 'file_upload_fallback_validation',
+              p_user_id: user.id,
+              p_details: {
+                file_name: sanitizedFileName,
+                file_size: uploadFile.file.size,
+                content_type: uploadFile.file.type,
+                fallback_reason: validationError instanceof Error ? validationError.message : 'Unknown validation error'
+              }
+            })
+          } catch (logError) {
+            console.warn('Failed to log security event:', logError)
+          }
         }
         
-        updateFileStatus(uploadFile.id, { progress: 30 })
-        
-        // Extract text content
-        const textContent = await extractTextFromFile(uploadFile.file)
         updateFileStatus(uploadFile.id, { progress: 40 })
         
         // Extract metadata with custom name
-        const metadata = extractMetadataFromText(textContent, uploadFile.file.name, customName)
+        const metadata = extractMetadataFromText(textContent, sanitizedFileName, customName)
         updateFileStatus(uploadFile.id, { metadata, progress: 60 })
 
         // Upload phase
