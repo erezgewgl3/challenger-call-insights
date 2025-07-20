@@ -72,11 +72,11 @@ export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscrip
     <>
       <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
         <Card className="bg-white rounded-lg">
-          <CardContent className="p-8">
+          <CardContent className="p-4">
             <div
               {...getRootProps()}
               className={`
-                border-2 border-dashed border-gray-300 rounded-lg p-8 text-center cursor-pointer
+                border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer
                 ${isDragActive ? 'border-primary bg-primary/5' : 'hover:border-primary/50 hover:bg-gray-50'}
                 transition-all duration-200
               `}
@@ -93,29 +93,23 @@ export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscrip
               </p>
             </div>
             
-            <div className="mt-6 bg-gray-50 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-6 h-6 bg-emerald-100 rounded-full flex items-center justify-center">
-                  <Info className="h-3 w-3 text-emerald-600" />
+            <div className="mt-4 pt-4 border-t border-gray-200">
+              <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-gray-600">
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                  <span>Client intelligence</span>
                 </div>
-                <h3 className="font-medium text-gray-900">What You'll Get</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                  <span className="text-sm text-gray-700">Client intelligence</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-blue-500 rounded-full"></div>
+                  <span>Strategic insights</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm text-gray-700">Strategic insights</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                  <span>Follow-up content</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                  <span className="text-sm text-gray-700">Follow-up content</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                  <span className="text-sm text-gray-700">Next steps</span>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 bg-orange-500 rounded-full"></div>
+                  <span>Next steps</span>
                 </div>
               </div>
             </div>
