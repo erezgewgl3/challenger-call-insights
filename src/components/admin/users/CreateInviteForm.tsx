@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -24,6 +23,7 @@ import {
   FormDescription
 } from '@/components/ui/form';
 import { ExistingUserWarningDialog } from './ExistingUserWarningDialog';
+import { generateSecureInviteLink, logSecurityEvent } from '@/utils/domainUtils';
 
 const createInviteSchema = z.object({
   email: z.string()
@@ -134,8 +134,15 @@ export function CreateInviteForm() {
       // Send email if requested
       if (data.sendEmail) {
         try {
-          const baseUrl = 'https://app.saleswhisperer.net';
-          const inviteLink = `${baseUrl}/register?token=${token}`;
+          // Use secure domain utility instead of hardcoded URL
+          const inviteLink = generateSecureInviteLink(token);
+          
+          // Log security event for monitoring
+          logSecurityEvent('invite_link_generated', {
+            email: data.email,
+            domain: inviteLink.split('/register')[0],
+            expiresAt: expiresAt.toISOString()
+          });
           
           const { error: emailError } = await supabase.functions.invoke('send-email', {
             body: {
@@ -184,8 +191,8 @@ export function CreateInviteForm() {
       return { invite, token };
     },
     onSuccess: ({ invite, token }) => {
-      const baseUrl = 'https://app.saleswhisperer.net';
-      const inviteLink = `${baseUrl}/register?token=${token}`;
+      // Use secure domain utility for generated link display
+      const inviteLink = generateSecureInviteLink(token);
       
       setGeneratedLink(inviteLink);
       queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] });
@@ -199,6 +206,11 @@ export function CreateInviteForm() {
       form.reset();
     },
     onError: (error) => {
+      logSecurityEvent('invite_creation_failed', {
+        error: error.message,
+        email: form.getValues('email')
+      });
+      
       toast({
         title: "Error",
         description: error.message,
@@ -256,6 +268,11 @@ export function CreateInviteForm() {
     try {
       await navigator.clipboard.writeText(generatedLink);
       setCopySuccess(true);
+      
+      logSecurityEvent('invite_link_copied', {
+        domain: generatedLink.split('/register')[0]
+      });
+      
       toast({
         title: "Copied!",
         description: "Invite link copied to clipboard",

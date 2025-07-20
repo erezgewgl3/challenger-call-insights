@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -34,6 +33,7 @@ import {
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { Invite, InviteFilters } from './InviteManagement';
+import { generateSecureInviteLink, logSecurityEvent } from '@/utils/domainUtils';
 
 interface InvitesTableProps {
   invites: Invite[];
@@ -118,8 +118,15 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
   // Resend email mutation
   const resendEmailMutation = useMutation({
     mutationFn: async (invite: Invite) => {
-      const baseUrl = 'https://app.saleswhisperer.net';
-      const inviteLink = `${baseUrl}/register?token=${invite.token}`;
+      // Use secure domain utility instead of hardcoded baseUrl
+      const inviteLink = generateSecureInviteLink(invite.token);
+      
+      // Log security event
+      logSecurityEvent('invite_email_resent', {
+        email: invite.email,
+        domain: inviteLink.split('/register')[0],
+        inviteId: invite.id
+      });
       
       const { error } = await supabase.functions.invoke('send-email', {
         body: {
@@ -164,13 +171,19 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
     }
   });
 
-  // Copy invite link
+  // Copy invite link with secure domain
   const copyInviteLink = async (token: string) => {
-    const baseUrl = window.location.origin;
-    const inviteLink = `${baseUrl}/register?token=${token}`;
+    // Use secure domain utility instead of window.location.origin
+    const inviteLink = generateSecureInviteLink(token);
     
     try {
       await navigator.clipboard.writeText(inviteLink);
+      
+      logSecurityEvent('invite_link_copied_table', {
+        domain: inviteLink.split('/register')[0],
+        token: token.substring(0, 8) + '...' // Log partial token for security
+      });
+      
       toast({
         title: "Link Copied",
         description: "Invite link copied to clipboard",
