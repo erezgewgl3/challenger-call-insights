@@ -117,40 +117,8 @@ export default function WelcomeDashboard() {
               </p>
             </div>
 
-            {/* Unified Stats + Upload Row */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-8">
-              {/* Stats Cards */}
-              <Card className="text-center">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    <span className="text-2xl font-bold text-blue-600">{transcriptCount}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Total Conversations</p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <Thermometer className="w-4 h-4 text-red-600" />
-                    <span className="text-2xl font-bold text-red-600">{hotDealsCount}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Hot Deals</p>
-                </CardContent>
-              </Card>
-
-              <Card className="text-center">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-center gap-2 mb-2">
-                    <TrendingUp className="w-4 h-4 text-orange-600" />
-                    <span className="text-2xl font-bold text-orange-600">{warmDealsCount}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Warm Prospects</p>
-                </CardContent>
-              </Card>
-
-              {/* Compact Upload */}
+            {/* Upload Section */}
+            <div className="mb-8">
               <CompactTranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
             </div>
           </div>
