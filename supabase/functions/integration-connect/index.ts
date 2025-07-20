@@ -74,6 +74,7 @@ serve(async (req) => {
         }
       );
     }
+    
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -102,12 +103,14 @@ serve(async (req) => {
       console.error('Error fetching user role:', roleError);
     }
 
-    const url = new URL(req.url);
-    const integrationId = url.searchParams.get('integration_id');
+    // Parse request body to get integration_id and configuration
+    const requestBody = await req.json();
+    const integrationId = requestBody.integration_id;
+    const configuration = requestBody.configuration;
     
     // Input validation
     if (!integrationId) {
-      throw new Error('Missing integration_id parameter');
+      throw new Error('Missing integration_id in request body');
     }
     
     const validationError = validateInput(integrationId);
@@ -121,13 +124,12 @@ serve(async (req) => {
       );
     }
 
-    const { configuration } = await req.json();
-
     console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}, user role: ${userRole?.role}`);
 
     // Determine callback URL based on user role
     const isAdmin = userRole?.role === 'admin';
     const callbackPath = isAdmin ? '/admin/integrations/callback' : '/integrations/callback';
+    const url = new URL(req.url);
     const redirectUri = `${url.origin}${callbackPath}?integration_id=${integrationId}`;
     const state = `${userData.user.id}:${integrationId}:${Date.now()}`;
 

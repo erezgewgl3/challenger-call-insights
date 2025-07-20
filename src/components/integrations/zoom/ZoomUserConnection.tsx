@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -89,9 +90,10 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
         return;
       }
 
-      // Call the integration-connect Edge Function
-      const { data, error } = await supabase.functions.invoke('integration-connect?integration_id=zoom', {
+      // Call the integration-connect Edge Function with integration_id in body
+      const { data, error } = await supabase.functions.invoke('integration-connect', {
         body: {
+          integration_id: 'zoom',
           configuration: systemConfig.config_value
         }
       });
