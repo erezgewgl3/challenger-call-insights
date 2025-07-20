@@ -131,11 +131,13 @@ serve(async (req) => {
 
     console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}, user role: ${userRole?.role}`);
 
-    // Determine callback URL based on user role using correct app domain
+    // Determine callback URL based on user role using correct app domain - NO query parameters
     const isAdmin = userRole?.role === 'admin';
     const callbackPath = isAdmin ? '/admin/integrations/callback' : '/integrations/callback';
     const appDomain = getAppDomain();
-    const redirectUri = `${appDomain}${callbackPath}?integration_id=${integrationId}`;
+    const redirectUri = `${appDomain}${callbackPath}`;
+    
+    // Include integration_id in the state parameter for proper OAuth flow
     const state = `${userData.user.id}:${integrationId}:${Date.now()}`;
 
     // Generic OAuth URL generation based on integration type
@@ -160,17 +162,23 @@ serve(async (req) => {
         throw new Error(`Unsupported integration type: ${integrationId}`);
     }
 
-    // Store OAuth state for validation
+    // Store OAuth state for validation (including integration_id in state data)
     await supabase.from('integration_configs').upsert({
       user_id: userData.user.id,
       integration_type: integrationId,
       config_key: 'oauth_state',
-      config_value: { state, timestamp: Date.now(), redirect_uri: redirectUri },
+      config_value: { 
+        state, 
+        timestamp: Date.now(), 
+        redirect_uri: redirectUri,
+        integration_id: integrationId // Store integration_id in state data
+      },
       is_encrypted: false
     });
 
     console.log(`[CONNECT-INTEGRATION] Generated auth URL for ${integrationId}, callback: ${callbackPath}`);
-    console.log(`[CONNECT-INTEGRATION] Using redirect URI: ${redirectUri}`);
+    console.log(`[CONNECT-INTEGRATION] Using clean redirect URI: ${redirectUri}`);
+    console.log(`[CONNECT-INTEGRATION] Integration ID included in state: ${state}`);
 
     return new Response(JSON.stringify({
       success: true,

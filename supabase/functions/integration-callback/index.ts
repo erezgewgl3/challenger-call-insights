@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -69,6 +70,7 @@ serve(async (req) => {
         status: 429,
       });
     }
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -76,7 +78,6 @@ serve(async (req) => {
     );
 
     const url = new URL(req.url);
-    const integrationId = url.searchParams.get('integration_id');
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
@@ -97,37 +98,41 @@ serve(async (req) => {
       });
     }
 
-    if (!integrationId || !code || !state) {
-      throw new Error('Missing required parameters');
+    if (!code || !state) {
+      throw new Error('Missing required parameters (code or state)');
     }
 
     // Input sanitization
-    const sanitizedIntegrationId = sanitizeInput(integrationId);
     const sanitizedCode = sanitizeInput(code);
     const sanitizedState = sanitizeInput(state);
 
-    // Enhanced OAuth state validation
-    const [userId, integrationType, timestamp] = sanitizedState.split(':');
+    // Extract integration_id from state parameter
+    const [userId, integrationId, timestamp] = sanitizedState.split(':');
     
-    // Validate state format and expiry
-    if (!validateOAuthState(sanitizedState, userId, integrationType)) {
+    if (!userId || !integrationId || !timestamp) {
+      throw new Error('Invalid state parameter format');
+    }
+
+    console.log(`[CALLBACK-INTEGRATION] Processing callback for integration: ${integrationId}, user: ${userId}`);
+
+    // Enhanced OAuth state validation
+    if (!validateOAuthState(sanitizedState, userId, integrationId)) {
       throw new Error('Invalid or expired OAuth state');
     }
 
-    // Use the new secure validation function
-    const { data: validationResult } = await supabase.rpc('validate_oauth_state', {
-      p_state: sanitizedState,
-      p_user_id: userId,
-      p_integration_type: integrationType
-    });
+    // Validate OAuth state against stored data
+    const { data: storedState } = await supabase
+      .from('integration_configs')
+      .select('config_value')
+      .eq('user_id', userId)
+      .eq('integration_type', integrationId)
+      .eq('config_key', 'oauth_state')
+      .single();
 
-    if (!validationResult || !validationResult.valid) {
-      const errorMessage = validationResult?.error || 'OAuth state validation failed';
-      console.error(`[CALLBACK-INTEGRATION] State validation failed: ${errorMessage}`);
-      throw new Error('Invalid OAuth state');
+    if (!storedState || storedState.config_value.state !== sanitizedState) {
+      console.error(`[CALLBACK-INTEGRATION] State validation failed - stored: ${storedState?.config_value?.state}, received: ${sanitizedState}`);
+      throw new Error('OAuth state validation failed');
     }
-
-    console.log(`[CALLBACK-INTEGRATION] Processing callback for ${integrationId}`);
 
     // Exchange code for access token based on integration type
     let accessToken = '';
@@ -135,6 +140,35 @@ serve(async (req) => {
     let userInfo: any = {};
 
     switch (integrationId.toLowerCase()) {
+      case 'zoom':
+        const zoomTokenResponse = await fetch('https://zoom.us/oauth/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': `Basic ${btoa(`${Deno.env.get('ZOOM_CLIENT_ID')}:${Deno.env.get('ZOOM_CLIENT_SECRET')}`)}`,
+          },
+          body: new URLSearchParams({
+            grant_type: 'authorization_code',
+            code: sanitizedCode,
+            redirect_uri: storedState.config_value.redirect_uri,
+          }),
+        });
+        
+        const zoomTokenData = await zoomTokenResponse.json();
+        if (zoomTokenData.error) {
+          throw new Error(`Zoom token exchange failed: ${zoomTokenData.error}`);
+        }
+        
+        accessToken = zoomTokenData.access_token;
+        refreshToken = zoomTokenData.refresh_token;
+
+        // Get user info from Zoom
+        const zoomUserResponse = await fetch('https://api.zoom.us/v2/users/me', {
+          headers: { 'Authorization': `Bearer ${accessToken}` },
+        });
+        userInfo = await zoomUserResponse.json();
+        break;
+
       case 'github':
         const githubTokenResponse = await fetch('https://github.com/login/oauth/access_token', {
           method: 'POST',
@@ -145,7 +179,7 @@ serve(async (req) => {
           body: new URLSearchParams({
             client_id: Deno.env.get('GITHUB_CLIENT_ID') || '',
             client_secret: Deno.env.get('GITHUB_CLIENT_SECRET') || '',
-            code: code,
+            code: sanitizedCode,
           }),
         });
         const githubTokenData = await githubTokenResponse.json();
@@ -165,9 +199,9 @@ serve(async (req) => {
           body: new URLSearchParams({
             client_id: Deno.env.get('GOOGLE_CLIENT_ID') || '',
             client_secret: Deno.env.get('GOOGLE_CLIENT_SECRET') || '',
-            code: code,
+            code: sanitizedCode,
             grant_type: 'authorization_code',
-            redirect_uri: validationResult.state_data.redirect_uri,
+            redirect_uri: storedState.config_value.redirect_uri,
           }),
         });
         const googleTokenData = await googleTokenResponse.json();
@@ -186,8 +220,8 @@ serve(async (req) => {
           body: new URLSearchParams({
             client_id: Deno.env.get('SLACK_CLIENT_ID') || '',
             client_secret: Deno.env.get('SLACK_CLIENT_SECRET') || '',
-            code: code,
-            redirect_uri: validationResult.state_data.redirect_uri,
+            code: sanitizedCode,
+            redirect_uri: storedState.config_value.redirect_uri,
           }),
         });
         const slackTokenData = await slackTokenResponse.json();
@@ -207,7 +241,7 @@ serve(async (req) => {
     await supabase.from('integration_connections').upsert({
       user_id: userId,
       integration_type: integrationId,
-      connection_name: userInfo.name || userInfo.login || `${integrationId} Connection`,
+      connection_name: userInfo.name || userInfo.login || userInfo.email || `${integrationId} Connection`,
       connection_status: 'active',
       credentials: {
         access_token: accessToken,
@@ -225,7 +259,7 @@ serve(async (req) => {
       .from('integration_configs')
       .delete()
       .eq('user_id', userId)
-      .eq('integration_type', integrationType)
+      .eq('integration_type', integrationId)
       .eq('config_key', 'oauth_state');
 
     console.log(`[CALLBACK-INTEGRATION] Successfully connected ${integrationId} for user ${userId}`);
@@ -243,7 +277,7 @@ serve(async (req) => {
               integration_icon: getIntegrationIcon(integrationId),
               user_email: userResult.user.email,
               features: getIntegrationFeatures(integrationId),
-              dashboard_url: 'https://app.saleswhisperer.net/dashboard',
+              dashboard_url: 'https://saleswhispererv2-0.lovable.app/dashboard',
               connected_at: new Date().toISOString()
             }
           }
@@ -298,11 +332,11 @@ serve(async (req) => {
               template: 'integration-failed',
               to: userResult.user.email,
               data: {
-                integration_name: url.searchParams.get('integration_id') || 'Integration',
-                integration_icon: getIntegrationIcon(url.searchParams.get('integration_id') || ''),
+                integration_name: state.split(':')[1] || 'Integration',
+                integration_icon: getIntegrationIcon(state.split(':')[1] || ''),
                 user_email: userResult.user.email,
                 error_message: error.message,
-                retry_url: 'https://app.saleswhisperer.net/dashboard/integrations',
+                retry_url: 'https://saleswhispererv2-0.lovable.app/integrations',
                 failed_at: new Date().toISOString()
               }
             }
@@ -343,6 +377,11 @@ function getIntegrationIcon(integrationType: string): string {
 
 function getIntegrationFeatures(integrationType: string): string[] {
   const features: Record<string, string[]> = {
+    zoom: [
+      'Automatic transcript processing after meetings',
+      'AI-powered meeting insights and analysis', 
+      'Sales coaching recommendations based on conversations'
+    ],
     github: [
       'Sync repositories and commit data',
       'Track development activity and metrics',
