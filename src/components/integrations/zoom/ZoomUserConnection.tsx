@@ -90,9 +90,8 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
       }
 
       // Call the integration-connect Edge Function
-      const { data, error } = await supabase.functions.invoke('integration-connect', {
+      const { data, error } = await supabase.functions.invoke('integration-connect?integration_id=zoom', {
         body: {
-          integration_id: 'zoom',
           configuration: systemConfig.config_value
         }
       });
