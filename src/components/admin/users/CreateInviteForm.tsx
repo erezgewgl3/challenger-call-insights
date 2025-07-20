@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -115,6 +116,10 @@ export function CreateInviteForm() {
 
       // Generate secure token
       const token = crypto.randomUUID() + '-' + Date.now().toString(36);
+      
+      // Generate the invite link with debugging
+      const inviteLink = generateSecureInviteLink(token);
+      console.log('[INVITE DEBUG] Generated invite link during creation:', inviteLink);
 
       // Create invite
       const { data: invite, error } = await supabase
@@ -134,15 +139,14 @@ export function CreateInviteForm() {
       // Send email if requested
       if (data.sendEmail) {
         try {
-          // Use secure domain utility instead of hardcoded URL
-          const inviteLink = generateSecureInviteLink(token);
-          
           // Log security event for monitoring
           logSecurityEvent('invite_link_generated', {
             email: data.email,
             domain: inviteLink.split('/register')[0],
             expiresAt: expiresAt.toISOString()
           });
+          
+          console.log('[EMAIL DEBUG] Sending email with invite link:', inviteLink);
           
           const { error: emailError } = await supabase.functions.invoke('send-email', {
             body: {
@@ -193,6 +197,7 @@ export function CreateInviteForm() {
     onSuccess: ({ invite, token }) => {
       // Use secure domain utility for generated link display
       const inviteLink = generateSecureInviteLink(token);
+      console.log('[INVITE DEBUG] Displaying invite link after success:', inviteLink);
       
       setGeneratedLink(inviteLink);
       queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] });
