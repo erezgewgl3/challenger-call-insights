@@ -51,6 +51,11 @@ function sanitizeErrorMessage(error: Error): string {
   return message.substring(0, 200); // Limit error message length
 }
 
+function getAppDomain(): string {
+  // Use the correct app domain for OAuth redirects
+  return 'https://saleswhispererv2-0.lovable.app';
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -126,11 +131,11 @@ serve(async (req) => {
 
     console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}, user role: ${userRole?.role}`);
 
-    // Determine callback URL based on user role
+    // Determine callback URL based on user role using correct app domain
     const isAdmin = userRole?.role === 'admin';
     const callbackPath = isAdmin ? '/admin/integrations/callback' : '/integrations/callback';
-    const url = new URL(req.url);
-    const redirectUri = `${url.origin}${callbackPath}?integration_id=${integrationId}`;
+    const appDomain = getAppDomain();
+    const redirectUri = `${appDomain}${callbackPath}?integration_id=${integrationId}`;
     const state = `${userData.user.id}:${integrationId}:${Date.now()}`;
 
     // Generic OAuth URL generation based on integration type
@@ -165,6 +170,7 @@ serve(async (req) => {
     });
 
     console.log(`[CONNECT-INTEGRATION] Generated auth URL for ${integrationId}, callback: ${callbackPath}`);
+    console.log(`[CONNECT-INTEGRATION] Using redirect URI: ${redirectUri}`);
 
     return new Response(JSON.stringify({
       success: true,
