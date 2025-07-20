@@ -114,10 +114,10 @@ export default function WelcomeDashboard() {
           <div className="mb-8">
             <div className="text-center mb-6">
               <h1 className="text-3xl font-bold text-foreground mb-2">
-                Turn Conversations Into Deal Intelligence
+                Turn Every Sales Conversation Into Deal Intelligence
               </h1>
               <p className="text-muted-foreground max-w-2xl mx-auto">
-                Upload call transcripts and get instant AI-powered insights to accelerate your deals
+                Upload your call transcript and instantly unlock buying signals, stakeholder insights, and strategic next steps to accelerate your opportunities
               </p>
             </div>
 
