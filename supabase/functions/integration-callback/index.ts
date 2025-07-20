@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -32,19 +31,36 @@ function sanitizeInput(input: string): string {
   return input.replace(/[<>\"'&]/g, '');
 }
 
-function validateOAuthState(state: string, userId: string, integrationType: string): boolean {
-  const parts = state.split(':');
-  if (parts.length !== 3) return false;
-  
-  const [stateUserId, stateIntegrationType, stateTimestamp] = parts;
-  const timestamp = parseInt(stateTimestamp, 10);
-  const now = Date.now();
-  
-  // Validate format and expiry (1 hour)
-  return stateUserId === userId && 
-         stateIntegrationType === integrationType && 
-         !isNaN(timestamp) && 
-         (now - timestamp) < 3600000;
+function validateOAuthState(state: string): { isValid: boolean; userId?: string; integrationId?: string; timestamp?: number } {
+  try {
+    const parts = state.split(':');
+    if (parts.length !== 3) {
+      console.error(`[CALLBACK-INTEGRATION] Invalid state format - expected 3 parts, got ${parts.length}: ${state}`);
+      return { isValid: false };
+    }
+    
+    const [userId, integrationId, timestampStr] = parts;
+    const timestamp = parseInt(timestampStr, 10);
+    const now = Date.now();
+    
+    // Validate format and expiry (1 hour = 3600000ms)
+    if (!userId || !integrationId || isNaN(timestamp)) {
+      console.error(`[CALLBACK-INTEGRATION] Invalid state components - userId: ${userId}, integrationId: ${integrationId}, timestamp: ${timestampStr}`);
+      return { isValid: false };
+    }
+    
+    if ((now - timestamp) > 3600000) {
+      console.error(`[CALLBACK-INTEGRATION] State expired - age: ${now - timestamp}ms`);
+      return { isValid: false };
+    }
+    
+    console.log(`[CALLBACK-INTEGRATION] State validation successful - userId: ${userId}, integrationId: ${integrationId}, timestamp: ${timestamp}`);
+    return { isValid: true, userId, integrationId, timestamp };
+    
+  } catch (error) {
+    console.error(`[CALLBACK-INTEGRATION] State validation error: ${error}`);
+    return { isValid: false };
+  }
 }
 
 serve(async (req) => {
@@ -82,6 +98,8 @@ serve(async (req) => {
     const state = url.searchParams.get('state');
     const error = url.searchParams.get('error');
 
+    console.log(`[CALLBACK-INTEGRATION] Received callback - code: ${code ? 'present' : 'missing'}, state: ${state}, error: ${error}`);
+
     if (error) {
       console.error(`[CALLBACK-INTEGRATION] OAuth error: ${error}`);
       return new Response(`
@@ -99,6 +117,7 @@ serve(async (req) => {
     }
 
     if (!code || !state) {
+      console.error(`[CALLBACK-INTEGRATION] Missing required parameters - code: ${code ? 'present' : 'missing'}, state: ${state ? 'present' : 'missing'}`);
       throw new Error('Missing required parameters (code or state)');
     }
 
@@ -106,19 +125,16 @@ serve(async (req) => {
     const sanitizedCode = sanitizeInput(code);
     const sanitizedState = sanitizeInput(state);
 
-    // Extract integration_id from state parameter
-    const [userId, integrationId, timestamp] = sanitizedState.split(':');
-    
-    if (!userId || !integrationId || !timestamp) {
-      throw new Error('Invalid state parameter format');
-    }
-
-    console.log(`[CALLBACK-INTEGRATION] Processing callback for integration: ${integrationId}, user: ${userId}`);
-
-    // Enhanced OAuth state validation
-    if (!validateOAuthState(sanitizedState, userId, integrationId)) {
+    // Enhanced state validation
+    const stateValidation = validateOAuthState(sanitizedState);
+    if (!stateValidation.isValid || !stateValidation.userId || !stateValidation.integrationId) {
+      console.error(`[CALLBACK-INTEGRATION] State validation failed for state: ${sanitizedState}`);
       throw new Error('Invalid or expired OAuth state');
     }
+
+    const { userId, integrationId } = stateValidation;
+
+    console.log(`[CALLBACK-INTEGRATION] Processing callback for integration: ${integrationId}, user: ${userId}`);
 
     // Validate OAuth state against stored data
     const { data: storedState } = await supabase
@@ -133,6 +149,8 @@ serve(async (req) => {
       console.error(`[CALLBACK-INTEGRATION] State validation failed - stored: ${storedState?.config_value?.state}, received: ${sanitizedState}`);
       throw new Error('OAuth state validation failed');
     }
+
+    console.log(`[CALLBACK-INTEGRATION] State validation successful, proceeding with token exchange`);
 
     // Exchange code for access token based on integration type
     let accessToken = '';
@@ -155,7 +173,10 @@ serve(async (req) => {
         });
         
         const zoomTokenData = await zoomTokenResponse.json();
+        console.log(`[CALLBACK-INTEGRATION] Zoom token response status: ${zoomTokenResponse.status}`);
+        
         if (zoomTokenData.error) {
+          console.error(`[CALLBACK-INTEGRATION] Zoom token exchange failed:`, zoomTokenData);
           throw new Error(`Zoom token exchange failed: ${zoomTokenData.error}`);
         }
         
@@ -167,6 +188,7 @@ serve(async (req) => {
           headers: { 'Authorization': `Bearer ${accessToken}` },
         });
         userInfo = await zoomUserResponse.json();
+        console.log(`[CALLBACK-INTEGRATION] Zoom user info retrieved: ${userInfo.email || 'no email'}`);
         break;
 
       case 'github':
@@ -237,8 +259,10 @@ serve(async (req) => {
       throw new Error('Failed to obtain access token');
     }
 
+    console.log(`[CALLBACK-INTEGRATION] Token exchange successful, creating connection`);
+
     // Store the connection
-    await supabase.from('integration_connections').upsert({
+    const { data: connection, error: connectionError } = await supabase.from('integration_connections').upsert({
       user_id: userId,
       integration_type: integrationId,
       connection_name: userInfo.name || userInfo.login || userInfo.email || `${integrationId} Connection`,
@@ -252,7 +276,12 @@ serve(async (req) => {
         user_info: userInfo,
         connected_at: new Date().toISOString(),
       },
-    });
+    }).select().single();
+
+    if (connectionError) {
+      console.error(`[CALLBACK-INTEGRATION] Failed to store connection:`, connectionError);
+      throw new Error(`Failed to store connection: ${connectionError.message}`);
+    }
 
     // Clean up OAuth state
     await supabase
@@ -262,7 +291,7 @@ serve(async (req) => {
       .eq('integration_type', integrationId)
       .eq('config_key', 'oauth_state');
 
-    console.log(`[CALLBACK-INTEGRATION] Successfully connected ${integrationId} for user ${userId}`);
+    console.log(`[CALLBACK-INTEGRATION] Successfully connected ${integrationId} for user ${userId}, connection ID: ${connection.id}`);
 
     // Send success email notification
     try {
@@ -324,23 +353,30 @@ serve(async (req) => {
       const url = new URL(req.url);
       const state = url.searchParams.get('state');
       if (state) {
-        const [userId] = state.split(':');
-        const { data: userResult } = await supabase.auth.admin.getUserById(userId);
-        if (userResult.user?.email) {
-          await supabase.functions.invoke('send-email', {
-            body: {
-              template: 'integration-failed',
-              to: userResult.user.email,
-              data: {
-                integration_name: state.split(':')[1] || 'Integration',
-                integration_icon: getIntegrationIcon(state.split(':')[1] || ''),
-                user_email: userResult.user.email,
-                error_message: error.message,
-                retry_url: 'https://saleswhispererv2-0.lovable.app/integrations',
-                failed_at: new Date().toISOString()
+        const stateValidation = validateOAuthState(state);
+        if (stateValidation.isValid && stateValidation.userId) {
+          const supabase = createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+            { auth: { persistSession: false } }
+          );
+          const { data: userResult } = await supabase.auth.admin.getUserById(stateValidation.userId);
+          if (userResult.user?.email) {
+            await supabase.functions.invoke('send-email', {
+              body: {
+                template: 'integration-failed',
+                to: userResult.user.email,
+                data: {
+                  integration_name: stateValidation.integrationId || 'Integration',
+                  integration_icon: getIntegrationIcon(stateValidation.integrationId || ''),
+                  user_email: userResult.user.email,
+                  error_message: error.message,
+                  retry_url: 'https://saleswhispererv2-0.lovable.app/integrations',
+                  failed_at: new Date().toISOString()
+                }
               }
-            }
-          })
+            })
+          }
         }
       }
     } catch (emailError) {

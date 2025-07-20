@@ -131,14 +131,25 @@ serve(async (req) => {
 
     console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}, user role: ${userRole?.role}`);
 
+    // Clean up any existing OAuth states for this user and integration
+    await supabase
+      .from('integration_configs')
+      .delete()
+      .eq('user_id', userData.user.id)
+      .eq('integration_type', integrationId)
+      .eq('config_key', 'oauth_state');
+
     // Determine callback URL based on user role using correct app domain - NO query parameters
     const isAdmin = userRole?.role === 'admin';
     const callbackPath = isAdmin ? '/admin/integrations/callback' : '/integrations/callback';
     const appDomain = getAppDomain();
     const redirectUri = `${appDomain}${callbackPath}`;
     
-    // Include integration_id in the state parameter for proper OAuth flow
-    const state = `${userData.user.id}:${integrationId}:${Date.now()}`;
+    // Generate proper state parameter with full timestamp
+    const fullTimestamp = Date.now();
+    const state = `${userData.user.id}:${integrationId}:${fullTimestamp}`;
+
+    console.log(`[CONNECT-INTEGRATION] Generated state: ${state} with full timestamp: ${fullTimestamp}`);
 
     // Generic OAuth URL generation based on integration type
     let authUrl = '';
@@ -162,23 +173,23 @@ serve(async (req) => {
         throw new Error(`Unsupported integration type: ${integrationId}`);
     }
 
-    // Store OAuth state for validation (including integration_id in state data)
+    // Store OAuth state for validation with proper redirect URI
     await supabase.from('integration_configs').upsert({
       user_id: userData.user.id,
       integration_type: integrationId,
       config_key: 'oauth_state',
       config_value: { 
         state, 
-        timestamp: Date.now(), 
+        timestamp: fullTimestamp, 
         redirect_uri: redirectUri,
-        integration_id: integrationId // Store integration_id in state data
+        integration_id: integrationId
       },
       is_encrypted: false
     });
 
     console.log(`[CONNECT-INTEGRATION] Generated auth URL for ${integrationId}, callback: ${callbackPath}`);
     console.log(`[CONNECT-INTEGRATION] Using clean redirect URI: ${redirectUri}`);
-    console.log(`[CONNECT-INTEGRATION] Integration ID included in state: ${state}`);
+    console.log(`[CONNECT-INTEGRATION] State stored with timestamp: ${fullTimestamp}`);
 
     return new Response(JSON.stringify({
       success: true,
