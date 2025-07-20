@@ -179,13 +179,26 @@ serve(async (req) => {
     console.log(`[CALLBACK-INTEGRATION] Processing callback for integration: ${integrationId}, user: ${userId}`);
 
     // Validate OAuth state against stored data
-    const { data: storedState } = await supabase
+    const { data: storedState, error: stateError } = await supabase
       .from('integration_configs')
       .select('config_value')
       .eq('user_id', userId)
       .eq('integration_type', integrationId)
       .eq('config_key', 'oauth_state')
-      .single();
+      .maybeSingle();
+
+    if (stateError) {
+      console.error(`[CALLBACK-INTEGRATION] Error fetching stored state:`, stateError);
+      const errorMsg = 'Failed to validate OAuth state';
+      if (isApiCall) {
+        return new Response(JSON.stringify({ error: errorMsg }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 500,
+        });
+      } else {
+        throw new Error(errorMsg);
+      }
+    }
 
     if (!storedState || storedState.config_value.state !== sanitizedState) {
       console.error(`[CALLBACK-INTEGRATION] State validation failed - stored: ${storedState?.config_value?.state}, received: ${sanitizedState}`);
