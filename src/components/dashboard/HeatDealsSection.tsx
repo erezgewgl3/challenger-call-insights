@@ -1,3 +1,4 @@
+
 import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -128,14 +129,14 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
   if (isLoading) {
     return (
       <Card className={`${theme.border} border-l-4 hover:shadow-lg transition-all duration-200 bg-white`}>
-        <CardHeader>
-          <CardTitle className={`flex items-center space-x-3 text-lg ${theme.title}`}>
-            <div className={`p-2 ${theme.iconBg} rounded-lg`}>
-              <span className="text-lg">{theme.icon}</span>
+        <CardHeader className={`${theme.bg} py-2`}>
+          <CardTitle className={`flex items-center space-x-2 text-base ${theme.title}`}>
+            <div className={`p-1.5 ${theme.iconBg} rounded-lg`}>
+              <span className="text-base">{theme.icon}</span>
             </div>
             <span>{heatLevel} HEAT DEALS</span>
           </CardTitle>
-          <CardDescription className="text-slate-600">Loading...</CardDescription>
+          <CardDescription className="text-slate-600 text-sm">Loading...</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
@@ -153,14 +154,14 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
 
   return (
     <Card className={`${theme.border} border-l-4 hover:shadow-lg transition-all duration-200 bg-white`}>
-      <CardHeader className={`${theme.bg} pb-3`}>
-        <CardTitle className={`flex items-center space-x-3 text-lg ${theme.title}`}>
-          <div className={`p-2 ${theme.iconBg} rounded-lg`}>
-            <span className="text-lg">{theme.icon}</span>
+      <CardHeader className={`${theme.bg} py-2`}>
+        <CardTitle className={`flex items-center space-x-2 text-base ${theme.title}`}>
+          <div className={`p-1.5 ${theme.iconBg} rounded-lg`}>
+            <span className="text-base">{theme.icon}</span>
           </div>
           <span>{heatLevel} HEAT DEALS</span>
         </CardTitle>
-        <CardDescription className="text-slate-600">
+        <CardDescription className="text-slate-600 text-sm">
           {filteredTranscripts.length} active opportunities
         </CardDescription>
       </CardHeader>
