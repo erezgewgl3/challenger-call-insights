@@ -807,6 +807,10 @@ export type Database = {
         Args: { prompt_id_param: string }
         Returns: undefined
       }
+      check_prompt_access_rate_limit: {
+        Args: { p_user_id?: string }
+        Returns: boolean
+      }
       cleanup_expired_password_reset_tokens: {
         Args: Record<PropertyKey, never>
         Returns: Json
@@ -837,9 +841,7 @@ export type Database = {
         }[]
       }
       get_active_prompt: {
-        Args:
-          | Record<PropertyKey, never>
-          | { p_user_id?: string; p_prompt_type?: string }
+        Args: Record<PropertyKey, never>
         Returns: {
           id: string
           version_number: number
