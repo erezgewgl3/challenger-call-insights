@@ -22,9 +22,6 @@ export default function IntegrationCallback() {
       const code = searchParams.get('code');
       const state = searchParams.get('state');
       const error = searchParams.get('error');
-      const integrationId = searchParams.get('integration_id');
-
-      console.log('User callback parameters:', { code: code?.substring(0, 10) + '...', state, error, integrationId });
 
       // Handle OAuth error (user cancelled, permission denied, etc.)
       if (error) {
@@ -34,9 +31,34 @@ export default function IntegrationCallback() {
       }
 
       // Validate required parameters
-      if (!code || !state || !integrationId) {
+      if (!code || !state) {
         setStatus('error');
         setMessage('Invalid callback parameters. Missing required data.');
+        return;
+      }
+
+      // Extract integration_id from state parameter (format: userId:integrationId:timestamp)
+      let integrationId;
+      try {
+        const decodedState = decodeURIComponent(state);
+        const stateParts = decodedState.split(':');
+        if (stateParts.length >= 2) {
+          integrationId = stateParts[1]; // integration_id is the second part
+        }
+      } catch (err) {
+        console.error('Failed to parse state parameter:', err);
+      }
+
+      console.log('User callback parameters:', { 
+        code: code?.substring(0, 10) + '...', 
+        state, 
+        integrationId,
+        error 
+      });
+
+      if (!integrationId) {
+        setStatus('error');
+        setMessage('Invalid callback parameters. Could not extract integration ID from state.');
         return;
       }
 
