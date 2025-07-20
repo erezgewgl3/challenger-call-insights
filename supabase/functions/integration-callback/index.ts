@@ -73,16 +73,8 @@ serve(async (req) => {
     const clientIP = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
     if (!checkRateLimit(clientIP)) {
       console.warn(`[CALLBACK-INTEGRATION] Rate limit exceeded for IP: ${clientIP}`);
-      return new Response(`
-        <html>
-          <body>
-            <h1>Too Many Requests</h1>
-            <p>Please try again later.</p>
-            <script>setTimeout(() => window.close(), 3000);</script>
-          </body>
-        </html>
-      `, {
-        headers: { 'Content-Type': 'text/html' },
+      return new Response(JSON.stringify({ error: 'Too many requests' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 429,
       });
     }
@@ -93,32 +85,74 @@ serve(async (req) => {
       { auth: { persistSession: false } }
     );
 
-    const url = new URL(req.url);
-    const code = url.searchParams.get('code');
-    const state = url.searchParams.get('state');
-    const error = url.searchParams.get('error');
+    let code: string | null = null;
+    let state: string | null = null;
+    let error: string | null = null;
+    let isApiCall = false;
 
-    console.log(`[CALLBACK-INTEGRATION] Received callback - code: ${code ? 'present' : 'missing'}, state: ${state}, error: ${error}`);
+    // Handle both GET (direct OAuth redirect) and POST (API call from frontend)
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      code = url.searchParams.get('code');
+      state = url.searchParams.get('state');
+      error = url.searchParams.get('error');
+      console.log(`[CALLBACK-INTEGRATION] GET request - code: ${code ? 'present' : 'missing'}, state: ${state}, error: ${error}`);
+    } else if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        code = body.code;
+        state = body.state;
+        error = body.error;
+        isApiCall = true;
+        console.log(`[CALLBACK-INTEGRATION] POST request - code: ${code ? 'present' : 'missing'}, state: ${state}, error: ${error}`);
+      } catch (parseError) {
+        console.error(`[CALLBACK-INTEGRATION] Failed to parse POST body:`, parseError);
+        return new Response(JSON.stringify({ error: 'Invalid request body' }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 400,
+        });
+      }
+    } else {
+      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 405,
+      });
+    }
 
     if (error) {
       console.error(`[CALLBACK-INTEGRATION] OAuth error: ${error}`);
-      return new Response(`
-        <html>
-          <body>
-            <h1>Connection Failed</h1>
-            <p>Error: ${error}</p>
-            <script>window.close();</script>
-          </body>
-        </html>
-      `, {
-        headers: { 'Content-Type': 'text/html' },
-        status: 400,
-      });
+      if (isApiCall) {
+        return new Response(JSON.stringify({ error: `OAuth error: ${error}` }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 400,
+        });
+      } else {
+        return new Response(`
+          <html>
+            <body>
+              <h1>Connection Failed</h1>
+              <p>Error: ${error}</p>
+              <script>window.close();</script>
+            </body>
+          </html>
+        `, {
+          headers: { 'Content-Type': 'text/html' },
+          status: 400,
+        });
+      }
     }
 
     if (!code || !state) {
       console.error(`[CALLBACK-INTEGRATION] Missing required parameters - code: ${code ? 'present' : 'missing'}, state: ${state ? 'present' : 'missing'}`);
-      throw new Error('Missing required parameters (code or state)');
+      const errorMsg = 'Missing required parameters (code or state)';
+      if (isApiCall) {
+        return new Response(JSON.stringify({ error: errorMsg }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 400,
+        });
+      } else {
+        throw new Error(errorMsg);
+      }
     }
 
     // Input sanitization
@@ -129,7 +163,15 @@ serve(async (req) => {
     const stateValidation = validateOAuthState(sanitizedState);
     if (!stateValidation.isValid || !stateValidation.userId || !stateValidation.integrationId) {
       console.error(`[CALLBACK-INTEGRATION] State validation failed for state: ${sanitizedState}`);
-      throw new Error('Invalid or expired OAuth state');
+      const errorMsg = 'Invalid or expired OAuth state';
+      if (isApiCall) {
+        return new Response(JSON.stringify({ error: errorMsg }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 400,
+        });
+      } else {
+        throw new Error(errorMsg);
+      }
     }
 
     const { userId, integrationId } = stateValidation;
@@ -147,7 +189,15 @@ serve(async (req) => {
 
     if (!storedState || storedState.config_value.state !== sanitizedState) {
       console.error(`[CALLBACK-INTEGRATION] State validation failed - stored: ${storedState?.config_value?.state}, received: ${sanitizedState}`);
-      throw new Error('OAuth state validation failed');
+      const errorMsg = 'OAuth state validation failed';
+      if (isApiCall) {
+        return new Response(JSON.stringify({ error: errorMsg }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 400,
+        });
+      } else {
+        throw new Error(errorMsg);
+      }
     }
 
     console.log(`[CALLBACK-INTEGRATION] State validation successful, proceeding with token exchange`);
@@ -256,7 +306,15 @@ serve(async (req) => {
     }
 
     if (!accessToken) {
-      throw new Error('Failed to obtain access token');
+      const errorMsg = 'Failed to obtain access token';
+      if (isApiCall) {
+        return new Response(JSON.stringify({ error: errorMsg }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 400,
+        });
+      } else {
+        throw new Error(errorMsg);
+      }
     }
 
     console.log(`[CALLBACK-INTEGRATION] Token exchange successful, creating connection`);
@@ -280,7 +338,15 @@ serve(async (req) => {
 
     if (connectionError) {
       console.error(`[CALLBACK-INTEGRATION] Failed to store connection:`, connectionError);
-      throw new Error(`Failed to store connection: ${connectionError.message}`);
+      const errorMsg = `Failed to store connection: ${connectionError.message}`;
+      if (isApiCall) {
+        return new Response(JSON.stringify({ error: errorMsg }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 500,
+        });
+      } else {
+        throw new Error(errorMsg);
+      }
     }
 
     // Clean up OAuth state
@@ -317,33 +383,47 @@ serve(async (req) => {
       // Don't fail the main operation for email errors
     }
 
-    return new Response(`
-      <html>
-        <head>
-          <title>Connection Successful</title>
-          <style>
-            body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
-            .success { color: #28a745; }
-            .container { max-width: 400px; margin: 0 auto; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <h1 class="success">✓ Connection Successful</h1>
-            <p>Your ${integrationId} integration has been connected successfully.</p>
-            <p>You can now close this window.</p>
-            <script>
-              setTimeout(() => {
-                window.close();
-              }, 3000);
-            </script>
-          </div>
-        </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' },
-      status: 200,
-    });
+    // Return appropriate response format
+    if (isApiCall) {
+      return new Response(JSON.stringify({
+        success: true,
+        integration_name: integrationId,
+        connection_name: userInfo.name || userInfo.login || userInfo.email || `${integrationId} Connection`,
+        connection_id: connection.id,
+        user_info: userInfo
+      }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 200,
+      });
+    } else {
+      return new Response(`
+        <html>
+          <head>
+            <title>Connection Successful</title>
+            <style>
+              body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+              .success { color: #28a745; }
+              .container { max-width: 400px; margin: 0 auto; }
+            </style>
+          </head>
+          <body>
+            <div class="container">
+              <h1 class="success">✓ Connection Successful</h1>
+              <p>Your ${integrationId} integration has been connected successfully.</p>
+              <p>You can now close this window.</p>
+              <script>
+                setTimeout(() => {
+                  window.close();
+                }, 3000);
+              </script>
+            </div>
+          </body>
+        </html>
+      `, {
+        headers: { 'Content-Type': 'text/html' },
+        status: 200,
+      });
+    }
 
   } catch (error) {
     console.error('[CALLBACK-INTEGRATION] Error:', error);
@@ -383,18 +463,26 @@ serve(async (req) => {
       console.error('Failed to send connection failure email:', emailError)
     }
     
-    return new Response(`
-      <html>
-        <body>
-          <h1>Connection Failed</h1>
-          <p>Error: ${error.message}</p>
-          <script>window.close();</script>
-        </body>
-      </html>
-    `, {
-      headers: { 'Content-Type': 'text/html' },
-      status: 400,
-    });
+    // Return appropriate error response format  
+    if (req.method === 'POST') {
+      return new Response(JSON.stringify({ error: error.message }), {
+        headers: { 'Content-Type': 'application/json', ...corsHeaders },
+        status: 400,
+      });
+    } else {
+      return new Response(`
+        <html>
+          <body>
+            <h1>Connection Failed</h1>
+            <p>Error: ${error.message}</p>
+            <script>window.close();</script>
+          </body>
+        </html>
+      `, {
+        headers: { 'Content-Type': 'text/html' },
+        status: 400,
+      });
+    }
   }
 });
 
