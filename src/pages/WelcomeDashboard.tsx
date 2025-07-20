@@ -125,20 +125,38 @@ export default function WelcomeDashboard() {
 
           {/* Deal Intelligence Pipeline - Now the primary focus */}
           <div className="mb-8">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Deal Intelligence Pipeline
-              </h2>
-              <p className="text-muted-foreground">
-                Track deal temperature and get actionable insights to close faster
+            <div className="mb-6 flex justify-between items-center">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Deal Intelligence Pipeline
+                </h2>
+                <p className="text-muted-foreground">
+                  Track deal temperature and get actionable insights to close faster
+                </p>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Organized by opportunity heat level
               </p>
             </div>
 
-            <HeatDealsSection 
-              heatLevel="HIGH" 
-              transcripts={transcripts} 
-              isLoading={transcriptsLoading} 
-            />
+            {/* Three-column layout for all heat levels */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <HeatDealsSection 
+                heatLevel="HIGH" 
+                transcripts={transcripts} 
+                isLoading={transcriptsLoading} 
+              />
+              <HeatDealsSection 
+                heatLevel="MEDIUM" 
+                transcripts={transcripts} 
+                isLoading={transcriptsLoading} 
+              />
+              <HeatDealsSection 
+                heatLevel="LOW" 
+                transcripts={transcripts} 
+                isLoading={transcriptsLoading} 
+              />
+            </div>
           </div>
 
           {/* Getting Started - Progressive Disclosure */}
