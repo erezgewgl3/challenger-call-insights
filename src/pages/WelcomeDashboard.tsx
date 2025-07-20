@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/hooks/useAuth';
 import { CompactTranscriptUpload } from '@/components/upload/CompactTranscriptUpload';
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
-import { FileText, TrendingUp, Thermometer, Zap, LogOut } from 'lucide-react';
+import { FileText, TrendingUp, Thermometer, Clock, LogOut } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
 export default function WelcomeDashboard() {
@@ -81,24 +80,26 @@ export default function WelcomeDashboard() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Compact Header */}
+      {/* Updated Header to Match Screenshot */}
       <header className="bg-card border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
-            <h1 className="text-xl font-semibold text-foreground">Sales Whisperer</h1>
-            <nav className="flex items-center space-x-3">
-              <Link 
-                to="/integrations"
-                className="text-muted-foreground hover:text-foreground px-3 py-2 rounded-md text-sm font-medium flex items-center gap-2 transition-colors"
-              >
-                <Zap className="w-4 h-4" />
-                Connect Zoom
-              </Link>
-              <Button variant="outline" size="sm" onClick={signOut} className="flex items-center gap-2">
-                <LogOut className="w-4 h-4" />
+            <div className="flex items-center space-x-3">
+              {/* Logo - Blue circle with clock icon */}
+              <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                <Clock className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-xl font-semibold text-foreground">Sales Whisperer</h1>
+                <p className="text-sm text-muted-foreground">Get instant deal intelligence from every sales conversation</p>
+              </div>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="text-sm text-muted-foreground">Welcome, {user?.email}</span>
+              <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
                 Sign Out
               </Button>
-            </nav>
+            </div>
           </div>
         </div>
       </header>
