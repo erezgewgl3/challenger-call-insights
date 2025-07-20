@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { getSecureBaseUrl } from './domainUtils';
 
@@ -131,8 +132,8 @@ export const resetPasswordForUser = async (email: string): Promise<PasswordReset
       };
     }
 
-    // Success validation (guide rail)
-    if (!emailData.id && !emailData.success) {
+    // Success validation (guide rail) - Fixed to check for emailId instead of id
+    if (!emailData.emailId && !emailData.success) {
       console.error('Email function did not return success indicator:', emailData);
       await supabase
         .from('password_reset_tokens')
