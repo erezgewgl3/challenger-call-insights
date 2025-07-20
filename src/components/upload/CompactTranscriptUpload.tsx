@@ -85,7 +85,7 @@ export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscrip
               <div className="flex items-center justify-center mb-4">
                 <FileText className="h-8 w-8 text-blue-500" />
               </div>
-              <p className="text-lg font-medium text-gray-900 mb-2">
+              <p className="text-lg font-bold text-gray-900 mb-2">
                 {isDragActive ? 'Drop here' : 'Drag & drop transcript or'} <span className="text-blue-500 underline">browse files</span>
               </p>
               <p className="text-sm text-gray-500">
