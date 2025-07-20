@@ -1,6 +1,6 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react";
 import { IntegrationConnection } from "@/lib/integrations/types";
 
@@ -74,30 +74,28 @@ export function IntegrationStatus({
   );
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          {statusBadge}
-        </TooltipTrigger>
-        <TooltipContent>
-          <div className="max-w-xs">
-            <p className="font-medium">{statusConfig.label} Connection</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {statusConfig.description}
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {statusBadge}
+      </TooltipTrigger>
+      <TooltipContent>
+        <div className="max-w-xs">
+          <p className="font-medium">{statusConfig.label} Connection</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {statusConfig.description}
+          </p>
+          {connection.lastSyncAt && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Last sync: {new Date(connection.lastSyncAt).toLocaleString()}
             </p>
-            {connection.lastSyncAt && (
-              <p className="text-xs text-muted-foreground mt-2">
-                Last sync: {new Date(connection.lastSyncAt).toLocaleString()}
-              </p>
-            )}
-            {connection.errorCount > 0 && (
-              <p className="text-xs text-destructive mt-1">
-                {connection.errorCount} error(s) recorded
-              </p>
-            )}
-          </div>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+          )}
+          {connection.errorCount > 0 && (
+            <p className="text-xs text-destructive mt-1">
+              {connection.errorCount} error(s) recorded
+            </p>
+          )}
+        </div>
+      </TooltipContent>
+    </Tooltip>
   );
 }
