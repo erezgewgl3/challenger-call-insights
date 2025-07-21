@@ -96,7 +96,7 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       windowHeight: finalHeight,
       onclone: (clonedDoc) => {
         // Ensure styles are properly applied in cloned document
-        const clonedElement = clonedDoc.querySelector('.pdf-only-container')
+        const clonedElement = clonedDoc.querySelector('.pdf-only-container') as HTMLElement
         if (clonedElement && forPDF) {
           clonedElement.style.width = '794px'
           clonedElement.style.minHeight = '1123px'

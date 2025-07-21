@@ -48,8 +48,7 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       
       const pdfComponent = React.createElement(
         PDFReportWrapper,
-        { isForPDF: true },
-        componentToRender
+        { isForPDF: true, children: componentToRender }
       )
       
       root.render(pdfComponent)
