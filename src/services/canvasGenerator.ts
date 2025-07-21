@@ -2,7 +2,7 @@
 import html2canvas from 'html2canvas'
 
 /**
- * ENHANCED: Validates element dimensions and ensures proper measurement
+ * Validates element dimensions and ensures proper measurement
  */
 function validateAndMeasureElement(element: HTMLElement): { isValid: boolean; dimensions: { width: number; height: number }; warnings: string[] } {
   const rect = element.getBoundingClientRect()
@@ -25,8 +25,8 @@ function validateAndMeasureElement(element: HTMLElement): { isValid: boolean; di
     scrollHeight,
     finalWidth,
     finalHeight,
-    computedWidth: computedStyle.width,
-    computedHeight: computedStyle.height
+    visibility: computedStyle.visibility,
+    display: computedStyle.display
   })
   
   // Validate dimensions
@@ -43,7 +43,7 @@ function validateAndMeasureElement(element: HTMLElement): { isValid: boolean; di
 }
 
 /**
- * FIXED: Canvas generation with simplified options to avoid iframe cloning issues
+ * Enhanced canvas generation with improved error handling and fallback options
  */
 export async function generateCanvas(element: HTMLElement, forPDF: boolean = false): Promise<HTMLCanvasElement> {
   console.log('Starting canvas generation...', { forPDF })
@@ -78,13 +78,12 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
   })
 
   try {
-    // FIXED: Simplified html2canvas options to avoid iframe cloning issues
+    // Primary canvas generation with optimized options
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: 'white',
-      // REMOVED: foreignObjectRendering - causes iframe cloning issues
       imageTimeout: 15000,
       logging: false,
       scrollX: 0,
@@ -95,12 +94,11 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       height: finalHeight,
       windowWidth: forPDF ? 794 : window.innerWidth,
       windowHeight: finalHeight,
-      // SIMPLIFIED: Remove complex element filtering that can cause issues
+      // Only ignore clearly hidden elements
       ignoreElements: (element) => {
         if (!(element instanceof HTMLElement)) {
           return false
         }
-        // Only ignore clearly hidden elements
         const style = window.getComputedStyle(element)
         return style.display === 'none' || style.visibility === 'hidden'
       }
@@ -119,18 +117,19 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
 
     return canvas
   } catch (error) {
-    console.error('Canvas generation failed:', {
+    console.error('Primary canvas generation failed:', {
       error: error.message,
       stack: error.stack,
       elementInfo: {
         tagName: element.tagName,
         className: element.className,
         hasContent: element.innerHTML.length > 0,
-        isVisible: element.offsetWidth > 0 && element.offsetHeight > 0
+        isVisible: element.offsetWidth > 0 && element.offsetHeight > 0,
+        childCount: element.children.length
       }
     })
     
-    // FALLBACK: Try with even more simplified options
+    // Fallback: Try with minimal options
     try {
       console.log('Attempting fallback canvas generation with minimal options...')
       const fallbackCanvas = await html2canvas(element, {
@@ -145,6 +144,10 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
         width: fallbackCanvas.width,
         height: fallbackCanvas.height
       })
+      
+      if (fallbackCanvas.width === 0 || fallbackCanvas.height === 0) {
+        throw new Error('Fallback canvas also has zero dimensions')
+      }
       
       return fallbackCanvas
     } catch (fallbackError) {

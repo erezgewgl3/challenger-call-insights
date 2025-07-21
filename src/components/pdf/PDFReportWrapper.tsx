@@ -7,19 +7,18 @@ interface PDFReportWrapperProps {
 }
 
 /**
- * ENHANCED PDF-ONLY rendering wrapper that removes problematic interactive elements
- * This component creates a separate rendering path for PDF exports only
+ * Enhanced PDF rendering wrapper that creates a clean, print-optimized layout
  */
 export function PDFReportWrapper({ children, isForPDF = false }: PDFReportWrapperProps) {
   if (!isForPDF) {
-    // Normal app rendering - NO CHANGES to existing beautiful design
+    // Normal app rendering - preserve existing design
     return <>{children}</>
   }
 
-  // PDF-only rendering with simplified structure
+  // PDF-only rendering with optimized structure
   return (
     <div 
-      className="pdf-only-container"
+      className="pdf-container"
       style={{
         width: '210mm',
         minHeight: '297mm',
@@ -27,10 +26,7 @@ export function PDFReportWrapper({ children, isForPDF = false }: PDFReportWrappe
         margin: '0 auto',
         padding: '20mm',
         backgroundColor: 'white',
-        transform: 'translateX(0)',
         position: 'relative',
-        left: '0',
-        right: '0',
         boxSizing: 'border-box',
         overflow: 'visible',
         fontFamily: 'Arial, sans-serif',
@@ -45,7 +41,6 @@ export function PDFReportWrapper({ children, isForPDF = false }: PDFReportWrappe
         padding: '0',
         boxSizing: 'border-box'
       }}>
-        {/* SIMPLIFIED: Render children without complex React patterns */}
         <PDFContentFilter>
           {children}
         </PDFContentFilter>
@@ -55,15 +50,14 @@ export function PDFReportWrapper({ children, isForPDF = false }: PDFReportWrappe
 }
 
 /**
- * PDF Content Filter - Removes or simplifies problematic elements for PDF rendering
+ * PDF Content Filter - Removes problematic interactive components for PDF rendering
  */
 function PDFContentFilter({ children }: { children: React.ReactNode }) {
-  // Recursively process React children to remove problematic components
   const processChildren = (node: React.ReactNode): React.ReactNode => {
     if (!node) return null
     
     if (React.isValidElement(node)) {
-      // Skip problematic components that use portals or complex DOM manipulation
+      // List of problematic components that cause PDF rendering issues
       const problematicComponents = [
         'Tooltip',
         'TooltipTrigger', 
@@ -77,10 +71,17 @@ function PDFContentFilter({ children }: { children: React.ReactNode }) {
         'HoverCard'
       ]
       
-      const componentName = typeof node.type === 'string' ? node.type : (node.type as any)?.displayName || (node.type as any)?.name || ''
+      let componentName = ''
+      if (typeof node.type === 'string') {
+        componentName = node.type
+      } else if (node.type && typeof node.type === 'function') {
+        const typeAny = node.type as any
+        componentName = typeAny.displayName || typeAny.name || ''
+      }
       
+      // Handle problematic components
       if (problematicComponents.some(comp => componentName.includes(comp))) {
-        // For tooltip triggers, render just the trigger content without the tooltip
+        // For tooltip triggers, extract and render just the trigger content
         if (componentName.includes('Tooltip') && node.props.children) {
           return processChildren(node.props.children)
         }
@@ -88,14 +89,17 @@ function PDFContentFilter({ children }: { children: React.ReactNode }) {
         return null
       }
       
-      // Process children recursively
-      const processedChildren = React.Children.map(node.props.children, processChildren)
+      // Process children recursively for valid components
+      if (node.props.children) {
+        const processedChildren = React.Children.map(node.props.children, processChildren)
+        return React.cloneElement(node, node.props, processedChildren)
+      }
       
-      return React.cloneElement(node, node.props, processedChildren)
+      return node
     }
     
     if (Array.isArray(node)) {
-      return node.map(processChildren)
+      return node.map(processChildren).filter(Boolean)
     }
     
     return node

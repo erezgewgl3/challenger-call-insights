@@ -6,6 +6,7 @@ import { generateCleanFilename } from '@/utils/pdfUtils'
 import { generateCanvas } from '@/services/canvasGenerator'
 import { createPDFDocument, addCanvasToPDF, addMultiPageContent } from '@/services/pdfGenerator'
 import { PDFReportWrapper } from '@/components/pdf/PDFReportWrapper'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 interface UsePDFExportSurgicalProps {
   filename?: string
@@ -29,60 +30,63 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
         await document.fonts.ready
       }
       
-      // ENHANCED: Create optimized container for PDF rendering
+      // Create optimized container for PDF rendering
       tempContainer = document.createElement('div')
-      tempContainer.style.position = 'absolute'
-      tempContainer.style.top = '-9999px'
-      tempContainer.style.left = '0'
-      tempContainer.style.width = '794px' // A4 width in pixels
-      tempContainer.style.height = 'auto'
-      tempContainer.style.backgroundColor = 'white'
-      tempContainer.style.overflow = 'visible'
-      tempContainer.style.zIndex = '-1000'
-      tempContainer.style.visibility = 'hidden'
-      // ADDED: Ensure no transforms or complex CSS that could interfere with cloning
-      tempContainer.style.transform = 'none'
-      tempContainer.style.filter = 'none'
-      tempContainer.style.opacity = '1'
+      tempContainer.style.cssText = `
+        position: absolute;
+        top: -9999px;
+        left: 0;
+        width: 794px;
+        height: auto;
+        background-color: white;
+        overflow: visible;
+        z-index: -1000;
+        visibility: hidden;
+        transform: none;
+        filter: none;
+        opacity: 1;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        line-height: 1.4;
+        color: #333333;
+      `
       
       document.body.appendChild(tempContainer)
 
-      // Create React root and render PDF content
+      // Create React root and render PDF content with proper providers
       root = createRoot(tempContainer)
       
       const pdfComponent = React.createElement(
-        PDFReportWrapper,
-        { isForPDF: true, children: componentToRender }
+        TooltipProvider,
+        {},
+        React.createElement(
+          PDFReportWrapper,
+          { isForPDF: true },
+          componentToRender
+        )
       )
       
       root.render(pdfComponent)
       
-      // ENHANCED: Wait longer for React to render and settle
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      // Wait for React to render and settle
+      await new Promise(resolve => setTimeout(resolve, 2000))
       
       // Additional wait for any async content
       await new Promise(resolve => setTimeout(resolve, 1000))
       
       // Verify container has content before proceeding
-      if (!tempContainer.firstChild) {
+      if (!tempContainer.firstChild || tempContainer.children.length === 0) {
         throw new Error('PDF container is empty after rendering')
       }
       
-      const containerRect = tempContainer.getBoundingClientRect()
-      console.log('Container dimensions before canvas:', {
-        width: containerRect.width,
-        height: containerRect.height,
-        scrollWidth: tempContainer.scrollWidth,
-        scrollHeight: tempContainer.scrollHeight,
-        hasContent: !!tempContainer.innerHTML,
+      console.log('PDF Container ready:', {
+        width: tempContainer.scrollWidth,
+        height: tempContainer.scrollHeight,
         childCount: tempContainer.children.length,
-        firstChildType: tempContainer.firstChild?.nodeName
+        hasContent: tempContainer.innerHTML.length > 0
       })
 
-      toast.info('Generating high-quality canvas...', { duration: 3000 })
-      
-      // SIMPLIFIED: Use the container directly instead of searching for sub-elements
-      console.log('Using container element for canvas generation')
+      toast.info('Generating PDF canvas...', { duration: 3000 })
       
       // Generate canvas with error handling
       const canvas = await generateCanvas(tempContainer, true)
@@ -105,14 +109,14 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       
       toast.success('PDF exported successfully!', { 
         duration: 4000,
-        description: 'Content rendered using simplified PDF layout'
+        description: 'Document generated with optimized layout'
       })
       
     } catch (error) {
       console.error('PDF export failed:', error)
       toast.error(`Failed to generate PDF: ${error.message}`, {
         duration: 6000,
-        description: 'The PDF generation encountered an issue. Please try again.'
+        description: 'Please try again or contact support if the issue persists.'
       })
     } finally {
       // Cleanup with proper error handling
