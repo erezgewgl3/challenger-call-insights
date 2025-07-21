@@ -85,7 +85,7 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       backgroundColor: 'white',
       foreignObjectRendering: true,
       imageTimeout: 15000,
-      logging: false, // Reduce noise in production
+      logging: false,
       scrollX: 0,
       scrollY: 0,
       x: 0,
@@ -94,14 +94,6 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       height: finalHeight,
       windowWidth: forPDF ? 794 : window.innerWidth,
       windowHeight: finalHeight,
-      onclone: (clonedDoc) => {
-        // Ensure styles are properly applied in cloned document
-        const clonedElement = clonedDoc.querySelector('.pdf-only-container') as HTMLElement
-        if (clonedElement && forPDF) {
-          clonedElement.style.width = '794px'
-          clonedElement.style.minHeight = '1123px'
-        }
-      },
       ignoreElements: (element) => {
         if (!(element instanceof HTMLElement)) {
           return false
