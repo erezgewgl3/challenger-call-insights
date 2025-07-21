@@ -62,10 +62,17 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       modifiedElements.push(...sectionModifiedElements)
       expandScrollableContent(element, modifiedElements)
       
-      // Phase 3: Text optimization
+      // Phase 3: Enhanced optimization - Skip hero section completely
+      const heroSection = element.querySelector('.bg-gradient-to-br.from-slate-900')
+      
       const allContentSections = element.querySelectorAll('.space-y-4, .border-l-4, .p-4, .p-6')
       allContentSections.forEach((section) => {
         if (section instanceof HTMLElement) {
+          // Skip if this section is inside the hero section
+          if (heroSection && heroSection.contains(section)) {
+            return
+          }
+          
           const textElements = section.querySelectorAll('p, div, span, h1, h2, h3, h4, h5, h6')
           textElements.forEach((textEl) => {
             if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.length > 20) {
