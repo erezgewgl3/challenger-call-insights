@@ -80,6 +80,20 @@ export function NewAnalysisView({
   onUploadAnother 
 }: NewAnalysisViewProps) {
   
+  // NUCLEAR PDF DEBUG - Add comprehensive debug logging
+  React.useEffect(() => {
+    console.log('🔍 PDF DEBUG ENVIRONMENT:', {
+      environment: process.env.NODE_ENV,
+      windowWidth: window.innerWidth,
+      containerWidth: (document.querySelector('.pdf-container') as HTMLElement)?.offsetWidth,
+      bodyWidth: document.body.offsetWidth,
+      documentWidth: document.documentElement.offsetWidth,
+      screenWidth: screen.width,
+      viewport: window.visualViewport?.width,
+      devicePixelRatio: window.devicePixelRatio
+    })
+  }, [])
+  
   const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
   const [isExporting, setIsExporting] = useState(false)
 
@@ -369,12 +383,36 @@ export function NewAnalysisView({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      {/* ENHANCED: Add pdf-optimized class to main content container */}
-      <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
+      {/* NUCLEAR PDF FIX - Replace CSS with pure inline styles */}
+      <div 
+        id="analysis-content" 
+        className="pdf-container pdf-ready"
+        style={{
+          width: '794px',              /* Exact A4 width in pixels */
+          minHeight: '1123px',         /* Exact A4 height in pixels */
+          margin: '0 auto',            /* Center the container */
+          padding: '40px',
+          backgroundColor: 'white',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '14px',
+          lineHeight: '1.4',
+          color: '#333333',
+          boxSizing: 'border-box',
+          overflow: 'hidden'
+        }}
+      >
           
           {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
-          <div className="mb-6 lg:mb-8">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          <div style={{ marginBottom: '24px', width: '100%', padding: '0', boxSizing: 'border-box' }}>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'flex-start', 
+              justifyContent: 'space-between', 
+              gap: '16px', 
+              marginBottom: '16px',
+              width: '100%'
+            }}>
               <Button 
                 variant="ghost" 
                 onClick={onBackToDashboard}
@@ -384,7 +422,7 @@ export function NewAnalysisView({
                 Back to Dashboard
               </Button>
               
-              <div className="flex items-center gap-3">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 {/* 🚀 PRIORITY INDICATOR */}
                 {dealHeat.level === 'HIGH' && (
                   <Badge className="bg-red-100 text-red-800 px-3 py-1 animate-pulse">
@@ -417,13 +455,29 @@ export function NewAnalysisView({
               </div>
             </div>
             
-            <div className="space-y-3">
-              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-tight">{transcript.title}</h1>
-              <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-sm text-slate-600">
-                <span className="font-medium">{formatDate(transcript.meeting_date)}</span>
-                <span className="hidden sm:inline">•</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+              <h1 style={{ 
+                fontSize: '28px', 
+                fontWeight: 'bold', 
+                color: '#1e293b', 
+                lineHeight: '1.2',
+                margin: '0',
+                padding: '0',
+                width: '100%'
+              }}>{transcript.title}</h1>
+              <div style={{ 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                alignItems: 'center', 
+                gap: '16px', 
+                fontSize: '14px', 
+                color: '#64748b',
+                width: '100%'
+              }}>
+                <span style={{ fontWeight: '500' }}>{formatDate(transcript.meeting_date)}</span>
+                <span>•</span>
                 <span>Duration: {transcript.duration_minutes} min</span>
-                <span className="hidden sm:inline">•</span>
+                <span>•</span>
                 <Badge variant="secondary" className="bg-green-100 text-green-800">
                   <Star className="w-3 h-3 mr-1" />
                   Analysis Complete
@@ -432,39 +486,47 @@ export function NewAnalysisView({
             </div>
           </div>
 
-          {/* 🏆 HERO SECTION */}
-          <HeroSection
-            transcript={transcript}
-            analysis={analysis}
-            dealHeat={dealHeat}
-            decisionMaker={decisionMaker}
-            buyingSignals={buyingSignals}
-            timeline={timeline}
-            participants={participants}
-            getStakeholderDisplay={getStakeholderDisplay}
-            getRoleIcon={getRoleIcon}
-          />
+          {/* 🏆 HERO SECTION - Force inline styles */}
+          <div style={{ width: '100%', marginBottom: '24px', padding: '0', boxSizing: 'border-box' }}>
+            <HeroSection
+              transcript={transcript}
+              analysis={analysis}
+              dealHeat={dealHeat}
+              decisionMaker={decisionMaker}
+              buyingSignals={buyingSignals}
+              timeline={timeline}
+              participants={participants}
+              getStakeholderDisplay={getStakeholderDisplay}
+              getRoleIcon={getRoleIcon}
+            />
+          </div>
 
-          {/* 🚀 BATTLE PLAN SECTION */}
-          <BattlePlanSection
-            analysis={analysis}
-            dealHeat={dealHeat}
-            copyToClipboard={copyToClipboard}
-            copyFullEmail={copyFullEmail}
-            openInEmailClient={openInEmailClient}
-          />
+          {/* 🚀 BATTLE PLAN SECTION - Force inline styles */}
+          <div style={{ width: '100%', marginBottom: '24px', padding: '0', boxSizing: 'border-box' }}>
+            <BattlePlanSection
+              analysis={analysis}
+              dealHeat={dealHeat}
+              copyToClipboard={copyToClipboard}
+              copyFullEmail={copyFullEmail}
+              openInEmailClient={openInEmailClient}
+            />
+          </div>
 
-          {/* 🎯 STAKEHOLDER NAVIGATION */}
-          <StakeholderNavigation analysis={analysis} />
+          {/* 🎯 STAKEHOLDER NAVIGATION - Force inline styles */}
+          <div style={{ width: '100%', marginBottom: '24px', padding: '0', boxSizing: 'border-box' }}>
+            <StakeholderNavigation analysis={analysis} />
+          </div>
 
-          {/* 🎯 EXPANDABLE SECTIONS */}
-          <ExpandableSections
-            analysis={analysis}
-            dealHeat={dealHeat}
-            sectionsOpen={sectionsOpen}
-            toggleSection={toggleSection}
-            conversationIntel={conversationIntel}
-          />
+          {/* 🎯 EXPANDABLE SECTIONS - Force inline styles */}
+          <div style={{ width: '100%', marginBottom: '24px', padding: '0', boxSizing: 'border-box' }}>
+            <ExpandableSections
+              analysis={analysis}
+              dealHeat={dealHeat}
+              sectionsOpen={sectionsOpen}
+              toggleSection={toggleSection}
+              conversationIntel={conversationIntel}
+            />
+          </div>
       </div>
     </div>
   )

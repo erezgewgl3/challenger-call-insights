@@ -69,6 +69,16 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
     hasMaxWidthConstraint: window.getComputedStyle(element).maxWidth !== 'none'
   })
 
+  // Add nuclear debug for PDF generation library
+  if (forPDF) {
+    console.log('🔍 PDF Generation Debug:', {
+      library: typeof html2canvas !== 'undefined' ? 'html2canvas' : 'unknown',
+      elementBounds: rect,
+      documentBody: document.body.getBoundingClientRect(),
+      scrollPosition: { x: window.scrollX, y: window.scrollY }
+    });
+  }
+
   try {
     const canvas = await html2canvas(element, {
       scale: 2,
@@ -80,11 +90,11 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       logging: true, // Enable logging to debug
       scrollX: 0,
       scrollY: 0,
-      x: 0, // Force capture from left edge
-      y: 0, // Force capture from top edge
-      width: forPDF ? 1400 : actualWidth, // Force specific width for PDF
+      x: forPDF ? 0 : undefined, // Force capture from left edge for PDF
+      y: forPDF ? 0 : undefined, // Force capture from top edge for PDF  
+      width: forPDF ? 794 : actualWidth, // Force A4 width for PDF
       height: actualHeight,
-      windowWidth: forPDF ? 1400 : window.innerWidth, // Set window width for PDF
+      windowWidth: forPDF ? 794 : window.innerWidth, // Set window width for PDF
       windowHeight: actualHeight,
       // ENHANCED: Improved element filtering
       ignoreElements: (element) => {
