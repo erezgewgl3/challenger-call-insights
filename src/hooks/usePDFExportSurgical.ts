@@ -29,7 +29,7 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
         await document.fonts.ready
       }
       
-      // Create hidden container for PDF rendering
+      // ENHANCED: Create optimized container for PDF rendering
       tempContainer = document.createElement('div')
       tempContainer.style.position = 'absolute'
       tempContainer.style.top = '-9999px'
@@ -40,6 +40,10 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       tempContainer.style.overflow = 'visible'
       tempContainer.style.zIndex = '-1000'
       tempContainer.style.visibility = 'hidden'
+      // ADDED: Ensure no transforms or complex CSS that could interfere with cloning
+      tempContainer.style.transform = 'none'
+      tempContainer.style.filter = 'none'
+      tempContainer.style.opacity = '1'
       
       document.body.appendChild(tempContainer)
 
@@ -53,8 +57,8 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       
       root.render(pdfComponent)
       
-      // Wait for React to render and DOM to settle
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // ENHANCED: Wait longer for React to render and settle
+      await new Promise(resolve => setTimeout(resolve, 3000))
       
       // Additional wait for any async content
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -77,16 +81,11 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
 
       toast.info('Generating high-quality canvas...', { duration: 3000 })
       
-      // Try to find the actual content element
-      const contentElement = tempContainer.querySelector('.pdf-only-container') || tempContainer
-      console.log('Using element for canvas:', {
-        element: contentElement.tagName,
-        className: contentElement.className,
-        hasContent: contentElement.innerHTML.length > 0
-      })
+      // SIMPLIFIED: Use the container directly instead of searching for sub-elements
+      console.log('Using container element for canvas generation')
       
       // Generate canvas with error handling
-      const canvas = await generateCanvas(contentElement as HTMLElement, true)
+      const canvas = await generateCanvas(tempContainer, true)
 
       // Create PDF document
       const pdf = createPDFDocument()
@@ -106,14 +105,14 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       
       toast.success('PDF exported successfully!', { 
         duration: 4000,
-        description: 'Content rendered using PDF-optimized layout'
+        description: 'Content rendered using simplified PDF layout'
       })
       
     } catch (error) {
-      console.error('Surgical PDF export failed:', error)
+      console.error('PDF export failed:', error)
       toast.error(`Failed to generate PDF: ${error.message}`, {
         duration: 6000,
-        description: 'Please try again or contact support if the issue persists'
+        description: 'The PDF generation encountered an issue. Please try again.'
       })
     } finally {
       // Cleanup with proper error handling

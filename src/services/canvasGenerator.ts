@@ -43,7 +43,7 @@ function validateAndMeasureElement(element: HTMLElement): { isValid: boolean; di
 }
 
 /**
- * ENHANCED canvas generation with PDF export support and proper error handling
+ * FIXED: Canvas generation with simplified options to avoid iframe cloning issues
  */
 export async function generateCanvas(element: HTMLElement, forPDF: boolean = false): Promise<HTMLCanvasElement> {
   console.log('Starting canvas generation...', { forPDF })
@@ -78,12 +78,13 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
   })
 
   try {
+    // FIXED: Simplified html2canvas options to avoid iframe cloning issues
     const canvas = await html2canvas(element, {
       scale: 2,
       useCORS: true,
       allowTaint: true,
       backgroundColor: 'white',
-      foreignObjectRendering: true,
+      // REMOVED: foreignObjectRendering - causes iframe cloning issues
       imageTimeout: 15000,
       logging: false,
       scrollX: 0,
@@ -94,14 +95,14 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       height: finalHeight,
       windowWidth: forPDF ? 794 : window.innerWidth,
       windowHeight: finalHeight,
+      // SIMPLIFIED: Remove complex element filtering that can cause issues
       ignoreElements: (element) => {
         if (!(element instanceof HTMLElement)) {
           return false
         }
+        // Only ignore clearly hidden elements
         const style = window.getComputedStyle(element)
-        return style.display === 'none' || 
-               style.visibility === 'hidden' ||
-               style.opacity === '0'
+        return style.display === 'none' || style.visibility === 'hidden'
       }
     })
 
@@ -128,6 +129,27 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
         isVisible: element.offsetWidth > 0 && element.offsetHeight > 0
       }
     })
-    throw new Error(`Failed to generate canvas: ${error.message}`)
+    
+    // FALLBACK: Try with even more simplified options
+    try {
+      console.log('Attempting fallback canvas generation with minimal options...')
+      const fallbackCanvas = await html2canvas(element, {
+        scale: 1,
+        backgroundColor: 'white',
+        logging: false,
+        useCORS: true,
+        allowTaint: true
+      })
+      
+      console.log('Fallback canvas generated:', {
+        width: fallbackCanvas.width,
+        height: fallbackCanvas.height
+      })
+      
+      return fallbackCanvas
+    } catch (fallbackError) {
+      console.error('Fallback canvas generation also failed:', fallbackError)
+      throw new Error(`Both primary and fallback canvas generation failed: ${error.message}`)
+    }
   }
 }
