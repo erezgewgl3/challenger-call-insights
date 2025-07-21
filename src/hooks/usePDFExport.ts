@@ -24,11 +24,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let sectionsToRestore: string[] = []
     let modifiedElements: ElementState[] = []
     let originalStyles: any = null
+    let element: HTMLElement | null = null
     
     try {
       toast.info('Preparing PDF export...', { duration: 3000 })
       
-      const element = document.getElementById(elementId)
+      element = document.getElementById(elementId)
       if (!element) {
         toast.error('Unable to find content to export')
         return
