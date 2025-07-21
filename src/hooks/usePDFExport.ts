@@ -80,11 +80,24 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     try {
       toast.info('Preparing PDF export...', { duration: 3000 })
       
+      // Wait for fonts to load (critical for production)
+      if (document.fonts) {
+        console.log('⏳ Waiting for fonts to load...')
+        await document.fonts.ready
+      }
+      
+      // Additional delay for production environment
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      console.log('✅ Fonts loaded, proceeding with PDF generation')
+      
       element = document.getElementById(elementId)
       if (!element) {
         toast.error('Unable to find content to export')
         return
       }
+
+      // Add PDF container class for emergency fix
+      element.classList.add('pdf-container', 'pdf-ready')
 
       // Phase 1: Expand user-controlled sections
       if (options?.sectionsOpen && options?.toggleSection) {
@@ -194,6 +207,11 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           sectionsToRestore.forEach(sectionKey => {
             options.toggleSection!(sectionKey)
           })
+        }
+        
+        // Remove PDF emergency classes
+        if (element) {
+          element.classList.remove('pdf-container', 'pdf-ready')
         }
       }, 1000)
     }
