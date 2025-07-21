@@ -79,9 +79,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // Phase 5: Generate canvas
+      // Phase 5: Generate canvas with PDF flag
       toast.info('Generating high-quality canvas...', { duration: 3000 })
-      const canvas = await generateCanvas(element)
+      const canvas = await generateCanvas(element, true) // Pass forPDF=true
 
       // Phase 6: Create PDF
       const pdf = createPDFDocument()
@@ -119,7 +119,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         restoreElementStates(modifiedElements)
         
         // Restore main element styles
-        if (originalStyles) {
+        if (originalStyles && element) {
           restoreElementStyles(element, originalStyles)
         }
         

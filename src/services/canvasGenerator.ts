@@ -37,9 +37,9 @@ function validateElementDimensions(element: HTMLElement): { isValid: boolean; wa
 }
 
 /**
- * ENHANCED canvas generation with proper dimensions and validation
+ * ENHANCED canvas generation with PDF export support
  */
-export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
+export async function generateCanvas(element: HTMLElement, forPDF: boolean = false): Promise<HTMLCanvasElement> {
   // ENHANCED: Validate element dimensions before canvas generation
   const validation = validateElementDimensions(element)
   
@@ -50,11 +50,14 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
   // Get actual element dimensions
   const rect = element.getBoundingClientRect()
   
-  // ENHANCED: Use the element's actual rendered dimensions with safety checks
+  // ENHANCED: Use full element dimensions for PDF, viewport-safe for regular use
   const actualHeight = Math.max(element.scrollHeight, rect.height)
-  const actualWidth = Math.min(element.scrollWidth, window.innerWidth) // Prevent overflow
+  const actualWidth = forPDF ? 
+    Math.max(element.scrollWidth, rect.width) : // Full width for PDF
+    Math.min(element.scrollWidth, window.innerWidth) // Viewport-safe for regular use
   
-  console.log('ENHANCED Canvas generation with validation:', {
+  console.log('ENHANCED Canvas generation with PDF support:', {
+    forPDF,
     scrollHeight: element.scrollHeight,
     rectHeight: rect.height,
     scrollWidth: element.scrollWidth,
@@ -93,13 +96,14 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
       }
     })
 
-    console.log('ENHANCED Canvas generated with proper validation:', {
+    console.log('ENHANCED Canvas generated with PDF support:', {
+      forPDF,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
       aspectRatio: canvas.width / canvas.height,
       wasValidDimensions: validation.isValid,
       capturedFullWidth: canvas.width >= (actualWidth * 2), // Account for 2x scale
-      noHorizontalCutoff: validation.isValid
+      noHorizontalCutoff: forPDF || validation.isValid
     })
 
     if (canvas.width === 0 || canvas.height === 0) {
