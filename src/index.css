@@ -243,65 +243,49 @@
   flex-shrink: 0;
 }
 
-/* EMERGENCY PDF PRODUCTION FIX - Critical CSS overrides for production PDF export */
-@media print, screen {
-  .pdf-container,
-  .report-container,
-  [class*="transcript"],
-  [class*="report"] {
-    width: 100% !important;
-    max-width: none !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-    padding-left: 20px !important;
-    padding-right: 20px !important;
-    box-sizing: border-box !important;
-  }
-
-  /* Reset all flex and grid containers */
-  .flex,
-  .grid {
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  /* Force specific report sections to full width */
-  .deal-command-center,
-  .battle-plan,
-  .stakeholder-map,
-  .report-header {
-    width: 100% !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  /* Override any negative margins that cause clipping */
-  * {
-    margin-left: 0 !important;
-  }
-
-  /* Ensure text doesn't get clipped */
-  p, h1, h2, h3, h4, h5, h6, div, span {
-    word-wrap: break-word !important;
-    overflow-wrap: break-word !important;
-  }
+/* PDF-ONLY CSS - Scoped to avoid affecting main app */
+.pdf-only-container {
+  /* This only affects PDF generation, not main app */
+  font-family: Arial, sans-serif !important;
+  background: white !important;
 }
 
-/* Production-specific overrides */
-@media print {
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-  }
+.pdf-only-container * {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  box-sizing: border-box !important;
+}
 
-  .container {
-    max-width: none !important;
-    width: 100% !important;
-  }
+.pdf-only-container .grid,
+.pdf-only-container .flex {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
 
-  /* Force A4 page layout */
-  @page {
-    size: A4;
-    margin: 20mm 15mm;
-  }
+.pdf-only-container .max-w-6xl,
+.pdf-only-container .max-w-4xl,
+.pdf-only-container .max-w-2xl {
+  max-width: none !important;
+  width: 100% !important;
+}
+
+.pdf-only-container .container {
+  max-width: none !important;
+  width: 100% !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+}
+
+/* Ensure text doesn't get clipped in PDF */
+.pdf-only-container p, 
+.pdf-only-container h1, 
+.pdf-only-container h2, 
+.pdf-only-container h3, 
+.pdf-only-container h4, 
+.pdf-only-container h5, 
+.pdf-only-container h6, 
+.pdf-only-container div, 
+.pdf-only-container span {
+  word-wrap: break-word !important;
+  overflow-wrap: break-word !important;
 }

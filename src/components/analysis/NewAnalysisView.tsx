@@ -44,7 +44,7 @@ import { HeroSection } from './HeroSection'
 import { BattlePlanSection } from './BattlePlanSection'
 import { StakeholderNavigation } from './StakeholderNavigation'
 import { ExpandableSections } from './ExpandableSections'
-import { usePDFExport } from '@/hooks/usePDFExport'
+import { usePDFExportSurgical } from '@/hooks/usePDFExportSurgical'
 import { calculateDealHeat, type DealHeatResult } from '@/utils/dealHeatCalculator'
 
 interface AnalysisData {
@@ -80,7 +80,7 @@ export function NewAnalysisView({
   onUploadAnother 
 }: NewAnalysisViewProps) {
   
-  const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
+  const { exportToPDF } = usePDFExportSurgical({ filename: 'sales-analysis-report' })
   const [isExporting, setIsExporting] = useState(false)
 
   // Enhanced data mapping functions - moved before usage
@@ -142,20 +142,7 @@ export function NewAnalysisView({
     }))
   }
 
-  const handleExportPDF = useCallback(async () => {
-    setIsExporting(true)
-    try {
-      const cleanTitle = transcript.title.trim()
-      // 🚀 NEW: Pass React state control to PDF export
-      await exportToPDF('analysis-content', cleanTitle, {
-        sectionsOpen,
-        toggleSection
-      })
-    } finally {
-      setIsExporting(false)
-    }
-  }, [exportToPDF, transcript.title, sectionsOpen, toggleSection])
-  
+  // Helper functions
   const copyToClipboard = async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -361,11 +348,63 @@ export function NewAnalysisView({
     }
   }
 
+  // Create all data objects
   const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()
   const participants = analysis.participants || {}
   const conversationIntel = getConversationIntelligence()
+
+  const handleExportPDF = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const cleanTitle = transcript.title.trim()
+      
+      // Create PDF content component with expanded sections
+      const pdfContent = (
+        <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
+          {/* 🏆 HERO SECTION */}
+          <HeroSection
+            transcript={transcript}
+            analysis={analysis}
+            dealHeat={dealHeat}
+            decisionMaker={decisionMaker}
+            buyingSignals={buyingSignals}
+            timeline={timeline}
+            participants={participants}
+            getStakeholderDisplay={getStakeholderDisplay}
+            getRoleIcon={getRoleIcon}
+          />
+
+          {/* 🚀 BATTLE PLAN SECTION */}
+          <BattlePlanSection
+            analysis={analysis}
+            dealHeat={dealHeat}
+            copyToClipboard={copyToClipboard}
+            copyFullEmail={copyFullEmail}
+            openInEmailClient={openInEmailClient}
+          />
+
+          {/* 🎯 STAKEHOLDER NAVIGATION */}
+          <StakeholderNavigation analysis={analysis} />
+
+          {/* 🎯 EXPANDABLE SECTIONS - Force expanded for PDF */}
+          <ExpandableSections
+            analysis={analysis}
+            dealHeat={dealHeat}
+            sectionsOpen={{ insights: true, competitive: true }}
+            toggleSection={() => {}}
+            conversationIntel={conversationIntel}
+          />
+        </div>
+      )
+      
+      // 🚀 NEW: Use surgical PDF export with React component
+      await exportToPDF(pdfContent, cleanTitle)
+    } finally {
+      setIsExporting(false)
+    }
+  }, [exportToPDF, transcript, analysis, dealHeat, decisionMaker, buyingSignals, timeline, participants, conversationIntel, copyToClipboard, copyFullEmail, openInEmailClient, getStakeholderDisplay, getRoleIcon])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
