@@ -57,18 +57,11 @@ function PDFContentFilter({ children }: { children: React.ReactNode }) {
     if (!node) return null
     
     if (React.isValidElement(node)) {
-      // List of problematic components that cause PDF rendering issues
+      // Only filter out the most problematic interactive components
       const problematicComponents = [
-        'Tooltip',
-        'TooltipTrigger', 
         'TooltipContent',
-        'Popover',
-        'PopoverTrigger',
-        'PopoverContent',
-        'Dialog',
-        'DialogTrigger',
-        'DropdownMenu',
-        'HoverCard'
+        'PopoverContent', 
+        'DialogContent'
       ]
       
       let componentName = ''
@@ -79,14 +72,14 @@ function PDFContentFilter({ children }: { children: React.ReactNode }) {
         componentName = typeAny.displayName || typeAny.name || ''
       }
       
-      // Handle problematic components
-      if (problematicComponents.some(comp => componentName.includes(comp))) {
-        // For tooltip triggers, extract and render just the trigger content
-        if (componentName.includes('Tooltip') && node.props.children) {
-          return processChildren(node.props.children)
-        }
-        // For other problematic components, skip entirely
+      // Remove only content overlays, not triggers
+      if (problematicComponents.includes(componentName)) {
         return null
+      }
+      
+      // For TooltipTrigger, render the trigger content without tooltip functionality
+      if (componentName === 'TooltipTrigger' && node.props.children) {
+        return processChildren(node.props.children)
       }
       
       // Process children recursively for valid components
