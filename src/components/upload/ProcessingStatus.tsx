@@ -1,13 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { AlertCircle, Clock, Loader2 } from 'lucide-react';
+import { AlertCircle, Clock, Loader2, Settings } from 'lucide-react';
+import { QueueDrawer } from './QueueDrawer';
+import { Button } from '@/components/ui/button';
 
 interface ProcessingStatusProps {
   user_id: string;
 }
 
 export function ProcessingStatus({ user_id }: ProcessingStatusProps) {
+  const [showQueue, setShowQueue] = useState(false);
   const { data: queueData } = useQuery({
     queryKey: ['transcript-queue', user_id],
     queryFn: async () => {
@@ -27,25 +30,43 @@ export function ProcessingStatus({ user_id }: ProcessingStatusProps) {
   if (!hasAnyItems) return null;
 
   return (
-    <div className="mt-4 text-sm text-muted-foreground flex items-center justify-center gap-4">
-      {processingCount > 0 && (
-        <span className="flex items-center gap-1">
-          <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
-          <span className="text-blue-600">{processingCount} processing</span>
-        </span>
-      )}
-      {failedCount > 0 && (
-        <span className="flex items-center gap-1 text-red-600">
-          <AlertCircle className="h-3 w-3" />
-          {failedCount} need attention
-        </span>
-      )}
-      {pendingCount > 0 && (
-        <span className="flex items-center gap-1 text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          {pendingCount} ready for analysis
-        </span>
-      )}
-    </div>
+    <>
+      <div className="mt-4 text-sm text-muted-foreground flex items-center justify-center gap-4">
+        {processingCount > 0 && (
+          <span className="flex items-center gap-1">
+            <Loader2 className="h-3 w-3 animate-spin text-blue-500" />
+            <span className="text-blue-600">{processingCount} processing</span>
+          </span>
+        )}
+        {failedCount > 0 && (
+          <span className="flex items-center gap-1 text-red-600">
+            <AlertCircle className="h-3 w-3" />
+            {failedCount} need attention
+          </span>
+        )}
+        {pendingCount > 0 && (
+          <span className="flex items-center gap-1 text-muted-foreground">
+            <Clock className="h-3 w-3" />
+            {pendingCount} ready for analysis
+          </span>
+        )}
+        
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-primary hover:text-primary/80 font-medium h-auto p-1"
+          onClick={() => setShowQueue(true)}
+        >
+          <Settings className="h-3 w-3 mr-1" />
+          Manage Queue
+        </Button>
+      </div>
+
+      <QueueDrawer 
+        isOpen={showQueue} 
+        onClose={() => setShowQueue(false)}
+        user_id={user_id}
+      />
+    </>
   );
 }
