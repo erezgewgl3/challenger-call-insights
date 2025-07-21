@@ -163,6 +163,8 @@ serve(async (req) => {
       .from('transcripts')
       .update({ 
         status: 'processing',
+        processing_status: 'processing',
+        processing_started_at: new Date().toISOString(),
         processed_at: new Date().toISOString()
       })
       .eq('id', transcriptId);
@@ -278,6 +280,7 @@ serve(async (req) => {
       .from('transcripts')
       .update({ 
         status: 'completed',
+        processing_status: 'completed',
         error_message: null
       })
       .eq('id', transcriptId);
@@ -320,6 +323,8 @@ async function updateTranscriptError(supabase: any, transcriptId: string, errorM
     .from('transcripts')
     .update({ 
       status: 'error',
+      processing_status: 'failed',
+      processing_error: errorMessage,
       error_message: errorMessage,
       processed_at: new Date().toISOString()
     })

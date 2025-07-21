@@ -728,6 +728,9 @@ export type Database = {
           meeting_date: string
           participants: Json | null
           processed_at: string | null
+          processing_error: string | null
+          processing_started_at: string | null
+          processing_status: string | null
           raw_text: string | null
           status: Database["public"]["Enums"]["processing_status"] | null
           title: string
@@ -742,6 +745,9 @@ export type Database = {
           meeting_date: string
           participants?: Json | null
           processed_at?: string | null
+          processing_error?: string | null
+          processing_started_at?: string | null
+          processing_status?: string | null
           raw_text?: string | null
           status?: Database["public"]["Enums"]["processing_status"] | null
           title: string
@@ -756,6 +762,9 @@ export type Database = {
           meeting_date?: string
           participants?: Json | null
           processed_at?: string | null
+          processing_error?: string | null
+          processing_started_at?: string | null
+          processing_status?: string | null
           raw_text?: string | null
           status?: Database["public"]["Enums"]["processing_status"] | null
           title?: string
