@@ -36,6 +36,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let textElementsWithStyles: TextElementWithStyles[] = []
     let heroSectionStyles: any = null
     let heroSectionRemovedClasses: string[] = []
+    let heroSection: HTMLElement | null = null
     
     try {
       toast.info('Preparing PDF export...', { duration: 3000 })
@@ -65,7 +66,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       expandScrollableContent(element, modifiedElements)
       
       // Phase 3: Text optimization (excluding hero section for now)
-      const heroSection = element.querySelector('.bg-gradient-to-br.from-slate-900')
+      heroSection = element.querySelector('.bg-gradient-to-br.from-slate-900') as HTMLElement | null
       
       const allContentSections = element.querySelectorAll('.space-y-4, .border-l-4, .p-4, .p-6')
       allContentSections.forEach((section) => {
