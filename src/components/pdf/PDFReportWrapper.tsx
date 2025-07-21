@@ -7,43 +7,11 @@ interface PDFReportWrapperProps {
 }
 
 /**
- * Enhanced PDF rendering wrapper that creates a clean, print-optimized layout
+ * DEPRECATED: This wrapper is no longer used since we switched to DOM cloning for PDF export.
+ * Keeping for backward compatibility, but it now just passes through children.
  */
 export function PDFReportWrapper({ children, isForPDF = false }: PDFReportWrapperProps) {
-  if (!isForPDF) {
-    // Normal app rendering - preserve existing design
-    return <>{children}</>
-  }
-
-  // PDF-only rendering with optimized structure
-  return (
-    <div 
-      className="pdf-container"
-      style={{
-        width: '210mm',
-        minHeight: '297mm',
-        maxWidth: '210mm',
-        margin: '0 auto',
-        padding: '20mm',
-        backgroundColor: 'white',
-        position: 'relative',
-        boxSizing: 'border-box',
-        overflow: 'visible',
-        fontFamily: 'Arial, sans-serif',
-        fontSize: '14px',
-        lineHeight: '1.4',
-        color: '#333333'
-      }}
-    >
-      <div style={{ 
-        width: '100%', 
-        margin: '0', 
-        padding: '0',
-        boxSizing: 'border-box'
-      }}>
-        {children}
-      </div>
-    </div>
-  )
+  // Simply return children without any processing
+  // PDF export now uses DOM cloning instead of React component rendering
+  return <>{children}</>
 }
-

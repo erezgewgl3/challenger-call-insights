@@ -1,12 +1,9 @@
 
 import React, { useCallback } from 'react'
 import { toast } from 'sonner'
-import { createRoot } from 'react-dom/client'
 import { generateCleanFilename } from '@/utils/pdfUtils'
 import { generateCanvas } from '@/services/canvasGenerator'
 import { createPDFDocument, addCanvasToPDF, addMultiPageContent } from '@/services/pdfGenerator'
-import { PDFReportWrapper } from '@/components/pdf/PDFReportWrapper'
-import { TooltipProvider } from '@/components/ui/tooltip'
 
 interface UsePDFExportSurgicalProps {
   filename?: string
@@ -16,11 +13,10 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
   const filename = props.filename || 'sales-analysis'
   
   const exportToPDF = useCallback(async (
-    componentToRender: React.ReactElement, 
+    elementSelector: string, 
     title: string
   ) => {
     let tempContainer: HTMLDivElement | null = null
-    let root: any = null
     
     try {
       toast.info('Preparing PDF export...', { duration: 3000 })
@@ -29,6 +25,24 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       if (document.fonts) {
         await document.fonts.ready
       }
+      
+      // Find the actual rendered content on the page
+      const sourceElement = document.querySelector(elementSelector) as HTMLElement
+      if (!sourceElement) {
+        throw new Error(`Could not find element with selector: ${elementSelector}`)
+      }
+      
+      console.log('Found source element:', {
+        selector: elementSelector,
+        tagName: sourceElement.tagName,
+        className: sourceElement.className,
+        hasContent: sourceElement.innerHTML.length > 0,
+        childCount: sourceElement.children.length,
+        textContent: sourceElement.textContent?.substring(0, 200)
+      })
+      
+      // Clone the source element for PDF processing
+      const clonedElement = sourceElement.cloneNode(true) as HTMLElement
       
       // Create optimized container for PDF rendering
       tempContainer = document.createElement('div')
@@ -52,43 +66,31 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       `
       
       document.body.appendChild(tempContainer)
-
-      // Create React root and render PDF content with proper providers
-      root = createRoot(tempContainer)
       
-      const pdfComponent = React.createElement(
-        TooltipProvider,
-        null,
-        React.createElement(PDFReportWrapper, { isForPDF: true, children: componentToRender })
-      )
+      // Clean up the cloned element for PDF
+      cleanElementForPDF(clonedElement)
       
-      root.render(pdfComponent)
+      // Apply PDF-specific styling to the cloned element
+      applyPDFStyling(clonedElement)
       
-      // Wait for React to render and settle
-      await new Promise(resolve => setTimeout(resolve, 2000))
+      // Append the cleaned and styled clone to the temporary container
+      tempContainer.appendChild(clonedElement)
       
-      // Additional wait for any async content
+      // Wait for any layout calculations to complete
       await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // Log what's actually in the container
-      console.log('PDF Container content check:', {
+      console.log('PDF Container after processing:', {
         innerHTML: tempContainer.innerHTML.substring(0, 500),
         textContent: tempContainer.textContent?.substring(0, 200),
-        hasReactContent: tempContainer.querySelector('[data-reactroot]') !== null,
-        allElements: tempContainer.querySelectorAll('*').length
+        childCount: tempContainer.children.length,
+        width: tempContainer.scrollWidth,
+        height: tempContainer.scrollHeight
       })
       
       // Verify container has content before proceeding
       if (!tempContainer.firstChild || tempContainer.children.length === 0) {
-        throw new Error('PDF container is empty after rendering')
+        throw new Error('PDF container is empty after processing')
       }
-      
-      console.log('PDF Container ready:', {
-        width: tempContainer.scrollWidth,
-        height: tempContainer.scrollHeight,
-        childCount: tempContainer.children.length,
-        hasContent: tempContainer.innerHTML.length > 0
-      })
 
       toast.info('Generating PDF canvas...', { duration: 3000 })
       
@@ -113,7 +115,7 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       
       toast.success('PDF exported successfully!', { 
         duration: 4000,
-        description: 'Document generated with optimized layout'
+        description: 'Document generated from actual page content'
       })
       
     } catch (error) {
@@ -123,16 +125,8 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
         description: 'Please try again or contact support if the issue persists.'
       })
     } finally {
-      // Cleanup with proper error handling
+      // Cleanup
       setTimeout(() => {
-        try {
-          if (root) {
-            root.unmount()
-          }
-        } catch (unmountError) {
-          console.warn('Error unmounting PDF root:', unmountError)
-        }
-        
         try {
           if (tempContainer && document.body.contains(tempContainer)) {
             document.body.removeChild(tempContainer)
@@ -145,4 +139,98 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
   }, [filename])
   
   return { exportToPDF }
+}
+
+/**
+ * Removes interactive elements and problematic content from the cloned element
+ */
+function cleanElementForPDF(element: HTMLElement) {
+  // Remove interactive elements that don't belong in PDF
+  const interactiveSelectors = [
+    'button[aria-label*="Export"]',
+    'button[aria-label*="Download"]', 
+    'button[aria-label*="Copy"]',
+    '[role="tooltip"]',
+    '[data-radix-tooltip-content]',
+    '[data-radix-popover-content]',
+    '[data-radix-dialog-content]',
+    '.hover\\:',
+    '[class*="hover:"]'
+  ]
+  
+  interactiveSelectors.forEach(selector => {
+    try {
+      const elements = element.querySelectorAll(selector)
+      elements.forEach(el => el.remove())
+    } catch (e) {
+      // Ignore selector errors, some might be invalid
+    }
+  })
+  
+  // Remove or replace specific interactive buttons
+  const buttons = element.querySelectorAll('button')
+  buttons.forEach(button => {
+    const buttonText = button.textContent?.toLowerCase() || ''
+    if (buttonText.includes('export') || 
+        buttonText.includes('download') || 
+        buttonText.includes('copy') ||
+        buttonText.includes('back to dashboard')) {
+      button.remove()
+    }
+  })
+  
+  // Remove hover states and interactive classes
+  const allElements = element.querySelectorAll('*')
+  allElements.forEach(el => {
+    if (el instanceof HTMLElement) {
+      // Remove hover classes
+      const classList = Array.from(el.classList)
+      classList.forEach(className => {
+        if (className.includes('hover:') || className.includes('focus:')) {
+          el.classList.remove(className)
+        }
+      })
+    }
+  })
+}
+
+/**
+ * Applies PDF-specific styling to ensure proper layout
+ */
+function applyPDFStyling(element: HTMLElement) {
+  // Apply PDF-optimized styles to the root element
+  element.style.cssText = `
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 20px !important;
+    background: white !important;
+    color: #333 !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 14px !important;
+    line-height: 1.4 !important;
+    box-sizing: border-box !important;
+  `
+  
+  // Apply styles to all child elements for better PDF rendering
+  const allElements = element.querySelectorAll('*')
+  allElements.forEach(el => {
+    if (el instanceof HTMLElement) {
+      // Fix width constraints
+      if (el.style.maxWidth && el.style.maxWidth !== 'none') {
+        el.style.maxWidth = 'none'
+      }
+      
+      // Ensure text is visible
+      if (el.style.color === 'transparent' || el.style.opacity === '0') {
+        el.style.color = '#333'
+        el.style.opacity = '1'
+      }
+      
+      // Fix flex layouts for PDF
+      if (el.style.display === 'flex') {
+        el.style.display = 'block'
+      }
+    }
+  })
 }

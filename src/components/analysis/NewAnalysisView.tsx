@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -360,56 +361,17 @@ export function NewAnalysisView({
     try {
       const cleanTitle = transcript.title.trim()
       
-      // Create PDF content component with expanded sections
-      const pdfContent = (
-        <div className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
-          {/* 🏆 HERO SECTION */}
-          <HeroSection
-            transcript={transcript}
-            analysis={analysis}
-            dealHeat={dealHeat}
-            decisionMaker={decisionMaker}
-            buyingSignals={buyingSignals}
-            timeline={timeline}
-            participants={participants}
-            getStakeholderDisplay={getStakeholderDisplay}
-            getRoleIcon={getRoleIcon}
-          />
-
-          {/* 🚀 BATTLE PLAN SECTION */}
-          <BattlePlanSection
-            analysis={analysis}
-            dealHeat={dealHeat}
-            copyToClipboard={copyToClipboard}
-            copyFullEmail={copyFullEmail}
-            openInEmailClient={openInEmailClient}
-          />
-
-          {/* 🎯 STAKEHOLDER NAVIGATION */}
-          <StakeholderNavigation analysis={analysis} />
-
-          {/* 🎯 EXPANDABLE SECTIONS - Force expanded for PDF */}
-          <ExpandableSections
-            analysis={analysis}
-            dealHeat={dealHeat}
-            sectionsOpen={{ insights: true, competitive: true }}
-            toggleSection={() => {}}
-            conversationIntel={conversationIntel}
-          />
-        </div>
-      )
-      
-      // 🚀 NEW: Use surgical PDF export with React component
-      await exportToPDF(pdfContent, cleanTitle)
+      // Use the actual rendered content from the page
+      await exportToPDF('#analysis-main-content', cleanTitle)
     } finally {
       setIsExporting(false)
     }
-  }, [exportToPDF, transcript, analysis, dealHeat, decisionMaker, buyingSignals, timeline, participants, conversationIntel, copyToClipboard, copyFullEmail, openInEmailClient, getStakeholderDisplay, getRoleIcon])
+  }, [exportToPDF, transcript.title])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      {/* ENHANCED: Add pdf-optimized class to main content container */}
-      <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
+      {/* Main content container with unique ID for PDF export */}
+      <div id="analysis-main-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
           
           {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
           <div className="mb-6 lg:mb-8">
