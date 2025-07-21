@@ -70,13 +70,23 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
         height: containerRect.height,
         scrollWidth: tempContainer.scrollWidth,
         scrollHeight: tempContainer.scrollHeight,
-        hasContent: !!tempContainer.innerHTML
+        hasContent: !!tempContainer.innerHTML,
+        childCount: tempContainer.children.length,
+        firstChildType: tempContainer.firstChild?.nodeName
       })
 
       toast.info('Generating high-quality canvas...', { duration: 3000 })
       
+      // Try to find the actual content element
+      const contentElement = tempContainer.querySelector('.pdf-only-container') || tempContainer
+      console.log('Using element for canvas:', {
+        element: contentElement.tagName,
+        className: contentElement.className,
+        hasContent: contentElement.innerHTML.length > 0
+      })
+      
       // Generate canvas with error handling
-      const canvas = await generateCanvas(tempContainer, true)
+      const canvas = await generateCanvas(contentElement as HTMLElement, true)
 
       // Create PDF document
       const pdf = createPDFDocument()

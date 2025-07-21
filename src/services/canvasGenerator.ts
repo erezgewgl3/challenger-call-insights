@@ -118,7 +118,16 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
 
     return canvas
   } catch (error) {
-    console.error('Canvas generation failed:', error)
+    console.error('Canvas generation failed:', {
+      error: error.message,
+      stack: error.stack,
+      elementInfo: {
+        tagName: element.tagName,
+        className: element.className,
+        hasContent: element.innerHTML.length > 0,
+        isVisible: element.offsetWidth > 0 && element.offsetHeight > 0
+      }
+    })
     throw new Error(`Failed to generate canvas: ${error.message}`)
   }
 }
