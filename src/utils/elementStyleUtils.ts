@@ -31,7 +31,11 @@ export function storeElementStyles(element: HTMLElement): Record<string, string>
     whiteSpace: element.style.whiteSpace,
     height: element.style.height,
     maxHeight: element.style.maxHeight,
-    flexWrap: element.style.flexWrap
+    flexWrap: element.style.flexWrap,
+    left: element.style.left,
+    right: element.style.right,
+    marginLeft: element.style.marginLeft,
+    marginRight: element.style.marginRight
   }
 }
 
@@ -64,11 +68,40 @@ export function restoreElementStyles(element: HTMLElement, styles: Record<string
 type PDFOptimizationType = 'main' | 'email' | 'text' | 'container'
 
 /**
+ * Calculates optimal width for PDF export based on viewport
+ * Ensures content never exceeds available space while maintaining quality
+ */
+function calculateOptimalPDFWidth(): string {
+  try {
+    // Use viewport width with safety margins, max 1200px for quality
+    const viewportWidth = window.innerWidth
+    const safetyMargin = 40 // 20px margin on each side
+    const optimalWidth = Math.min(1200, viewportWidth - safetyMargin)
+    
+    // Ensure minimum width for readability
+    const finalWidth = Math.max(320, optimalWidth)
+    
+    console.log('PDF width calculation:', {
+      viewportWidth,
+      safetyMargin,
+      optimalWidth,
+      finalWidth: `${finalWidth}px`
+    })
+    
+    return `${finalWidth}px`
+  } catch (error) {
+    console.warn('Failed to calculate optimal PDF width, using fallback:', error)
+    return '1200px' // Safe fallback
+  }
+}
+
+/**
  * Applies PDF-optimized styles to an element
  * 
  * Modifies element styling to ensure optimal rendering in PDF format:
+ * - Uses dynamic width calculation to prevent horizontal cutoff
  * - Removes transforms that can cause positioning issues
- * - Sets fixed dimensions for consistent layout
+ * - Sets appropriate dimensions for consistent layout
  * - Optimizes text wrapping and overflow behavior
  * - Ensures backgrounds render properly
  * 
@@ -85,14 +118,19 @@ type PDFOptimizationType = 'main' | 'email' | 'text' | 'container'
 export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizationType = 'main'): void {
   switch (type) {
     case 'main':
-      // Main container optimization for consistent PDF layout
+      // Main container optimization with dynamic width calculation
+      const optimalWidth = calculateOptimalPDFWidth()
       element.style.position = 'static'
-      element.style.width = '1200px'
-      element.style.maxWidth = '1200px'
-      element.style.minWidth = '1200px'
+      element.style.width = optimalWidth
+      element.style.maxWidth = optimalWidth
+      element.style.minWidth = optimalWidth
       element.style.transform = 'none'
       element.style.overflow = 'visible'
       element.style.backgroundColor = 'transparent'
+      element.style.left = 'auto'
+      element.style.right = 'auto'
+      element.style.marginLeft = 'auto'
+      element.style.marginRight = 'auto'
       break
       
     case 'email':
