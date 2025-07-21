@@ -2,71 +2,79 @@
 import html2canvas from 'html2canvas'
 
 /**
- * ENHANCED: Validates element dimensions against viewport to prevent cutoff
+ * ENHANCED: Validates element dimensions and ensures proper measurement
  */
-function validateElementDimensions(element: HTMLElement): { isValid: boolean; warnings: string[] } {
+function validateAndMeasureElement(element: HTMLElement): { isValid: boolean; dimensions: { width: number; height: number }; warnings: string[] } {
   const rect = element.getBoundingClientRect()
   const warnings: string[] = []
   let isValid = true
   
-  // Check if element exceeds viewport width
-  if (rect.width > window.innerWidth) {
-    warnings.push(`Element width (${Math.round(rect.width)}px) exceeds viewport width (${window.innerWidth}px)`)
+  // Get computed dimensions
+  const computedStyle = window.getComputedStyle(element)
+  const scrollWidth = element.scrollWidth
+  const scrollHeight = element.scrollHeight
+  
+  // Use the largest available dimension
+  const finalWidth = Math.max(rect.width, scrollWidth, 794) // 794px = 210mm
+  const finalHeight = Math.max(rect.height, scrollHeight, 1123) // 1123px = 297mm
+  
+  console.log('Element measurement:', {
+    rectWidth: rect.width,
+    rectHeight: rect.height,
+    scrollWidth,
+    scrollHeight,
+    finalWidth,
+    finalHeight,
+    computedWidth: computedStyle.width,
+    computedHeight: computedStyle.height
+  })
+  
+  // Validate dimensions
+  if (finalWidth < 100 || finalHeight < 100) {
+    warnings.push(`Element dimensions too small: ${finalWidth}x${finalHeight}`)
     isValid = false
   }
   
-  // Check if element is positioned outside viewport
-  if (rect.left < 0) {
-    warnings.push(`Element positioned ${Math.abs(Math.round(rect.left))}px to the left of viewport`)
+  return { 
+    isValid, 
+    dimensions: { width: finalWidth, height: finalHeight },
+    warnings 
   }
-  
-  if (rect.right > window.innerWidth) {
-    warnings.push(`Element extends ${Math.round(rect.right - window.innerWidth)}px beyond right edge of viewport`)
-  }
-  
-  // ENHANCED: Check for Tailwind constraints that might cause issues
-  const computedStyle = window.getComputedStyle(element)
-  if (computedStyle.maxWidth && computedStyle.maxWidth !== 'none') {
-    const maxWidthValue = parseInt(computedStyle.maxWidth)
-    if (maxWidthValue < rect.width) {
-      warnings.push(`Element has max-width constraint (${computedStyle.maxWidth}) smaller than actual width (${Math.round(rect.width)}px)`)
-    }
-  }
-  
-  return { isValid, warnings }
 }
 
 /**
- * ENHANCED canvas generation with PDF export support
+ * ENHANCED canvas generation with PDF export support and proper error handling
  */
 export async function generateCanvas(element: HTMLElement, forPDF: boolean = false): Promise<HTMLCanvasElement> {
-  // ENHANCED: Validate element dimensions before canvas generation
-  const validation = validateElementDimensions(element)
+  console.log('Starting canvas generation...', { forPDF })
   
-  if (validation.warnings.length > 0) {
-    console.warn('Element dimension warnings:', validation.warnings)
+  // Wait for fonts and images to load
+  if (document.fonts) {
+    await document.fonts.ready
   }
   
-  // Get actual element dimensions
-  const rect = element.getBoundingClientRect()
+  // Additional wait for content to settle
+  await new Promise(resolve => setTimeout(resolve, 500))
   
-  // ENHANCED: Use full element dimensions for PDF, viewport-safe for regular use
-  const actualHeight = Math.max(element.scrollHeight, rect.height)
-  const actualWidth = forPDF ? 
-    Math.max(element.scrollWidth, rect.width) : // Full width for PDF
-    Math.min(element.scrollWidth, window.innerWidth) // Viewport-safe for regular use
+  // Validate and measure element
+  const validation = validateAndMeasureElement(element)
   
-  console.log('ENHANCED Canvas generation with PDF support:', {
+  if (validation.warnings.length > 0) {
+    console.warn('Element measurement warnings:', validation.warnings)
+  }
+  
+  if (!validation.isValid) {
+    throw new Error(`Invalid element dimensions: ${validation.warnings.join(', ')}`)
+  }
+  
+  const { width: finalWidth, height: finalHeight } = validation.dimensions
+  
+  console.log('Canvas generation config:', {
     forPDF,
-    scrollHeight: element.scrollHeight,
-    rectHeight: rect.height,
-    scrollWidth: element.scrollWidth,
-    rectWidth: rect.width,
-    finalHeight: actualHeight,
-    finalWidth: actualWidth,
-    viewportWidth: window.innerWidth,
-    validationWarnings: validation.warnings,
-    hasMaxWidthConstraint: window.getComputedStyle(element).maxWidth !== 'none'
+    finalWidth,
+    finalHeight,
+    scale: 2,
+    backgroundColor: 'white'
   })
 
   try {
@@ -74,24 +82,30 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       scale: 2,
       useCORS: true,
       allowTaint: true,
-      backgroundColor: null,
+      backgroundColor: 'white',
       foreignObjectRendering: true,
       imageTimeout: 15000,
-      logging: true, // Enable logging to debug
+      logging: false, // Reduce noise in production
       scrollX: 0,
       scrollY: 0,
-      x: 0, // Force capture from left edge
-      y: 0, // Force capture from top edge
-      width: forPDF ? 1400 : actualWidth, // Force specific width for PDF
-      height: actualHeight,
-      windowWidth: forPDF ? 1400 : window.innerWidth, // Set window width for PDF
-      windowHeight: actualHeight,
-      // ENHANCED: Improved element filtering
+      x: 0,
+      y: 0,
+      width: finalWidth,
+      height: finalHeight,
+      windowWidth: forPDF ? 794 : window.innerWidth,
+      windowHeight: finalHeight,
+      onclone: (clonedDoc) => {
+        // Ensure styles are properly applied in cloned document
+        const clonedElement = clonedDoc.querySelector('.pdf-only-container')
+        if (clonedElement && forPDF) {
+          clonedElement.style.width = '794px'
+          clonedElement.style.minHeight = '1123px'
+        }
+      },
       ignoreElements: (element) => {
         if (!(element instanceof HTMLElement)) {
           return false
         }
-        // Skip hidden elements and elements that might cause issues
         const style = window.getComputedStyle(element)
         return style.display === 'none' || 
                style.visibility === 'hidden' ||
@@ -99,18 +113,15 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       }
     })
 
-    console.log('ENHANCED Canvas generated with PDF support:', {
-      forPDF,
+    console.log('Canvas generated successfully:', {
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
       aspectRatio: canvas.width / canvas.height,
-      wasValidDimensions: validation.isValid,
-      capturedFullWidth: canvas.width >= (actualWidth * 2), // Account for 2x scale
-      noHorizontalCutoff: forPDF || validation.isValid
+      nonZeroDimensions: canvas.width > 0 && canvas.height > 0
     })
 
     if (canvas.width === 0 || canvas.height === 0) {
-      throw new Error('Generated canvas has zero dimensions')
+      throw new Error(`Generated canvas has zero dimensions: ${canvas.width}x${canvas.height}`)
     }
 
     return canvas
