@@ -70,6 +70,14 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       // Additional wait for any async content
       await new Promise(resolve => setTimeout(resolve, 1000))
       
+      // Log what's actually in the container
+      console.log('PDF Container content check:', {
+        innerHTML: tempContainer.innerHTML.substring(0, 500),
+        textContent: tempContainer.textContent?.substring(0, 200),
+        hasReactContent: tempContainer.querySelector('[data-reactroot]') !== null,
+        allElements: tempContainer.querySelectorAll('*').length
+      })
+      
       // Verify container has content before proceeding
       if (!tempContainer.firstChild || tempContainer.children.length === 0) {
         throw new Error('PDF container is empty after rendering')

@@ -41,64 +41,9 @@ export function PDFReportWrapper({ children, isForPDF = false }: PDFReportWrappe
         padding: '0',
         boxSizing: 'border-box'
       }}>
-        <PDFContentFilter>
-          {children}
-        </PDFContentFilter>
+        {children}
       </div>
     </div>
   )
 }
 
-/**
- * PDF Content Filter - Removes problematic interactive components for PDF rendering
- */
-function PDFContentFilter({ children }: { children: React.ReactNode }) {
-  const processChildren = (node: React.ReactNode): React.ReactNode => {
-    if (!node) return null
-    
-    if (React.isValidElement(node)) {
-      // Only filter out the most problematic interactive components
-      const problematicComponents = [
-        'TooltipContent',
-        'PopoverContent', 
-        'DialogContent'
-      ]
-      
-      let componentName = ''
-      if (typeof node.type === 'string') {
-        componentName = node.type
-      } else if (node.type && typeof node.type === 'function') {
-        const typeAny = node.type as any
-        componentName = typeAny.displayName || typeAny.name || ''
-      }
-      
-      // Remove only content overlays, not triggers
-      if (problematicComponents.includes(componentName)) {
-        return null
-      }
-      
-      // For TooltipTrigger, render the trigger content without tooltip functionality
-      if (componentName === 'TooltipTrigger' && node.props.children) {
-        return processChildren(node.props.children)
-      }
-      
-      // Process children recursively for valid components
-      if (node.props.children) {
-        const processedChildren = React.Children.map(node.props.children, processChildren)
-        return React.cloneElement(node, node.props, processedChildren)
-      }
-      
-      return node
-    }
-    
-    if (Array.isArray(node)) {
-      return node.map(processChildren).filter(Boolean)
-    }
-    
-    return node
-  }
-  
-  return <>{processChildren(children)}</>
-}
-
-export default PDFReportWrapper
