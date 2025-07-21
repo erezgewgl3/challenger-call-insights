@@ -145,13 +145,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false)
   }
 
-  // Update last_login timestamp for the user
+  // Update last_login timestamp for the user using secure database function
   const updateLastLogin = async (userId: string) => {
     try {
-      await supabase
-        .from('users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', userId)
+      const { data, error } = await supabase.rpc('update_user_last_login', {
+        p_user_id: userId
+      })
+      
+      if (error) {
+        console.error('Failed to update last_login via RPC:', error)
+      } else if (data && typeof data === 'object' && 'success' in data) {
+        const result = data as { success: boolean; error?: string }
+        if (!result.success) {
+          console.error('Last login update failed:', result.error)
+        }
+      }
     } catch (error) {
       console.error('Failed to update last_login:', error)
     }

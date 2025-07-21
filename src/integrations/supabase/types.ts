@@ -1058,6 +1058,10 @@ export type Database = {
         Args: { p_content: string; p_file_name: string }
         Returns: Json
       }
+      update_user_last_login: {
+        Args: { p_user_id?: string }
+        Returns: Json
+      }
       validate_file_signature: {
         Args: { p_file_content: string; p_declared_type: string }
         Returns: Json
