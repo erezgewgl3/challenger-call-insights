@@ -4,9 +4,7 @@ import { toast } from 'sonner'
 import { generateCleanFilename } from '@/utils/pdfUtils'
 import { 
   storeElementStyles, 
-  restoreElementStyles, 
-  optimizeElementForPDF,
-  restoreElementCompletely 
+  restoreElementStyles
 } from '@/utils/elementStyleUtils'
 import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
 import { generateCanvas } from '@/services/canvasGenerator'
@@ -21,22 +19,11 @@ interface PDFExportOptions {
   toggleSection?: (section: string) => void
 }
 
-interface TextElementWithStyles {
-  element: HTMLElement
-  originalStyles: Record<string, string>
-  removedClasses?: string[]
-}
-
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let sectionsToRestore: string[] = []
     let modifiedElements: ElementState[] = []
     let originalStyles: any = null
-    let removedTailwindClasses: string[] = []
-    let textElementsWithStyles: TextElementWithStyles[] = []
-    let heroSectionStyles: any = null
-    let heroSectionRemovedClasses: string[] = []
-    let heroSection: HTMLElement | null = null
     
     try {
       toast.info('Preparing PDF export...', { duration: 3000 })
@@ -65,65 +52,37 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       modifiedElements.push(...sectionModifiedElements)
       expandScrollableContent(element, modifiedElements)
       
-      // Phase 3: Text optimization (excluding hero section for now)
-      heroSection = element.querySelector('.bg-gradient-to-br.from-slate-900') as HTMLElement | null
-      
-      const allContentSections = element.querySelectorAll('.space-y-4, .border-l-4, .p-4, .p-6')
-      allContentSections.forEach((section) => {
-        if (section instanceof HTMLElement) {
-          // Skip if this section is inside the hero section - we'll handle hero separately
-          if (heroSection && heroSection.contains(section)) {
-            return
-          }
-          
-          const textElements = section.querySelectorAll('p, div, span, h1, h2, h3, h4, h5, h6')
-          textElements.forEach((textEl) => {
-            if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.length > 20) {
-              const originalTextStyles = storeElementStyles(textEl)
-              const { removedClasses } = optimizeElementForPDF(textEl, 'text')
-              textElementsWithStyles.push({ 
-                element: textEl, 
-                originalStyles: originalTextStyles,
-                removedClasses 
-              })
-            }
-          })
-          
-          const originalSectionStyles = storeElementStyles(section)
-          const { removedClasses } = optimizeElementForPDF(section, 'container')
-          textElementsWithStyles.push({ 
-            element: section, 
-            originalStyles: originalSectionStyles,
-            removedClasses 
-          })
-        }
-      })
-
-      // Phase 4: Wait for DOM updates
+      // Phase 3: Wait for DOM updates
       await document.fonts.ready
-      await new Promise(resolve => setTimeout(resolve, 3000))
+      await new Promise(resolve => setTimeout(resolve, 1500))
 
-      // Phase 5: Optimize main element with Tailwind constraint handling
+      // Phase 4: SIMPLIFIED - Only optimize main container with fixed wide width
       toast.info('Optimizing for PDF capture...', { duration: 2000 })
       originalStyles = storeElementStyles(element)
-      const mainOptimization = optimizeElementForPDF(element, 'main')
-      removedTailwindClasses = mainOptimization.removedClasses
       
-      // Phase 5.5: CRITICAL - Optimize hero section for width
-      if (heroSection && heroSection instanceof HTMLElement) {
-        console.log('Optimizing hero section for PDF width...')
-        heroSectionStyles = storeElementStyles(heroSection)
-        const heroOptimization = optimizeElementForPDF(heroSection, 'main')
-        heroSectionRemovedClasses = heroOptimization.removedClasses
-      }
+      // Apply single, clean optimization with fixed wide width
+      element.style.position = 'static'
+      element.style.width = '1400px'
+      element.style.maxWidth = '1400px'
+      element.style.minWidth = '1400px'
+      element.style.transform = 'none'
+      element.style.overflow = 'visible'
+      element.style.backgroundColor = 'transparent'
+      element.style.left = 'auto'
+      element.style.right = 'auto'
+      element.style.marginLeft = 'auto'
+      element.style.marginRight = 'auto'
+      element.style.paddingLeft = '16px'
+      element.style.paddingRight = '16px'
+      element.style.boxSizing = 'border-box'
       
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      await new Promise(resolve => setTimeout(resolve, 1000))
       
-      // Phase 6: Generate canvas with enhanced validation
+      // Phase 5: Generate canvas
       toast.info('Generating high-quality canvas...', { duration: 3000 })
       const canvas = await generateCanvas(element)
 
-      // Phase 7: Create PDF
+      // Phase 6: Create PDF
       const pdf = createPDFDocument()
       const contentHeightMM = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
       const availableHeightFirstPage = 297 - 45 - 10
@@ -138,20 +97,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       
       const pdfFilename = generateCleanFilename(title)
       
-      // CRITICAL: ENHANCED restoration with Tailwind classes
+      // Restore original styles
       if (originalStyles) {
-        restoreElementCompletely(element, originalStyles, removedTailwindClasses)
+        restoreElementStyles(element, originalStyles)
       }
-      
-      // CRITICAL: Restore hero section
-      if (heroSection && heroSection instanceof HTMLElement && heroSectionStyles) {
-        restoreElementCompletely(heroSection, heroSectionStyles, heroSectionRemovedClasses)
-      }
-      
-      // Restore text element styles with classes
-      textElementsWithStyles.forEach(({ element, originalStyles, removedClasses }) => {
-        restoreElementCompletely(element, originalStyles, removedClasses || [])
-      })
       
       pdf.save(pdfFilename)
       
@@ -164,18 +113,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       console.error('PDF export failed:', error)
       toast.error('Failed to generate PDF. Please try again.')
     } finally {
-      // Phase 8: Cleanup and restoration
+      // Phase 7: Cleanup and restoration
       setTimeout(() => {
         restoreElementStates(modifiedElements)
         
-        // Restore text elements with enhanced restoration
-        textElementsWithStyles.forEach(({ element, originalStyles, removedClasses }) => {
-          restoreElementCompletely(element, originalStyles, removedClasses || [])
-        })
-        
-        // Final hero section restoration
-        if (heroSection && heroSection instanceof HTMLElement && heroSectionStyles) {
-          restoreElementCompletely(heroSection, heroSectionStyles, heroSectionRemovedClasses)
+        // Restore main element styles
+        if (originalStyles) {
+          restoreElementStyles(element, originalStyles)
         }
         
         if (options?.toggleSection && sectionsToRestore.length > 0) {
