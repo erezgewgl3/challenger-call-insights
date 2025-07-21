@@ -1,4 +1,3 @@
-
 /**
  * Stores the current styles of an element for later restoration
  * 
@@ -88,18 +87,19 @@ type PDFOptimizationType = 'main' | 'email' | 'text' | 'container'
 /**
  * Calculates optimal width for PDF export based on viewport
  * Ensures content never exceeds available space while maintaining quality
+ * ENHANCED: Increased width for better hero section capture
  */
 function calculateOptimalPDFWidth(): string {
   try {
-    // Use viewport width with safety margins, max 1200px for quality
+    // Use wider viewport width with safety margins for better hero section capture
     const viewportWidth = window.innerWidth
-    const safetyMargin = 40 // 20px margin on each side
-    const optimalWidth = Math.min(1200, viewportWidth - safetyMargin)
+    const safetyMargin = 32 // Reduced margin for more width
+    const optimalWidth = Math.min(1500, viewportWidth - safetyMargin) // Increased max width
     
     // Ensure minimum width for readability
-    const finalWidth = Math.max(320, optimalWidth)
+    const finalWidth = Math.max(360, optimalWidth)
     
-    console.log('PDF width calculation:', {
+    console.log('PDF width calculation (enhanced for hero section):', {
       viewportWidth,
       safetyMargin,
       optimalWidth,
@@ -109,7 +109,7 @@ function calculateOptimalPDFWidth(): string {
     return `${finalWidth}px`
   } catch (error) {
     console.warn('Failed to calculate optimal PDF width, using fallback:', error)
-    return '1200px' // Safe fallback
+    return '1500px' // Increased fallback width
   }
 }
 
@@ -177,6 +177,7 @@ function restoreTailwindConstraints(element: HTMLElement, removedClasses: string
  * 
  * ENHANCED: Now properly handles Tailwind CSS constraints and applies clean width settings
  * Removes conflicting Tailwind classes temporarily and applies unconstrained width for PDF capture
+ * FIXED: Uses left-aligned positioning to prevent hero section gradient cutoff
  * 
  * @param element - HTML element to optimize for PDF capture
  * @param type - Type of optimization to apply based on element purpose
@@ -197,7 +198,7 @@ export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizatio
       // ENHANCED: Remove conflicting Tailwind constraints first
       removedClasses = removeTailwindConstraints(element)
       
-      // Apply clean, unconstrained width optimization
+      // FIXED: Use left-aligned positioning to prevent hero section cutoff
       const optimalWidth = calculateOptimalPDFWidth()
       element.style.position = 'static'
       element.style.width = optimalWidth
@@ -208,16 +209,18 @@ export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizatio
       element.style.backgroundColor = 'transparent'
       element.style.left = 'auto'
       element.style.right = 'auto'
-      element.style.marginLeft = 'auto'
-      element.style.marginRight = 'auto'
+      // FIXED: Use left-aligned margins instead of auto-centering to preserve gradient positioning
+      element.style.marginLeft = '0'
+      element.style.marginRight = '0'
       element.style.paddingLeft = '16px'  // Maintain some padding
       element.style.paddingRight = '16px'
       element.style.boxSizing = 'border-box'
       
-      console.log('Applied main PDF optimization:', {
+      console.log('Applied main PDF optimization with left alignment:', {
         optimalWidth,
         removedConstraints: removedClasses.length,
-        elementWidth: element.offsetWidth
+        elementWidth: element.offsetWidth,
+        marginStrategy: 'left-aligned'
       })
       break
       
