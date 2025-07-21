@@ -2,7 +2,12 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { generateCleanFilename } from '@/utils/pdfUtils'
-import { storeElementStyles, restoreElementStyles, optimizeElementForPDF } from '@/utils/elementStyleUtils'
+import { 
+  storeElementStyles, 
+  restoreElementStyles, 
+  optimizeElementForPDF,
+  restoreElementCompletely 
+} from '@/utils/elementStyleUtils'
 import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
 import { generateCanvas } from '@/services/canvasGenerator'
 import { createPDFDocument, addCanvasToPDF, addMultiPageContent } from '@/services/pdfGenerator'
@@ -21,6 +26,7 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let sectionsToRestore: string[] = []
     let modifiedElements: ElementState[] = []
     let originalStyles: any = null
+    let removedTailwindClasses: string[] = []
     let textElementsWithStyles: Array<{ element: HTMLElement, originalStyles: Record<string, string> }> = []
     
     try {
@@ -58,14 +64,22 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           textElements.forEach((textEl) => {
             if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.length > 20) {
               const originalTextStyles = storeElementStyles(textEl)
-              optimizeElementForPDF(textEl, 'text')
-              textElementsWithStyles.push({ element: textEl, originalStyles: originalTextStyles })
+              const { removedClasses } = optimizeElementForPDF(textEl, 'text')
+              textElementsWithStyles.push({ 
+                element: textEl, 
+                originalStyles: originalTextStyles,
+                removedClasses 
+              })
             }
           })
           
           const originalSectionStyles = storeElementStyles(section)
-          optimizeElementForPDF(section, 'container')
-          textElementsWithStyles.push({ element: section, originalStyles: originalSectionStyles })
+          const { removedClasses } = optimizeElementForPDF(section, 'container')
+          textElementsWithStyles.push({ 
+            element: section, 
+            originalStyles: originalSectionStyles,
+            removedClasses 
+          })
         }
       })
 
@@ -73,13 +87,15 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       await document.fonts.ready
       await new Promise(resolve => setTimeout(resolve, 3000))
 
-      // Phase 5: Optimize main element for PDF rendering
+      // Phase 5: ENHANCED - Optimize main element with Tailwind constraint handling
       toast.info('Optimizing for PDF capture...', { duration: 2000 })
       originalStyles = storeElementStyles(element)
-      optimizeElementForPDF(element, 'main')
+      const mainOptimization = optimizeElementForPDF(element, 'main')
+      removedTailwindClasses = mainOptimization.removedClasses
+      
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Phase 6: Generate canvas
+      // Phase 6: Generate canvas with enhanced validation
       toast.info('Generating high-quality canvas...', { duration: 3000 })
       const canvas = await generateCanvas(element)
 
@@ -98,14 +114,14 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       
       const pdfFilename = generateCleanFilename(title)
       
-      // CRITICAL: Restore styles BEFORE saving PDF
+      // CRITICAL: ENHANCED restoration with Tailwind classes
       if (originalStyles) {
-        restoreElementStyles(element, originalStyles)
+        restoreElementCompletely(element, originalStyles, removedTailwindClasses)
       }
       
-      // Restore text element styles
-      textElementsWithStyles.forEach(({ element, originalStyles }) => {
-        restoreElementStyles(element, originalStyles)
+      // Restore text element styles with classes
+      textElementsWithStyles.forEach(({ element, originalStyles, removedClasses }) => {
+        restoreElementCompletely(element, originalStyles, removedClasses || [])
       })
       
       pdf.save(pdfFilename)
@@ -123,9 +139,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       setTimeout(() => {
         restoreElementStates(modifiedElements)
         
-        // Restore text elements
-        textElementsWithStyles.forEach(({ element, originalStyles }) => {
-          restoreElementStyles(element, originalStyles)
+        // Restore text elements with enhanced restoration
+        textElementsWithStyles.forEach(({ element, originalStyles, removedClasses }) => {
+          restoreElementCompletely(element, originalStyles, removedClasses || [])
         })
         
         if (options?.toggleSection && sectionsToRestore.length > 0) {

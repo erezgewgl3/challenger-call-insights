@@ -2,7 +2,7 @@
 import html2canvas from 'html2canvas'
 
 /**
- * Validates element dimensions against viewport to prevent cutoff
+ * ENHANCED: Validates element dimensions against viewport to prevent cutoff
  */
 function validateElementDimensions(element: HTMLElement): { isValid: boolean; warnings: string[] } {
   const rect = element.getBoundingClientRect()
@@ -24,14 +24,23 @@ function validateElementDimensions(element: HTMLElement): { isValid: boolean; wa
     warnings.push(`Element extends ${Math.round(rect.right - window.innerWidth)}px beyond right edge of viewport`)
   }
   
+  // ENHANCED: Check for Tailwind constraints that might cause issues
+  const computedStyle = window.getComputedStyle(element)
+  if (computedStyle.maxWidth && computedStyle.maxWidth !== 'none') {
+    const maxWidthValue = parseInt(computedStyle.maxWidth)
+    if (maxWidthValue < rect.width) {
+      warnings.push(`Element has max-width constraint (${computedStyle.maxWidth}) smaller than actual width (${Math.round(rect.width)}px)`)
+    }
+  }
+  
   return { isValid, warnings }
 }
 
 /**
- * FIXED canvas generation with proper dimensions and validation
+ * ENHANCED canvas generation with proper dimensions and validation
  */
 export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
-  // Validate element dimensions before canvas generation
+  // ENHANCED: Validate element dimensions before canvas generation
   const validation = validateElementDimensions(element)
   
   if (validation.warnings.length > 0) {
@@ -41,17 +50,20 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
   // Get actual element dimensions
   const rect = element.getBoundingClientRect()
   
-  // FIXED: Use the element's actual rendered dimensions
+  // ENHANCED: Use the element's actual rendered dimensions with safety checks
   const actualHeight = Math.max(element.scrollHeight, rect.height)
-  const actualWidth = Math.max(element.scrollWidth, rect.width)
+  const actualWidth = Math.min(element.scrollWidth, window.innerWidth) // Prevent overflow
   
-  console.log('FIXED Canvas generation with validation:', {
+  console.log('ENHANCED Canvas generation with validation:', {
     scrollHeight: element.scrollHeight,
     rectHeight: rect.height,
+    scrollWidth: element.scrollWidth,
+    rectWidth: rect.width,
     finalHeight: actualHeight,
     finalWidth: actualWidth,
     viewportWidth: window.innerWidth,
-    validationWarnings: validation.warnings
+    validationWarnings: validation.warnings,
+    hasMaxWidthConstraint: window.getComputedStyle(element).maxWidth !== 'none'
   })
 
   try {
@@ -68,20 +80,26 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
       width: actualWidth,
       height: actualHeight,
       windowHeight: actualHeight,
-      // FIXED: Simple element filtering
+      // ENHANCED: Improved element filtering
       ignoreElements: (element) => {
         if (!(element instanceof HTMLElement)) {
           return false
         }
-        return element.style.display === 'none' || element.style.visibility === 'hidden'
+        // Skip hidden elements and elements that might cause issues
+        const style = window.getComputedStyle(element)
+        return style.display === 'none' || 
+               style.visibility === 'hidden' ||
+               style.opacity === '0'
       }
     })
 
-    console.log('FIXED Canvas generated with proper validation:', {
+    console.log('ENHANCED Canvas generated with proper validation:', {
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
       aspectRatio: canvas.width / canvas.height,
-      wasValidDimensions: validation.isValid
+      wasValidDimensions: validation.isValid,
+      capturedFullWidth: canvas.width >= (actualWidth * 2), // Account for 2x scale
+      noHorizontalCutoff: validation.isValid
     })
 
     if (canvas.width === 0 || canvas.height === 0) {

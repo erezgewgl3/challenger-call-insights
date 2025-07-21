@@ -35,8 +35,26 @@ export function storeElementStyles(element: HTMLElement): Record<string, string>
     left: element.style.left,
     right: element.style.right,
     marginLeft: element.style.marginLeft,
-    marginRight: element.style.marginRight
+    marginRight: element.style.marginRight,
+    // Enhanced: Store padding and margins that might affect layout
+    paddingLeft: element.style.paddingLeft,
+    paddingRight: element.style.paddingRight,
+    boxSizing: element.style.boxSizing
   }
+}
+
+/**
+ * Stores the current CSS classes of an element for later restoration
+ */
+export function storeElementClasses(element: HTMLElement): string {
+  return element.className
+}
+
+/**
+ * Restores previously stored CSS classes to an element
+ */
+export function restoreElementClasses(element: HTMLElement, originalClasses: string): void {
+  element.className = originalClasses
 }
 
 /**
@@ -96,29 +114,90 @@ function calculateOptimalPDFWidth(): string {
 }
 
 /**
+ * Removes Tailwind CSS constraints that interfere with PDF export
+ * 
+ * Temporarily removes classes that can cause layout conflicts during PDF generation:
+ * - max-w-* classes that constrain width
+ * - mx-auto that centers content (can cause positioning issues)
+ * - Container constraints that might clip content
+ * 
+ * @param element - HTML element to remove constraints from
+ * @returns Array of removed class names for restoration
+ */
+function removeTailwindConstraints(element: HTMLElement): string[] {
+  const constraintPatterns = [
+    'max-w-',     // Remove max-width constraints
+    'mx-auto',    // Remove auto margins that can interfere
+    'container'   // Remove container classes
+  ]
+  
+  const currentClasses = element.className.split(' ')
+  const removedClasses: string[] = []
+  
+  const filteredClasses = currentClasses.filter(className => {
+    const shouldRemove = constraintPatterns.some(pattern => className.includes(pattern))
+    if (shouldRemove) {
+      removedClasses.push(className)
+      return false
+    }
+    return true
+  })
+  
+  element.className = filteredClasses.join(' ')
+  
+  console.log('Removed Tailwind constraints for PDF:', {
+    original: currentClasses.length,
+    filtered: filteredClasses.length,
+    removed: removedClasses
+  })
+  
+  return removedClasses
+}
+
+/**
+ * Restores previously removed Tailwind CSS constraints
+ * 
+ * @param element - HTML element to restore constraints to
+ * @param removedClasses - Array of class names to restore
+ */
+function restoreTailwindConstraints(element: HTMLElement, removedClasses: string[]): void {
+  const currentClasses = element.className.split(' ').filter(c => c.trim())
+  const restoredClasses = [...currentClasses, ...removedClasses].join(' ')
+  element.className = restoredClasses
+  
+  console.log('Restored Tailwind constraints after PDF:', {
+    currentCount: currentClasses.length,
+    restoredCount: removedClasses.length,
+    finalClassName: restoredClasses
+  })
+}
+
+/**
  * Applies PDF-optimized styles to an element
  * 
- * Modifies element styling to ensure optimal rendering in PDF format:
- * - Uses dynamic width calculation to prevent horizontal cutoff
- * - Removes transforms that can cause positioning issues
- * - Sets appropriate dimensions for consistent layout
- * - Optimizes text wrapping and overflow behavior
- * - Ensures backgrounds render properly
+ * ENHANCED: Now properly handles Tailwind CSS constraints and applies clean width settings
+ * Removes conflicting Tailwind classes temporarily and applies unconstrained width for PDF capture
  * 
  * @param element - HTML element to optimize for PDF capture
  * @param type - Type of optimization to apply based on element purpose
+ * @returns Object containing removed classes for restoration
  * 
  * @example
  * ```typescript
- * optimizeElementForPDF(mainElement, 'main');
- * optimizeElementForPDF(textElement, 'text');
- * optimizeElementForPDF(emailElement, 'email');
+ * const constraints = optimizeElementForPDF(mainElement, 'main');
+ * // ... PDF generation ...
+ * restoreTailwindConstraints(mainElement, constraints.removedClasses);
  * ```
  */
-export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizationType = 'main'): void {
+export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizationType = 'main'): { removedClasses: string[] } {
+  let removedClasses: string[] = []
+  
   switch (type) {
     case 'main':
-      // Main container optimization with dynamic width calculation
+      // ENHANCED: Remove conflicting Tailwind constraints first
+      removedClasses = removeTailwindConstraints(element)
+      
+      // Apply clean, unconstrained width optimization
       const optimalWidth = calculateOptimalPDFWidth()
       element.style.position = 'static'
       element.style.width = optimalWidth
@@ -131,6 +210,15 @@ export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizatio
       element.style.right = 'auto'
       element.style.marginLeft = 'auto'
       element.style.marginRight = 'auto'
+      element.style.paddingLeft = '16px'  // Maintain some padding
+      element.style.paddingRight = '16px'
+      element.style.boxSizing = 'border-box'
+      
+      console.log('Applied main PDF optimization:', {
+        optimalWidth,
+        removedConstraints: removedClasses.length,
+        elementWidth: element.offsetWidth
+      })
       break
       
     case 'email':
@@ -161,4 +249,26 @@ export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizatio
       element.style.flexWrap = 'wrap'
       break
   }
+  
+  return { removedClasses }
+}
+
+/**
+ * ENHANCED: Restores element to original state including Tailwind classes
+ * 
+ * @param element - HTML element to restore
+ * @param styles - Original inline styles
+ * @param removedClasses - Tailwind classes that were removed
+ */
+export function restoreElementCompletely(element: HTMLElement, styles: Record<string, string>, removedClasses: string[]): void {
+  // Restore inline styles first
+  restoreElementStyles(element, styles)
+  
+  // Restore Tailwind classes
+  restoreTailwindConstraints(element, removedClasses)
+  
+  console.log('Complete element restoration completed:', {
+    stylesRestored: Object.keys(styles).length,
+    classesRestored: removedClasses.length
+  })
 }
