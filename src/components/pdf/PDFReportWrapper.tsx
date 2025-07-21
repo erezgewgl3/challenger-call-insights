@@ -77,7 +77,7 @@ function PDFContentFilter({ children }: { children: React.ReactNode }) {
         'HoverCard'
       ]
       
-      const componentName = typeof node.type === 'string' ? node.type : node.type?.displayName || node.type?.name || ''
+      const componentName = typeof node.type === 'string' ? node.type : (node.type as any)?.displayName || (node.type as any)?.name || ''
       
       if (problematicComponents.some(comp => componentName.includes(comp))) {
         // For tooltip triggers, render just the trigger content without the tooltip
