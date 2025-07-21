@@ -21,13 +21,19 @@ interface PDFExportOptions {
   toggleSection?: (section: string) => void
 }
 
+interface TextElementWithStyles {
+  element: HTMLElement
+  originalStyles: Record<string, string>
+  removedClasses?: string[]
+}
+
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let sectionsToRestore: string[] = []
     let modifiedElements: ElementState[] = []
     let originalStyles: any = null
     let removedTailwindClasses: string[] = []
-    let textElementsWithStyles: Array<{ element: HTMLElement, originalStyles: Record<string, string> }> = []
+    let textElementsWithStyles: TextElementWithStyles[] = []
     
     try {
       toast.info('Preparing PDF export...', { duration: 3000 })
