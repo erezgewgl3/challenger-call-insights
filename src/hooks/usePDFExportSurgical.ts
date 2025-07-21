@@ -58,12 +58,8 @@ export function usePDFExportSurgical(props: UsePDFExportSurgicalProps = {}) {
       
       const pdfComponent = React.createElement(
         TooltipProvider,
-        {},
-        React.createElement(
-          PDFReportWrapper,
-          { isForPDF: true },
-          componentToRender
-        )
+        null,
+        React.createElement(PDFReportWrapper, { isForPDF: true, children: componentToRender })
       )
       
       root.render(pdfComponent)
