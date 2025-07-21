@@ -77,11 +77,14 @@ export async function generateCanvas(element: HTMLElement, forPDF: boolean = fal
       backgroundColor: null,
       foreignObjectRendering: true,
       imageTimeout: 15000,
-      logging: false,
+      logging: true, // Enable logging to debug
       scrollX: 0,
       scrollY: 0,
-      width: actualWidth,
+      x: 0, // Force capture from left edge
+      y: 0, // Force capture from top edge
+      width: forPDF ? 1400 : actualWidth, // Force specific width for PDF
       height: actualHeight,
+      windowWidth: forPDF ? 1400 : window.innerWidth, // Set window width for PDF
       windowHeight: actualHeight,
       // ENHANCED: Improved element filtering
       ignoreElements: (element) => {
