@@ -20,19 +20,25 @@ export default function UserIntegrations() {
     const searchParams = new URLSearchParams(location.search);
     const fromOAuth = searchParams.get('from_oauth');
     const refreshData = searchParams.get('refresh');
+    const isFromZoom = document.referrer.includes('zoom.us');
     
-    if (fromOAuth === 'true' || refreshData === 'true') {
-      console.log('Detected return from OAuth, forcing data refresh...');
+    if (fromOAuth === 'true' || refreshData === 'true' || isFromZoom) {
+      console.log('Detected return from OAuth, waiting for DB commit...');
       
-      // Clear all React Query cache to force fresh data fetch
-      queryClient.clear();
+      // Wait 2 seconds for database transaction to commit
+      setTimeout(() => {
+        console.log('Refetching connection status after delay...');
+        
+        // Clear all React Query cache to force fresh data fetch
+        queryClient.clear();
+        
+        // Specifically invalidate Zoom connection cache
+        if (user?.id) {
+          invalidateZoomConnection(queryClient, user.id);
+        }
+      }, 2000);
       
-      // Specifically invalidate Zoom connection cache
-      if (user?.id) {
-        invalidateZoomConnection(queryClient, user.id);
-      }
-      
-      // Clean up URL parameters
+      // Clean up URL parameters immediately
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
     }
