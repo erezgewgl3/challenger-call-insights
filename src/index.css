@@ -180,57 +180,85 @@
   print-color-adjust: exact !important;
 }
 
-/* Enhanced spacing for sections */
-.pdf-export-mode .space-y-4 > * + * {
-  margin-top: 0.2rem !important;
+/* AGGRESSIVE PDF spacing fixes - target ALL spacing elements */
+.pdf-export-mode * {
+  margin-top: 0.1rem !important;
+  margin-bottom: 0.1rem !important;
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
+  line-height: 1.1 !important;
 }
 
-.pdf-export-mode .space-y-6 > * + * {
-  margin-top: 0.3rem !important;
-}
-
-.pdf-export-mode .space-y-8 > * + * {
-  margin-top: 0.4rem !important;
-}
-
-/* Specific spacing for space-y-2 (tighter sections) */
+.pdf-export-mode .space-y-4 > * + *,
+.pdf-export-mode .space-y-6 > * + *,
+.pdf-export-mode .space-y-8 > * + *,
 .pdf-export-mode .space-y-2 > * + * {
   margin-top: 0.1rem !important;
 }
 
-/* Enhanced badge typography */
-.pdf-export-mode [class*="badge"], 
-.pdf-export-mode [class*="Badge"] {
-  font-size: 105% !important;
-  font-weight: 600 !important;
-  padding: 0.5rem 1rem !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  white-space: nowrap !important;
-  vertical-align: middle !important;
-  flex-shrink: 0 !important;
-  -webkit-print-color-adjust: exact !important;
-  print-color-adjust: exact !important;
+/* Target specific action item and email template containers */
+.pdf-export-mode [class*="border-l-4"] {
+  padding: 0.3rem !important;
+  margin-bottom: 0.2rem !important;
 }
 
-/* Enhanced button typography */
-.pdf-export-mode [class*="button"], 
-.pdf-export-mode button {
-  font-size: 110% !important;
-  font-weight: 600 !important;
-  padding: 0.75rem 1.5rem !important;
+.pdf-export-mode [class*="bg-blue"],
+.pdf-export-mode [class*="bg-orange"],
+.pdf-export-mode [class*="bg-red"],
+.pdf-export-mode [class*="bg-green"] {
+  padding: 0.3rem !important;
+  margin: 0.1rem !important;
 }
 
 /* Enhanced list spacing */
 .pdf-export-mode ul, 
 .pdf-export-mode ol {
-  margin-bottom: 0.3rem !important;
+  margin: 0.1rem !important;
+  padding: 0.2rem !important;
 }
 
 .pdf-export-mode li {
-  margin-bottom: 0.1rem !important;
-  line-height: 1.2 !important;
+  margin: 0.05rem !important;
+  padding: 0.1rem !important;
+  line-height: 1.1 !important;
+}
+
+/* Enhanced badge and button sizing */
+.pdf-export-mode .text-xs {
+  font-size: 0.75rem !important;
+}
+
+.pdf-export-mode .text-sm {
+  font-size: 0.9rem !important;
+}
+
+.pdf-export-mode .text-base {
+  font-size: 1.05rem !important;
+}
+
+.pdf-export-mode .text-lg {
+  font-size: 1.15rem !important;
+}
+
+/* Enhanced score and metric visibility */
+.pdf-export-mode [class*="text-4xl"] {
+  font-size: 2.2rem !important;
+  font-weight: 720 !important;
+}
+
+.pdf-export-mode [class*="text-3xl"] {
+  font-size: 1.8rem !important;
+  font-weight: 700 !important;
+}
+
+.pdf-export-mode [class*="text-2xl"] {
+  font-size: 1.5rem !important;
+  font-weight: 680 !important;
+}
+
+.pdf-export-mode [class*="text-xl"] {
+  font-size: 1.25rem !important;
+  font-weight: 620 !important;
 }
 
 /* Force all backgrounds and gradients to render with enhanced contrast */
