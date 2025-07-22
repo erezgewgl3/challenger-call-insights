@@ -31,12 +31,11 @@ export function generateCleanFilename(title: string): string {
 }
 
 /**
- * Calculates PDF dimensions and scaling for optimal layout
+ * Enhanced PDF dimensions calculation with improved scaling for better readability
  * 
- * FIXED: Now properly accounts for html2canvas 2x scale factor
+ * UPDATED: Less aggressive scaling for larger, more readable fonts
  * Computes scaling factors to fit canvas content within A4 page boundaries
- * while maintaining aspect ratio. Accounts for page margins and ensures
- * professional document layout.
+ * while maintaining aspect ratio and ensuring better typography.
  * 
  * @param canvas - HTML canvas containing the content to be placed in PDF
  * @returns Object containing calculated dimensions and scaling factors
@@ -53,13 +52,11 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
   const pdfWidth = 210
   const pdfHeight = 297
   
-  // FIXED: Account for html2canvas 2x scale factor
-  // html2canvas creates canvas at 2x resolution, so we need to divide by 2
-  // to get the actual rendered dimensions
+  // Account for html2canvas 2x scale factor
   const actualCanvasWidth = canvas.width / 2
   const actualCanvasHeight = canvas.height / 2
   
-  console.log('PDF dimension calculation with scale fix:', {
+  console.log('Enhanced PDF dimension calculation with improved scaling:', {
     originalCanvasWidth: canvas.width,
     originalCanvasHeight: canvas.height,
     actualCanvasWidth,
@@ -67,24 +64,31 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
     scaleFactorAccountedFor: 2
   })
   
-  // Calculate scaling with margins using corrected dimensions
-  const contentWidth = pdfWidth - 20 // 10mm margins on each side
-  const scale = contentWidth / (actualCanvasWidth * 0.264583) // 0.264583 = pixels to mm conversion
-  const scaledHeight = (actualCanvasHeight * 0.264583) * scale
+  // ENHANCED: Less aggressive scaling with more generous content width for better readability
+  const contentWidth = pdfWidth - 15 // Reduced margins: 7.5mm on each side instead of 10mm
+  const pixelsToMM = actualCanvasWidth * 0.264583 // Pixels to mm conversion
   
-  console.log('PDF scaling calculations:', {
+  // ENHANCED: Improved scaling calculation for larger content
+  const baseScale = contentWidth / pixelsToMM
+  const enhancedScale = baseScale * 1.15 // 15% larger for better readability
+  
+  const scaledHeight = (actualCanvasHeight * 0.264583) * enhancedScale
+  
+  console.log('Enhanced PDF scaling calculations:', {
     contentWidth,
-    pixelsToMM: actualCanvasWidth * 0.264583,
-    scale,
-    scaledHeight
+    pixelsToMM,
+    baseScale,
+    enhancedScale,
+    scaledHeight,
+    improvementFactor: 1.15
   })
   
   return {
-    /** Scaling factor to fit content within page width */
-    scale,
+    /** Enhanced scaling factor for better readability */
+    scale: enhancedScale,
     /** Height of scaled content in mm */
     scaledHeight,
-    /** Available content width in mm (with margins) */
+    /** Available content width in mm (with reduced margins) */
     contentWidth,
     /** Full PDF page width in mm */
     pdfWidth,
@@ -94,10 +98,11 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
 }
 
 /**
- * Creates a professional PDF header with title and metadata
+ * Creates a professional PDF header with enhanced typography
  * 
+ * ENHANCED: Improved font sizes and spacing for better visual hierarchy
  * Adds formatted header section containing:
- * - Document title (formatted and styled)
+ * - Document title (larger and more prominent)
  * - Document type indicator
  * - Generation timestamp
  * - Professional separator line
@@ -114,26 +119,26 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
  * ```
  */
 export function createPDFHeader(pdf: jsPDF, title: string): number {
-  // Professional header
-  pdf.setFontSize(20)
+  // Enhanced professional header with better typography
+  pdf.setFontSize(24) // Increased from 20 for better prominence
   pdf.setTextColor(30, 41, 59)
   const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  pdf.text(cleanTitle, 10, 20)
+  pdf.text(cleanTitle, 10, 22) // Slightly lower position for better spacing
   
-  pdf.setFontSize(11)
+  pdf.setFontSize(13) // Increased from 11 for better readability
   pdf.setTextColor(100, 116, 139)
-  pdf.text('Sales Intelligence Report', 10, 28)
+  pdf.text('Sales Intelligence Report', 10, 32) // Adjusted spacing
   pdf.text(`Generated on ${new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'long', 
     day: 'numeric' 
-  })}`, 10, 35)
+  })}`, 10, 40) // Adjusted spacing
   
-  // Separator line - get page width from PDF
+  // Enhanced separator line
   const pageWidth = pdf.internal.pageSize.getWidth()
   pdf.setDrawColor(203, 213, 225)
-  pdf.setLineWidth(0.5)
-  pdf.line(10, 40, pageWidth - 10, 40)
+  pdf.setLineWidth(0.75) // Slightly thicker line for better visibility
+  pdf.line(10, 46, pageWidth - 10, 46) // Adjusted position
   
-  return 45 // Return the Y position where content should start
+  return 52 // Increased spacing before content starts
 }

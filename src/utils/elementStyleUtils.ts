@@ -35,7 +35,14 @@ export function storeElementStyles(element: HTMLElement): Record<string, string>
     marginLeft: element.style.marginLeft,
     marginTop: element.style.marginTop,
     marginRight: element.style.marginRight,
-    marginBottom: element.style.marginBottom
+    marginBottom: element.style.marginBottom,
+    fontSize: element.style.fontSize,
+    fontWeight: element.style.fontWeight,
+    padding: element.style.padding,
+    paddingTop: element.style.paddingTop,
+    paddingBottom: element.style.paddingBottom,
+    paddingLeft: element.style.paddingLeft,
+    paddingRight: element.style.paddingRight
   }
 }
 
@@ -53,27 +60,35 @@ export function restoreElementStyles(element: HTMLElement, originalStyles: Recor
 }
 
 /**
- * Enhanced element optimization for PDF rendering - ONLY applies positioning fixes when forPDF is true
+ * Enhanced element optimization for PDF rendering with improved typography and spacing
+ * 
+ * ENHANCED: Better font sizing, spacing, and visual hierarchy for PDF generation
+ * Only applies positioning fixes when forPDF is true to preserve normal screen layout
  */
 export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'container' | 'text', forPDF: boolean = true): void {
-  console.log(`🎨 Optimizing element for PDF (${type}):`, {
+  console.log(`🎨 Enhanced PDF optimization (${type}):`, {
     element: element.tagName,
     classes: element.className.substring(0, 50),
-    applyingPositionFixes: forPDF
+    applyingEnhancements: forPDF
   })
 
-  // Add PDF optimization class for font rendering
+  // Add PDF optimization class for enhanced rendering
   element.classList.add('pdf-optimized')
 
   if (type === 'main') {
-    // Font rendering optimizations
+    // Enhanced font rendering optimizations
     element.style.setProperty('-webkit-font-smoothing', 'antialiased', 'important')
     element.style.setProperty('-moz-osx-font-smoothing', 'grayscale', 'important')
     element.style.setProperty('text-rendering', 'optimizeLegibility', 'important')
     element.style.setProperty('background-color', 'white', 'important')
     
-    // Only apply positioning fixes if forPDF is true
+    // Enhanced typography for main container
     if (forPDF) {
+      element.style.setProperty('font-size', '115%', 'important')
+      element.style.setProperty('line-height', '1.7', 'important')
+      element.style.setProperty('font-weight', '500', 'important')
+      
+      // Positioning fixes only for PDF
       element.style.setProperty('position', 'relative', 'important')
       element.style.setProperty('left', '0px', 'important')
       element.style.setProperty('top', '0px', 'important')
@@ -86,15 +101,19 @@ export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'cont
     }
     
   } else if (type === 'container') {
-    // Print color optimizations
+    // Enhanced print color optimizations
     element.style.setProperty('-webkit-print-color-adjust', 'exact', 'important')
     element.style.setProperty('print-color-adjust', 'exact', 'important')
     element.style.setProperty('overflow', 'visible', 'important')
     element.style.setProperty('height', 'auto', 'important')
     element.style.setProperty('max-height', 'none', 'important')
     
-    // Only apply positioning fixes if forPDF is true
+    // Enhanced spacing for containers
     if (forPDF) {
+      element.style.setProperty('padding', '1.5rem', 'important')
+      element.style.setProperty('margin-bottom', '1.5rem', 'important')
+      
+      // Positioning fixes only for PDF
       element.style.setProperty('position', 'relative', 'important')
       element.style.setProperty('left', '0px', 'important')
       element.style.setProperty('margin-left', '0px', 'important')
@@ -103,34 +122,56 @@ export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'cont
     }
     
   } else if (type === 'text') {
-    // Text rendering optimizations
+    // Enhanced text rendering optimizations
     element.style.setProperty('-webkit-font-smoothing', 'antialiased', 'important')
     element.style.setProperty('text-rendering', 'optimizeLegibility', 'important')
     element.style.setProperty('white-space', 'normal', 'important')
     element.style.setProperty('word-wrap', 'break-word', 'important')
     element.style.setProperty('overflow-wrap', 'break-word', 'important')
     element.style.setProperty('hyphens', 'auto', 'important')
-    element.style.setProperty('line-height', '1.5', 'important')
     element.style.setProperty('overflow', 'visible', 'important')
     element.style.setProperty('height', 'auto', 'important')
     element.style.setProperty('max-height', 'none', 'important')
     
-    // Only apply positioning fixes if forPDF is true
+    // Enhanced typography for text elements
     if (forPDF) {
+      element.style.setProperty('line-height', '1.7', 'important')
+      element.style.setProperty('font-weight', '500', 'important')
+      element.style.setProperty('margin-bottom', '1rem', 'important')
+      
+      // Enhanced font sizes based on element type
+      const tagName = element.tagName.toLowerCase()
+      if (tagName === 'h1') {
+        element.style.setProperty('font-size', '140%', 'important')
+        element.style.setProperty('font-weight', '700', 'important')
+        element.style.setProperty('margin-bottom', '1.5rem', 'important')
+      } else if (tagName === 'h2') {
+        element.style.setProperty('font-size', '130%', 'important')
+        element.style.setProperty('font-weight', '600', 'important')
+        element.style.setProperty('margin-bottom', '1.25rem', 'important')
+      } else if (tagName === 'h3') {
+        element.style.setProperty('font-size', '120%', 'important')
+        element.style.setProperty('font-weight', '600', 'important')
+        element.style.setProperty('margin-bottom', '1rem', 'important')
+      } else if (tagName === 'p') {
+        element.style.setProperty('font-size', '110%', 'important')
+      }
+      
+      // Positioning fixes only for PDF
       element.style.setProperty('position', 'relative', 'important')
       element.style.setProperty('left', '0px', 'important')
       element.style.setProperty('margin-left', '0px', 'important')
     }
   }
 
-  console.log(`✅ PDF optimization complete for ${type} element`)
+  console.log(`✅ Enhanced PDF optimization complete for ${type} element`)
 }
 
 /**
- * Adds PDF export mode class to enable scoped CSS positioning fixes
+ * Adds PDF export mode class to enable enhanced typography and spacing
  */
 export function enablePDFExportMode(element: HTMLElement): void {
-  console.log('🔄 Enabling PDF export mode with scoped positioning fixes')
+  console.log('🔄 Enabling enhanced PDF export mode with improved typography')
   element.classList.add('pdf-export-mode')
 }
 
@@ -140,4 +181,5 @@ export function enablePDFExportMode(element: HTMLElement): void {
 export function disablePDFExportMode(element: HTMLElement): void {
   console.log('🔄 Disabling PDF export mode, restoring normal layout')
   element.classList.remove('pdf-export-mode')
+  element.classList.remove('pdf-optimized')
 }
