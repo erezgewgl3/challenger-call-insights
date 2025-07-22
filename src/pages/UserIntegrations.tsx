@@ -24,7 +24,7 @@ export default function UserIntegrations() {
       <div className="mb-8">
         <Button
           variant="ghost"
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/dashboard')}
           className="mb-4 hover:bg-muted"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
