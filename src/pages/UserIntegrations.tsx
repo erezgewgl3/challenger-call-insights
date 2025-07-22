@@ -6,16 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Zap, ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ZoomUserConnection } from '@/components/integrations/zoom/ZoomUserConnection';
-import { useQueryClient } from '@tanstack/react-query';
-import { invalidateZoomConnection } from '@/hooks/useZoomConnection';
 
 export default function UserIntegrations() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const queryClient = useQueryClient();
 
-  // Force data refresh when returning from OAuth
+  // Force page refresh when returning from OAuth
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const fromOAuth = searchParams.get('from_oauth');
@@ -25,24 +22,17 @@ export default function UserIntegrations() {
     if (fromOAuth === 'true' || refreshData === 'true' || isFromZoom) {
       console.log('Detected return from OAuth, waiting for DB commit...');
       
-      // Wait 2 seconds for database transaction to commit
-      setTimeout(() => {
-        console.log('Refetching connection status after delay...');
-        
-        // Clear all React Query cache to force fresh data fetch
-        queryClient.clear();
-        
-        // Specifically invalidate Zoom connection cache
-        if (user?.id) {
-          invalidateZoomConnection(queryClient, user.id);
-        }
-      }, 2000);
-      
       // Clean up URL parameters immediately
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
+      
+      // Wait 2 seconds for database transaction to commit, then force page reload
+      setTimeout(() => {
+        console.log('Forcing page refresh to get fresh data...');
+        window.location.reload();
+      }, 2000);
     }
-  }, [location.search, queryClient, user?.id]);
+  }, [location.search]);
 
   if (!user) {
     return (
