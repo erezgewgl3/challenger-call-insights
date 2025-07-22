@@ -107,19 +107,10 @@ export default function IntegrationCallback() {
       setStatus('success');
       setMessage('Integration connected successfully!');
       
-      // Invalidate integration queries to trigger refresh
-      if (user?.id && integrationId === 'zoom') {
-        console.log('Invalidating Zoom connection cache...');
-        invalidateZoomConnection(queryClient, user.id);
-      }
-      
-      // Clear URL parameters to prevent reprocessing on back navigation
-      window.history.replaceState({}, document.title, '/integrations/callback');
-      
-      // Navigate to integrations page with refresh parameter to force data reload
+      // Simple refresh to integrations page
       setTimeout(() => {
-        console.log('Navigating to integrations page with forced refresh...');
-        window.location.replace('/integrations?from_oauth=true&refresh=true');
+        console.log('Redirecting to integrations page...');
+        window.location.href = '/integrations';
       }, 1500);
 
     } catch (err) {
