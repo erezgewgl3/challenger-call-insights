@@ -133,45 +133,45 @@
   
   /* Enhanced typography for PDF */
   font-size: 110% !important;
-  line-height: 1.6 !important;
+  line-height: 1.5 !important;
   font-weight: 500 !important;
 }
 
 /* Enhanced typography and spacing for PDF elements */
 .pdf-export-mode h1 {
   font-size: 135% !important;
-  line-height: 1.4 !important;
+  line-height: 1.3 !important;
   font-weight: 700 !important;
-  margin-bottom: 1.2rem !important;
+  margin-bottom: 0.8rem !important;
 }
 
 .pdf-export-mode h2 {
   font-size: 125% !important;
-  line-height: 1.5 !important;
+  line-height: 1.4 !important;
   font-weight: 600 !important;
-  margin-bottom: 1rem !important;
-  margin-top: 1.2rem !important;
+  margin-bottom: 0.6rem !important;
+  margin-top: 0.8rem !important;
 }
 
 .pdf-export-mode h3 {
   font-size: 118% !important;
-  line-height: 1.5 !important;
+  line-height: 1.4 !important;
   font-weight: 600 !important;
-  margin-bottom: 0.8rem !important;
-  margin-top: 1rem !important;
+  margin-bottom: 0.5rem !important;
+  margin-top: 0.6rem !important;
 }
 
 .pdf-export-mode p {
   font-size: 108% !important;
-  line-height: 1.6 !important;
-  margin-bottom: 0.8rem !important;
+  line-height: 1.5 !important;
+  margin-bottom: 0.5rem !important;
 }
 
 /* Enhanced card and section spacing for PDF */
 .pdf-export-mode [class*="card"], 
 .pdf-export-mode [class*="Card"] {
-  padding: 1.2rem !important;
-  margin-bottom: 1.2rem !important;
+  padding: 1rem !important;
+  margin-bottom: 0.8rem !important;
   overflow: visible !important;
   height: auto !important;
   min-height: auto !important;
@@ -182,15 +182,15 @@
 
 /* Enhanced spacing for sections */
 .pdf-export-mode .space-y-4 > * + * {
-  margin-top: 1.3rem !important;
+  margin-top: 0.8rem !important;
 }
 
 .pdf-export-mode .space-y-6 > * + * {
-  margin-top: 1.8rem !important;
+  margin-top: 1rem !important;
 }
 
 .pdf-export-mode .space-y-8 > * + * {
-  margin-top: 2.2rem !important;
+  margin-top: 1.2rem !important;
 }
 
 /* Enhanced badge typography */
