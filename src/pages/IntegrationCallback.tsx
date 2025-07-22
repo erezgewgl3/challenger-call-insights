@@ -9,6 +9,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { invalidateZoomConnection } from '@/hooks/useZoomConnection';
 
 export default function IntegrationCallback() {
+  console.log('=== CALLBACK PAGE LOADED ===');
+  console.log('URL:', window.location.href);
+  console.log('Search params:', window.location.search);
+  
   const location = useLocation();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -17,9 +21,12 @@ export default function IntegrationCallback() {
   const [isProcessed, setIsProcessed] = useState(false);
 
   useEffect(() => {
+    console.log('=== CALLBACK USEEFFECT RUNNING ===');
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
+    console.log('Code:', code);
+    console.log('State:', state);
     
     // Check if this is a fresh redirect from Zoom OAuth
     const isFromZoom = document.referrer.includes('zoom.us');
