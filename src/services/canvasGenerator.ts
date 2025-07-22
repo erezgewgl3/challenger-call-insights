@@ -60,8 +60,7 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
                element.classList.contains('pdf-ignore')
       },
       // PRODUCTION FIX: Additional options for consistent rendering
-      removeContainer: false,
-      async: true
+      removeContainer: false
     })
 
     console.log('Enhanced canvas generated with production fixes:', {
