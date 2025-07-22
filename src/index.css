@@ -182,15 +182,20 @@
 
 /* Enhanced spacing for sections */
 .pdf-export-mode .space-y-4 > * + * {
-  margin-top: 0.5rem !important;
+  margin-top: 0.4rem !important;
 }
 
 .pdf-export-mode .space-y-6 > * + * {
-  margin-top: 0.6rem !important;
+  margin-top: 0.5rem !important;
 }
 
 .pdf-export-mode .space-y-8 > * + * {
-  margin-top: 0.8rem !important;
+  margin-top: 0.6rem !important;
+}
+
+/* Specific spacing for space-y-2 (tighter sections) */
+.pdf-export-mode .space-y-2 > * + * {
+  margin-top: 0.2rem !important;
 }
 
 /* Enhanced badge typography */
@@ -220,12 +225,12 @@
 /* Enhanced list spacing */
 .pdf-export-mode ul, 
 .pdf-export-mode ol {
-  margin-bottom: 1.25rem !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .pdf-export-mode li {
-  margin-bottom: 0.75rem !important;
-  line-height: 1.7 !important;
+  margin-bottom: 0.3rem !important;
+  line-height: 1.3 !important;
 }
 
 /* Force all backgrounds and gradients to render with enhanced contrast */
