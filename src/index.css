@@ -302,6 +302,36 @@
   font-feature-settings: "liga", "kern";
 }
 
+/* AGGRESSIVE PDF spacing fixes - target ALL spacing elements in pdf-optimized */
+.pdf-optimized * {
+  margin-top: 0.1rem !important;
+  margin-bottom: 0.1rem !important;
+  padding-top: 0.3rem !important;
+  padding-bottom: 0.3rem !important;
+  line-height: 1.1 !important;
+}
+
+.pdf-optimized .space-y-4 > * + *,
+.pdf-optimized .space-y-6 > * + *,
+.pdf-optimized .space-y-8 > * + *,
+.pdf-optimized .space-y-2 > * + * {
+  margin-top: 0.1rem !important;
+}
+
+/* Target specific action item and email template containers */
+.pdf-optimized [class*="border-l-4"] {
+  padding: 0.3rem !important;
+  margin-bottom: 0.2rem !important;
+}
+
+.pdf-optimized [class*="bg-blue"],
+.pdf-optimized [class*="bg-orange"],
+.pdf-optimized [class*="bg-red"],
+.pdf-optimized [class*="bg-green"] {
+  padding: 0.3rem !important;
+  margin: 0.1rem !important;
+}
+
 /* Force gradient rendering during PDF capture - ONLY with pdf-optimized class */
 .pdf-optimized [class*="gradient"],
 .pdf-optimized [style*="gradient"] {
