@@ -1,19 +1,6 @@
 
 /**
- * Stores the current styles of an element for later restoration
- * 
- * Captures all CSS properties that may be modified during PDF optimization.
- * Essential for maintaining original UI state after PDF generation completes.
- * 
- * @param element - HTML element to capture styles from
- * @returns Object mapping CSS property names to their current values
- * 
- * @example
- * ```typescript
- * const originalStyles = storeElementStyles(element);
- * // ... modify element for PDF capture ...
- * restoreElementStyles(element, originalStyles);
- * ```
+ * Stores the original styles of an element for later restoration
  */
 export function storeElementStyles(element: HTMLElement): Record<string, string> {
   return {
@@ -21,106 +8,129 @@ export function storeElementStyles(element: HTMLElement): Record<string, string>
     width: element.style.width,
     maxWidth: element.style.maxWidth,
     minWidth: element.style.minWidth,
-    transform: element.style.transform,
+    height: element.style.height,
+    maxHeight: element.style.maxHeight,
+    minHeight: element.style.minHeight,
     overflow: element.style.overflow,
+    overflowX: element.style.overflowX,
     overflowY: element.style.overflowY,
+    transform: element.style.transform,
     backgroundColor: element.style.backgroundColor,
     flex: element.style.flex,
+    flexShrink: element.style.flexShrink,
     wordBreak: element.style.wordBreak,
     hyphens: element.style.hyphens,
     whiteSpace: element.style.whiteSpace,
-    height: element.style.height,
-    maxHeight: element.style.maxHeight,
-    flexWrap: element.style.flexWrap
+    flexWrap: element.style.flexWrap,
+    display: element.style.display,
+    gridAutoRows: element.style.gridAutoRows,
+    visibility: element.style.visibility,
+    alignContent: element.style.alignContent,
+    alignItems: element.style.alignItems,
+    overflowWrap: element.style.overflowWrap,
+    lineHeight: element.style.lineHeight,
+    boxSizing: element.style.boxSizing,
+    // PRODUCTION FIX: Store positioning properties
+    left: element.style.left,
+    top: element.style.top,
+    marginLeft: element.style.marginLeft,
+    marginTop: element.style.marginTop,
+    marginRight: element.style.marginRight,
+    marginBottom: element.style.marginBottom
   }
 }
 
 /**
- * Restores previously stored styles to an element
- * 
- * Reverts all style modifications made during PDF preparation.
- * Handles empty/null values properly to avoid CSS conflicts.
- * 
- * @param element - HTML element to restore styles to
- * @param styles - Previously stored styles from storeElementStyles()
- * 
- * @example
- * ```typescript
- * const originalStyles = storeElementStyles(element);
- * optimizeElementForPDF(element, 'main');
- * // ... PDF generation ...
- * restoreElementStyles(element, originalStyles);
- * ```
+ * Restores the original styles to an element
  */
-export function restoreElementStyles(element: HTMLElement, styles: Record<string, string>): void {
-  Object.entries(styles).forEach(([property, value]) => {
-    element.style[property as any] = value || ''
+export function restoreElementStyles(element: HTMLElement, originalStyles: Record<string, string>): void {
+  Object.entries(originalStyles).forEach(([property, value]) => {
+    if (value) {
+      ;(element.style as any)[property] = value
+    } else {
+      element.style.removeProperty(property.replace(/([A-Z])/g, '-$1').toLowerCase())
+    }
   })
 }
 
 /**
- * PDF optimization type for different element categories
+ * PRODUCTION ENHANCED element optimization for PDF rendering
  */
-type PDFOptimizationType = 'main' | 'email' | 'text' | 'container'
+export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'container' | 'text'): void {
+  console.log(`🎨 PRODUCTION optimizing element for PDF (${type}):`, {
+    element: element.tagName,
+    classes: element.className.substring(0, 50)
+  })
 
-/**
- * Applies PDF-optimized styles to an element
- * 
- * Modifies element styling to ensure optimal rendering in PDF format:
- * - Removes transforms that can cause positioning issues
- * - Sets fixed dimensions for consistent layout
- * - Optimizes text wrapping and overflow behavior
- * - Ensures backgrounds render properly
- * 
- * @param element - HTML element to optimize for PDF capture
- * @param type - Type of optimization to apply based on element purpose
- * 
- * @example
- * ```typescript
- * optimizeElementForPDF(mainElement, 'main');
- * optimizeElementForPDF(textElement, 'text');
- * optimizeElementForPDF(emailElement, 'email');
- * ```
- */
-export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizationType = 'main'): void {
-  switch (type) {
-    case 'main':
-      // Main container optimization for consistent PDF layout
-      element.style.position = 'static'
-      element.style.width = '1200px'
-      element.style.maxWidth = '1200px'
-      element.style.minWidth = '1200px'
-      element.style.transform = 'none'
-      element.style.overflow = 'visible'
-      element.style.backgroundColor = 'transparent'
-      break
-      
-    case 'email':
-      // Email content optimization for full text visibility
-      element.style.maxHeight = 'none'
-      element.style.height = 'auto'
-      element.style.overflow = 'visible'
-      element.style.overflowY = 'visible'
-      element.style.whiteSpace = 'pre-wrap'
-      break
-      
-    case 'text':
-      // General text content optimization
-      element.style.flex = '1'
-      element.style.minWidth = '0'
-      element.style.wordBreak = 'normal'
-      element.style.hyphens = 'auto'
-      element.style.width = 'auto'
-      element.style.maxWidth = 'none'
-      element.style.whiteSpace = 'normal'
-      break
-      
-    case 'container':
-      // Container optimization for flexible layout
-      element.style.width = '100%'
-      element.style.maxWidth = 'none'
-      element.style.minWidth = '0'
-      element.style.flexWrap = 'wrap'
-      break
+  // Add PDF optimization class
+  element.classList.add('pdf-optimized')
+
+  if (type === 'main') {
+    // PRODUCTION FIX: Main container optimizations with positioning
+    element.style.setProperty('position', 'relative', 'important')
+    element.style.setProperty('left', '0px', 'important')
+    element.style.setProperty('top', '0px', 'important')
+    element.style.setProperty('margin-left', '0px', 'important')
+    element.style.setProperty('margin-top', '0px', 'important')
+    element.style.setProperty('transform', 'none', 'important')
+    element.style.setProperty('width', '100%', 'important')
+    element.style.setProperty('max-width', 'none', 'important')
+    element.style.setProperty('overflow', 'visible', 'important')
+    element.style.setProperty('background-color', 'white', 'important')
+    element.style.setProperty('-webkit-font-smoothing', 'antialiased', 'important')
+    element.style.setProperty('-moz-osx-font-smoothing', 'grayscale', 'important')
+    element.style.setProperty('text-rendering', 'optimizeLegibility', 'important')
+    
+  } else if (type === 'container') {
+    // PRODUCTION FIX: Container optimizations with positioning
+    element.style.setProperty('position', 'relative', 'important')
+    element.style.setProperty('left', '0px', 'important')
+    element.style.setProperty('margin-left', '0px', 'important')
+    element.style.setProperty('width', '100%', 'important')
+    element.style.setProperty('max-width', 'none', 'important')
+    element.style.setProperty('overflow', 'visible', 'important')
+    element.style.setProperty('height', 'auto', 'important')
+    element.style.setProperty('max-height', 'none', 'important')
+    element.style.setProperty('-webkit-print-color-adjust', 'exact', 'important')
+    element.style.setProperty('print-color-adjust', 'exact', 'important')
+    
+  } else if (type === 'text') {
+    // PRODUCTION FIX: Text optimizations with positioning
+    element.style.setProperty('position', 'relative', 'important')
+    element.style.setProperty('left', '0px', 'important')
+    element.style.setProperty('margin-left', '0px', 'important')
+    element.style.setProperty('white-space', 'normal', 'important')
+    element.style.setProperty('word-wrap', 'break-word', 'important')
+    element.style.setProperty('overflow-wrap', 'break-word', 'important')
+    element.style.setProperty('hyphens', 'auto', 'important')
+    element.style.setProperty('line-height', '1.5', 'important')
+    element.style.setProperty('overflow', 'visible', 'important')
+    element.style.setProperty('height', 'auto', 'important')
+    element.style.setProperty('max-height', 'none', 'important')
+    element.style.setProperty('-webkit-font-smoothing', 'antialiased', 'important')
+    element.style.setProperty('text-rendering', 'optimizeLegibility', 'important')
   }
+
+  // PRODUCTION FIX: Apply specific positioning fixes for Battle Plan sections
+  if (element.classList.contains('border-l-4') && element.classList.contains('border-red-500')) {
+    console.log('🎯 Applying Battle Plan section positioning fixes')
+    element.style.setProperty('position', 'relative', 'important')
+    element.style.setProperty('left', '0px', 'important')
+    element.style.setProperty('margin-left', '0px', 'important')
+    element.style.setProperty('width', '100%', 'important')
+    element.style.setProperty('transform', 'none', 'important')
+  }
+
+  // PRODUCTION FIX: Apply positioning fixes for gradient backgrounds
+  if (element.className.includes('bg-gradient-to-r')) {
+    console.log('🌈 Applying gradient background positioning fixes')
+    element.style.setProperty('position', 'relative', 'important')
+    element.style.setProperty('left', '0px', 'important')
+    element.style.setProperty('margin-left', '0px', 'important')
+    element.style.setProperty('background-attachment', 'local', 'important')
+    element.style.setProperty('-webkit-print-color-adjust', 'exact', 'important')
+    element.style.setProperty('print-color-adjust', 'exact', 'important')
+  }
+
+  console.log(`✅ PRODUCTION PDF optimization complete for ${type} element`)
 }
