@@ -106,6 +106,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // Phase 3: Enable PDF export mode for scoped CSS positioning fixes
       enablePDFExportMode(element)
       
+      // CRITICAL: Allow time for CSS changes to take effect
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
       // Phase 4: Text optimization with positioning fixes for PDF
       const allContentSections = element.querySelectorAll('.space-y-4, .border-l-4, .p-4, .p-6')
       allContentSections.forEach((section) => {
@@ -132,7 +135,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       toast.info('Optimizing for PDF capture...', { duration: 2000 })
       originalStyles = storeElementStyles(element)
       optimizeElementForPDF(element, 'main', true) // true = apply positioning fixes
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // CRITICAL: Extended delay to ensure all CSS changes are fully applied
+      await new Promise(resolve => setTimeout(resolve, 2000))
       
       // Phase 7: Generate canvas
       toast.info('Generating high-quality canvas...', { duration: 3000 })
