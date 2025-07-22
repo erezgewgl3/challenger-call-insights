@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
@@ -11,7 +11,6 @@ import { invalidateZoomConnection } from '@/hooks/useZoomConnection';
 
 export default function IntegrationCallback() {
   const location = useLocation();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
@@ -29,7 +28,7 @@ export default function IntegrationCallback() {
     // If not from Zoom (back navigation, direct access, etc.), just redirect
     if (!isFromZoom || !code || !state || isProcessed) {
       console.log('Not a fresh OAuth redirect, redirecting to integrations...');
-      navigate('/integrations', { replace: true });
+      window.location.href = '/integrations';
       return;
     }
 
@@ -37,7 +36,7 @@ export default function IntegrationCallback() {
     console.log('Fresh OAuth redirect detected, processing...');
     setIsProcessed(true);
     processCallback();
-  }, [location, isProcessed, navigate]);
+  }, [location, isProcessed]);
 
   const processCallback = async () => {
     try {
@@ -118,10 +117,10 @@ export default function IntegrationCallback() {
       // Clear URL parameters to prevent reprocessing on back navigation
       window.history.replaceState({}, document.title, '/integrations/callback');
       
-      // Redirect to user integrations page after 2 seconds
+      // Force complete page refresh to show updated connection status
       setTimeout(() => {
-        navigate('/integrations', { replace: true });
-      }, 2000);
+        window.location.href = '/integrations';
+      }, 1500);
 
     } catch (err) {
       console.error('User callback processing error:', err);
@@ -146,7 +145,7 @@ export default function IntegrationCallback() {
         <CardContent className="text-center">
           <p className="text-gray-600 mb-4">{message}</p>
           {status === 'error' && (
-            <Button onClick={() => navigate('/integrations')}>
+            <Button onClick={() => window.location.href = '/integrations'}>
               Return to Integrations
             </Button>
           )}
