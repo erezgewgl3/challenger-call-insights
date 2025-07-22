@@ -178,9 +178,17 @@ export default function WelcomeDashboard() {
             </div>
           </div>
 
-          {/* Zoom Meetings Widget - Show when user has Zoom integration */}
+          {/* Zoom Meetings Widget - More Dominant Section */}
           {hasZoomIntegration && (
-            <div className="mb-8">
+            <div className="mb-10">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-foreground mb-2">
+                  Ready to Analyze
+                </h2>
+                <p className="text-muted-foreground">
+                  Your latest Zoom meetings with transcripts available for immediate AI analysis
+                </p>
+              </div>
               <ZoomMeetingsWidget 
                 loading={false}
                 onAnalyzeMeeting={(meetingId) => {
