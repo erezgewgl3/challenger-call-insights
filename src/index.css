@@ -132,46 +132,46 @@
   color-adjust: exact !important;
   
   /* Enhanced typography for PDF */
-  font-size: 115% !important;
-  line-height: 1.7 !important;
+  font-size: 110% !important;
+  line-height: 1.6 !important;
   font-weight: 500 !important;
 }
 
 /* Enhanced typography and spacing for PDF elements */
 .pdf-export-mode h1 {
-  font-size: 140% !important;
+  font-size: 135% !important;
   line-height: 1.4 !important;
   font-weight: 700 !important;
-  margin-bottom: 1.5rem !important;
+  margin-bottom: 1.2rem !important;
 }
 
 .pdf-export-mode h2 {
-  font-size: 130% !important;
+  font-size: 125% !important;
   line-height: 1.5 !important;
   font-weight: 600 !important;
-  margin-bottom: 1.25rem !important;
-  margin-top: 1.5rem !important;
+  margin-bottom: 1rem !important;
+  margin-top: 1.2rem !important;
 }
 
 .pdf-export-mode h3 {
-  font-size: 120% !important;
+  font-size: 118% !important;
   line-height: 1.5 !important;
   font-weight: 600 !important;
-  margin-bottom: 1rem !important;
-  margin-top: 1.25rem !important;
+  margin-bottom: 0.8rem !important;
+  margin-top: 1rem !important;
 }
 
 .pdf-export-mode p {
-  font-size: 110% !important;
-  line-height: 1.7 !important;
-  margin-bottom: 1rem !important;
+  font-size: 108% !important;
+  line-height: 1.6 !important;
+  margin-bottom: 0.8rem !important;
 }
 
 /* Enhanced card and section spacing for PDF */
 .pdf-export-mode [class*="card"], 
 .pdf-export-mode [class*="Card"] {
-  padding: 1.5rem !important;
-  margin-bottom: 1.5rem !important;
+  padding: 1.2rem !important;
+  margin-bottom: 1.2rem !important;
   overflow: visible !important;
   height: auto !important;
   min-height: auto !important;
@@ -182,15 +182,15 @@
 
 /* Enhanced spacing for sections */
 .pdf-export-mode .space-y-4 > * + * {
-  margin-top: 1.75rem !important;
+  margin-top: 1.3rem !important;
 }
 
 .pdf-export-mode .space-y-6 > * + * {
-  margin-top: 2.25rem !important;
+  margin-top: 1.8rem !important;
 }
 
 .pdf-export-mode .space-y-8 > * + * {
-  margin-top: 2.75rem !important;
+  margin-top: 2.2rem !important;
 }
 
 /* Enhanced badge typography */
