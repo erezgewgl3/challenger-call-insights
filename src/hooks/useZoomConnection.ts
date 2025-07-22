@@ -1,5 +1,5 @@
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -7,12 +7,14 @@ interface ZoomConnectionStatus {
   isConnected: boolean;
   isLoading: boolean;
   error: Error | null;
+  refetch: () => void;
 }
 
 export const useZoomConnection = (): ZoomConnectionStatus => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['zoom-connection-status', user?.id],
     queryFn: async () => {
       if (!user?.id) {
@@ -39,7 +41,8 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
       return { connected: !!hasConnection };
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 2 * 60 * 1000, // 2 minutes (shorter for better responsiveness)
+    refetchOnWindowFocus: true,
     retry: 1,
     retryDelay: 1000,
   });
@@ -48,5 +51,15 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
     isConnected: data?.connected || false,
     isLoading,
     error: error as Error | null,
+    refetch,
   };
+};
+
+// Export function to invalidate Zoom connection queries
+export const invalidateZoomConnection = (queryClient: any, userId?: string) => {
+  if (userId) {
+    queryClient.invalidateQueries({ queryKey: ['zoom-connection-status', userId] });
+  } else {
+    queryClient.invalidateQueries({ queryKey: ['zoom-connection-status'] });
+  }
 };

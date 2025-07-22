@@ -5,10 +5,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/useAuth';
+import { invalidateZoomConnection } from '@/hooks/useZoomConnection';
 
 export default function IntegrationCallback() {
   const location = useLocation();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing your connection...');
   const [isProcessed, setIsProcessed] = useState(false);
@@ -104,12 +109,18 @@ export default function IntegrationCallback() {
       setStatus('success');
       setMessage('Integration connected successfully!');
       
+      // Invalidate integration queries to trigger refresh
+      if (user?.id && integrationId === 'zoom') {
+        console.log('Invalidating Zoom connection cache...');
+        invalidateZoomConnection(queryClient, user.id);
+      }
+      
       // Clear URL parameters to prevent reprocessing on back navigation
       window.history.replaceState({}, document.title, '/integrations/callback');
       
       // Redirect to user integrations page after 2 seconds
       setTimeout(() => {
-        navigate('/integrations');
+        navigate('/integrations', { replace: true });
       }, 2000);
 
     } catch (err) {

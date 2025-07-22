@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -10,6 +10,7 @@ import { Video, CheckCircle, AlertCircle, Settings, Unlink } from 'lucide-react'
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
+import { useZoomConnection } from '@/hooks/useZoomConnection';
 
 interface ZoomUserConnectionProps {
   onConnectionChange?: (connected: boolean) => void;
@@ -37,65 +38,38 @@ interface ZoomConnection {
 export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnectionChange }) => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { isConnected, isLoading, error } = useZoomConnection();
   const [connection, setConnection] = useState<ZoomConnection | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
-  useEffect(() => {
-    loadConnection();
-  }, []);
+  // Load detailed connection data when connected
+  React.useEffect(() => {
+    if (isConnected && user?.id) {
+      loadConnectionDetails();
+      onConnectionChange?.(true);
+    } else {
+      setConnection(null);
+      onConnectionChange?.(false);
+    }
+  }, [isConnected, user?.id, onConnectionChange]);
 
-  // Refresh connection state when page becomes visible (after OAuth return)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        console.log('Page became visible, refreshing connection state...');
-        loadConnection();
-      }
-    };
-
-    const handleFocus = () => {
-      console.log('Window focused, refreshing connection state...');
-      loadConnection();
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
-
-  const loadConnection = async () => {
+  const loadConnectionDetails = async () => {
     if (!user?.id) return;
 
     try {
-      console.log('Loading Zoom connection for user:', user.id);
       const { data, error } = await supabase.rpc('integration_framework_get_connection', {
         user_uuid: user.id,
         integration_type_param: 'zoom'
       });
 
-      console.log('RPC response:', data, error);
-
       if (error) throw error;
 
       if (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data && data.data) {
-        console.log('Setting connection data:', data.data);
         setConnection(data.data as unknown as ZoomConnection);
-        onConnectionChange?.(true);
-      } else {
-        console.log('No connection found, data:', data);
-        setConnection(null);
-        onConnectionChange?.(false);
       }
     } catch (error) {
-      console.error('Error loading Zoom connection:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error loading connection details:', error);
     }
   };
 
@@ -225,7 +199,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
         <h3 className="text-lg font-semibold">Your Zoom Connection</h3>
       </div>
 
-      {connection ? (
+      {isConnected && connection ? (
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between">
