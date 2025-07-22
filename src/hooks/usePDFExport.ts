@@ -104,7 +104,9 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       expandScrollableContent(element, modifiedElements)
       
       // Phase 3: Enable PDF export mode for scoped CSS positioning fixes
+      console.log('🔍 DEBUG: About to enable PDF export mode')
       enablePDFExportMode(element)
+      console.log('🔍 DEBUG: PDF export mode enabled, classes:', element.classList.toString())
       
       // CRITICAL: Allow time for CSS changes to take effect
       await new Promise(resolve => setTimeout(resolve, 1000))
