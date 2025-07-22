@@ -104,14 +104,9 @@ export default function IntegrationCallback() {
       }
 
       console.log('User OAuth callback successful:', result);
-      setStatus('success');
-      setMessage('Integration connected successfully!');
       
-      // Simple refresh to integrations page
-      setTimeout(() => {
-        console.log('Redirecting to integrations page...');
-        window.location.href = '/integrations';
-      }, 1500);
+      // Force complete page load instead of SPA navigation
+      window.location.href = '/integrations';
 
     } catch (err) {
       console.error('User callback processing error:', err);
