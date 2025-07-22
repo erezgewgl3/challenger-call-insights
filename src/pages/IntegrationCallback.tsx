@@ -117,9 +117,10 @@ export default function IntegrationCallback() {
       // Clear URL parameters to prevent reprocessing on back navigation
       window.history.replaceState({}, document.title, '/integrations/callback');
       
-      // Force complete page refresh to show updated connection status
+      // Force complete page reload to clear all cache and show updated connection status
       setTimeout(() => {
-        window.location.href = '/integrations';
+        console.log('Forcing page reload to refresh integration status...');
+        window.location.reload();
       }, 1500);
 
     } catch (err) {
@@ -151,7 +152,7 @@ export default function IntegrationCallback() {
           )}
           {status === 'success' && (
             <p className="text-sm text-gray-500">
-              Redirecting you back to integrations...
+              Reloading page to show updated connection...
             </p>
           )}
         </CardContent>
