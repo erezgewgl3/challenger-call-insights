@@ -110,10 +110,19 @@ export default function IntegrationCallback() {
         return;
       }
 
-      console.log('User OAuth callback successful:', result);
+      console.log('Edge Function completed successfully:', result);
       
-      // Force complete page reload to remount component
-      window.location.replace(window.location.origin + '/integrations');
+      // Check if the Edge Function actually succeeded
+      if (result?.success) {
+        console.log('Connection created successfully:', result.connection_id);
+        
+        // NOW navigate after database write is complete
+        window.location.replace(window.location.origin + '/integrations');
+      } else {
+        console.error('Edge Function returned failure:', result);
+        setStatus('error');
+        setMessage(result?.error || 'Integration connection failed');
+      }
 
     } catch (err) {
       console.error('User callback processing error:', err);
