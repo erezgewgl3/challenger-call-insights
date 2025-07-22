@@ -133,45 +133,45 @@
   
   /* Enhanced typography for PDF */
   font-size: 110% !important;
-  line-height: 1.3 !important;
+  line-height: 1.2 !important;
   font-weight: 500 !important;
 }
 
 /* Enhanced typography and spacing for PDF elements */
 .pdf-export-mode h1 {
   font-size: 135% !important;
-  line-height: 1.2 !important;
+  line-height: 1.15 !important;
   font-weight: 700 !important;
-  margin-bottom: 0.5rem !important;
+  margin-bottom: 0.3rem !important;
 }
 
 .pdf-export-mode h2 {
   font-size: 125% !important;
-  line-height: 1.25 !important;
+  line-height: 1.2 !important;
   font-weight: 600 !important;
-  margin-bottom: 0.4rem !important;
-  margin-top: 0.5rem !important;
+  margin-bottom: 0.2rem !important;
+  margin-top: 0.3rem !important;
 }
 
 .pdf-export-mode h3 {
   font-size: 118% !important;
-  line-height: 1.25 !important;
+  line-height: 1.2 !important;
   font-weight: 600 !important;
-  margin-bottom: 0.3rem !important;
-  margin-top: 0.4rem !important;
+  margin-bottom: 0.2rem !important;
+  margin-top: 0.3rem !important;
 }
 
 .pdf-export-mode p {
   font-size: 108% !important;
-  line-height: 1.3 !important;
-  margin-bottom: 0.3rem !important;
+  line-height: 1.2 !important;
+  margin-bottom: 0.2rem !important;
 }
 
 /* Enhanced card and section spacing for PDF */
 .pdf-export-mode [class*="card"], 
 .pdf-export-mode [class*="Card"] {
-  padding: 0.8rem !important;
-  margin-bottom: 0.5rem !important;
+  padding: 0.6rem !important;
+  margin-bottom: 0.3rem !important;
   overflow: visible !important;
   height: auto !important;
   min-height: auto !important;
@@ -182,20 +182,20 @@
 
 /* Enhanced spacing for sections */
 .pdf-export-mode .space-y-4 > * + * {
-  margin-top: 0.4rem !important;
+  margin-top: 0.2rem !important;
 }
 
 .pdf-export-mode .space-y-6 > * + * {
-  margin-top: 0.5rem !important;
+  margin-top: 0.3rem !important;
 }
 
 .pdf-export-mode .space-y-8 > * + * {
-  margin-top: 0.6rem !important;
+  margin-top: 0.4rem !important;
 }
 
 /* Specific spacing for space-y-2 (tighter sections) */
 .pdf-export-mode .space-y-2 > * + * {
-  margin-top: 0.2rem !important;
+  margin-top: 0.1rem !important;
 }
 
 /* Enhanced badge typography */
@@ -225,12 +225,12 @@
 /* Enhanced list spacing */
 .pdf-export-mode ul, 
 .pdf-export-mode ol {
-  margin-bottom: 0.5rem !important;
+  margin-bottom: 0.3rem !important;
 }
 
 .pdf-export-mode li {
-  margin-bottom: 0.3rem !important;
-  line-height: 1.3 !important;
+  margin-bottom: 0.1rem !important;
+  line-height: 1.2 !important;
 }
 
 /* Force all backgrounds and gradients to render with enhanced contrast */
