@@ -28,7 +28,7 @@ export default function IntegrationCallback() {
     // If not from Zoom (back navigation, direct access, etc.), just redirect
     if (!isFromZoom || !code || !state || isProcessed) {
       console.log('Not a fresh OAuth redirect, redirecting to integrations...');
-      window.location.href = '/integrations';
+      window.location.replace('/integrations');
       return;
     }
 
@@ -117,10 +117,10 @@ export default function IntegrationCallback() {
       // Clear URL parameters to prevent reprocessing on back navigation
       window.history.replaceState({}, document.title, '/integrations/callback');
       
-      // Force complete page reload to clear all cache and show updated connection status
+      // Navigate to integrations page with complete fresh load
       setTimeout(() => {
-        console.log('Forcing page reload to refresh integration status...');
-        window.location.reload();
+        console.log('Navigating to integrations page with fresh data...');
+        window.location.replace('/integrations');
       }, 1500);
 
     } catch (err) {
@@ -146,13 +146,13 @@ export default function IntegrationCallback() {
         <CardContent className="text-center">
           <p className="text-gray-600 mb-4">{message}</p>
           {status === 'error' && (
-            <Button onClick={() => window.location.href = '/integrations'}>
+            <Button onClick={() => window.location.replace('/integrations')}>
               Return to Integrations
             </Button>
           )}
           {status === 'success' && (
             <p className="text-sm text-gray-500">
-              Reloading page to show updated connection...
+              Redirecting to integrations page...
             </p>
           )}
         </CardContent>
