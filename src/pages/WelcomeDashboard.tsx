@@ -181,7 +181,16 @@ export default function WelcomeDashboard() {
           {/* Subtle Section Divider */}
           {hasZoomIntegration && (
             <div className="mb-8">
-              <div className="w-full h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-muted-foreground/20"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-4 text-muted-foreground/60 font-medium tracking-wide">
+                    Zoom Integration
+                  </span>
+                </div>
+              </div>
             </div>
           )}
 
