@@ -178,6 +178,13 @@ export default function WelcomeDashboard() {
             </div>
           </div>
 
+          {/* Subtle Section Divider */}
+          {hasZoomIntegration && (
+            <div className="mb-8">
+              <div className="w-full h-px bg-gradient-to-r from-transparent via-border to-transparent"></div>
+            </div>
+          )}
+
           {/* Zoom Meetings Widget - More Dominant Section */}
           {hasZoomIntegration && (
             <div className="mb-10">
