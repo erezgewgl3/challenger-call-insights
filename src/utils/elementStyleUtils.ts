@@ -30,7 +30,6 @@ export function storeElementStyles(element: HTMLElement): Record<string, string>
     overflowWrap: element.style.overflowWrap,
     lineHeight: element.style.lineHeight,
     boxSizing: element.style.boxSizing,
-    // PRODUCTION FIX: Store positioning properties
     left: element.style.left,
     top: element.style.top,
     marginLeft: element.style.marginLeft,
@@ -54,51 +53,59 @@ export function restoreElementStyles(element: HTMLElement, originalStyles: Recor
 }
 
 /**
- * PRODUCTION ENHANCED element optimization for PDF rendering
+ * Enhanced element optimization for PDF rendering - ONLY applies positioning fixes when forPDF is true
  */
-export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'container' | 'text'): void {
-  console.log(`🎨 PRODUCTION optimizing element for PDF (${type}):`, {
+export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'container' | 'text', forPDF: boolean = true): void {
+  console.log(`🎨 Optimizing element for PDF (${type}):`, {
     element: element.tagName,
-    classes: element.className.substring(0, 50)
+    classes: element.className.substring(0, 50),
+    applyingPositionFixes: forPDF
   })
 
-  // Add PDF optimization class
+  // Add PDF optimization class for font rendering
   element.classList.add('pdf-optimized')
 
   if (type === 'main') {
-    // PRODUCTION FIX: Main container optimizations with positioning
-    element.style.setProperty('position', 'relative', 'important')
-    element.style.setProperty('left', '0px', 'important')
-    element.style.setProperty('top', '0px', 'important')
-    element.style.setProperty('margin-left', '0px', 'important')
-    element.style.setProperty('margin-top', '0px', 'important')
-    element.style.setProperty('transform', 'none', 'important')
-    element.style.setProperty('width', '100%', 'important')
-    element.style.setProperty('max-width', 'none', 'important')
-    element.style.setProperty('overflow', 'visible', 'important')
-    element.style.setProperty('background-color', 'white', 'important')
+    // Font rendering optimizations
     element.style.setProperty('-webkit-font-smoothing', 'antialiased', 'important')
     element.style.setProperty('-moz-osx-font-smoothing', 'grayscale', 'important')
     element.style.setProperty('text-rendering', 'optimizeLegibility', 'important')
+    element.style.setProperty('background-color', 'white', 'important')
+    
+    // Only apply positioning fixes if forPDF is true
+    if (forPDF) {
+      element.style.setProperty('position', 'relative', 'important')
+      element.style.setProperty('left', '0px', 'important')
+      element.style.setProperty('top', '0px', 'important')
+      element.style.setProperty('margin-left', '0px', 'important')
+      element.style.setProperty('margin-top', '0px', 'important')
+      element.style.setProperty('transform', 'none', 'important')
+      element.style.setProperty('width', '100%', 'important')
+      element.style.setProperty('max-width', 'none', 'important')
+      element.style.setProperty('overflow', 'visible', 'important')
+    }
     
   } else if (type === 'container') {
-    // PRODUCTION FIX: Container optimizations with positioning
-    element.style.setProperty('position', 'relative', 'important')
-    element.style.setProperty('left', '0px', 'important')
-    element.style.setProperty('margin-left', '0px', 'important')
-    element.style.setProperty('width', '100%', 'important')
-    element.style.setProperty('max-width', 'none', 'important')
+    // Print color optimizations
+    element.style.setProperty('-webkit-print-color-adjust', 'exact', 'important')
+    element.style.setProperty('print-color-adjust', 'exact', 'important')
     element.style.setProperty('overflow', 'visible', 'important')
     element.style.setProperty('height', 'auto', 'important')
     element.style.setProperty('max-height', 'none', 'important')
-    element.style.setProperty('-webkit-print-color-adjust', 'exact', 'important')
-    element.style.setProperty('print-color-adjust', 'exact', 'important')
+    
+    // Only apply positioning fixes if forPDF is true
+    if (forPDF) {
+      element.style.setProperty('position', 'relative', 'important')
+      element.style.setProperty('left', '0px', 'important')
+      element.style.setProperty('margin-left', '0px', 'important')
+      element.style.setProperty('width', '100%', 'important')
+      element.style.setProperty('max-width', 'none', 'important')
+    }
     
   } else if (type === 'text') {
-    // PRODUCTION FIX: Text optimizations with positioning
-    element.style.setProperty('position', 'relative', 'important')
-    element.style.setProperty('left', '0px', 'important')
-    element.style.setProperty('margin-left', '0px', 'important')
+    // Text rendering optimizations
+    element.style.setProperty('-webkit-font-smoothing', 'antialiased', 'important')
+    element.style.setProperty('text-rendering', 'optimizeLegibility', 'important')
     element.style.setProperty('white-space', 'normal', 'important')
     element.style.setProperty('word-wrap', 'break-word', 'important')
     element.style.setProperty('overflow-wrap', 'break-word', 'important')
@@ -107,30 +114,30 @@ export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'cont
     element.style.setProperty('overflow', 'visible', 'important')
     element.style.setProperty('height', 'auto', 'important')
     element.style.setProperty('max-height', 'none', 'important')
-    element.style.setProperty('-webkit-font-smoothing', 'antialiased', 'important')
-    element.style.setProperty('text-rendering', 'optimizeLegibility', 'important')
+    
+    // Only apply positioning fixes if forPDF is true
+    if (forPDF) {
+      element.style.setProperty('position', 'relative', 'important')
+      element.style.setProperty('left', '0px', 'important')
+      element.style.setProperty('margin-left', '0px', 'important')
+    }
   }
 
-  // PRODUCTION FIX: Apply specific positioning fixes for Battle Plan sections
-  if (element.classList.contains('border-l-4') && element.classList.contains('border-red-500')) {
-    console.log('🎯 Applying Battle Plan section positioning fixes')
-    element.style.setProperty('position', 'relative', 'important')
-    element.style.setProperty('left', '0px', 'important')
-    element.style.setProperty('margin-left', '0px', 'important')
-    element.style.setProperty('width', '100%', 'important')
-    element.style.setProperty('transform', 'none', 'important')
-  }
+  console.log(`✅ PDF optimization complete for ${type} element`)
+}
 
-  // PRODUCTION FIX: Apply positioning fixes for gradient backgrounds
-  if (element.className.includes('bg-gradient-to-r')) {
-    console.log('🌈 Applying gradient background positioning fixes')
-    element.style.setProperty('position', 'relative', 'important')
-    element.style.setProperty('left', '0px', 'important')
-    element.style.setProperty('margin-left', '0px', 'important')
-    element.style.setProperty('background-attachment', 'local', 'important')
-    element.style.setProperty('-webkit-print-color-adjust', 'exact', 'important')
-    element.style.setProperty('print-color-adjust', 'exact', 'important')
-  }
+/**
+ * Adds PDF export mode class to enable scoped CSS positioning fixes
+ */
+export function enablePDFExportMode(element: HTMLElement): void {
+  console.log('🔄 Enabling PDF export mode with scoped positioning fixes')
+  element.classList.add('pdf-export-mode')
+}
 
-  console.log(`✅ PRODUCTION PDF optimization complete for ${type} element`)
+/**
+ * Removes PDF export mode class to restore normal layout
+ */
+export function disablePDFExportMode(element: HTMLElement): void {
+  console.log('🔄 Disabling PDF export mode, restoring normal layout')
+  element.classList.remove('pdf-export-mode')
 }

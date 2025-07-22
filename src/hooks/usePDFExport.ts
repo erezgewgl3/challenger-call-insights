@@ -1,7 +1,8 @@
+
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { generateCleanFilename } from '@/utils/pdfUtils'
-import { storeElementStyles, restoreElementStyles, optimizeElementForPDF } from '@/utils/elementStyleUtils'
+import { storeElementStyles, restoreElementStyles, optimizeElementForPDF, enablePDFExportMode, disablePDFExportMode } from '@/utils/elementStyleUtils'
 import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
 import { generateCanvas } from '@/services/canvasGenerator'
 import { createPDFDocument, addCanvasToPDF, addMultiPageContent } from '@/services/pdfGenerator'
@@ -24,7 +25,7 @@ async function ensureAllFontsLoaded(): Promise<void> {
   // Wait for document fonts ready
   await document.fonts.ready
   
-  // PRODUCTION FIX: Additional font loading checks
+  // Additional font loading checks
   const fontLoadPromises: Promise<void>[] = []
   
   // Check for common web fonts that might not be detected by document.fonts.ready
@@ -51,19 +52,8 @@ async function ensureAllFontsLoaded(): Promise<void> {
       
       document.body.appendChild(testElement)
       
-      // Check if font is loaded by measuring text width
-      const initialWidth = testElement.offsetWidth
-      
       setTimeout(() => {
-        const finalWidth = testElement.offsetWidth
         document.body.removeChild(testElement)
-        
-        console.log(`🔤 Font ${fontFamily} check:`, {
-          initialWidth,
-          finalWidth,
-          loaded: initialWidth === finalWidth || finalWidth > 0
-        })
-        
         resolve()
       }, 100)
     })
@@ -73,40 +63,10 @@ async function ensureAllFontsLoaded(): Promise<void> {
   
   await Promise.all(fontLoadPromises)
   
-  // PRODUCTION FIX: Additional delay to ensure all fonts are fully applied
+  // Additional delay to ensure all fonts are fully applied
   await new Promise(resolve => setTimeout(resolve, 500))
   
   console.log('🔤 All fonts loaded and ready for PDF generation')
-}
-
-/**
- * Production-specific positioning correction
- */
-function applyProductionPositioningFixes(element: HTMLElement): Record<string, string> {
-  console.log('🔧 Applying production positioning fixes')
-  
-  const originalStyles = {
-    position: element.style.position,
-    left: element.style.left,
-    top: element.style.top,
-    marginLeft: element.style.marginLeft,
-    marginTop: element.style.marginTop,
-    transform: element.style.transform,
-    width: element.style.width,
-    maxWidth: element.style.maxWidth
-  }
-  
-  // PRODUCTION FIX: Force consistent positioning
-  element.style.setProperty('position', 'relative', 'important')
-  element.style.setProperty('left', '0px', 'important')
-  element.style.setProperty('top', '0px', 'important')
-  element.style.setProperty('margin-left', '0px', 'important')
-  element.style.setProperty('margin-top', '0px', 'important')
-  element.style.setProperty('transform', 'none', 'important')
-  element.style.setProperty('width', '100%', 'important')
-  element.style.setProperty('max-width', 'none', 'important')
-  
-  return originalStyles
 }
 
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
@@ -114,7 +74,6 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
     let sectionsToRestore: string[] = []
     let modifiedElements: ElementState[] = []
     let originalStyles: any = null
-    let productionPositionStyles: Record<string, string> = {}
     let textElementsWithStyles: Array<{ element: HTMLElement, originalStyles: Record<string, string> }> = []
     
     try {
@@ -144,7 +103,10 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       modifiedElements.push(...sectionModifiedElements)
       expandScrollableContent(element, modifiedElements)
       
-      // Phase 3: Text optimization
+      // Phase 3: Enable PDF export mode for scoped CSS positioning fixes
+      enablePDFExportMode(element)
+      
+      // Phase 4: Text optimization with positioning fixes for PDF
       const allContentSections = element.querySelectorAll('.space-y-4, .border-l-4, .p-4, .p-6')
       allContentSections.forEach((section) => {
         if (section instanceof HTMLElement) {
@@ -152,30 +114,27 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
           textElements.forEach((textEl) => {
             if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.length > 20) {
               const originalTextStyles = storeElementStyles(textEl)
-              optimizeElementForPDF(textEl, 'text')
+              optimizeElementForPDF(textEl, 'text', true) // true = apply positioning fixes
               textElementsWithStyles.push({ element: textEl, originalStyles: originalTextStyles })
             }
           })
           
           const originalSectionStyles = storeElementStyles(section)
-          optimizeElementForPDF(section, 'container')
+          optimizeElementForPDF(section, 'container', true) // true = apply positioning fixes
           textElementsWithStyles.push({ element: section, originalStyles: originalSectionStyles })
         }
       })
 
-      // Phase 4: PRODUCTION FIX - Enhanced font loading
+      // Phase 5: Enhanced font loading
       await ensureAllFontsLoaded()
-
-      // Phase 5: PRODUCTION FIX - Apply positioning fixes
-      productionPositionStyles = applyProductionPositioningFixes(element)
       
-      // Phase 6: Optimize main element for PDF rendering
+      // Phase 6: Optimize main element for PDF rendering with positioning fixes
       toast.info('Optimizing for PDF capture...', { duration: 2000 })
       originalStyles = storeElementStyles(element)
-      optimizeElementForPDF(element, 'main')
+      optimizeElementForPDF(element, 'main', true) // true = apply positioning fixes
       await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Phase 7: Generate canvas with enhanced positioning
+      // Phase 7: Generate canvas
       toast.info('Generating high-quality canvas...', { duration: 3000 })
       const canvas = await generateCanvas(element)
 
@@ -199,19 +158,13 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         restoreElementStyles(element, originalStyles)
       }
       
-      // PRODUCTION FIX: Restore positioning styles
-      Object.entries(productionPositionStyles).forEach(([property, value]) => {
-        if (value) {
-          ;(element.style as any)[property] = value
-        } else {
-          element.style.removeProperty(property.replace(/([A-Z])/g, '-$1').toLowerCase())
-        }
-      })
-      
       // Restore text element styles
       textElementsWithStyles.forEach(({ element, originalStyles }) => {
         restoreElementStyles(element, originalStyles)
       })
+      
+      // Disable PDF export mode to restore normal layout
+      disablePDFExportMode(element)
       
       pdf.save(pdfFilename)
       
@@ -232,6 +185,12 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
         textElementsWithStyles.forEach(({ element, originalStyles }) => {
           restoreElementStyles(element, originalStyles)
         })
+        
+        // Ensure PDF export mode is disabled
+        const element = document.getElementById(elementId)
+        if (element) {
+          disablePDFExportMode(element)
+        }
         
         if (options?.toggleSection && sectionsToRestore.length > 0) {
           sectionsToRestore.forEach(sectionKey => {

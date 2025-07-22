@@ -122,165 +122,14 @@
   background: #475569;
 }
 
-/* PRODUCTION ENHANCED PDF Export Optimizations - CRITICAL for Visual Capture */
-@media print, (prefers-color-scheme: pdf) {
-  * {
-    -webkit-font-smoothing: antialiased !important;
-    -moz-osx-font-smoothing: grayscale !important;
-    text-rendering: optimizeLegibility !important;
-    font-feature-settings: "liga", "kern" !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-    /* PRODUCTION FIX: Force positioning reset */
-    position: relative !important;
-    left: 0 !important;
-    top: 0 !important;
-    margin-left: 0 !important;
-    transform: none !important;
-  }
-  
-  /* PRODUCTION FIX: Container positioning */
-  body, html, #root {
-    position: relative !important;
-    left: 0 !important;
-    top: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    transform: none !important;
-    width: 100% !important;
-  }
-  
-  /* Force all backgrounds and gradients to render */
-  *[class*="bg-"], 
-  *[class*="gradient"], 
-  *[style*="background"] {
-    background-attachment: local !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-    /* PRODUCTION FIX: Ensure backgrounds position correctly */
-    position: relative !important;
-    left: 0 !important;
-    margin-left: 0 !important;
-  }
-  
-  /* Ensure badges render perfectly in PDF */
-  [class*="badge"], 
-  [class*="Badge"],
-  .inline-flex {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    white-space: nowrap !important;
-    vertical-align: middle !important;
-    flex-shrink: 0 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    /* PRODUCTION FIX: Badge positioning */
-    position: relative !important;
-    left: 0 !important;
-    margin-left: 0 !important;
-  }
-  
-  /* Prevent content cutoff in cards */
-  [class*="card"], 
-  [class*="Card"] {
-    overflow: visible !important;
-    height: auto !important;
-    min-height: auto !important;
-    max-height: none !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    /* PRODUCTION FIX: Card positioning */
-    position: relative !important;
-    left: 0 !important;
-    margin-left: 0 !important;
-    width: 100% !important;
-  }
-  
-  /* Ensure all text is fully visible */
-  * {
-    overflow: visible !important;
-    text-overflow: clip !important;
-    /* PRODUCTION FIX: Text positioning */
-    margin-left: 0 !important;
-    padding-left: inherit !important;
-  }
-  
-  /* Fix flex and grid layouts */
-  [class*="flex"] {
-    display: flex !important;
-    /* PRODUCTION FIX: Flex positioning */
-    position: relative !important;
-    left: 0 !important;
-    margin-left: 0 !important;
-  }
-  
-  .grid {
-    display: grid !important;
-    /* PRODUCTION FIX: Grid positioning */
-    position: relative !important;
-    left: 0 !important;
-    margin-left: 0 !important;
-  }
-  
-  /* PRODUCTION FIX: Force main content container positioning */
-  [id*="transcript-analysis"], 
-  [class*="space-y"], 
-  .border-l-4 {
-    position: relative !important;
-    left: 0 !important;
-    top: 0 !important;
-    margin-left: 0 !important;
-    margin-top: 0 !important;
-    transform: none !important;
-    width: 100% !important;
-    max-width: none !important;
-  }
-  
-  /* Force render all gradients and colors */
-  [class*="gradient"],
-  [class*="bg-red"],
-  [class*="bg-blue"], 
-  [class*="bg-green"],
-  [class*="bg-purple"],
-  [class*="bg-orange"],
-  [class*="bg-yellow"],
-  [class*="bg-teal"],
-  [class*="bg-slate"] {
-    background-attachment: local !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-    /* PRODUCTION FIX: Gradient positioning */
-    position: relative !important;
-    left: 0 !important;
-    margin-left: 0 !important;
-  }
-  
-  /* Force text colors */
-  [class*="text-red"],
-  [class*="text-blue"], 
-  [class*="text-green"],
-  [class*="text-purple"],
-  [class*="text-orange"],
-  [class*="text-yellow"],
-  [class*="text-teal"],
-  [class*="text-slate"],
-  [class*="text-white"] {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-    color-adjust: exact !important;
-  }
-}
-
-/* PRODUCTION ENHANCED visual rendering for PDF capture */
-.pdf-optimized {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
-  font-feature-settings: "liga", "kern";
-  /* PRODUCTION FIX: Container positioning for pdf-optimized class */
+/* PDF Export Optimizations - ONLY applies during PDF generation with .pdf-export-mode class */
+.pdf-export-mode {
+  -webkit-font-smoothing: antialiased !important;
+  -moz-osx-font-smoothing: grayscale !important;
+  text-rendering: optimizeLegibility !important;
+  font-feature-settings: "liga", "kern" !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
   position: relative !important;
   left: 0 !important;
   top: 0 !important;
@@ -288,19 +137,160 @@
   transform: none !important;
 }
 
-/* Force gradient rendering during PDF capture */
-.pdf-optimized [class*="gradient"],
-.pdf-optimized [style*="gradient"] {
-  background-attachment: local;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
-  /* PRODUCTION FIX: Gradient positioning in pdf-optimized */
+.pdf-export-mode * {
+  position: relative !important;
+  left: 0 !important;
+  top: 0 !important;
+  margin-left: 0 !important;
+  transform: none !important;
+}
+
+/* Container positioning fixes - ONLY during PDF export */
+.pdf-export-mode body, 
+.pdf-export-mode html, 
+.pdf-export-mode #root {
+  position: relative !important;
+  left: 0 !important;
+  top: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+}
+
+/* Force all backgrounds and gradients to render - ONLY during PDF export */
+.pdf-export-mode *[class*="bg-"], 
+.pdf-export-mode *[class*="gradient"], 
+.pdf-export-mode *[style*="background"] {
+  background-attachment: local !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
   position: relative !important;
   left: 0 !important;
   margin-left: 0 !important;
 }
 
-/* Ensure proper badge alignment during PDF capture */
+/* Ensure badges render perfectly in PDF - ONLY during PDF export */
+.pdf-export-mode [class*="badge"], 
+.pdf-export-mode [class*="Badge"],
+.pdf-export-mode .inline-flex {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  white-space: nowrap !important;
+  vertical-align: middle !important;
+  flex-shrink: 0 !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  position: relative !important;
+  left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Prevent content cutoff in cards - ONLY during PDF export */
+.pdf-export-mode [class*="card"], 
+.pdf-export-mode [class*="Card"] {
+  overflow: visible !important;
+  height: auto !important;
+  min-height: auto !important;
+  max-height: none !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  position: relative !important;
+  left: 0 !important;
+  margin-left: 0 !important;
+  width: 100% !important;
+}
+
+/* Ensure all text is fully visible - ONLY during PDF export */
+.pdf-export-mode * {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  margin-left: 0 !important;
+  padding-left: inherit !important;
+}
+
+/* Fix flex and grid layouts - ONLY during PDF export */
+.pdf-export-mode [class*="flex"] {
+  display: flex !important;
+  position: relative !important;
+  left: 0 !important;
+  margin-left: 0 !important;
+}
+
+.pdf-export-mode .grid {
+  display: grid !important;
+  position: relative !important;
+  left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Force main content container positioning - ONLY during PDF export */
+.pdf-export-mode [id*="transcript-analysis"], 
+.pdf-export-mode [class*="space-y"], 
+.pdf-export-mode .border-l-4 {
+  position: relative !important;
+  left: 0 !important;
+  top: 0 !important;
+  margin-left: 0 !important;
+  margin-top: 0 !important;
+  transform: none !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Force render all gradients and colors - ONLY during PDF export */
+.pdf-export-mode [class*="gradient"],
+.pdf-export-mode [class*="bg-red"],
+.pdf-export-mode [class*="bg-blue"], 
+.pdf-export-mode [class*="bg-green"],
+.pdf-export-mode [class*="bg-purple"],
+.pdf-export-mode [class*="bg-orange"],
+.pdf-export-mode [class*="bg-yellow"],
+.pdf-export-mode [class*="bg-teal"],
+.pdf-export-mode [class*="bg-slate"] {
+  background-attachment: local !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
+  position: relative !important;
+  left: 0 !important;
+  margin-left: 0 !important;
+}
+
+/* Force text colors - ONLY during PDF export */
+.pdf-export-mode [class*="text-red"],
+.pdf-export-mode [class*="text-blue"], 
+.pdf-export-mode [class*="text-green"],
+.pdf-export-mode [class*="text-purple"],
+.pdf-export-mode [class*="text-orange"],
+.pdf-export-mode [class*="text-yellow"],
+.pdf-export-mode [class*="text-teal"],
+.pdf-export-mode [class*="text-slate"],
+.pdf-export-mode [class*="text-white"] {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+  color-adjust: exact !important;
+}
+
+/* Enhanced visual rendering for PDF capture - ONLY with pdf-optimized class */
+.pdf-optimized {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "liga", "kern";
+}
+
+/* Force gradient rendering during PDF capture - ONLY with pdf-optimized class */
+.pdf-optimized [class*="gradient"],
+.pdf-optimized [style*="gradient"] {
+  background-attachment: local;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* Ensure proper badge alignment during PDF capture - ONLY with pdf-optimized class */
 .pdf-optimized [class*="badge"],
 .pdf-optimized [class*="Badge"],
 .pdf-optimized .inline-flex {
@@ -310,24 +300,4 @@
   white-space: nowrap;
   vertical-align: middle;
   flex-shrink: 0;
-  /* PRODUCTION FIX: Badge positioning in pdf-optimized */
-  position: relative !important;
-  left: 0 !important;
-  margin-left: 0 !important;
-}
-
-/* PRODUCTION FIX: Additional positioning overrides for specific containers */
-.pdf-optimized .border-l-4.border-red-500,
-.pdf-optimized .bg-gradient-to-r,
-.pdf-optimized .space-y-4 > div,
-.pdf-optimized .p-4,
-.pdf-optimized .p-6 {
-  position: relative !important;
-  left: 0 !important;
-  top: 0 !important;
-  margin-left: 0 !important;
-  margin-right: auto !important;
-  transform: none !important;
-  width: 100% !important;
-  max-width: none !important;
 }
