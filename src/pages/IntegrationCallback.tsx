@@ -11,24 +11,28 @@ export default function IntegrationCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing your connection...');
-  const [processedState, setProcessedState] = useState<string | null>(null);
+  const [isProcessed, setIsProcessed] = useState(false);
 
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const state = searchParams.get('state');
     const code = searchParams.get('code');
+    const state = searchParams.get('state');
     
-    // Skip if no parameters or already processed this state
-    if (!code || !state || processedState === state) {
-      if (processedState === state) {
-        console.log('State already processed, redirecting to integrations...');
-        navigate('/integrations');
-      }
+    // Check if this is a fresh redirect from Zoom OAuth
+    const isFromZoom = document.referrer.includes('zoom.us');
+    
+    // If not from Zoom (back navigation, direct access, etc.), just redirect
+    if (!isFromZoom || !code || !state || isProcessed) {
+      console.log('Not a fresh OAuth redirect, redirecting to integrations...');
+      navigate('/integrations', { replace: true });
       return;
     }
-    
+
+    // Only process if it's a fresh redirect from Zoom
+    console.log('Fresh OAuth redirect detected, processing...');
+    setIsProcessed(true);
     processCallback();
-  }, [location, processedState, navigate]);
+  }, [location, isProcessed, navigate]);
 
   const processCallback = async () => {
     try {
@@ -99,9 +103,6 @@ export default function IntegrationCallback() {
       console.log('User OAuth callback successful:', result);
       setStatus('success');
       setMessage('Integration connected successfully!');
-      
-      // Mark this state as processed to prevent duplicate processing
-      setProcessedState(state);
       
       // Clear URL parameters to prevent reprocessing on back navigation
       window.history.replaceState({}, document.title, '/integrations/callback');
