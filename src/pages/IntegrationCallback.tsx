@@ -11,10 +11,24 @@ export default function IntegrationCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('Processing your connection...');
+  const [processedState, setProcessedState] = useState<string | null>(null);
 
   useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const state = searchParams.get('state');
+    const code = searchParams.get('code');
+    
+    // Skip if no parameters or already processed this state
+    if (!code || !state || processedState === state) {
+      if (processedState === state) {
+        console.log('State already processed, redirecting to integrations...');
+        navigate('/integrations');
+      }
+      return;
+    }
+    
     processCallback();
-  }, [location]);
+  }, [location, processedState, navigate]);
 
   const processCallback = async () => {
     try {
@@ -85,6 +99,12 @@ export default function IntegrationCallback() {
       console.log('User OAuth callback successful:', result);
       setStatus('success');
       setMessage('Integration connected successfully!');
+      
+      // Mark this state as processed to prevent duplicate processing
+      setProcessedState(state);
+      
+      // Clear URL parameters to prevent reprocessing on back navigation
+      window.history.replaceState({}, document.title, '/integrations/callback');
       
       // Redirect to user integrations page after 2 seconds
       setTimeout(() => {
