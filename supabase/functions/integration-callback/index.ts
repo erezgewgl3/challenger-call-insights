@@ -64,6 +64,72 @@ function validateOAuthState(state: string): { isValid: boolean; userId?: string;
   }
 }
 
+/**
+ * Get properly formatted account name based on integration type and user info
+ * @param integrationId The type of integration (zoom, github, etc.)
+ * @param userInfo The user information from the integration
+ * @returns Properly formatted account name
+ */
+function getFormattedAccountName(integrationId: string, userInfo: any): string {
+  console.log(`[CALLBACK-INTEGRATION] Formatting account name for ${integrationId}`, userInfo);
+  
+  // Default fallback
+  let formattedName = 'Account';
+  
+  try {
+    switch (integrationId.toLowerCase()) {
+      case 'zoom':
+        // Log available fields for debugging
+        console.log(`[CALLBACK-INTEGRATION] Zoom user info fields:`, 
+          Object.keys(userInfo).filter(key => typeof userInfo[key] === 'string'));
+        
+        // Check if we have first and last name fields
+        if (userInfo.first_name && userInfo.last_name) {
+          // Format as "FirstName LastName"
+          formattedName = `${userInfo.first_name} ${userInfo.last_name}`;
+        } 
+        // Check if we have an email
+        else if (userInfo.email) {
+          formattedName = userInfo.email;
+        } 
+        // Use display name if available
+        else if (userInfo.display_name) {
+          formattedName = userInfo.display_name;
+        }
+        break;
+        
+      case 'github':
+        // For GitHub, prioritize name, then login (username)
+        formattedName = userInfo.name || userInfo.login || formattedName;
+        break;
+        
+      case 'google':
+        // For Google, use name or email
+        formattedName = userInfo.name || userInfo.email || formattedName;
+        break;
+        
+      case 'slack':
+        // For Slack, use team name or domain
+        formattedName = userInfo.name || userInfo.domain || formattedName;
+        break;
+        
+      default:
+        // For other integrations, try common fields
+        formattedName = userInfo.name || userInfo.email || 
+                      userInfo.display_name || userInfo.login || 
+                      formattedName;
+    }
+    
+    console.log(`[CALLBACK-INTEGRATION] Using formatted account name: ${formattedName}`);
+    return formattedName;
+    
+  } catch (error) {
+    console.error(`[CALLBACK-INTEGRATION] Error formatting account name:`, error);
+    // Fallback to a reliable field or default
+    return userInfo.email || userInfo.id || 'Account';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -334,13 +400,15 @@ serve(async (req) => {
     console.log(`[CALLBACK-INTEGRATION] Token exchange successful, creating connection`);
 
     // SAFE FIX: Use UPSERT to handle reconnections
-    const connectionName = userInfo.email || userInfo.login || userInfo.name || `${integrationId} Connection`;
+    // Get a properly formatted account name based on the user info
+    const formattedAccountName = getFormattedAccountName(integrationId, userInfo);
+    
     const { data: connection, error: upsertError } = await supabase
       .from('integration_connections')
       .upsert({
         user_id: userId,
         integration_type: integrationId,
-        connection_name: connectionName,
+        connection_name: formattedAccountName,
         connection_status: 'active',
         credentials: {
           access_token: accessToken,
@@ -388,8 +456,9 @@ serve(async (req) => {
       if (userResult.user?.email) {
         const connectionDate = new Date().toISOString();
         
-        // Extract account name from Zoom user info or fallback to email
-        const accountName = userInfo.account_name || userInfo.display_name || userInfo.email || userInfo.login || userInfo.name || 'Account';
+        // Use the properly formatted account name
+        const accountName = formattedAccountName;
+        console.log(`[CALLBACK-INTEGRATION] Sending email with account name: ${accountName}`);
         
         await supabase.functions.invoke('send-email', {
           body: {
@@ -398,7 +467,7 @@ serve(async (req) => {
             data: {
               integrationName: integrationId.charAt(0).toUpperCase() + integrationId.slice(1), // Capitalize integration name
               integrationIcon: getIntegrationIcon(integrationId),
-              userEmail: accountName, // Use the account name instead of user email for more clarity
+              userEmail: accountName, // Use the formatted account name for clarity
               features: getIntegrationFeatures(integrationId),
               dashboardUrl: 'https://saleswhispererv2-0.lovable.app/dashboard',
               connectedAt: connectionDate
@@ -416,7 +485,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: true,
         integration_name: integrationId,
-        connection_name: userInfo.name || userInfo.login || userInfo.email || `${integrationId} Connection`,
+        connection_name: formattedAccountName,
         connection_id: connection.id,
         user_info: userInfo
       }), {
