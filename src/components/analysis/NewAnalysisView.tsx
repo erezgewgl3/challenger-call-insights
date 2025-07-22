@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -45,7 +44,7 @@ import { HeroSection } from './HeroSection'
 import { BattlePlanSection } from './BattlePlanSection'
 import { StakeholderNavigation } from './StakeholderNavigation'
 import { ExpandableSections } from './ExpandableSections'
-import { usePDFExportSurgical } from '@/hooks/usePDFExportSurgical'
+import { usePDFExport } from '@/hooks/usePDFExport'
 import { calculateDealHeat, type DealHeatResult } from '@/utils/dealHeatCalculator'
 
 interface AnalysisData {
@@ -81,7 +80,7 @@ export function NewAnalysisView({
   onUploadAnother 
 }: NewAnalysisViewProps) {
   
-  const { exportToPDF } = usePDFExportSurgical({ filename: 'sales-analysis-report' })
+  const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
   const [isExporting, setIsExporting] = useState(false)
 
   // Enhanced data mapping functions - moved before usage
@@ -143,7 +142,20 @@ export function NewAnalysisView({
     }))
   }
 
-  // Helper functions
+  const handleExportPDF = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const cleanTitle = transcript.title.trim()
+      // 🚀 NEW: Pass React state control to PDF export
+      await exportToPDF('analysis-content', cleanTitle, {
+        sectionsOpen,
+        toggleSection
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }, [exportToPDF, transcript.title, sectionsOpen, toggleSection])
+  
   const copyToClipboard = async (text: string, type: string) => {
     try {
       await navigator.clipboard.writeText(text)
@@ -349,29 +361,16 @@ export function NewAnalysisView({
     }
   }
 
-  // Create all data objects
   const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()
   const participants = analysis.participants || {}
   const conversationIntel = getConversationIntelligence()
 
-  const handleExportPDF = useCallback(async () => {
-    setIsExporting(true)
-    try {
-      const cleanTitle = transcript.title.trim()
-      
-      // Use the actual rendered content from the page
-      await exportToPDF('#analysis-main-content', cleanTitle)
-    } finally {
-      setIsExporting(false)
-    }
-  }, [exportToPDF, transcript.title])
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
-      {/* Main content container with unique ID for PDF export */}
-      <div id="analysis-main-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8">
+      {/* ENHANCED: Add pdf-optimized class to main content container */}
+      <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
           
           {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
           <div className="mb-6 lg:mb-8">

@@ -2,12 +2,7 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { generateCleanFilename } from '@/utils/pdfUtils'
-import { 
-  storeElementStyles, 
-  restoreElementStyles,
-  storeElementClasses,
-  restoreElementClasses
-} from '@/utils/elementStyleUtils'
+import { storeElementStyles, restoreElementStyles, optimizeElementForPDF } from '@/utils/elementStyleUtils'
 import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
 import { generateCanvas } from '@/services/canvasGenerator'
 import { createPDFDocument, addCanvasToPDF, addMultiPageContent } from '@/services/pdfGenerator'
@@ -21,83 +16,21 @@ interface PDFExportOptions {
   toggleSection?: (section: string) => void
 }
 
-/**
- * Removes conflicting Tailwind classes that interfere with PDF export
- */
-function removePDFConflictingClasses(element: HTMLElement): string[] {
-  const conflictingPatterns = [
-    'max-w-',     // Remove max-width constraints
-    'mx-auto',    // Remove auto margins (we'll apply them via inline styles)
-    'container'   // Remove container classes
-  ]
-  
-  const currentClasses = element.className.split(' ')
-  const removedClasses: string[] = []
-  
-  const filteredClasses = currentClasses.filter(className => {
-    const shouldRemove = conflictingPatterns.some(pattern => className.includes(pattern))
-    if (shouldRemove) {
-      removedClasses.push(className)
-      return false
-    }
-    return true
-  })
-  
-  element.className = filteredClasses.join(' ')
-  
-  console.log('Removed conflicting Tailwind classes for PDF:', {
-    original: currentClasses.length,
-    filtered: filteredClasses.length,
-    removed: removedClasses
-  })
-  
-  return removedClasses
-}
-
-/**
- * Restores previously removed Tailwind classes
- */
-function restorePDFConflictingClasses(element: HTMLElement, removedClasses: string[]): void {
-  const currentClasses = element.className.split(' ').filter(c => c.trim())
-  const restoredClasses = [...currentClasses, ...removedClasses].join(' ')
-  element.className = restoredClasses
-  
-  console.log('Restored Tailwind classes after PDF:', {
-    currentCount: currentClasses.length,
-    restoredCount: removedClasses.length
-  })
-}
-
 export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps = {}) {
   const exportToPDF = useCallback(async (elementId: string, title: string, options?: PDFExportOptions) => {
     let sectionsToRestore: string[] = []
     let modifiedElements: ElementState[] = []
     let originalStyles: any = null
-    let originalClasses: string = ''
-    let removedClasses: string[] = []
-    let element: HTMLElement | null = null
+    let textElementsWithStyles: Array<{ element: HTMLElement, originalStyles: Record<string, string> }> = []
     
     try {
       toast.info('Preparing PDF export...', { duration: 3000 })
       
-      // Wait for fonts to load (critical for production)
-      if (document.fonts) {
-        console.log('⏳ Waiting for fonts to load...')
-        await document.fonts.ready
-      }
-      
-      // Additional delay for production environment
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      console.log('✅ Fonts loaded, proceeding with PDF generation')
-      
-      element = document.getElementById(elementId)
+      const element = document.getElementById(elementId)
       if (!element) {
         toast.error('Unable to find content to export')
         return
       }
-
-      // Add PDF container class for emergency fix
-      element.classList.add('pdf-container', 'pdf-ready')
 
       // Phase 1: Expand user-controlled sections
       if (options?.sectionsOpen && options?.toggleSection) {
@@ -117,49 +50,40 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       modifiedElements.push(...sectionModifiedElements)
       expandScrollableContent(element, modifiedElements)
       
-      // Phase 3: Wait for DOM updates
-      await document.fonts.ready
-      await new Promise(resolve => setTimeout(resolve, 1500))
+      // Phase 3: Text optimization
+      const allContentSections = element.querySelectorAll('.space-y-4, .border-l-4, .p-4, .p-6')
+      allContentSections.forEach((section) => {
+        if (section instanceof HTMLElement) {
+          const textElements = section.querySelectorAll('p, div, span, h1, h2, h3, h4, h5, h6')
+          textElements.forEach((textEl) => {
+            if (textEl instanceof HTMLElement && textEl.textContent && textEl.textContent.length > 20) {
+              const originalTextStyles = storeElementStyles(textEl)
+              optimizeElementForPDF(textEl, 'text')
+              textElementsWithStyles.push({ element: textEl, originalStyles: originalTextStyles })
+            }
+          })
+          
+          const originalSectionStyles = storeElementStyles(section)
+          optimizeElementForPDF(section, 'container')
+          textElementsWithStyles.push({ element: section, originalStyles: originalSectionStyles })
+        }
+      })
 
-      // Phase 4: Store original state and remove conflicting classes
+      // Phase 4: Wait for DOM updates
+      await document.fonts.ready
+      await new Promise(resolve => setTimeout(resolve, 3000))
+
+      // Phase 5: Optimize main element for PDF rendering
       toast.info('Optimizing for PDF capture...', { duration: 2000 })
       originalStyles = storeElementStyles(element)
-      originalClasses = storeElementClasses(element)
+      optimizeElementForPDF(element, 'main')
+      await new Promise(resolve => setTimeout(resolve, 1500))
       
-      // Remove conflicting Tailwind classes first
-      removedClasses = removePDFConflictingClasses(element)
-      
-      // Apply simple, clean PDF optimization with proper centering
-      element.style.position = 'static'
-      element.style.width = '1400px'
-      element.style.maxWidth = '1400px'
-      element.style.minWidth = '1400px'
-      element.style.transform = 'none'
-      element.style.overflow = 'visible'
-      element.style.backgroundColor = 'transparent'
-      element.style.left = 'auto'
-      element.style.right = 'auto'
-      // Use auto margins for proper centering (this works when Tailwind classes are removed)
-      element.style.marginLeft = 'auto'
-      element.style.marginRight = 'auto'
-      element.style.paddingLeft = '16px'
-      element.style.paddingRight = '16px'
-      element.style.boxSizing = 'border-box'
-      
-      console.log('Applied simple PDF optimization with centering:', {
-        width: '1400px',
-        removedClasses: removedClasses.length,
-        elementWidth: element.offsetWidth,
-        marginStrategy: 'auto-centered'
-      })
-      
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Phase 5: Generate canvas with PDF flag
+      // Phase 6: Generate canvas
       toast.info('Generating high-quality canvas...', { duration: 3000 })
-      const canvas = await generateCanvas(element, true) // Pass forPDF=true
+      const canvas = await generateCanvas(element)
 
-      // Phase 6: Create PDF
+      // Phase 7: Create PDF
       const pdf = createPDFDocument()
       const contentHeightMM = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
       const availableHeightFirstPage = 297 - 45 - 10
@@ -174,6 +98,16 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       
       const pdfFilename = generateCleanFilename(title)
       
+      // CRITICAL: Restore styles BEFORE saving PDF
+      if (originalStyles) {
+        restoreElementStyles(element, originalStyles)
+      }
+      
+      // Restore text element styles
+      textElementsWithStyles.forEach(({ element, originalStyles }) => {
+        restoreElementStyles(element, originalStyles)
+      })
+      
       pdf.save(pdfFilename)
       
       toast.success('PDF exported successfully!', { 
@@ -185,33 +119,19 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       console.error('PDF export failed:', error)
       toast.error('Failed to generate PDF. Please try again.')
     } finally {
-      // Phase 7: Cleanup and restoration
+      // Phase 8: Cleanup and restoration
       setTimeout(() => {
-        if (element) {
-          // Restore original styles first
-          if (originalStyles) {
-            restoreElementStyles(element, originalStyles)
-          }
-          
-          // Restore original classes completely (this will include the removed conflicting classes)
-          if (originalClasses) {
-            restoreElementClasses(element, originalClasses)
-          }
-        }
-        
-        // Restore modified elements
         restoreElementStates(modifiedElements)
         
-        // Restore user-controlled sections
+        // Restore text elements
+        textElementsWithStyles.forEach(({ element, originalStyles }) => {
+          restoreElementStyles(element, originalStyles)
+        })
+        
         if (options?.toggleSection && sectionsToRestore.length > 0) {
           sectionsToRestore.forEach(sectionKey => {
             options.toggleSection!(sectionKey)
           })
-        }
-        
-        // Remove PDF emergency classes
-        if (element) {
-          element.classList.remove('pdf-container', 'pdf-ready')
         }
       }, 1000)
     }

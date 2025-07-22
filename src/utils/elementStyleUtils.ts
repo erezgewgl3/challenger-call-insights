@@ -1,3 +1,4 @@
+
 /**
  * Stores the current styles of an element for later restoration
  * 
@@ -30,30 +31,8 @@ export function storeElementStyles(element: HTMLElement): Record<string, string>
     whiteSpace: element.style.whiteSpace,
     height: element.style.height,
     maxHeight: element.style.maxHeight,
-    flexWrap: element.style.flexWrap,
-    left: element.style.left,
-    right: element.style.right,
-    marginLeft: element.style.marginLeft,
-    marginRight: element.style.marginRight,
-    // Enhanced: Store padding and margins that might affect layout
-    paddingLeft: element.style.paddingLeft,
-    paddingRight: element.style.paddingRight,
-    boxSizing: element.style.boxSizing
+    flexWrap: element.style.flexWrap
   }
-}
-
-/**
- * Stores the current CSS classes of an element for later restoration
- */
-export function storeElementClasses(element: HTMLElement): string {
-  return element.className
-}
-
-/**
- * Restores previously stored CSS classes to an element
- */
-export function restoreElementClasses(element: HTMLElement, originalClasses: string): void {
-  element.className = originalClasses
 }
 
 /**
@@ -85,143 +64,35 @@ export function restoreElementStyles(element: HTMLElement, styles: Record<string
 type PDFOptimizationType = 'main' | 'email' | 'text' | 'container'
 
 /**
- * Calculates optimal width for PDF export based on viewport
- * Ensures content never exceeds available space while maintaining quality
- * ENHANCED: Increased width for better hero section capture
- */
-function calculateOptimalPDFWidth(): string {
-  try {
-    // Use wider viewport width with safety margins for better hero section capture
-    const viewportWidth = window.innerWidth
-    const safetyMargin = 32 // Reduced margin for more width
-    const optimalWidth = Math.min(1500, viewportWidth - safetyMargin) // Increased max width
-    
-    // Ensure minimum width for readability
-    const finalWidth = Math.max(360, optimalWidth)
-    
-    console.log('PDF width calculation (enhanced for hero section):', {
-      viewportWidth,
-      safetyMargin,
-      optimalWidth,
-      finalWidth: `${finalWidth}px`
-    })
-    
-    return `${finalWidth}px`
-  } catch (error) {
-    console.warn('Failed to calculate optimal PDF width, using fallback:', error)
-    return '1500px' // Increased fallback width
-  }
-}
-
-/**
- * Removes Tailwind CSS constraints that interfere with PDF export
- * 
- * Temporarily removes classes that can cause layout conflicts during PDF generation:
- * - max-w-* classes that constrain width
- * - mx-auto that centers content (can cause positioning issues)
- * - Container constraints that might clip content
- * 
- * @param element - HTML element to remove constraints from
- * @returns Array of removed class names for restoration
- */
-function removeTailwindConstraints(element: HTMLElement): string[] {
-  const constraintPatterns = [
-    'max-w-',     // Remove max-width constraints
-    'mx-auto',    // Remove auto margins that can interfere
-    'container'   // Remove container classes
-  ]
-  
-  const currentClasses = element.className.split(' ')
-  const removedClasses: string[] = []
-  
-  const filteredClasses = currentClasses.filter(className => {
-    const shouldRemove = constraintPatterns.some(pattern => className.includes(pattern))
-    if (shouldRemove) {
-      removedClasses.push(className)
-      return false
-    }
-    return true
-  })
-  
-  element.className = filteredClasses.join(' ')
-  
-  console.log('Removed Tailwind constraints for PDF:', {
-    original: currentClasses.length,
-    filtered: filteredClasses.length,
-    removed: removedClasses
-  })
-  
-  return removedClasses
-}
-
-/**
- * Restores previously removed Tailwind CSS constraints
- * 
- * @param element - HTML element to restore constraints to
- * @param removedClasses - Array of class names to restore
- */
-function restoreTailwindConstraints(element: HTMLElement, removedClasses: string[]): void {
-  const currentClasses = element.className.split(' ').filter(c => c.trim())
-  const restoredClasses = [...currentClasses, ...removedClasses].join(' ')
-  element.className = restoredClasses
-  
-  console.log('Restored Tailwind constraints after PDF:', {
-    currentCount: currentClasses.length,
-    restoredCount: removedClasses.length,
-    finalClassName: restoredClasses
-  })
-}
-
-/**
  * Applies PDF-optimized styles to an element
  * 
- * ENHANCED: Now properly handles Tailwind CSS constraints and applies clean width settings
- * Removes conflicting Tailwind classes temporarily and applies unconstrained width for PDF capture
- * FIXED: Uses left-aligned positioning to prevent hero section gradient cutoff
+ * Modifies element styling to ensure optimal rendering in PDF format:
+ * - Removes transforms that can cause positioning issues
+ * - Sets fixed dimensions for consistent layout
+ * - Optimizes text wrapping and overflow behavior
+ * - Ensures backgrounds render properly
  * 
  * @param element - HTML element to optimize for PDF capture
  * @param type - Type of optimization to apply based on element purpose
- * @returns Object containing removed classes for restoration
  * 
  * @example
  * ```typescript
- * const constraints = optimizeElementForPDF(mainElement, 'main');
- * // ... PDF generation ...
- * restoreTailwindConstraints(mainElement, constraints.removedClasses);
+ * optimizeElementForPDF(mainElement, 'main');
+ * optimizeElementForPDF(textElement, 'text');
+ * optimizeElementForPDF(emailElement, 'email');
  * ```
  */
-export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizationType = 'main'): { removedClasses: string[] } {
-  let removedClasses: string[] = []
-  
+export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizationType = 'main'): void {
   switch (type) {
     case 'main':
-      // ENHANCED: Remove conflicting Tailwind constraints first
-      removedClasses = removeTailwindConstraints(element)
-      
-      // FIXED: Use left-aligned positioning to prevent hero section cutoff
-      const optimalWidth = calculateOptimalPDFWidth()
+      // Main container optimization for consistent PDF layout
       element.style.position = 'static'
-      element.style.width = optimalWidth
-      element.style.maxWidth = optimalWidth
-      element.style.minWidth = optimalWidth
+      element.style.width = '1200px'
+      element.style.maxWidth = '1200px'
+      element.style.minWidth = '1200px'
       element.style.transform = 'none'
       element.style.overflow = 'visible'
       element.style.backgroundColor = 'transparent'
-      element.style.left = 'auto'
-      element.style.right = 'auto'
-      // FIXED: Use left-aligned margins instead of auto-centering to preserve gradient positioning
-      element.style.marginLeft = '0'
-      element.style.marginRight = '0'
-      element.style.paddingLeft = '16px'  // Maintain some padding
-      element.style.paddingRight = '16px'
-      element.style.boxSizing = 'border-box'
-      
-      console.log('Applied main PDF optimization with left alignment:', {
-        optimalWidth,
-        removedConstraints: removedClasses.length,
-        elementWidth: element.offsetWidth,
-        marginStrategy: 'left-aligned'
-      })
       break
       
     case 'email':
@@ -252,26 +123,4 @@ export function optimizeElementForPDF(element: HTMLElement, type: PDFOptimizatio
       element.style.flexWrap = 'wrap'
       break
   }
-  
-  return { removedClasses }
-}
-
-/**
- * ENHANCED: Restores element to original state including Tailwind classes
- * 
- * @param element - HTML element to restore
- * @param styles - Original inline styles
- * @param removedClasses - Tailwind classes that were removed
- */
-export function restoreElementCompletely(element: HTMLElement, styles: Record<string, string>, removedClasses: string[]): void {
-  // Restore inline styles first
-  restoreElementStyles(element, styles)
-  
-  // Restore Tailwind classes
-  restoreTailwindConstraints(element, removedClasses)
-  
-  console.log('Complete element restoration completed:', {
-    stylesRestored: Object.keys(styles).length,
-    classesRestored: removedClasses.length
-  })
 }
