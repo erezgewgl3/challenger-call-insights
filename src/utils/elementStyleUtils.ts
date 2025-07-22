@@ -173,17 +173,6 @@ export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'cont
 export function enablePDFExportMode(element: HTMLElement): void {
   console.log('🔄 Enabling enhanced PDF export mode with improved typography')
   element.classList.add('pdf-export-mode')
-  
-  // DEBUG: Log the element and check if class is applied
-  console.log('PDF Export Mode Applied to:', {
-    element: element.tagName,
-    classList: element.classList.toString(),
-    hasPdfExportMode: element.classList.contains('pdf-export-mode')
-  })
-  
-  // DEBUG: Force styles directly as a test
-  element.style.setProperty('background-color', 'yellow', 'important')
-  console.log('🔍 DEBUG: Applied yellow background to verify targeting works')
 }
 
 /**
