@@ -382,21 +382,26 @@ serve(async (req) => {
 
     console.log(`[CALLBACK-INTEGRATION] Successfully connected ${integrationId} for user ${userId}, connection ID: ${connection.id}`);
 
-    // Send success email notification
+    // Send success email notification with corrected parameter names
     try {
       const { data: userResult } = await supabase.auth.admin.getUserById(userId);
       if (userResult.user?.email) {
+        const connectionDate = new Date().toISOString();
+        
+        // Extract account name from Zoom user info or fallback to email
+        const accountName = userInfo.account_name || userInfo.display_name || userInfo.email || userInfo.login || userInfo.name || 'Account';
+        
         await supabase.functions.invoke('send-email', {
           body: {
             template: 'integration-connected',
             to: userResult.user.email,
             data: {
-              integration_name: integrationId,
-              integration_icon: getIntegrationIcon(integrationId),
-              user_email: userResult.user.email,
+              integrationName: integrationId.charAt(0).toUpperCase() + integrationId.slice(1), // Capitalize integration name
+              integrationIcon: getIntegrationIcon(integrationId),
+              userEmail: accountName, // Use the account name instead of user email for more clarity
               features: getIntegrationFeatures(integrationId),
-              dashboard_url: 'https://saleswhispererv2-0.lovable.app/dashboard',
-              connected_at: new Date().toISOString()
+              dashboardUrl: 'https://saleswhispererv2-0.lovable.app/dashboard',
+              connectedAt: connectionDate
             }
           }
         })
