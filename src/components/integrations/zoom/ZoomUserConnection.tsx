@@ -46,6 +46,29 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
     loadConnection();
   }, []);
 
+  // Refresh connection state when page becomes visible (after OAuth return)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page became visible, refreshing connection state...');
+        loadConnection();
+      }
+    };
+
+    const handleFocus = () => {
+      console.log('Window focused, refreshing connection state...');
+      loadConnection();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
   const loadConnection = async () => {
     if (!user?.id) return;
 
