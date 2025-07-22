@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { CompactTranscriptUpload } from '@/components/upload/CompactTranscriptUpload';
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
 import { ZoomStatusBadge } from '@/components/dashboard/ZoomStatusBadge';
+import { ZoomMeetingsWidget } from '@/components/dashboard/ZoomMeetingsWidget';
 import { FileText, TrendingUp, Thermometer, Clock, LogOut, Brain } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -71,6 +72,24 @@ export default function WelcomeDashboard() {
     },
     enabled: !!user?.id,
   });
+
+  // Check for Zoom integration status
+  const { data: integrations = [] } = useQuery({
+    queryKey: ['user-integrations'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('integration_connections')
+        .select('*')
+        .eq('user_id', user?.id)
+        .eq('connection_status', 'active');
+      return data || [];
+    },
+    enabled: !!user?.id,
+  });
+
+  const hasZoomIntegration = integrations.some(
+    integration => integration.integration_type === 'zoom'
+  );
 
   const handleAnalysisComplete = (transcriptId: string) => {
     navigate(`/analysis/${transcriptId}`);
@@ -158,6 +177,25 @@ export default function WelcomeDashboard() {
               />
             </div>
           </div>
+
+          {/* Zoom Meetings Widget - Show when user has Zoom integration */}
+          {hasZoomIntegration && (
+            <div className="mb-8">
+              <ZoomMeetingsWidget 
+                loading={false}
+                onAnalyzeMeeting={(meetingId) => {
+                  console.log('Analyze meeting:', meetingId);
+                  // TODO: Navigate to transcript processing
+                }}
+                onViewAll={() => {
+                  console.log('View all meetings');
+                  // TODO: Navigate to meetings list page
+                }}
+                onSettings={() => navigate('/integrations')}
+                isConnected={hasZoomIntegration}
+              />
+            </div>
+          )}
 
           {/* Getting Started - Progressive Disclosure */}
           {transcriptCount === 0 && (
