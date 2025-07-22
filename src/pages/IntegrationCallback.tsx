@@ -105,8 +105,8 @@ export default function IntegrationCallback() {
 
       console.log('User OAuth callback successful:', result);
       
-      // Force complete page load instead of SPA navigation
-      window.location.href = '/integrations';
+      // Force complete page reload to remount component
+      window.location.replace(window.location.origin + '/integrations');
 
     } catch (err) {
       console.error('User callback processing error:', err);
