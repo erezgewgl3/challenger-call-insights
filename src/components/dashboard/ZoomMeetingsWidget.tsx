@@ -134,7 +134,7 @@ export const ZoomMeetingsWidget: React.FC<ZoomMeetingsWidgetProps> = ({
 
   const handleSettings = () => {
     console.log('Open Zoom settings');
-    onSettings?.(onSettings);
+    onSettings?.();
   };
 
   const handleViewAll = () => {
