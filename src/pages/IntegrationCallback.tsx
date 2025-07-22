@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,7 +27,7 @@ export default function IntegrationCallback() {
     // If not from Zoom (back navigation, direct access, etc.), just redirect
     if (!isFromZoom || !code || !state || isProcessed) {
       console.log('Not a fresh OAuth redirect, redirecting to integrations...');
-      window.location.replace('/integrations');
+      window.location.replace('/integrations?refresh=true');
       return;
     }
 
@@ -117,10 +116,10 @@ export default function IntegrationCallback() {
       // Clear URL parameters to prevent reprocessing on back navigation
       window.history.replaceState({}, document.title, '/integrations/callback');
       
-      // Navigate to integrations page with complete fresh load
+      // Navigate to integrations page with refresh parameter to force data reload
       setTimeout(() => {
-        console.log('Navigating to integrations page with fresh data...');
-        window.location.replace('/integrations');
+        console.log('Navigating to integrations page with forced refresh...');
+        window.location.replace('/integrations?from_oauth=true&refresh=true');
       }, 1500);
 
     } catch (err) {
@@ -146,7 +145,7 @@ export default function IntegrationCallback() {
         <CardContent className="text-center">
           <p className="text-gray-600 mb-4">{message}</p>
           {status === 'error' && (
-            <Button onClick={() => window.location.replace('/integrations')}>
+            <Button onClick={() => window.location.replace('/integrations?refresh=true')}>
               Return to Integrations
             </Button>
           )}
