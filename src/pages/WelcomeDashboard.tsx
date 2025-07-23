@@ -91,6 +91,26 @@ export default function WelcomeDashboard() {
     integration => integration.integration_type === 'zoom'
   );
 
+  // Fetch real Zoom meetings data
+  const { data: zoomMeetingsData, isLoading: zoomLoading, error: zoomError } = useQuery({
+    queryKey: ['zoom-meetings', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('get-zoom-meetings');
+      if (error) {
+        console.error('Error fetching Zoom meetings:', error);
+        throw error;
+      }
+      return data;
+    },
+    enabled: !!user && hasZoomIntegration,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime in newer versions)
+    retry: 1,
+    retryDelay: 2000,
+  });
+
+  const zoomMeetings = zoomMeetingsData?.meetings || [];
+
   const handleAnalysisComplete = (transcriptId: string) => {
     navigate(`/analysis/${transcriptId}`);
   };
@@ -206,7 +226,8 @@ export default function WelcomeDashboard() {
                 </p>
               </div>
               <ZoomMeetingsWidget 
-                loading={false}
+                meetings={zoomMeetings}
+                loading={zoomLoading}
                 onAnalyzeMeeting={(meetingId) => {
                   console.log('Analyze meeting:', meetingId);
                   // TODO: Navigate to transcript processing
@@ -217,6 +238,7 @@ export default function WelcomeDashboard() {
                 }}
                 onSettings={() => navigate('/integrations')}
                 isConnected={hasZoomIntegration}
+                maxDisplay={5}
               />
             </div>
           )}
