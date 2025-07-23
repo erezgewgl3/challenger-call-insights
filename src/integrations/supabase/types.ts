@@ -732,6 +732,8 @@ export type Database = {
           processing_started_at: string | null
           processing_status: string | null
           raw_text: string | null
+          source_meeting_id: string | null
+          source_metadata: Json | null
           status: Database["public"]["Enums"]["processing_status"] | null
           title: string
           user_id: string | null
@@ -749,6 +751,8 @@ export type Database = {
           processing_started_at?: string | null
           processing_status?: string | null
           raw_text?: string | null
+          source_meeting_id?: string | null
+          source_metadata?: Json | null
           status?: Database["public"]["Enums"]["processing_status"] | null
           title: string
           user_id?: string | null
@@ -766,6 +770,8 @@ export type Database = {
           processing_started_at?: string | null
           processing_status?: string | null
           raw_text?: string | null
+          source_meeting_id?: string | null
+          source_metadata?: Json | null
           status?: Database["public"]["Enums"]["processing_status"] | null
           title?: string
           user_id?: string | null
