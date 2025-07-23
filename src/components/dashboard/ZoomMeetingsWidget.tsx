@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Video, Settings, Eye, FileText, Users, Clock, Zap, RefreshCw } from 'lucide-react';
+import { Video, Settings, Eye, FileText, Users, Clock, Zap, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ZoomMeetingQueueItem {
@@ -24,9 +24,12 @@ interface ZoomMeetingsWidgetProps {
   onViewAll?: () => void;
   onSettings?: () => void;
   onRefresh?: () => void; // Manual refresh capability
+  onRetryMeeting?: (meetingId: string) => void; // Retry failed meeting
   isConnected?: boolean; // Show connect button if false
   processedCount?: number; // Number of already processed meetings
   availableCount?: number; // Number of available unprocessed meetings
+  processingMeetings?: Set<string>; // Currently processing meeting IDs
+  errorMeetings?: Map<string, string>; // Meeting IDs with error messages
 }
 
 // Mock data for dashboard testing
@@ -126,16 +129,74 @@ export const ZoomMeetingsWidget: React.FC<ZoomMeetingsWidgetProps> = ({
   onViewAll,
   onSettings,
   onRefresh,
+  onRetryMeeting,
   isConnected = true,
   processedCount = 0,
-  availableCount = 0
+  availableCount = 0,
+  processingMeetings = new Set(),
+  errorMeetings = new Map()
 }) => {
   const displayMeetings = meetings.slice(0, maxDisplay);
   const hasMoreMeetings = meetings.length > maxDisplay;
 
+  // Function to render the appropriate action button for each meeting
+  const renderMeetingAction = (meeting: ZoomMeetingQueueItem) => {
+    const isProcessing = processingMeetings.has(meeting.id);
+    const error = errorMeetings.get(meeting.id);
+    
+    if (isProcessing) {
+      return (
+        <Button 
+          size="sm"
+          disabled 
+          className="gap-1.5 ml-3 shrink-0"
+        >
+          <Loader2 className="h-3 w-3 animate-spin" />
+          Processing...
+        </Button>
+      );
+    }
+    
+    if (error) {
+      return (
+        <div className="ml-3 shrink-0 space-y-1">
+          <div className="flex items-center gap-1 text-xs text-red-600">
+            <AlertCircle className="h-3 w-3" />
+            <span className="max-w-20 truncate" title={error}>Error</span>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => onRetryMeeting?.(meeting.id)}
+            className="gap-1.5 text-xs h-7"
+          >
+            <RefreshCw className="h-3 w-3" />
+            Retry
+          </Button>
+        </div>
+      );
+    }
+    
+    return (
+      <Button
+        size="sm"
+        onClick={() => onAnalyzeMeeting?.(meeting.id)}
+        className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white ml-3 shrink-0"
+      >
+        <Zap className="h-3 w-3" />
+        Analyze Now
+      </Button>
+    );
+  };
+
   const handleAnalyze = (meetingId: string) => {
     console.log('Analyze meeting:', meetingId);
     onAnalyzeMeeting?.(meetingId);
+  };
+
+  const handleRetry = (meetingId: string) => {
+    console.log('Retry meeting:', meetingId);
+    onRetryMeeting?.(meetingId);
   };
 
   const handleSettings = () => {
@@ -307,14 +368,7 @@ export const ZoomMeetingsWidget: React.FC<ZoomMeetingsWidgetProps> = ({
                   </div>
                 </div>
                 
-                <Button
-                  size="sm"
-                  onClick={() => handleAnalyze(meeting.id)}
-                  className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-white ml-3 shrink-0"
-                >
-                  <Zap className="h-3 w-3" />
-                  Analyze Now
-                </Button>
+                {renderMeetingAction(meeting)}
               </div>
             ))}
             

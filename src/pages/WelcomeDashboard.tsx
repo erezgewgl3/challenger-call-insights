@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -112,6 +112,10 @@ export default function WelcomeDashboard() {
 
   const zoomMeetings = zoomMeetingsData?.meetings || [];
 
+  // State for processing and error handling
+  const [processingMeetings, setProcessingMeetings] = useState<Set<string>>(new Set());
+  const [errorMeetings, setErrorMeetings] = useState<Map<string, string>>(new Map());
+
   // Auto-refresh logic when user returns to dashboard
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -138,6 +142,86 @@ export default function WelcomeDashboard() {
     window.addEventListener('popstate', handleRouteChange);
     return () => window.removeEventListener('popstate', handleRouteChange);
   }, [hasZoomIntegration, refetchZoomMeetings]);
+
+  // Enhanced analyze meeting handler
+  const handleAnalyzeMeeting = async (meetingId: string) => {
+    const meetingData = zoomMeetingsData?.meetings?.find(m => m.id === meetingId);
+    if (!meetingData) {
+      console.error('Meeting data not found for ID:', meetingId);
+      return;
+    }
+
+    try {
+      console.log('Starting analysis for meeting:', meetingId);
+      
+      // Add to processing set
+      setProcessingMeetings(prev => new Set(prev).add(meetingId));
+      setErrorMeetings(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(meetingId);
+        return newMap;
+      });
+
+      // Call new process-zoom-transcript function
+      const { data, error } = await supabase.functions.invoke('process-zoom-transcript', {
+        body: {
+          meetingId: meetingId,
+          meetingTitle: meetingData.title,
+          meetingDate: meetingData.date,
+          meetingDuration: meetingData.duration,
+          attendeeCount: meetingData.attendees
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to process meeting');
+      }
+
+      console.log('Meeting processed successfully:', data.transcriptId);
+
+      // Success - navigate to analysis view (same as manual uploads)
+      navigate(`/analysis/${data.transcriptId}`, {
+        state: { 
+          source: 'zoom',
+          meetingTitle: meetingData.title,
+          justCreated: true
+        }
+      });
+
+    } catch (error) {
+      console.error('Error analyzing Zoom meeting:', error);
+      
+      // Add to error map
+      setErrorMeetings(prev => new Map(prev).set(meetingId, error.message));
+      
+    } finally {
+      // Remove from processing set
+      setProcessingMeetings(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(meetingId);
+        return newSet;
+      });
+
+      // Refresh queue after processing (successful or failed)
+      setTimeout(() => refetchZoomMeetings(), 1000);
+    }
+  };
+
+  // Enhanced retry handler
+  const handleRetryMeeting = async (meetingId: string) => {
+    // Clear previous error and retry
+    setErrorMeetings(prev => {
+      const newMap = new Map(prev);
+      newMap.delete(meetingId);
+      return newMap;
+    });
+    
+    await handleAnalyzeMeeting(meetingId);
+  };
 
   const handleAnalysisComplete = (transcriptId: string) => {
     navigate(`/analysis/${transcriptId}`);
@@ -256,10 +340,10 @@ export default function WelcomeDashboard() {
               <ZoomMeetingsWidget 
                 meetings={zoomMeetings}
                 loading={zoomLoading}
-                onAnalyzeMeeting={(meetingId) => {
-                  console.log('Analyze meeting:', meetingId);
-                  // TODO: Navigate to transcript processing
-                }}
+                onAnalyzeMeeting={handleAnalyzeMeeting}
+                onRetryMeeting={handleRetryMeeting}
+                processingMeetings={processingMeetings}
+                errorMeetings={errorMeetings}
                 onViewAll={() => {
                   console.log('View all meetings');
                   // TODO: Navigate to meetings list page
