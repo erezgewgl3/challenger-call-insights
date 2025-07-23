@@ -10,7 +10,10 @@ export function createPDFDocument(): jsPDF {
     orientation: 'portrait',
     unit: 'mm',
     format: 'a4',
-    compress: false
+    compress: false,        // Don't compress for better text quality
+    precision: 3,           // Higher precision for sharp rendering
+    userUnit: 1.0,          // Standard unit for sharp rendering
+    hotfixes: []            // No compression hotfixes
   })
 }
 
@@ -18,7 +21,7 @@ export function createPDFDocument(): jsPDF {
  * Adds a single canvas to PDF as one page with professional header
  */
 export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: string): void {
-  const imgData = canvas.toDataURL('image/png', 1.0)
+  const imgData = canvas.toDataURL('image/png', 1.0) // Maximum quality PNG
   const { scale, scaledHeight, contentWidth } = calculatePDFDimensions(canvas)
   
   console.log('Single page PDF - Dimensions:', {
@@ -32,8 +35,8 @@ export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: str
   // Create header
   const contentStartY = createPDFHeader(pdf, title)
   
-  // Add the image
-  pdf.addImage(imgData, 'PNG', 10, contentStartY, contentWidth, scaledHeight, '', 'FAST')
+  // Add the image with SLOW compression for better text quality
+  pdf.addImage(imgData, 'PNG', 10, contentStartY, contentWidth, scaledHeight, '', 'SLOW')
 }
 
 /**
@@ -120,7 +123,7 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
     const pageCanvas = createSimplifiedPageCanvas(canvas, pixelsProcessed, actualPagePixels)
     
     if (pageCanvas && pageCanvas.width > 1 && pageCanvas.height > 1) {
-      const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
+      const pageImgData = pageCanvas.toDataURL('image/png', 1.0) // Maximum quality PNG
       
       // Calculate MM height for this page slice
       const pageHeightMM = (actualPagePixels / canvas.height) * scaledHeight
@@ -132,7 +135,7 @@ export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title
         contentY
       })
       
-      pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, pageHeightMM, '', 'FAST')
+      pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, pageHeightMM, '', 'SLOW') // SLOW compression for better text
     }
     
     pixelsProcessed += actualPagePixels

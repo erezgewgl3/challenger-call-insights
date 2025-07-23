@@ -34,10 +34,10 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
 
   try {
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 3, // Increased from 2 to 3 for crisper text rendering
       useCORS: true,
-      allowTaint: true,
-      backgroundColor: null,
+      allowTaint: false, // Changed to false for better text quality
+      backgroundColor: '#ffffff', // Changed to white for better contrast
       foreignObjectRendering: true,
       imageTimeout: 15000,
       logging: false,
@@ -59,8 +59,8 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
                element.style.visibility === 'hidden' ||
                element.classList.contains('pdf-ignore')
       },
-      // PRODUCTION FIX: Additional options for consistent rendering
-      removeContainer: false
+      // Enhanced options for crisp text rendering
+      removeContainer: true // Changed to true for better quality
     })
 
     console.log('Enhanced canvas generated with production fixes:', {
