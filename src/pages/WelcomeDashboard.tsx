@@ -60,6 +60,7 @@ export default function WelcomeDashboard() {
         duration_minutes: transcript.duration_minutes || 0,
         created_at: transcript.created_at || '',
         status: transcript.status as 'uploaded' | 'processing' | 'completed' | 'error',
+        source: transcript.source_meeting_id ? 'zoom' : 'manual',
         account_name: transcript.accounts?.name,
         challenger_scores: transcript.conversation_analysis?.[0]?.challenger_scores as {
           teaching: number;
@@ -116,32 +117,78 @@ export default function WelcomeDashboard() {
   const [processingMeetings, setProcessingMeetings] = useState<Set<string>>(new Set());
   const [errorMeetings, setErrorMeetings] = useState<Map<string, string>>(new Map());
 
-  // Auto-refresh logic when user returns to dashboard
+  // Enhanced auto-refresh logic with better timing
   useEffect(() => {
+    let refreshTimer: NodeJS.Timeout;
+    
+    const scheduleRefresh = () => {
+      // Clear any existing timer
+      if (refreshTimer) clearTimeout(refreshTimer);
+      
+      // Schedule refresh after analysis likely completed
+      refreshTimer = setTimeout(() => {
+        if (hasZoomIntegration && !document.hidden) {
+          refetchZoomMeetings();
+        }
+      }, 2000); // 2 second delay after navigation
+    };
+
+    // Listen for navigation back to dashboard
+    const handleNavigation = () => {
+      if (location.pathname === '/dashboard') {
+        scheduleRefresh();
+      }
+    };
+
+    // Listen for visibility changes (tab switching)
     const handleVisibilityChange = () => {
-      if (!document.hidden && hasZoomIntegration) {
-        // User returned to dashboard - refresh the queue
-        refetchZoomMeetings();
+      if (!document.hidden && location.pathname === '/dashboard' && hasZoomIntegration) {
+        scheduleRefresh();
       }
     };
 
+    // Listen for storage events (cross-tab communication)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'zoom-analysis-completed' && hasZoomIntegration) {
+        scheduleRefresh();
+      }
+    };
+
+    // Add event listeners
+    window.addEventListener('popstate', handleNavigation);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [hasZoomIntegration, refetchZoomMeetings]);
+    window.addEventListener('storage', handleStorageChange);
 
-  // Navigation listener for when user returns from analysis page
-  useEffect(() => {
-    const handleRouteChange = () => {
-      // If user navigated back to dashboard, refresh Zoom queue
-      if (location.pathname === '/dashboard' && hasZoomIntegration) {
-        setTimeout(() => refetchZoomMeetings(), 500); // Small delay to ensure analysis completed
-      }
+    // Cleanup
+    return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
+      window.removeEventListener('popstate', handleNavigation);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('storage', handleStorageChange);
     };
+  }, [hasZoomIntegration, refetchZoomMeetings, location.pathname]);
 
-    // Listen for route changes
-    window.addEventListener('popstate', handleRouteChange);
-    return () => window.removeEventListener('popstate', handleRouteChange);
-  }, [hasZoomIntegration, refetchZoomMeetings]);
+  // Check for analysis completion on return
+  useEffect(() => {
+    // Check if user returned from analysis page
+    const urlParams = new URLSearchParams(location.search);
+    const analysisCompleted = urlParams.get('zoom-analysis-completed');
+    
+    if (analysisCompleted === 'true') {
+      // Remove parameter from URL
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.delete('zoom-analysis-completed');
+      window.history.replaceState({}, '', newUrl.toString());
+      
+      // Refresh queue after small delay
+      setTimeout(() => {
+        refetchZoomMeetings();
+      }, 1000);
+      
+      // Show success message (optional)
+      console.log('Zoom analysis completed - queue refreshed');
+    }
+  }, [location.search, refetchZoomMeetings]);
 
   // Enhanced analyze meeting handler
   const handleAnalyzeMeeting = async (meetingId: string) => {
@@ -183,8 +230,15 @@ export default function WelcomeDashboard() {
 
       console.log('Meeting processed successfully:', data.transcriptId);
 
-      // Success - navigate to analysis view (same as manual uploads)
-      navigate(`/analysis/${data.transcriptId}`, {
+      // Store analysis info for refresh trigger
+      localStorage.setItem('zoom-analysis-in-progress', JSON.stringify({
+        transcriptId: data.transcriptId,
+        meetingId: meetingId,
+        startedAt: Date.now()
+      }));
+
+      // Success - navigate to analysis view with refresh parameter
+      navigate(`/analysis/${data.transcriptId}?return-refresh=zoom-queue`, {
         state: { 
           source: 'zoom',
           meetingTitle: meetingData.title,
@@ -195,8 +249,12 @@ export default function WelcomeDashboard() {
     } catch (error) {
       console.error('Error analyzing Zoom meeting:', error);
       
-      // Add to error map
-      setErrorMeetings(prev => new Map(prev).set(meetingId, error.message));
+      // Add to error map with user-friendly message
+      const errorMessage = error.message.includes('already processed') 
+        ? 'This meeting has already been analyzed.' 
+        : error.message;
+      
+      setErrorMeetings(prev => new Map(prev).set(meetingId, errorMessage));
       
     } finally {
       // Remove from processing set

@@ -7,6 +7,7 @@ import { Clock, Users, ArrowRight } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow, differenceInHours, format } from 'date-fns'
+import { SourceBadge } from '@/components/ui/SourceBadge'
 
 interface TranscriptSummary {
   id: string
@@ -16,6 +17,7 @@ interface TranscriptSummary {
   created_at: string
   status: 'uploaded' | 'processing' | 'completed' | 'error'
   account_name?: string
+  source?: 'manual' | 'zoom' | string
   challenger_scores?: {
     teaching: number
     tailoring: number
@@ -193,21 +195,24 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                         <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors text-sm mb-1">
                           {transcript.title}
                         </h4>
-                        <div className="flex items-center space-x-2 text-xs text-slate-500">
-                          <span className="flex items-center">
-                            <Users className="h-3 w-3 mr-1" />
-                            {transcript.participants.length}
-                          </span>
-                          <span className="flex items-center">
-                            <Clock className="h-3 w-3 mr-1" />
-                            {formatDuration(transcript.duration_minutes)}
-                          </span>
-                          {transcript.analysis_created_at && (
-                            <span className="flex items-center">
-                              📅 Analyzed {formatAnalysisDate(transcript.analysis_created_at)}
-                            </span>
-                          )}
-                        </div>
+                         <div className="flex items-center space-x-2 text-xs text-slate-500 mb-1">
+                           <SourceBadge source={transcript.source || 'manual'} className="text-xs h-4" />
+                           <span className="flex items-center">
+                             <Users className="h-3 w-3 mr-1" />
+                             {transcript.participants.length}
+                           </span>
+                           <span className="flex items-center">
+                             <Clock className="h-3 w-3 mr-1" />
+                             {formatDuration(transcript.duration_minutes)}
+                           </span>
+                         </div>
+                         {transcript.analysis_created_at && (
+                           <div className="flex items-center text-xs text-slate-500">
+                             <span className="flex items-center">
+                               📅 Analyzed {formatAnalysisDate(transcript.analysis_created_at)}
+                             </span>
+                           </div>
+                         )}
                         {transcript.account_name && (
                           <div className="mt-1">
                             <span className="text-xs text-blue-600 font-medium">

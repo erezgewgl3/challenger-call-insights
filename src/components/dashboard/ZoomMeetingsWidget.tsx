@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Video, Settings, Eye, FileText, Users, Clock, Zap, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { Video, Settings, Eye, FileText, Users, Clock, Zap, RefreshCw, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ZoomMeetingQueueItem {
@@ -245,8 +245,10 @@ export const ZoomMeetingsWidget: React.FC<ZoomMeetingsWidgetProps> = ({
     );
   }
 
-  // Empty state when connected but no meetings
+  // Enhanced empty state with context awareness
   if (!loading && meetings.length === 0) {
+    const hasProcessedMeetings = processedCount > 0;
+    
     return (
       <Card className="w-full">
         <CardHeader className="pb-3">
@@ -255,29 +257,67 @@ export const ZoomMeetingsWidget: React.FC<ZoomMeetingsWidgetProps> = ({
               <Video className="h-4 w-4 text-blue-600" />
               Zoom Meetings Ready for Analysis
             </CardTitle>
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={handleSettings}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
+            <div className="flex items-center gap-1">
+              {onRefresh && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={onRefresh}
+                  className="text-muted-foreground hover:text-foreground"
+                  title="Refresh meetings"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSettings}
+                className="text-muted-foreground hover:text-foreground"
+                title="Zoom settings"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-              <FileText className="h-6 w-6 text-muted-foreground" />
-            </div>
-            <h3 className="font-medium text-foreground mb-2">No meetings ready for analysis</h3>
-            <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
-              Your Zoom meetings with cloud recordings will appear here when they're ready for analysis.
-            </p>
-            <Button variant="outline" onClick={handleSettings} className="gap-2">
-              <Settings className="h-4 w-4" />
-              Zoom Settings
-            </Button>
+            {hasProcessedMeetings ? (
+              <>
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="h-6 w-6 text-green-600" />
+                </div>
+                <h3 className="font-medium text-foreground mb-2">All caught up!</h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+                  You've analyzed all available meeting transcripts ({processedCount} processed).
+                </p>
+                <Button variant="outline" onClick={onRefresh} className="gap-2">
+                  <RefreshCw className="h-4 w-4" />
+                  Check for New Meetings
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                  <FileText className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <h3 className="font-medium text-foreground mb-2">No meetings ready for analysis</h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-sm mx-auto">
+                  Meetings with cloud recording and transcripts will appear here automatically.
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <Button variant="outline" onClick={onRefresh} className="gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Refresh
+                  </Button>
+                  <Button variant="outline" onClick={handleSettings} className="gap-2">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
