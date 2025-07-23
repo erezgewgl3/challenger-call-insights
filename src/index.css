@@ -131,47 +131,48 @@
   print-color-adjust: exact !important;
   color-adjust: exact !important;
   
-  /* Enhanced typography for PDF */
-  font-size: 110% !important;
-  line-height: 1.2 !important;
-  font-weight: 500 !important;
+  /* Optimized typography for PDF readability */
+  font-size: 100% !important;
+  line-height: 1.4 !important;
+  font-weight: 400 !important;
 }
 
-/* Enhanced typography and spacing for PDF elements */
+/* Balanced typography and spacing for PDF elements */
 .pdf-export-mode h1 {
-  font-size: 135% !important;
-  line-height: 1.15 !important;
+  font-size: 1.5rem !important;
+  line-height: 1.3 !important;
   font-weight: 700 !important;
-  margin-bottom: 0.3rem !important;
+  margin-bottom: 0.75rem !important;
+  margin-top: 1rem !important;
 }
 
 .pdf-export-mode h2 {
-  font-size: 125% !important;
-  line-height: 1.2 !important;
+  font-size: 1.25rem !important;
+  line-height: 1.3 !important;
   font-weight: 600 !important;
-  margin-bottom: 0.2rem !important;
-  margin-top: 0.3rem !important;
+  margin-bottom: 0.5rem !important;
+  margin-top: 0.75rem !important;
 }
 
 .pdf-export-mode h3 {
-  font-size: 118% !important;
-  line-height: 1.2 !important;
+  font-size: 1.1rem !important;
+  line-height: 1.3 !important;
   font-weight: 600 !important;
-  margin-bottom: 0.2rem !important;
-  margin-top: 0.3rem !important;
+  margin-bottom: 0.4rem !important;
+  margin-top: 0.6rem !important;
 }
 
 .pdf-export-mode p {
-  font-size: 108% !important;
-  line-height: 1.2 !important;
-  margin-bottom: 0.2rem !important;
+  font-size: 0.9rem !important;
+  line-height: 1.4 !important;
+  margin-bottom: 0.5rem !important;
 }
 
-/* Enhanced card and section spacing for PDF */
+/* Balanced card and section spacing for PDF */
 .pdf-export-mode [class*="card"], 
 .pdf-export-mode [class*="Card"] {
-  padding: 0.6rem !important;
-  margin-bottom: 0.3rem !important;
+  padding: 0.75rem !important;
+  margin-bottom: 0.75rem !important;
   overflow: visible !important;
   height: auto !important;
   min-height: auto !important;
@@ -180,64 +181,69 @@
   print-color-adjust: exact !important;
 }
 
-/* AGGRESSIVE PDF spacing fixes - target ALL spacing elements */
-.pdf-export-mode * {
-  margin-top: 0.1rem !important;
-  margin-bottom: 0.1rem !important;
-  padding-top: 0.3rem !important;
-  padding-bottom: 0.3rem !important;
-  line-height: 1.1 !important;
+/* Optimized spacing - remove universal selectors that cause stretching */
+.pdf-export-mode .space-y-1 > * + * { margin-top: 0.25rem !important; }
+.pdf-export-mode .space-y-2 > * + * { margin-top: 0.5rem !important; }
+.pdf-export-mode .space-y-3 > * + * { margin-top: 0.75rem !important; }
+.pdf-export-mode .space-y-4 > * + * { margin-top: 0.75rem !important; }
+.pdf-export-mode .space-y-6 > * + * { margin-top: 1rem !important; }
+.pdf-export-mode .space-y-8 > * + * { margin-top: 1rem !important; }
+
+/* Section-specific spacing */
+.pdf-export-mode .report-section {
+  margin-bottom: 1rem !important;
+  padding: 0.75rem !important;
 }
 
-.pdf-export-mode .space-y-4 > * + *,
-.pdf-export-mode .space-y-6 > * + *,
-.pdf-export-mode .space-y-8 > * + *,
-.pdf-export-mode .space-y-2 > * + * {
-  margin-top: 0.1rem !important;
+.pdf-export-mode .analysis-section {
+  margin-bottom: 0.75rem !important;
 }
 
-/* Target specific action item and email template containers */
+/* Balanced action item and email template containers */
 .pdf-export-mode [class*="border-l-4"] {
-  padding: 0.3rem !important;
-  margin-bottom: 0.2rem !important;
+  padding: 0.5rem !important;
+  margin-bottom: 0.5rem !important;
 }
 
 .pdf-export-mode [class*="bg-blue"],
 .pdf-export-mode [class*="bg-orange"],
 .pdf-export-mode [class*="bg-red"],
 .pdf-export-mode [class*="bg-green"] {
-  padding: 0.3rem !important;
-  margin: 0.1rem !important;
+  padding: 0.5rem !important;
+  margin: 0.25rem !important;
 }
 
-/* Enhanced list spacing */
+/* Improved list spacing */
 .pdf-export-mode ul, 
 .pdf-export-mode ol {
-  margin: 0.1rem !important;
-  padding: 0.2rem !important;
+  margin: 0.5rem 0 !important;
+  padding-left: 1.5rem !important;
 }
 
 .pdf-export-mode li {
-  margin: 0.05rem !important;
-  padding: 0.1rem !important;
-  line-height: 1.1 !important;
+  margin-bottom: 0.25rem !important;
+  line-height: 1.4 !important;
 }
 
-/* Enhanced badge and button sizing */
+/* Optimized text sizing for PDF readability */
 .pdf-export-mode .text-xs {
   font-size: 0.75rem !important;
 }
 
 .pdf-export-mode .text-sm {
-  font-size: 0.9rem !important;
+  font-size: 0.85rem !important;
 }
 
 .pdf-export-mode .text-base {
-  font-size: 1.05rem !important;
+  font-size: 0.9rem !important;
 }
 
 .pdf-export-mode .text-lg {
-  font-size: 1.15rem !important;
+  font-size: 1rem !important;
+}
+
+.pdf-export-mode .text-xl {
+  font-size: 1.1rem !important;
 }
 
 /* Enhanced score and metric visibility */
