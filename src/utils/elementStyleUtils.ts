@@ -82,11 +82,11 @@ export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'cont
     element.style.setProperty('text-rendering', 'optimizeLegibility', 'important')
     element.style.setProperty('background-color', 'white', 'important')
     
-    // Enhanced typography for main container
+    // Compact typography for main container - PDF only
     if (forPDF) {
-      element.style.setProperty('font-size', '115%', 'important')
-      element.style.setProperty('line-height', '1.7', 'important')
-      element.style.setProperty('font-weight', '500', 'important')
+      element.style.setProperty('font-size', '100%', 'important')
+      element.style.setProperty('line-height', '1.3', 'important')
+      element.style.setProperty('font-weight', '400', 'important')
       
       // Positioning fixes only for PDF
       element.style.setProperty('position', 'relative', 'important')
@@ -108,10 +108,10 @@ export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'cont
     element.style.setProperty('height', 'auto', 'important')
     element.style.setProperty('max-height', 'none', 'important')
     
-    // Enhanced spacing for containers
+    // Compact spacing for containers - PDF only
     if (forPDF) {
-      element.style.setProperty('padding', '1.5rem', 'important')
-      element.style.setProperty('margin-bottom', '1.5rem', 'important')
+      element.style.setProperty('padding', '0.4rem', 'important')
+      element.style.setProperty('margin-bottom', '0.4rem', 'important')
       
       // Positioning fixes only for PDF
       element.style.setProperty('position', 'relative', 'important')
@@ -133,28 +133,28 @@ export function optimizeElementForPDF(element: HTMLElement, type: 'main' | 'cont
     element.style.setProperty('height', 'auto', 'important')
     element.style.setProperty('max-height', 'none', 'important')
     
-    // Enhanced typography for text elements
+    // Compact typography for text elements - PDF only
     if (forPDF) {
-      element.style.setProperty('line-height', '1.7', 'important')
-      element.style.setProperty('font-weight', '500', 'important')
-      element.style.setProperty('margin-bottom', '1rem', 'important')
+      element.style.setProperty('line-height', '1.3', 'important')
+      element.style.setProperty('font-weight', '400', 'important')
+      element.style.setProperty('margin-bottom', '0.3rem', 'important')
       
-      // Enhanced font sizes based on element type
+      // Compact font sizes based on element type - PDF only
       const tagName = element.tagName.toLowerCase()
       if (tagName === 'h1') {
-        element.style.setProperty('font-size', '140%', 'important')
-        element.style.setProperty('font-weight', '700', 'important')
-        element.style.setProperty('margin-bottom', '1.5rem', 'important')
-      } else if (tagName === 'h2') {
-        element.style.setProperty('font-size', '130%', 'important')
-        element.style.setProperty('font-weight', '600', 'important')
-        element.style.setProperty('margin-bottom', '1.25rem', 'important')
-      } else if (tagName === 'h3') {
-        element.style.setProperty('font-size', '120%', 'important')
-        element.style.setProperty('font-weight', '600', 'important')
-        element.style.setProperty('margin-bottom', '1rem', 'important')
-      } else if (tagName === 'p') {
         element.style.setProperty('font-size', '110%', 'important')
+        element.style.setProperty('font-weight', '700', 'important')
+        element.style.setProperty('margin-bottom', '0.5rem', 'important')
+      } else if (tagName === 'h2') {
+        element.style.setProperty('font-size', '105%', 'important')
+        element.style.setProperty('font-weight', '600', 'important')
+        element.style.setProperty('margin-bottom', '0.4rem', 'important')
+      } else if (tagName === 'h3') {
+        element.style.setProperty('font-size', '102%', 'important')
+        element.style.setProperty('font-weight', '600', 'important')
+        element.style.setProperty('margin-bottom', '0.3rem', 'important')
+      } else if (tagName === 'p') {
+        element.style.setProperty('font-size', '100%', 'important')
       }
       
       // Positioning fixes only for PDF

@@ -168,11 +168,11 @@
   margin-bottom: 0.5rem !important;
 }
 
-/* Balanced card and section spacing for PDF */
+/* Compact card and section spacing for PDF */
 .pdf-export-mode [class*="card"], 
 .pdf-export-mode [class*="Card"] {
-  padding: 0.75rem !important;
-  margin-bottom: 0.75rem !important;
+  padding: 0.4rem !important;
+  margin-bottom: 0.4rem !important;
   overflow: visible !important;
   height: auto !important;
   min-height: auto !important;
@@ -181,48 +181,48 @@
   print-color-adjust: exact !important;
 }
 
-/* Optimized spacing - remove universal selectors that cause stretching */
-.pdf-export-mode .space-y-1 > * + * { margin-top: 0.25rem !important; }
-.pdf-export-mode .space-y-2 > * + * { margin-top: 0.5rem !important; }
-.pdf-export-mode .space-y-3 > * + * { margin-top: 0.75rem !important; }
-.pdf-export-mode .space-y-4 > * + * { margin-top: 0.75rem !important; }
-.pdf-export-mode .space-y-6 > * + * { margin-top: 1rem !important; }
-.pdf-export-mode .space-y-8 > * + * { margin-top: 1rem !important; }
+/* Compact spacing for PDF - significant reduction */
+.pdf-export-mode .space-y-1 > * + * { margin-top: 0.1rem !important; }
+.pdf-export-mode .space-y-2 > * + * { margin-top: 0.2rem !important; }
+.pdf-export-mode .space-y-3 > * + * { margin-top: 0.3rem !important; }
+.pdf-export-mode .space-y-4 > * + * { margin-top: 0.3rem !important; }
+.pdf-export-mode .space-y-6 > * + * { margin-top: 0.4rem !important; }
+.pdf-export-mode .space-y-8 > * + * { margin-top: 0.5rem !important; }
 
-/* Section-specific spacing */
+/* Compact section-specific spacing */
 .pdf-export-mode .report-section {
-  margin-bottom: 1rem !important;
-  padding: 0.75rem !important;
+  margin-bottom: 0.4rem !important;
+  padding: 0.4rem !important;
 }
 
 .pdf-export-mode .analysis-section {
-  margin-bottom: 0.75rem !important;
+  margin-bottom: 0.3rem !important;
 }
 
-/* Balanced action item and email template containers */
+/* Compact action item and email template containers */
 .pdf-export-mode [class*="border-l-4"] {
-  padding: 0.5rem !important;
-  margin-bottom: 0.5rem !important;
+  padding: 0.3rem !important;
+  margin-bottom: 0.3rem !important;
 }
 
 .pdf-export-mode [class*="bg-blue"],
 .pdf-export-mode [class*="bg-orange"],
 .pdf-export-mode [class*="bg-red"],
 .pdf-export-mode [class*="bg-green"] {
-  padding: 0.5rem !important;
-  margin: 0.25rem !important;
+  padding: 0.3rem !important;
+  margin: 0.1rem !important;
 }
 
-/* Improved list spacing */
+/* Compact list spacing */
 .pdf-export-mode ul, 
 .pdf-export-mode ol {
-  margin: 0.5rem 0 !important;
-  padding-left: 1.5rem !important;
+  margin: 0.2rem 0 !important;
+  padding-left: 1.2rem !important;
 }
 
 .pdf-export-mode li {
-  margin-bottom: 0.25rem !important;
-  line-height: 1.4 !important;
+  margin-bottom: 0.1rem !important;
+  line-height: 1.3 !important;
 }
 
 /* Optimized text sizing for PDF readability */
