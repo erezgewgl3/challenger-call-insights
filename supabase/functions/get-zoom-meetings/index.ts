@@ -136,7 +136,7 @@ serve(async (req) => {
           }
 
           const retryData = await retryResponse.json();
-          return processZoomMeetings(retryData.meetings || []);
+          return processZoomMeetings(retryData.meetings || [], user.id, supabase);
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
           throw new Error('Authentication failed - please reconnect Zoom');
@@ -149,7 +149,7 @@ serve(async (req) => {
     const meetingsData = await meetingsResponse.json();
     console.log(`Found ${meetingsData.meetings?.length || 0} meetings`);
 
-    return processZoomMeetings(meetingsData.meetings || []);
+    return processZoomMeetings(meetingsData.meetings || [], user.id, supabase);
 
   } catch (error) {
     console.error('Error in get-zoom-meetings:', error);
@@ -209,50 +209,74 @@ async function refreshZoomToken(connection: any, supabase: any): Promise<string>
   return tokenData.access_token;
 }
 
-async function processZoomMeetings(meetings: ZoomMeeting[]): Promise<Response> {
+async function processZoomMeetings(meetings: ZoomMeeting[], userId: string, supabase: any): Promise<Response> {
+  console.log(`Processing ${meetings.length} meetings for user ${userId}`);
+  
+  // Get already processed meetings from database
+  const { data: processedMeetings } = await supabase
+    .from('transcripts')
+    .select('source_meeting_id, processing_status, title')
+    .eq('user_id', userId)
+    .eq('source', 'zoom')
+    .not('source_meeting_id', 'is', null);
+
+  console.log(`Found ${processedMeetings?.length || 0} already processed meetings`);
+
+  const processedMeetingIds = new Set(
+    processedMeetings?.map((t: any) => t.source_meeting_id) || []
+  );
+
   const now = new Date();
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-  // Process meetings and add transcript availability check
-  const processedMeetings: ProcessedMeeting[] = await Promise.all(
-    meetings.map(async (meeting) => {
-      const meetingDate = new Date(meeting.start_time);
-      const isNew = meetingDate > oneDayAgo;
-      
-      // For now, we'll assume meetings longer than 15 minutes might have transcripts
-      // In a real implementation, you'd check the Zoom cloud recording API
-      const hasTranscript = meeting.duration >= 15;
-      
-      return {
+  // Filter out already processed meetings and add transcript availability check
+  const availableMeetings: ProcessedMeeting[] = [];
+  
+  for (const meeting of meetings) {
+    // Skip if already processed
+    if (processedMeetingIds.has(meeting.uuid)) {
+      console.log(`Skipping already processed meeting: ${meeting.topic}`);
+      continue;
+    }
+
+    const meetingDate = new Date(meeting.start_time);
+    const isNew = meetingDate > oneDayAgo;
+    
+    // For now, we'll assume meetings longer than 15 minutes might have transcripts
+    // In a real implementation, you'd check the Zoom cloud recording API
+    const hasTranscript = meeting.duration >= 15;
+    
+    if (hasTranscript) {
+      availableMeetings.push({
         id: meeting.uuid,
         title: meeting.topic || 'Untitled Meeting',
         date: meeting.start_time,
         duration: meeting.duration,
-        transcriptSize: hasTranscript ? estimateTranscriptSize(meeting.duration) : null,
+        transcriptSize: estimateTranscriptSize(meeting.duration),
         attendees: meeting.participants_count || 0,
         hasTranscript,
         isNew
-      };
-    })
-  );
+      });
+    }
+  }
 
-  // Filter to only meetings with transcripts and sort by date (newest first)
-  const meetingsWithTranscripts = processedMeetings
-    .filter(m => m.hasTranscript)
+  // Sort by date (newest first) and limit for dashboard display
+  const sortedMeetings = availableMeetings
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 10); // Limit for dashboard display
+    .slice(0, 10);
 
-  console.log(`Returning ${meetingsWithTranscripts.length} meetings with transcripts`);
+  console.log(`Returning ${sortedMeetings.length} unprocessed meetings with transcripts`);
 
   return new Response(JSON.stringify({ 
-    meetings: meetingsWithTranscripts,
-    total: processedMeetings.length,
-    withTranscripts: meetingsWithTranscripts.length
+    meetings: sortedMeetings,
+    processedCount: processedMeetingIds.size,
+    availableCount: sortedMeetings.length,
+    totalMeetings: meetings.length
   }), {
     headers: { 
       ...corsHeaders, 
       'Content-Type': 'application/json',
-      'Cache-Control': 'public, max-age=300' // Cache for 5 minutes
+      'Cache-Control': 'public, max-age=120' // Reduced cache time for better responsiveness
     }
   });
 }
@@ -265,8 +289,14 @@ function estimateTranscriptSize(durationMinutes: number): string {
   if (estimatedBytes < 1024) {
     return `${estimatedBytes} B`;
   } else if (estimatedBytes < 1024 * 1024) {
-    return `${Math.round(estimatedBytes / 1024)} KB`;
+    return `~${Math.round(estimatedBytes / 1024)} KB`;
   } else {
-    return `${Math.round(estimatedBytes / (1024 * 1024) * 10) / 10} MB`;
+    return `~${Math.round(estimatedBytes / (1024 * 1024) * 10) / 10} MB`;
   }
+}
+
+function isWithinLast24Hours(dateString: string): boolean {
+  const meetingDate = new Date(dateString);
+  const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  return meetingDate > oneDayAgo;
 }

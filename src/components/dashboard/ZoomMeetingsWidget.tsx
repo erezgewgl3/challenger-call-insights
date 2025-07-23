@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Video, Settings, Eye, FileText, Users, Clock, Zap } from 'lucide-react';
+import { Video, Settings, Eye, FileText, Users, Clock, Zap, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ZoomMeetingQueueItem {
@@ -23,7 +23,10 @@ interface ZoomMeetingsWidgetProps {
   onAnalyzeMeeting?: (meetingId: string) => void;
   onViewAll?: () => void;
   onSettings?: () => void;
+  onRefresh?: () => void; // Manual refresh capability
   isConnected?: boolean; // Show connect button if false
+  processedCount?: number; // Number of already processed meetings
+  availableCount?: number; // Number of available unprocessed meetings
 }
 
 // Mock data for dashboard testing
@@ -122,7 +125,10 @@ export const ZoomMeetingsWidget: React.FC<ZoomMeetingsWidgetProps> = ({
   onAnalyzeMeeting,
   onViewAll,
   onSettings,
-  isConnected = true
+  onRefresh,
+  isConnected = true,
+  processedCount = 0,
+  availableCount = 0
 }) => {
   const displayMeetings = meetings.slice(0, maxDisplay);
   const hasMoreMeetings = meetings.length > maxDisplay;
@@ -220,25 +226,39 @@ export const ZoomMeetingsWidget: React.FC<ZoomMeetingsWidgetProps> = ({
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-base font-semibold flex items-center gap-2">
-            <Video className="h-4 w-4 text-blue-600" />
-            Zoom Meetings Ready for Analysis
-            {!loading && meetings.length > 0 && (
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                {meetings.length}
-              </span>
-            )}
-          </CardTitle>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleSettings}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Settings className="h-4 w-4" />
-          </Button>
-        </div>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <Video className="h-4 w-4 text-blue-600" />
+              Zoom Meetings Ready for Analysis
+              {!loading && meetings.length > 0 && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                  {meetings.length}
+                </span>
+              )}
+            </CardTitle>
+            <div className="flex items-center gap-1">
+              {onRefresh && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={onRefresh}
+                  className="text-muted-foreground hover:text-foreground"
+                  title="Refresh meetings"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              )}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleSettings}
+                className="text-muted-foreground hover:text-foreground"
+                title="Zoom settings"
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
       </CardHeader>
       <CardContent>
         {loading ? (

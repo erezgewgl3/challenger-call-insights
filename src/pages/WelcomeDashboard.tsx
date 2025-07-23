@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -91,8 +91,8 @@ export default function WelcomeDashboard() {
     integration => integration.integration_type === 'zoom'
   );
 
-  // Fetch real Zoom meetings data
-  const { data: zoomMeetingsData, isLoading: zoomLoading, error: zoomError } = useQuery({
+  // Fetch real Zoom meetings data with auto-refresh
+  const { data: zoomMeetingsData, isLoading: zoomLoading, error: zoomError, refetch: refetchZoomMeetings } = useQuery({
     queryKey: ['zoom-meetings', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('get-zoom-meetings');
@@ -103,13 +103,41 @@ export default function WelcomeDashboard() {
       return data;
     },
     enabled: !!user && hasZoomIntegration,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime in newer versions)
+    staleTime: 2 * 60 * 1000, // 2 minutes - shorter for better responsiveness
+    gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 1,
     retryDelay: 2000,
+    refetchOnWindowFocus: true, // Auto refresh when user returns to dashboard
   });
 
   const zoomMeetings = zoomMeetingsData?.meetings || [];
+
+  // Auto-refresh logic when user returns to dashboard
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && hasZoomIntegration) {
+        // User returned to dashboard - refresh the queue
+        refetchZoomMeetings();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [hasZoomIntegration, refetchZoomMeetings]);
+
+  // Navigation listener for when user returns from analysis page
+  useEffect(() => {
+    const handleRouteChange = () => {
+      // If user navigated back to dashboard, refresh Zoom queue
+      if (location.pathname === '/dashboard' && hasZoomIntegration) {
+        setTimeout(() => refetchZoomMeetings(), 500); // Small delay to ensure analysis completed
+      }
+    };
+
+    // Listen for route changes
+    window.addEventListener('popstate', handleRouteChange);
+    return () => window.removeEventListener('popstate', handleRouteChange);
+  }, [hasZoomIntegration, refetchZoomMeetings]);
 
   const handleAnalysisComplete = (transcriptId: string) => {
     navigate(`/analysis/${transcriptId}`);
@@ -237,8 +265,11 @@ export default function WelcomeDashboard() {
                   // TODO: Navigate to meetings list page
                 }}
                 onSettings={() => navigate('/integrations')}
+                onRefresh={refetchZoomMeetings} // Manual refresh capability
                 isConnected={hasZoomIntegration}
                 maxDisplay={5}
+                processedCount={zoomMeetingsData?.processedCount || 0}
+                availableCount={zoomMeetingsData?.availableCount || 0}
               />
             </div>
           )}
