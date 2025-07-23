@@ -137,14 +137,13 @@
   font-weight: 400 !important;
 }
 
-/* Enhanced text rendering for ultra-crisp PDF fonts */
+/* Enhanced text rendering for ultra-crisp PDF fonts - preserving original colors */
 .pdf-export-mode * {
   -webkit-font-smoothing: antialiased !important;
   -moz-osx-font-smoothing: grayscale !important;
   text-rendering: optimizeLegibility !important;
   font-kerning: normal !important;
   font-variant-ligatures: none !important;
-  color: #000000 !important; /* Pure black for maximum contrast */
   text-shadow: none !important;
 }
 
