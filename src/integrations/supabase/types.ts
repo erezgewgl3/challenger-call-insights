@@ -49,6 +49,53 @@ export type Database = {
           },
         ]
       }
+      advanced_webhook_triggers: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_triggered: string | null
+          trigger_condition: Json
+          trigger_count: number | null
+          trigger_type: string
+          updated_at: string | null
+          user_id: string
+          webhook_url: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered?: string | null
+          trigger_condition: Json
+          trigger_count?: number | null
+          trigger_type: string
+          updated_at?: string | null
+          user_id: string
+          webhook_url: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_triggered?: string | null
+          trigger_condition?: Json
+          trigger_count?: number | null
+          trigger_type?: string
+          updated_at?: string | null
+          user_id?: string
+          webhook_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "advanced_webhook_triggers_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversation_analysis: {
         Row: {
           action_plan: Json | null
@@ -209,6 +256,67 @@ export type Database = {
           },
           {
             foreignKeyName: "data_export_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      deal_heat_history: {
+        Row: {
+          account_id: string | null
+          analysis_id: string | null
+          change_reason: string | null
+          created_at: string | null
+          current_heat_level: string
+          heat_score_change: number | null
+          id: string
+          previous_heat_level: string | null
+          triggered_webhooks: string[] | null
+          user_id: string
+        }
+        Insert: {
+          account_id?: string | null
+          analysis_id?: string | null
+          change_reason?: string | null
+          created_at?: string | null
+          current_heat_level: string
+          heat_score_change?: number | null
+          id?: string
+          previous_heat_level?: string | null
+          triggered_webhooks?: string[] | null
+          user_id: string
+        }
+        Update: {
+          account_id?: string | null
+          analysis_id?: string | null
+          change_reason?: string | null
+          created_at?: string | null
+          current_heat_level?: string
+          heat_score_change?: number | null
+          id?: string
+          previous_heat_level?: string | null
+          triggered_webhooks?: string[] | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deal_heat_history_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_heat_history_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deal_heat_history_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
@@ -665,6 +773,215 @@ export type Database = {
         }
         Relationships: []
       }
+      sync_audit_trail: {
+        Row: {
+          action_type: string
+          after_data: Json | null
+          before_data: Json | null
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          performed_at: string | null
+          performed_by: string | null
+          sync_operation_id: string | null
+          user_id: string
+        }
+        Insert: {
+          action_type: string
+          after_data?: Json | null
+          before_data?: Json | null
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          performed_at?: string | null
+          performed_by?: string | null
+          sync_operation_id?: string | null
+          user_id: string
+        }
+        Update: {
+          action_type?: string
+          after_data?: Json | null
+          before_data?: Json | null
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          performed_at?: string | null
+          performed_by?: string | null
+          sync_operation_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_audit_trail_performed_by_fkey"
+            columns: ["performed_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_audit_trail_sync_operation_id_fkey"
+            columns: ["sync_operation_id"]
+            isOneToOne: false
+            referencedRelation: "sync_operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_audit_trail_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_conflicts: {
+        Row: {
+          conflict_type: string
+          created_at: string | null
+          field_conflicts: Json
+          id: string
+          local_data: Json
+          remote_data: Json
+          resolution_data: Json | null
+          resolution_status: string
+          resolved_at: string | null
+          resolved_by: string | null
+          sync_operation_id: string
+          user_id: string
+        }
+        Insert: {
+          conflict_type: string
+          created_at?: string | null
+          field_conflicts: Json
+          id?: string
+          local_data: Json
+          remote_data: Json
+          resolution_data?: Json | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sync_operation_id: string
+          user_id: string
+        }
+        Update: {
+          conflict_type?: string
+          created_at?: string | null
+          field_conflicts?: Json
+          id?: string
+          local_data?: Json
+          remote_data?: Json
+          resolution_data?: Json | null
+          resolution_status?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+          sync_operation_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_conflicts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_conflicts_sync_operation_id_fkey"
+            columns: ["sync_operation_id"]
+            isOneToOne: false
+            referencedRelation: "sync_operations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_conflicts_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_operations: {
+        Row: {
+          completed_at: string | null
+          conflict_data: Json | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          operation_status: string
+          operation_type: string
+          resolution_strategy: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          retry_count: number | null
+          source_record_id: string | null
+          source_system: string
+          sync_data: Json
+          sync_type: string
+          target_record_id: string | null
+          target_system: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          conflict_data?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          operation_status?: string
+          operation_type: string
+          resolution_strategy?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          retry_count?: number | null
+          source_record_id?: string | null
+          source_system: string
+          sync_data?: Json
+          sync_type: string
+          target_record_id?: string | null
+          target_system: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          conflict_data?: Json | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          operation_status?: string
+          operation_type?: string
+          resolution_strategy?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          retry_count?: number | null
+          source_record_id?: string | null
+          source_system?: string
+          sync_data?: Json
+          sync_type?: string
+          target_record_id?: string | null
+          target_system?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sync_operations_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sync_operations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_integration_configs: {
         Row: {
           config_key: string
@@ -889,6 +1206,56 @@ export type Database = {
             foreignKeyName: "user_consent_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_sync_preferences: {
+        Row: {
+          auto_resolve_conflicts: boolean | null
+          created_at: string | null
+          crm_type: string
+          enabled: boolean | null
+          id: string
+          preferred_resolution_strategy: string | null
+          sync_direction: string
+          sync_frequency_minutes: number | null
+          sync_settings: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          auto_resolve_conflicts?: boolean | null
+          created_at?: string | null
+          crm_type: string
+          enabled?: boolean | null
+          id?: string
+          preferred_resolution_strategy?: string | null
+          sync_direction?: string
+          sync_frequency_minutes?: number | null
+          sync_settings?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          auto_resolve_conflicts?: boolean | null
+          created_at?: string | null
+          crm_type?: string
+          enabled?: boolean | null
+          id?: string
+          preferred_resolution_strategy?: string | null
+          sync_direction?: string
+          sync_frequency_minutes?: number | null
+          sync_settings?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_sync_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
             referencedRelation: "users"
             referencedColumns: ["id"]
           },
