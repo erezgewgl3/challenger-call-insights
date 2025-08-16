@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ZapierWebhookMonitor } from './ZapierWebhookMonitor';
 
 interface DiagnosticResult {
   success: boolean;
@@ -289,10 +290,11 @@ export function ZapierDiagnostics() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="connection">Connection Test</TabsTrigger>
           <TabsTrigger value="webhooks">Webhook Test</TabsTrigger>
+          <TabsTrigger value="monitoring">Live Monitor</TabsTrigger>
           <TabsTrigger value="history">History</TabsTrigger>
         </TabsList>
 
@@ -616,6 +618,10 @@ export function ZapierDiagnostics() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="monitoring" className="space-y-4">
+          <ZapierWebhookMonitor />
         </TabsContent>
 
         <TabsContent value="webhooks" className="space-y-4">
