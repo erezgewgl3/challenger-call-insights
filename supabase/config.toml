@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.zapier-auth]
 verify_jwt = true
+
+[functions.zapier-webhooks]
+verify_jwt = true
+
+[functions.zapier-trigger]
+verify_jwt = false
