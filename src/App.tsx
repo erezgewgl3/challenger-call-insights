@@ -20,6 +20,7 @@ import PasswordReset from "./pages/PasswordReset";
 import IntegrationCallback from "./pages/IntegrationCallback";
 import AdminIntegrationCallback from "./pages/AdminIntegrationCallback";
 import UserIntegrations from "./pages/UserIntegrations";
+import AdminIntegrationDashboard from "./pages/admin/AdminIntegrationDashboard";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,11 @@ function App() {
               <Route path="/admin/gdpr-compliance" element={
                 <AdminGuard>
                   <GDPRCompliance />
+                </AdminGuard>
+              } />
+              <Route path="/admin/integrations" element={
+                <AdminGuard>
+                  <AdminIntegrationDashboard />
                 </AdminGuard>
               } />
               <Route path="/analysis/:transcriptId" element={
