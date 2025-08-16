@@ -5,6 +5,12 @@ export { SalesforceCRMTransformer } from './salesforce-transformer';
 export { HubSpotCRMTransformer } from './hubspot-transformer';
 export { PipedriveCRMTransformer } from './pipedrive-transformer';
 
+// Import the transformer classes for the factory function
+import { ZohoCRMTransformer } from './zoho-transformer';
+import { SalesforceCRMTransformer } from './salesforce-transformer';
+import { HubSpotCRMTransformer } from './hubspot-transformer';
+import { PipedriveCRMTransformer } from './pipedrive-transformer';
+
 export type { 
   CRMAnalysisData, 
   CRMDeal, 
