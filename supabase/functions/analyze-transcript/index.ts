@@ -274,6 +274,14 @@ serve(async (req) => {
 
     console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id, 'Heat Level:', heatLevel);
 
+    // Trigger webhook delivery asynchronously (never blocks analysis pipeline)
+    EdgeRuntime.waitUntil(
+      triggerAnalysisWebhooks(supabase, analysisData, transcriptId, userId)
+        .catch(error => {
+          console.error('🔍 [WEBHOOK] Webhook delivery failed (non-blocking):', error);
+        })
+    );
+
     // Update transcript status to completed (triggers real-time update)
     console.log('🔍 [DB] Updating transcript status to completed');
     const { error: completeError } = await supabase
@@ -316,6 +324,111 @@ serve(async (req) => {
     });
   }
 });
+
+// Trigger webhook delivery for analysis completion (asynchronous, non-blocking)
+async function triggerAnalysisWebhooks(supabase: any, analysisData: any, transcriptId: string, userId: string) {
+  try {
+    console.log('🔍 [WEBHOOK] Starting webhook trigger for analysis:', analysisData.id);
+
+    // Get transcript data for webhook payload
+    const { data: transcript, error: transcriptError } = await supabase
+      .from('transcripts')
+      .select(`
+        id,
+        title,
+        meeting_date,
+        duration_minutes,
+        participants,
+        accounts(
+          id,
+          name,
+          deal_stage
+        )
+      `)
+      .eq('id', transcriptId)
+      .single();
+
+    if (transcriptError) {
+      console.error('🔍 [WEBHOOK] Failed to fetch transcript data:', transcriptError);
+      return;
+    }
+
+    // Transform analysis data to Zapier payload format
+    const webhookPayload = {
+      trigger: "analysis_complete",
+      timestamp: new Date().toISOString(),
+      analysis: {
+        id: analysisData.id,
+        transcript_id: transcriptId,
+        call_date: transcript.meeting_date,
+        duration_minutes: transcript.duration_minutes,
+        deal_intelligence: {
+          heat_level: analysisData.heat_level?.toLowerCase() || 'low',
+          momentum: analysisData.guidance?.momentum || 'steady',
+          stage_recommendation: analysisData.guidance?.recommendation || 'continue',
+          challenger_scores: analysisData.challenger_scores || { teaching: 0, tailoring: 0, control: 0 }
+        },
+        participants: transcript.participants || [],
+        next_steps: analysisData.guidance?.next_steps || [],
+        call_summary: analysisData.call_summary || {},
+        competitive_insights: analysisData.guidance?.competitive_insights || {}
+      }
+    };
+
+    console.log('🔍 [WEBHOOK] Webhook payload prepared for user:', userId);
+
+    // Find all active webhooks for this user with analysis_complete trigger
+    const { data: webhooks, error: webhooksError } = await supabase
+      .from('zapier_webhooks')
+      .select('id, webhook_url, secret_token, trigger_type')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .in('trigger_type', ['analysis_complete', 'analysis_completed']);
+
+    if (webhooksError) {
+      console.error('🔍 [WEBHOOK] Failed to fetch user webhooks:', webhooksError);
+      return;
+    }
+
+    if (!webhooks || webhooks.length === 0) {
+      console.log('🔍 [WEBHOOK] No active webhooks found for user:', userId);
+      return;
+    }
+
+    console.log('🔍 [WEBHOOK] Found', webhooks.length, 'active webhooks for user:', userId);
+
+    // Trigger webhook delivery via zapier-trigger function for each webhook
+    for (const webhook of webhooks) {
+      try {
+        console.log('🔍 [WEBHOOK] Triggering delivery for webhook:', webhook.id);
+
+        // Call zapier-trigger function asynchronously
+        const triggerResponse = await supabase.functions.invoke('zapier-trigger', {
+          body: {
+            trigger_type: 'analysis_complete',
+            user_id: userId,
+            analysis_id: analysisData.id,
+            data: webhookPayload
+          }
+        });
+
+        if (triggerResponse.error) {
+          console.error('🔍 [WEBHOOK] Failed to trigger webhook:', webhook.id, triggerResponse.error);
+        } else {
+          console.log('🔍 [WEBHOOK] Successfully triggered webhook:', webhook.id);
+        }
+
+      } catch (webhookError) {
+        console.error('🔍 [WEBHOOK] Error triggering individual webhook:', webhook.id, webhookError);
+      }
+    }
+
+    console.log('🔍 [WEBHOOK] Webhook trigger process completed for analysis:', analysisData.id);
+
+  } catch (error) {
+    console.error('🔍 [WEBHOOK] Webhook trigger system error:', error);
+  }
+}
 
 // Helper function to update transcript with error status
 async function updateTranscriptError(supabase: any, transcriptId: string, errorMessage: string) {
