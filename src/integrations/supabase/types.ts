@@ -7,10 +7,10 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
@@ -101,6 +101,63 @@ export type Database = {
             columns: ["transcript_id"]
             isOneToOne: false
             referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_integration_logs: {
+        Row: {
+          analysis_id: string
+          completed_at: string | null
+          created_at: string | null
+          crm_record_id: string | null
+          crm_type: string
+          error_message: string | null
+          id: string
+          operation_type: string
+          retry_count: number | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          crm_record_id?: string | null
+          crm_type: string
+          error_message?: string | null
+          id?: string
+          operation_type: string
+          retry_count?: number | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          crm_record_id?: string | null
+          crm_type?: string
+          error_message?: string | null
+          id?: string
+          operation_type?: string
+          retry_count?: number | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_integration_logs_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_integration_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -864,6 +921,214 @@ export type Database = {
         }
         Relationships: []
       }
+      zapier_api_keys: {
+        Row: {
+          api_key_hash: string
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean | null
+          key_name: string
+          last_used: string | null
+          rate_limit_per_hour: number | null
+          scopes: string[] | null
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          api_key_hash: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_name: string
+          last_used?: string | null
+          rate_limit_per_hour?: number | null
+          scopes?: string[] | null
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          api_key_hash?: string
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          key_name?: string
+          last_used?: string | null
+          rate_limit_per_hour?: number | null
+          scopes?: string[] | null
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zapier_api_keys_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zapier_match_reviews: {
+        Row: {
+          analysis_id: string
+          confirmed_contact_id: string | null
+          created_at: string | null
+          id: string
+          participant_data: Json
+          reviewed_at: string | null
+          status: string | null
+          suggested_matches: Json | null
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          confirmed_contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          participant_data: Json
+          reviewed_at?: string | null
+          status?: string | null
+          suggested_matches?: Json | null
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          confirmed_contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          participant_data?: Json
+          reviewed_at?: string | null
+          status?: string | null
+          suggested_matches?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zapier_match_reviews_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_analysis"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zapier_match_reviews_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zapier_webhook_logs: {
+        Row: {
+          attempt_count: number | null
+          created_at: string | null
+          delivered_at: string | null
+          delivery_status: string | null
+          error_message: string | null
+          http_status_code: number | null
+          id: string
+          response_body: string | null
+          trigger_data: Json
+          webhook_id: string
+        }
+        Insert: {
+          attempt_count?: number | null
+          created_at?: string | null
+          delivered_at?: string | null
+          delivery_status?: string | null
+          error_message?: string | null
+          http_status_code?: number | null
+          id?: string
+          response_body?: string | null
+          trigger_data: Json
+          webhook_id: string
+        }
+        Update: {
+          attempt_count?: number | null
+          created_at?: string | null
+          delivered_at?: string | null
+          delivery_status?: string | null
+          error_message?: string | null
+          http_status_code?: number | null
+          id?: string
+          response_body?: string | null
+          trigger_data?: Json
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zapier_webhook_logs_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: false
+            referencedRelation: "zapier_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zapier_webhooks: {
+        Row: {
+          api_key_id: string
+          created_at: string | null
+          failure_count: number | null
+          id: string
+          is_active: boolean | null
+          last_error: string | null
+          last_triggered: string | null
+          secret_token: string | null
+          success_count: number | null
+          trigger_type: string
+          user_id: string
+          webhook_url: string
+        }
+        Insert: {
+          api_key_id: string
+          created_at?: string | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_triggered?: string | null
+          secret_token?: string | null
+          success_count?: number | null
+          trigger_type: string
+          user_id: string
+          webhook_url: string
+        }
+        Update: {
+          api_key_id?: string
+          created_at?: string | null
+          failure_count?: number | null
+          id?: string
+          is_active?: boolean | null
+          last_error?: string | null
+          last_triggered?: string | null
+          secret_token?: string | null
+          success_count?: number | null
+          trigger_type?: string
+          user_id?: string
+          webhook_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zapier_webhooks_api_key_id_fkey"
+            columns: ["api_key_id"]
+            isOneToOne: false
+            referencedRelation: "zapier_api_keys"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "zapier_webhooks_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -884,52 +1149,52 @@ export type Database = {
       enhanced_file_validation: {
         Args:
           | {
+              p_content_type: string
+              p_file_content?: string
               p_file_name: string
               p_file_size: number
-              p_content_type: string
-              p_user_id: string
               p_ip_address?: string
+              p_user_id: string
             }
           | {
+              p_content_type: string
               p_file_name: string
               p_file_size: number
-              p_content_type: string
-              p_user_id: string
               p_ip_address?: string
-              p_file_content?: string
+              p_user_id: string
             }
         Returns: Json
       }
       execute_role_change: {
         Args: {
-          p_target_user_id: string
-          p_new_role: string
           p_admin_user_id: string
+          p_new_role: string
+          p_target_user_id: string
         }
         Returns: Json
       }
       fix_orphaned_auth_users: {
         Args: Record<PropertyKey, never>
         Returns: {
-          fixed_user_id: string
           fixed_email: string
+          fixed_user_id: string
         }[]
       }
       get_active_prompt: {
         Args: Record<PropertyKey, never>
         Returns: {
-          id: string
-          version_number: number
-          user_id: string
-          prompt_text: string
-          prompt_name: string
-          is_default: boolean
-          is_active: boolean
-          change_description: string
           activated_at: string
+          change_description: string
           created_at: string
-          updated_at: string
           created_by: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          prompt_name: string
+          prompt_text: string
+          updated_at: string
+          user_id: string
+          version_number: number
         }[]
       }
       get_current_user_role: {
@@ -941,16 +1206,16 @@ export type Database = {
         Returns: string
       }
       integration_framework_complete_sync: {
-        Args: { sync_id: string; result_data: Json; sync_status?: string }
+        Args: { result_data: Json; sync_id: string; sync_status?: string }
         Returns: Json
       }
       integration_framework_create_connection: {
         Args: {
-          user_uuid: string
-          integration_type: string
+          configuration?: Json
           connection_name: string
           credentials: Json
-          configuration?: Json
+          integration_type: string
+          user_uuid: string
         }
         Returns: Json
       }
@@ -960,14 +1225,14 @@ export type Database = {
       }
       integration_framework_get_config: {
         Args: {
-          user_uuid: string
-          integration_type: string
           config_key: string
+          integration_type: string
+          user_uuid: string
         }
         Returns: Json
       }
       integration_framework_get_connection: {
-        Args: { user_uuid: string; integration_type_param: string }
+        Args: { integration_type_param: string; user_uuid: string }
         Returns: Json
       }
       integration_framework_get_connection_health: {
@@ -975,7 +1240,7 @@ export type Database = {
         Returns: Json
       }
       integration_framework_get_connection_status: {
-        Args: { user_uuid: string; integration_type: string }
+        Args: { integration_type: string; user_uuid: string }
         Returns: Json
       }
       integration_framework_get_sync_status: {
@@ -997,26 +1262,26 @@ export type Database = {
       integration_framework_log_webhook: {
         Args: {
           connection_id: string
-          webhook_event: string
-          payload: Json
           headers?: Json
+          payload: Json
+          webhook_event: string
         }
         Returns: Json
       }
       integration_framework_start_sync: {
         Args: {
           connection_id: string
-          operation_type: string
           operation_data?: Json
+          operation_type: string
         }
         Returns: Json
       }
       integration_framework_update_config: {
         Args: {
-          user_uuid: string
-          integration_type_param: string
           config_key_param: string
           config_value: Json
+          integration_type_param: string
+          user_uuid: string
         }
         Returns: Json
       }
@@ -1031,27 +1296,27 @@ export type Database = {
       log_role_change_attempt: {
         Args: {
           p_admin_id: string
-          p_target_id: string
           p_attempted_role: string
-          p_success: boolean
           p_reason?: string
+          p_success: boolean
+          p_target_id: string
         }
         Returns: undefined
       }
       log_security_event: {
         Args: {
-          p_event_type: string
-          p_user_id: string
           p_details?: Json
+          p_event_type: string
           p_ip_address?: string
           p_user_agent?: string
+          p_user_id: string
         }
         Returns: undefined
       }
       mark_password_reset_token_used: {
         Args: {
-          p_token_hash: string
           p_ip_address?: string
+          p_token_hash: string
           p_user_agent?: string
         }
         Returns: undefined
@@ -1069,23 +1334,23 @@ export type Database = {
         Returns: Json
       }
       validate_file_signature: {
-        Args: { p_file_content: string; p_declared_type: string }
+        Args: { p_declared_type: string; p_file_content: string }
         Returns: Json
       }
       validate_file_upload: {
         Args: {
+          p_content_type: string
           p_file_name: string
           p_file_size: number
-          p_content_type: string
           p_user_id: string
         }
         Returns: Json
       }
       validate_password_reset_token: {
         Args: {
-          p_token: string
           p_email: string
           p_ip_address?: string
+          p_token: string
           p_user_agent?: string
         }
         Returns: Json
