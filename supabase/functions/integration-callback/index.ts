@@ -282,6 +282,9 @@ serve(async (req) => {
 
     console.log(`[CALLBACK-INTEGRATION] State validation successful, proceeding with token exchange`);
 
+    // Determine which OAuth app was used and get appropriate credentials
+    const usingPersonalApp = storedState.config_value.using_personal_app || false;
+    
     // Exchange code for access token based on integration type
     let accessToken = '';
     let refreshToken = '';
@@ -289,11 +292,42 @@ serve(async (req) => {
 
     switch (integrationId.toLowerCase()) {
       case 'zoom':
+        let zoomClientId = '';
+        let zoomClientSecret = '';
+
+        if (usingPersonalApp) {
+          // User's personal OAuth app - get credentials from user config
+          const { data: userApp } = await supabase
+            .from('integration_configs')
+            .select('config_value')
+            .eq('user_id', userId)
+            .eq('integration_type', integrationId)
+            .eq('config_key', 'user_oauth_app')
+            .single();
+          
+          if (!userApp?.config_value) {
+            throw new Error('Personal OAuth app configuration not found');
+          }
+          
+          zoomClientId = userApp.config_value.client_id;
+          zoomClientSecret = userApp.config_value.client_secret;
+          console.log(`[CALLBACK-INTEGRATION] Using personal OAuth app for Zoom token exchange`);
+        } else {
+          // System OAuth app - use environment variables
+          zoomClientId = Deno.env.get('ZOOM_CLIENT_ID') || '';
+          zoomClientSecret = Deno.env.get('ZOOM_CLIENT_SECRET') || '';
+          console.log(`[CALLBACK-INTEGRATION] Using system OAuth app for Zoom token exchange`);
+        }
+
+        if (!zoomClientId || !zoomClientSecret) {
+          throw new Error('Zoom OAuth app credentials not available');
+        }
+
         const zoomTokenResponse = await fetch('https://zoom.us/oauth/token', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
-            'Authorization': `Basic ${btoa(`${Deno.env.get('ZOOM_CLIENT_ID')}:${Deno.env.get('ZOOM_CLIENT_SECRET')}`)}`,
+            'Authorization': `Basic ${btoa(`${zoomClientId}:${zoomClientSecret}`)}`,
           },
           body: new URLSearchParams({
             grant_type: 'authorization_code',

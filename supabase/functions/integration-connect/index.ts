@@ -131,22 +131,43 @@ serve(async (req) => {
 
     console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}, user role: ${userRole?.role}`);
 
-    // Check if the integration is enabled in system configuration
-    const { data: systemConfig, error: systemConfigError } = await supabase
-      .from('system_integration_configs')
+    // First check if user has their own OAuth app configured
+    const { data: userOAuthApp } = await supabase
+      .from('integration_configs')
       .select('config_value')
+      .eq('user_id', userData.user.id)
       .eq('integration_type', integrationId)
-      .eq('config_key', 'system_config')
-      .single();
+      .eq('config_key', 'user_oauth_app')
+      .maybeSingle();
 
-    if (systemConfigError || !systemConfig?.config_value) {
-      throw new Error(`${integrationId} integration is not configured by the administrator`);
-    }
+    let configValue: any;
+    let usingPersonalApp = false;
 
-    // Check if integration is enabled
-    const configValue = systemConfig.config_value as any;
-    if (typeof configValue === 'object' && 'enabled' in configValue && !configValue.enabled) {
-      throw new Error(`${integrationId} integration is currently disabled by the administrator`);
+    if (userOAuthApp?.config_value) {
+      // User has personal OAuth app - use it
+      configValue = userOAuthApp.config_value;
+      usingPersonalApp = true;
+      console.log(`[CONNECT-INTEGRATION] Using user's personal OAuth app for ${integrationId}`);
+    } else {
+      // Fall back to system configuration (admin-managed)
+      const { data: systemConfig, error: systemConfigError } = await supabase
+        .from('system_integration_configs')
+        .select('config_value')
+        .eq('integration_type', integrationId)
+        .eq('config_key', 'system_config')
+        .single();
+
+      if (systemConfigError || !systemConfig?.config_value) {
+        throw new Error(`${integrationId} integration is not configured. Please set up your personal OAuth app or ask your administrator to configure system-wide access.`);
+      }
+
+      configValue = systemConfig.config_value;
+      console.log(`[CONNECT-INTEGRATION] Using system OAuth app for ${integrationId}`);
+
+      // Check if system integration is enabled
+      if (typeof configValue === 'object' && 'enabled' in configValue && !configValue.enabled) {
+        throw new Error(`${integrationId} integration is currently disabled by the administrator`);
+      }
     }
 
     // Clean up any existing OAuth states for this user and integration
@@ -191,7 +212,7 @@ serve(async (req) => {
         throw new Error(`Unsupported integration type: ${integrationId}`);
     }
 
-    // Store OAuth state for validation with proper redirect URI
+    // Store OAuth state for validation with proper redirect URI and app type
     await supabase.from('integration_configs').upsert({
       user_id: userData.user.id,
       integration_type: integrationId,
@@ -200,7 +221,8 @@ serve(async (req) => {
         state, 
         timestamp: fullTimestamp, 
         redirect_uri: redirectUri,
-        integration_id: integrationId
+        integration_id: integrationId,
+        using_personal_app: usingPersonalApp // Track which OAuth app is being used
       },
       is_encrypted: false
     });

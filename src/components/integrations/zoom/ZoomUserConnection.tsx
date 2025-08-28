@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { useZoomConnection } from '@/hooks/useZoomConnection';
+import { PersonalZoomSetup } from './PersonalZoomSetup';
 
 interface ZoomUserConnectionProps {
   onConnectionChange?: (connected: boolean) => void;
@@ -279,49 +280,10 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Video className="h-5 w-5 text-blue-600" />
-              Connect Your Zoom Account
-            </CardTitle>
-            <CardDescription>
-              Connect your personal Zoom account to automatically analyze meeting transcripts
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <h4 className="font-medium">What you'll get:</h4>
-              <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• Automatic transcript processing after meetings</li>
-                <li>• AI-powered meeting insights and analysis</li>
-                <li>• Sales coaching recommendations</li>
-                <li>• Follow-up suggestions and action items</li>
-              </ul>
-            </div>
-
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-xs text-blue-700">
-                <strong>Privacy:</strong> Only you can access your meeting data. 
-                Your transcripts are processed securely and remain private to your account.
-              </p>
-            </div>
-
-            <Button
-              onClick={handleConnect}
-              disabled={isConnecting}
-              className="w-full"
-            >
-              {isConnecting ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-              ) : (
-                <Video className="h-4 w-4 mr-2" />
-              )}
-              Connect to Zoom
-            </Button>
-          </CardContent>
-        </Card>
+        <PersonalZoomSetup 
+          onConnect={handleConnect}
+          isConnecting={isConnecting}
+        />
       )}
     </div>
   );
