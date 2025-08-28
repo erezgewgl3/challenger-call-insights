@@ -76,28 +76,10 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
-      // First check if Zoom integration is enabled by admin
-      const { data: systemConfig } = await supabase
-        .from('system_integration_configs')
-        .select('config_value')
-        .eq('integration_type', 'zoom')
-        .eq('config_key', 'system_config')
-        .single();
-
-      if (!systemConfig?.config_value || (typeof systemConfig.config_value === 'object' && 'enabled' in systemConfig.config_value && !systemConfig.config_value.enabled)) {
-        toast({
-          title: "Integration Disabled",
-          description: "Zoom integration is not enabled by the administrator.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Call the integration-connect Edge Function with integration_id in body
+      // Call the integration-connect Edge Function - it will handle system config validation internally
       const { data, error } = await supabase.functions.invoke('integration-connect', {
         body: {
-          integration_id: 'zoom',
-          configuration: systemConfig.config_value
+          integration_id: 'zoom'
         }
       });
 

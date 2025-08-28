@@ -131,6 +131,24 @@ serve(async (req) => {
 
     console.log(`[CONNECT-INTEGRATION] Starting OAuth for integration: ${integrationId}, user role: ${userRole?.role}`);
 
+    // Check if the integration is enabled in system configuration
+    const { data: systemConfig, error: systemConfigError } = await supabase
+      .from('system_integration_configs')
+      .select('config_value')
+      .eq('integration_type', integrationId)
+      .eq('config_key', 'system_config')
+      .single();
+
+    if (systemConfigError || !systemConfig?.config_value) {
+      throw new Error(`${integrationId} integration is not configured by the administrator`);
+    }
+
+    // Check if integration is enabled
+    const configValue = systemConfig.config_value as any;
+    if (typeof configValue === 'object' && 'enabled' in configValue && !configValue.enabled) {
+      throw new Error(`${integrationId} integration is currently disabled by the administrator`);
+    }
+
     // Clean up any existing OAuth states for this user and integration
     await supabase
       .from('integration_configs')
@@ -156,16 +174,16 @@ serve(async (req) => {
 
     switch (integrationId.toLowerCase()) {
       case 'zoom':
-        const zoomClientId = configuration?.client_id || Deno.env.get('ZOOM_CLIENT_ID');
+        const zoomClientId = configValue.client_id || Deno.env.get('ZOOM_CLIENT_ID');
         if (!zoomClientId) throw new Error('Zoom client ID not configured');
-        const zoomScopes = configuration?.scopes || 'recording:read,user:read';
+        const zoomScopes = configValue.scopes || 'recording:read,user:read';
         authUrl = `https://zoom.us/oauth/authorize?client_id=${zoomClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(zoomScopes)}&response_type=code&state=${state}`;
         break;
 
       case 'salesforce':
-        const salesforceClientId = configuration?.client_id || Deno.env.get('SALESFORCE_CLIENT_ID');
+        const salesforceClientId = configValue.client_id || Deno.env.get('SALESFORCE_CLIENT_ID');
         if (!salesforceClientId) throw new Error('Salesforce client ID not configured');
-        const salesforceInstance = configuration?.instance_url || 'https://login.salesforce.com';
+        const salesforceInstance = configValue.instance_url || 'https://login.salesforce.com';
         authUrl = `${salesforceInstance}/services/oauth2/authorize?client_id=${salesforceClientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&state=${state}`;
         break;
 
