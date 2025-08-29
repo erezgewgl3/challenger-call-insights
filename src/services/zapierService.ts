@@ -83,9 +83,8 @@ export const zapierService = {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Authentication required')
 
-      const { data, error } = await supabase.functions.invoke('zapier-auth', {
+      const { data, error } = await supabase.functions.invoke('zapier-auth/generate', {
         body: {
-          action: 'generate',
           key_name: keyName,
           scopes
         }
@@ -101,9 +100,8 @@ export const zapierService = {
 
   async validateApiKey(apiKey: string) {
     try {
-      const { data, error } = await supabase.functions.invoke('zapier-auth', {
+      const { data, error } = await supabase.functions.invoke('zapier-auth/validate', {
         body: {
-          action: 'validate',
           api_key: apiKey
         }
       })
@@ -155,11 +153,8 @@ export const zapierService = {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Authentication required')
 
-      const { data, error } = await supabase.functions.invoke('zapier-webhooks', {
-        body: {
-          action: 'subscribe',
-          ...subscription
-        }
+      const { data, error } = await supabase.functions.invoke('zapier-webhooks/subscribe', {
+        body: subscription
       })
 
       if (error) throw error
@@ -175,8 +170,8 @@ export const zapierService = {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Authentication required')
 
-      const { data, error } = await supabase.functions.invoke('zapier-webhooks', {
-        body: { action: 'list' }
+      const { data, error } = await supabase.functions.invoke('zapier-webhooks/list', {
+        method: 'GET'
       })
 
       if (error) throw error
@@ -192,11 +187,8 @@ export const zapierService = {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Authentication required')
 
-      const { data, error } = await supabase.functions.invoke('zapier-webhooks', {
-        body: {
-          action: 'unsubscribe',
-          webhook_id: webhookId
-        }
+      const { data, error } = await supabase.functions.invoke(`zapier-webhooks/unsubscribe/${webhookId}`, {
+        method: 'DELETE'
       })
 
       if (error) throw error
@@ -212,11 +204,8 @@ export const zapierService = {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Authentication required')
 
-      const { data, error } = await supabase.functions.invoke('zapier-webhooks', {
-        body: {
-          action: 'test',
-          webhook_id: webhookId
-        }
+      const { data, error } = await supabase.functions.invoke(`zapier-webhooks/test/${webhookId}`, {
+        method: 'POST'
       })
 
       if (error) throw error
