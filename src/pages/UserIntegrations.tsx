@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Zap, ArrowLeft } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ZoomUserConnection } from '@/components/integrations/zoom/ZoomUserConnection';
-import { ZapierIntegrationCard } from '@/components/integrations-framework/ZapierIntegrationCard';
+import { ZapierIntegrationManager } from '@/components/integrations-framework/ZapierIntegrationManager';
 import { useQueryClient } from '@tanstack/react-query';
 import { invalidateZoomConnection } from '@/hooks/useZoomConnection';
 
@@ -82,7 +82,7 @@ export default function UserIntegrations() {
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <ZoomUserConnection />
-            <ZapierIntegrationCard />
+            <ZapierIntegrationManager />
           </div>
         </CardContent>
       </Card>
