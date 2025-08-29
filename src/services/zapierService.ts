@@ -121,11 +121,8 @@ export const zapierService = {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('Authentication required')
 
-      const { data, error } = await supabase.functions.invoke('zapier-auth', {
-        body: {
-          action: 'revoke',
-          key_id: keyId
-        }
+      const { data, error } = await supabase.functions.invoke('zapier-auth/revoke', {
+        body: { key_id: keyId }
       })
 
       if (error) throw error
