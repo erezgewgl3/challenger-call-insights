@@ -1338,6 +1338,44 @@ export type Database = {
           },
         ]
       }
+      zapier_circuit_breakers: {
+        Row: {
+          circuit_state: string
+          created_at: string | null
+          failure_count: number
+          id: string
+          last_failure_at: string | null
+          updated_at: string | null
+          webhook_id: string
+        }
+        Insert: {
+          circuit_state?: string
+          created_at?: string | null
+          failure_count?: number
+          id?: string
+          last_failure_at?: string | null
+          updated_at?: string | null
+          webhook_id: string
+        }
+        Update: {
+          circuit_state?: string
+          created_at?: string | null
+          failure_count?: number
+          id?: string
+          last_failure_at?: string | null
+          updated_at?: string | null
+          webhook_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zapier_circuit_breakers_webhook_id_fkey"
+            columns: ["webhook_id"]
+            isOneToOne: true
+            referencedRelation: "zapier_webhooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zapier_match_reviews: {
         Row: {
           analysis_id: string
@@ -1512,6 +1550,10 @@ export type Database = {
       cleanup_expired_password_reset_tokens: {
         Args: Record<PropertyKey, never>
         Returns: Json
+      }
+      cleanup_old_webhook_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: number
       }
       enhanced_file_validation: {
         Args:
