@@ -20,7 +20,7 @@ interface DeliveryAttempt {
   max_attempts: number
 }
 
-// Validate webhook URL format and security
+// Validate webhook URL format and security (SSRF protection)
 function validateWebhookUrl(url: string): { valid: boolean; error?: string } {
   try {
     const parsedUrl = new URL(url)
@@ -30,15 +30,45 @@ function validateWebhookUrl(url: string): { valid: boolean; error?: string } {
       return { valid: false, error: 'Webhook URL must use HTTPS' }
     }
     
-    // Basic format validation
-    if (!parsedUrl.hostname || parsedUrl.hostname === 'localhost') {
-      return { valid: false, error: 'Invalid webhook URL hostname' }
+    // Block private/internal networks (SSRF protection)
+    const hostname = parsedUrl.hostname.toLowerCase()
+    
+    // Block localhost variants
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+      return { valid: false, error: 'Localhost URLs are not allowed for security reasons' }
     }
     
-    // Prevent obvious internal/private IPs
-    const ip = parsedUrl.hostname
-    if (ip.match(/^(10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|127\.)/)) {
-      return { valid: false, error: 'Private IP addresses not allowed' }
+    // Block private IP ranges (RFC 1918)
+    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
+    const ipMatch = hostname.match(ipv4Regex)
+    
+    if (ipMatch) {
+      const [, a, b, c, d] = ipMatch.map(Number)
+      // 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 (link-local)
+      if ((a === 10) || 
+          (a === 172 && b >= 16 && b <= 31) || 
+          (a === 192 && b === 168) ||
+          (a === 169 && b === 254) || // Link-local
+          (a >= 224) || // Multicast and reserved
+          (a === 0) || (a === 127)) { // Reserved
+        return { valid: false, error: 'Private IP addresses are not allowed for security reasons' }
+      }
+    }
+    
+    // Block internal domains
+    const internalDomains = ['.local', '.internal', '.corp', '.home', '.lan', '.intranet']
+    if (internalDomains.some(domain => hostname.endsWith(domain))) {
+      return { valid: false, error: 'Internal domain names are not allowed for security reasons' }
+    }
+    
+    // URL length validation (prevent DoS)
+    if (url.length > 2048) {
+      return { valid: false, error: 'Webhook URL is too long (max 2048 characters)' }
+    }
+    
+    // Validate hostname format
+    if (hostname.length > 253 || hostname === '' || hostname.startsWith('.') || hostname.endsWith('.')) {
+      return { valid: false, error: 'Invalid hostname format' }
     }
     
     return { valid: true }
@@ -561,6 +591,18 @@ Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
+  }
+  
+  // Request size limit (prevent DoS)
+  const contentLength = req.headers.get('content-length')
+  if (contentLength && parseInt(contentLength) > 1024 * 1024) { // 1MB limit
+    return new Response(
+      JSON.stringify({ error: 'Request too large (max 1MB)' }),
+      { 
+        status: 413,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      }
+    )
   }
   
   try {

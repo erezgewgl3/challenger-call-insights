@@ -20,13 +20,16 @@ interface ValidationResult {
   expires_at?: string
 }
 
-// Generate secure 64-character API key
+// Generate secure 64-character API key using crypto.getRandomValues()
 function generateSecureKey(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
   let result = 'sw_' // Sales Whisperer prefix
   
+  const randomValues = new Uint8Array(60)
+  crypto.getRandomValues(randomValues)
+  
   for (let i = 0; i < 60; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
+    result += chars.charAt(randomValues[i] % chars.length)
   }
   
   return result
@@ -157,13 +160,21 @@ async function validateApiKey(apiKey: string): Promise<ValidationResult> {
       return { valid: false }
     }
     
-    // Check rate limiting (last hour)
+    // Check rate limiting (last hour) - count actual API usage by checking webhooks for this user
     const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    
+    // Get webhooks for this user's API key
+    const { data: userWebhooks } = await supabase
+      .from('zapier_webhooks')
+      .select('id')
+      .eq('user_id', keyRecord.user_id)
+    
+    const webhookIds = userWebhooks?.map(w => w.id) || []
     
     const { count: recentUsage, error: countError } = await supabase
       .from('zapier_webhook_logs')
       .select('*', { count: 'exact', head: true })
-      .eq('webhook_id', keyRecord.id)
+      .in('webhook_id', webhookIds)
       .gte('created_at', oneHourAgo)
     
     if (countError) {
@@ -201,24 +212,22 @@ async function validateApiKey(apiKey: string): Promise<ValidationResult> {
   }
 }
 
-// Revoke API key
-async function revokeApiKey(apiKey: string, userId: string): Promise<Response> {
+// Revoke API key by ID (secure approach)
+async function revokeApiKey(keyId: string, userId: string): Promise<Response> {
   try {
     console.log('Revoking API key for user:', userId)
     
-    const apiKeyHash = await hashApiKey(apiKey)
-    
-    // Update API key to inactive
-    const { data: updatedKey, error: updateError } = await supabase
+    // Verify the key belongs to the user before revoking
+    const { data: keyData, error: keyError } = await supabase
       .from('zapier_api_keys')
-      .update({ is_active: false })
-      .eq('api_key_hash', apiKeyHash)
+      .select('id')
+      .eq('id', keyId)
       .eq('user_id', userId)
-      .select()
+      .eq('is_active', true)
       .single()
-    
-    if (updateError || !updatedKey) {
-      console.error('Revoke error:', updateError)
+
+    if (keyError || !keyData) {
+      console.error('Revoke error:', keyError)
       return new Response(
         JSON.stringify({ error: 'API key not found or already revoked' }),
         { 
@@ -228,13 +237,31 @@ async function revokeApiKey(apiKey: string, userId: string): Promise<Response> {
       )
     }
     
+    // Update API key to inactive
+    const { error: updateError } = await supabase
+      .from('zapier_api_keys')
+      .update({ is_active: false })
+      .eq('id', keyId)
+      .eq('user_id', userId)
+    
+    if (updateError) {
+      console.error('Update error:', updateError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to revoke API key' }),
+        { 
+          status: 500, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
     // Also deactivate any webhooks using this API key
     await supabase
       .from('zapier_webhooks')
       .update({ is_active: false })
-      .eq('api_key_id', updatedKey.id)
+      .eq('api_key_id', keyId)
     
-    console.log('API key revoked successfully:', updatedKey.id)
+    console.log('API key revoked successfully:', keyId)
     
     return new Response(
       JSON.stringify({
@@ -397,7 +424,7 @@ Deno.serve(async (req) => {
           )
         }
         
-        // For revoke, we accept either JWT auth or API key auth
+        // For revoke, we require JWT auth
         let revokeUserId: string
         const revokeBody = await req.json()
         
@@ -426,9 +453,9 @@ Deno.serve(async (req) => {
           )
         }
         
-        if (!revokeBody.api_key) {
+        if (!revokeBody.key_id) {
           return new Response(
-            JSON.stringify({ error: 'api_key is required' }),
+            JSON.stringify({ error: 'key_id is required' }),
             { 
               status: 400, 
               headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -436,7 +463,7 @@ Deno.serve(async (req) => {
           )
         }
         
-        return await revokeApiKey(revokeBody.api_key, revokeUserId)
+        return await revokeApiKey(revokeBody.key_id, revokeUserId)
       
       default:
         return new Response(
