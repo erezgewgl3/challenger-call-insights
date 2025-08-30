@@ -679,7 +679,7 @@ Deno.serve(async (req) => {
         return await subscribeWebhook(subscriptionData, user.id)
       
       case 'list':
-        if (req.method !== 'GET') {
+        if (req.method !== 'GET' && req.method !== 'POST') {
           return new Response(
             JSON.stringify({ error: 'Method not allowed' }),
             { 
