@@ -297,14 +297,30 @@ Deno.serve(async (req) => {
     const url = new URL(req.url)
     const path = url.pathname.split('/').pop()
     
-    console.log('Zapier auth request:', req.method, path)
+    // Read request body once and try to get action from it as fallback for Supabase client calls
+    let body = null
+    let action = path
+    
+    if (req.method === 'POST' || req.method === 'DELETE') {
+      try {
+        body = await req.json()
+        // If path is empty or is the base function name, use action from body
+        if (!action || action === 'zapier-auth') {
+          action = body.action
+        }
+      } catch {
+        // If no body or invalid JSON, stick with path
+      }
+    }
+    
+    console.log('Zapier auth request:', req.method, action)
     
     // Extract and validate authorization header
     const authHeader = req.headers.get('Authorization')
     let currentUserId: string | null = null
     
     // For generate endpoint, we need JWT auth
-    if (path === 'generate') {
+    if (action === 'generate') {
       if (!authHeader?.startsWith('Bearer ')) {
         return new Response(
           JSON.stringify({ error: 'Missing or invalid authorization header' }),
@@ -332,7 +348,7 @@ Deno.serve(async (req) => {
       currentUserId = user.id
     }
     
-    switch (path) {
+    switch (action) {
       case 'generate':
         if (req.method !== 'POST') {
           return new Response(
@@ -344,7 +360,7 @@ Deno.serve(async (req) => {
           )
         }
         
-        const generateBody = await req.json()
+        const generateBody = body || await req.json()
         if (!generateBody.key_name) {
           return new Response(
             JSON.stringify({ error: 'key_name is required' }),
@@ -372,7 +388,7 @@ Deno.serve(async (req) => {
           )
         }
         
-        const validateBody = await req.json()
+        const validateBody = body || await req.json()
         if (!validateBody.api_key) {
           return new Response(
             JSON.stringify({ error: 'api_key is required' }),
@@ -426,7 +442,7 @@ Deno.serve(async (req) => {
         
         // For revoke, we require JWT auth
         let revokeUserId: string
-        const revokeBody = await req.json()
+        const revokeBody = body || await req.json()
         
         if (authHeader?.startsWith('Bearer ')) {
           const token = authHeader.split(' ')[1]

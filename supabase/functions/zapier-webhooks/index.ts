@@ -609,9 +609,23 @@ Deno.serve(async (req) => {
     const url = new URL(req.url)
     const pathParts = url.pathname.split('/').filter(p => p)
     const endpoint = pathParts[pathParts.length - 1]
-    const action = pathParts[pathParts.length - 2]
+    let action = pathParts[pathParts.length - 2]
     
-    console.log('Zapier webhooks request:', req.method, url.pathname)
+    // Read request body once and try to get action from it as fallback for Supabase client calls
+    let body = null
+    if (req.method !== 'GET') {
+      try {
+        body = await req.json()
+        // If no action from path or endpoint is the base function name, use action from body
+        if (!action || endpoint === 'zapier-webhooks') {
+          action = body.action
+        }
+      } catch {
+        // If no body or invalid JSON, stick with path-based action
+      }
+    }
+    
+    console.log('Zapier webhooks request:', req.method, action, endpoint)
     
     // Validate authentication
     const authHeader = req.headers.get('Authorization')
@@ -638,8 +652,8 @@ Deno.serve(async (req) => {
       )
     }
     
-    // Route requests
-    switch (endpoint) {
+    // Route requests based on action from body or path
+    switch (action) {
       case 'subscribe':
         if (req.method !== 'POST') {
           return new Response(
@@ -651,7 +665,7 @@ Deno.serve(async (req) => {
           )
         }
         
-        const subscriptionData = await req.json()
+        const subscriptionData = body || await req.json()
         if (!subscriptionData.api_key_id || !subscriptionData.trigger_type || !subscriptionData.webhook_url) {
           return new Response(
             JSON.stringify({ error: 'Missing required fields: api_key_id, trigger_type, webhook_url' }),
@@ -676,17 +690,38 @@ Deno.serve(async (req) => {
         }
         
         return await listWebhooks(user.id)
+
+      case 'unsubscribe':
+        if (req.method !== 'DELETE') {
+          return new Response(
+            JSON.stringify({ error: 'Method not allowed' }),
+            { 
+              status: 405, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+        
+        const unsubscribeData = body || {}
+        const webhookId = unsubscribeData.webhook_id || endpoint
+        return await unsubscribeWebhook(webhookId, user.id)
+
+      case 'test':
+        if (req.method !== 'POST') {
+          return new Response(
+            JSON.stringify({ error: 'Method not allowed' }),
+            { 
+              status: 405, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            }
+          )
+        }
+        
+        const testData = body || {}
+        const testWebhookId = testData.webhook_id || endpoint
+        return await testWebhook(testWebhookId, user.id)
       
       default:
-        // Handle parameterized routes
-        if (action === 'unsubscribe' && req.method === 'DELETE') {
-          return await unsubscribeWebhook(endpoint, user.id)
-        }
-        
-        if (action === 'test' && req.method === 'POST') {
-          return await testWebhook(endpoint, user.id)
-        }
-        
         return new Response(
           JSON.stringify({ error: 'Endpoint not found' }),
           { 
