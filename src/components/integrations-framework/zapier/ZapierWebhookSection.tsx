@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Webhook, Trash2, TestTube, Clock, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
-import { useZapierWebhooks } from '@/hooks/useZapier';
+import { useZapierIntegration } from '@/hooks/useZapier';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -19,7 +19,8 @@ const triggerTypes = [
 ];
 
 export function ZapierWebhookSection() {
-  const { webhooks, subscribeWebhook, unsubscribeWebhook, testWebhook, isSubscribing, isUnsubscribing, isTesting } = useZapierWebhooks();
+  const { webhooks, apiKeys, setupStatus } = useZapierIntegration();
+  const { subscribeWebhook, unsubscribeWebhook, testWebhook, isSubscribing, isUnsubscribing, isTesting } = webhooks;
   const { toast } = useToast();
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
@@ -53,8 +54,22 @@ export function ZapierWebhookSection() {
       return;
     }
 
+    // Find first active API key with webhook:subscribe scope
+    const validApiKey = apiKeys.apiKeys.find(key => 
+      key.is_active && key.scopes?.includes('webhook:subscribe')
+    );
+
+    if (!validApiKey) {
+      toast({
+        title: 'No Valid API Key',
+        description: 'Please generate an API key with webhook:subscribe permissions first.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     subscribeWebhook({
-      api_key_id: 'default',
+      api_key_id: validApiKey.id,
       webhook_url: webhookUrl.trim(),
       trigger_type: triggerType
     });
@@ -97,7 +112,12 @@ export function ZapierWebhookSection() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!showCreateForm ? (
+          {setupStatus.step === 'api-key' ? (
+            <div className="text-center py-4 text-muted-foreground">
+              <p className="mb-2">{setupStatus.message}</p>
+              <p className="text-sm">Go to the API Keys tab to generate your first API key.</p>
+            </div>
+          ) : !showCreateForm ? (
             <Button onClick={() => setShowCreateForm(true)} className="w-full">
               <Plus className="h-4 w-4 mr-2" />
               Create Webhook
@@ -170,7 +190,7 @@ export function ZapierWebhookSection() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {webhooks.length === 0 ? (
+          {webhooks.webhooks.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Webhook className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No webhooks configured yet</p>
@@ -178,7 +198,7 @@ export function ZapierWebhookSection() {
             </div>
           ) : (
             <div className="space-y-4">
-              {webhooks.map((webhook) => {
+              {webhooks.webhooks.map((webhook) => {
                 const successRate = getSuccessRate(webhook);
                 const statusColor = webhook.is_active ? 
                   (successRate >= 90 ? 'text-green-600' : successRate >= 70 ? 'text-yellow-600' : 'text-red-600') :
