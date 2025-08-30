@@ -36,6 +36,11 @@ export function ZapierWebhookSection() {
   };
 
   const handleSubscribeWebhook = async () => {
+    console.log('=== DEBUG: Starting webhook subscription ===');
+    console.log('webhookUrl:', webhookUrl);
+    console.log('triggerType:', triggerType);
+    console.log('apiKeys.apiKeys:', apiKeys.apiKeys);
+    
     if (!webhookUrl.trim() || !triggerType) {
       toast({
         title: 'Validation Error',
@@ -59,6 +64,10 @@ export function ZapierWebhookSection() {
       key.is_active && key.scopes?.includes('webhook:subscribe')
     );
 
+    console.log('=== DEBUG: API Key search ===');
+    console.log('Found validApiKey:', validApiKey);
+    console.log('validApiKey?.id:', validApiKey?.id);
+
     if (!validApiKey) {
       toast({
         title: 'No Valid API Key',
@@ -68,11 +77,23 @@ export function ZapierWebhookSection() {
       return;
     }
 
-    subscribeWebhook({
+    const subscriptionData = {
       api_key_id: validApiKey.id,
       webhook_url: webhookUrl.trim(),
       trigger_type: triggerType
-    });
+    };
+
+    console.log('=== DEBUG: Subscription data ===');
+    console.log('subscriptionData:', subscriptionData);
+
+    try {
+      const result = await subscribeWebhook(subscriptionData);
+      console.log('=== DEBUG: Subscription result ===');
+      console.log('result:', result);
+    } catch (error) {
+      console.error('=== DEBUG: Subscription error ===');
+      console.error('error:', error);
+    }
     
     setWebhookUrl('');
     setTriggerType('');
