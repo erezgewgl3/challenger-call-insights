@@ -1,10 +1,16 @@
-
-import { useState, useEffect, createContext, useContext } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { authService, type UserRole } from '@/services/authService'
 import { toast } from 'sonner'
-import { authService, AuthUser, UserRole } from '@/services/authService'
-import { AUTH_ROLES, AUTH_MESSAGES, AUTH_CONFIG } from '@/constants/auth'
+
+// Demo user type
+interface DemoUser {
+  id: string
+  email: string
+  role: UserRole
+  created_at: string
+}
 
 interface AuthContextType {
   user: AuthUser | null
@@ -15,13 +21,18 @@ interface AuthContextType {
   isSalesUser: boolean
 }
 
+interface AuthUser extends User {
+  role?: UserRole
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
 
+  // Enhanced user data fetching with role and validation
   const enhanceUserWithRoleAsync = async (authUser: User, mounted: boolean) => {
     if (!mounted) return
     
@@ -130,14 +141,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Set user with default role immediately
       const userWithDefaultRole: AuthUser = {
         ...session.user,
-        role: AUTH_ROLES.SALES_USER as UserRole
+        role: 'sales_user' as UserRole
       }
       setUser(userWithDefaultRole)
 
       // Enhance with real role asynchronously
       setTimeout(() => {
         enhanceUserWithRoleAsync(session.user, mounted)
-      }, AUTH_CONFIG.ROLE_FETCH_DELAY)
+      }, 100)
     } else {
       setUser(null)
     }
@@ -165,39 +176,91 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Check for demo mode on initialization
   useEffect(() => {
-    let mounted = true
-
-    // Set up auth state change handler
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        handleAuthStateChange(session, mounted)
+    const checkDemoMode = () => {
+      const demoMode = localStorage.getItem('demo_mode')
+      const demoUserData = localStorage.getItem('demo_user')
+      
+      if (demoMode === 'true' && demoUserData) {
+        try {
+          const demoUser: DemoUser = JSON.parse(demoUserData)
+          setUser({
+            id: demoUser.id,
+            email: demoUser.email,
+            role: demoUser.role,
+            created_at: demoUser.created_at,
+            aud: 'authenticated',
+            app_metadata: {},
+            user_metadata: {}
+          } as AuthUser)
+          setLoading(false)
+          return true
+        } catch (error) {
+          console.error('Error parsing demo user:', error)
+          localStorage.removeItem('demo_mode')
+          localStorage.removeItem('demo_user')
+        }
       }
-    )
+      return false
+    }
 
-    // Handle initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      handleAuthStateChange(session, mounted)
-    })
+    if (!checkDemoMode()) {
+      // Only initialize Supabase auth if not in demo mode
+      let mounted = true
 
-    return () => {
-      mounted = false
-      subscription.unsubscribe()
+      // Set up auth state change handler
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          handleAuthStateChange(session, mounted)
+        }
+      )
+
+      // Handle initial session check
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        handleAuthStateChange(session, mounted)
+      })
+
+      return () => {
+        mounted = false
+        subscription.unsubscribe()
+      }
     }
   }, [])
 
   const signOut = async () => {
     try {
+      // Check if we're in demo mode
+      const demoMode = localStorage.getItem('demo_mode')
+      
+      if (demoMode === 'true') {
+        // Clear demo mode
+        localStorage.removeItem('demo_mode')
+        localStorage.removeItem('demo_user')
+        setUser(null)
+        setSession(null)
+        toast.success('Demo session ended')
+        return
+      }
+
       const { error } = await authService.signOut()
       if (error) {
         console.error('Sign out error:', error)
-        toast.error(AUTH_MESSAGES.SIGN_OUT_ERROR)
+        toast.error('Failed to sign out properly')
       } else {
-        toast.success(AUTH_MESSAGES.SIGN_OUT_SUCCESS)
+        toast.success('Signed out successfully')
       }
+      
+      // Always clear local state regardless of API success
+      setUser(null)
+      setSession(null)
     } catch (error) {
       console.error('Sign out error:', error)
-      toast.error(AUTH_MESSAGES.SIGN_OUT_ERROR)
+      toast.error('Failed to sign out')
+      
+      // Still clear local state on error
+      setUser(null)
+      setSession(null)
     }
   }
 
@@ -206,8 +269,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     signOut,
-    isAdmin: user?.role === AUTH_ROLES.ADMIN,
-    isSalesUser: user?.role === AUTH_ROLES.SALES_USER
+    isAdmin: user?.role === 'admin',
+    isSalesUser: user?.role === 'sales_user'
   }
 
   return (
