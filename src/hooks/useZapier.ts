@@ -92,11 +92,27 @@ export function useZapierWebhooks() {
           variant: "default"
         })
       } else {
+        const isAuthError = result.error?.includes('Authentication') || result.error?.includes('expired')
         toast({
           title: "Subscription Failed",
           description: result.error || "Failed to subscribe webhook",
           variant: "destructive"
         })
+        if (isAuthError) {
+          setTimeout(() => window.location.reload(), 2000)
+        }
+      }
+    },
+    onError: (error) => {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+      const isAuthError = errorMessage.includes('Authentication') || errorMessage.includes('expired')
+      toast({
+        title: "Subscription Error",
+        description: errorMessage,
+        variant: "destructive"
+      })
+      if (isAuthError) {
+        setTimeout(() => window.location.reload(), 2000)
       }
     }
   })

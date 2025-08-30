@@ -74,11 +74,17 @@ export function ZapierWebhookSection() {
       trigger_type: triggerType
     };
 
-    subscribeWebhook(subscriptionData);
-    
-    setWebhookUrl('');
-    setTriggerType('');
-    setShowCreateForm(false);
+    try {
+      await subscribeWebhook(subscriptionData);
+      
+      // Only clear form on successful subscription
+      setWebhookUrl('');
+      setTriggerType('');
+      setShowCreateForm(false);
+    } catch (error) {
+      // Error is handled by the mutation's onError callback
+      console.error('Webhook subscription failed:', error);
+    }
   };
 
   const handleUnsubscribeWebhook = async (webhookId: string) => {

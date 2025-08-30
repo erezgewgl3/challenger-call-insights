@@ -629,7 +629,11 @@ Deno.serve(async (req) => {
     
     // Validate authentication
     const authHeader = req.headers.get('Authorization')
+    console.log('Authorization header present:', !!authHeader)
+    console.log('Authorization format correct:', authHeader?.startsWith('Bearer '))
+    
     if (!authHeader?.startsWith('Bearer ')) {
+      console.error('Authentication failed: Missing or malformed Authorization header')
       return new Response(
         JSON.stringify({ error: 'Missing or invalid authorization header' }),
         { 
@@ -640,17 +644,30 @@ Deno.serve(async (req) => {
     }
     
     const token = authHeader.split(' ')[1]
+    console.log('Token length:', token?.length)
+    
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
     
     if (authError || !user) {
+      console.error('Authentication failed:', {
+        hasUser: !!user,
+        errorMessage: authError?.message,
+        errorName: authError?.name,
+        userId: user?.id
+      })
       return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
+        JSON.stringify({ 
+          error: 'Invalid authentication token',
+          details: authError?.message || 'User not found'
+        }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
+    
+    console.log(`Authenticated user: ${user.id}`)
     
     // Route requests based on action from body or path
     switch (action) {
