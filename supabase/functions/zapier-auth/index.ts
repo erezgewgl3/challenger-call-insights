@@ -430,7 +430,8 @@ Deno.serve(async (req) => {
         )
       
       case 'revoke':
-        if (req.method !== 'DELETE') {
+        // Accept both DELETE and POST methods for revoke action
+        if (req.method !== 'DELETE' && req.method !== 'POST') {
           return new Response(
             JSON.stringify({ error: 'Method not allowed' }),
             { 
