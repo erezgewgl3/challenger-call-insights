@@ -13,7 +13,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { authService } from '@/services/authService'
 import { AUTH_ROLES } from '@/constants/auth'
 import { resetPasswordForUser } from '@/utils/passwordResetUtils'
-import { DemoLoginCard } from '@/components/demo/DemoLoginCard'
 
 export function LoginForm() {
   const {
@@ -31,11 +30,6 @@ export function LoginForm() {
   } = useAuthForm()
   
   const navigate = useNavigate()
-  
-  // Check if we're in preview mode (no actual domain)
-  const isPreviewMode = window.location.hostname.includes('lovable') || 
-                       window.location.hostname === 'localhost' ||
-                       window.location.hostname.includes('preview')
 
   const getRedirectPath = (userRole: string) => {
     return userRole === AUTH_ROLES.ADMIN ? '/admin' : '/dashboard'
@@ -151,35 +145,6 @@ export function LoginForm() {
     }
   }
 
-  const handleDemoLogin = async (role: 'sales_user' | 'admin') => {
-    setLoading(true)
-    setError('')
-
-    try {
-      // Create a demo session without actual Supabase auth
-      const demoUser = {
-        id: role === 'admin' ? 'demo-admin-user' : 'demo-sales-user',
-        email: role === 'admin' ? 'demo@admin.saleswhisperer.com' : 'demo@sales.saleswhisperer.com',
-        role: role,
-        created_at: new Date().toISOString()
-      }
-
-      // Store demo user in localStorage for demo mode
-      localStorage.setItem('demo_user', JSON.stringify(demoUser))
-      localStorage.setItem('demo_mode', 'true')
-      
-      toast.success(`Welcome to the ${role === 'admin' ? 'Admin' : 'Sales'} Demo!`)
-      
-      const redirectPath = getRedirectPath(role)
-      navigate(redirectPath)
-    } catch (error) {
-      setError('Demo login failed')
-      toast.error('Demo login failed')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   return (
     <div className="h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex overflow-hidden">
       {/* Left Side - Simplified Value Proposition */}
@@ -208,22 +173,6 @@ export function LoginForm() {
               Access Your Sales Intelligence
             </h2>
           </div>
-
-          {/* Demo Mode Card for Preview */}
-          {isPreviewMode && (
-            <div className="mb-8">
-              <DemoLoginCard onDemoLogin={handleDemoLogin} loading={loading} />
-              
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-gray-200" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-white px-2 text-gray-500">Or use credentials</span>
-                </div>
-              </div>
-            </div>
-          )}
 
           <form onSubmit={handleLogin} className="space-y-4">
             {error && (
