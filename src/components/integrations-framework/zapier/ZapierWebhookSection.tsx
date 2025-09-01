@@ -36,7 +36,14 @@ export function ZapierWebhookSection() {
   };
 
   const handleSubscribeWebhook = async () => {
+    console.log('=== WEBHOOK CREATION DEBUG ===');
+    console.log('Webhook URL:', webhookUrl);
+    console.log('Trigger Type:', triggerType);
+    console.log('Available API Keys:', apiKeys.apiKeys);
+    console.log('Setup Status:', setupStatus);
+
     if (!webhookUrl.trim() || !triggerType) {
+      console.log('❌ Validation failed: Missing URL or trigger type');
       toast({
         title: 'Validation Error',
         description: 'Please provide a valid HTTPS webhook URL and select a trigger type.',
@@ -46,6 +53,7 @@ export function ZapierWebhookSection() {
     }
 
     if (!validateWebhookUrl(webhookUrl)) {
+      console.log('❌ URL validation failed:', webhookUrl);
       toast({
         title: 'Invalid URL',
         description: 'Webhook URL must be a valid HTTPS URL.',
@@ -59,7 +67,10 @@ export function ZapierWebhookSection() {
       key.is_active && key.scopes?.includes('webhook:subscribe')
     );
 
+    console.log('Valid API Key found:', !!validApiKey, validApiKey?.id);
+
     if (!validApiKey) {
+      console.log('❌ No valid API key with webhook:subscribe scope');
       toast({
         title: 'No Valid API Key',
         description: 'Please generate an API key with webhook:subscribe permissions first.',
@@ -74,16 +85,23 @@ export function ZapierWebhookSection() {
       trigger_type: triggerType
     };
 
+    console.log('📤 Calling subscribeWebhook with data:', subscriptionData);
+
     try {
-      await subscribeWebhook(subscriptionData);
+      const result = await subscribeWebhook(subscriptionData);
+      console.log('✅ Webhook subscription result:', result);
       
       // Only clear form on successful subscription
       setWebhookUrl('');
       setTriggerType('');
       setShowCreateForm(false);
     } catch (error) {
-      // Error is handled by the mutation's onError callback
-      console.error('Webhook subscription failed:', error);
+      console.error('❌ Webhook subscription failed with error:', error);
+      console.error('Error details:', {
+        message: error?.message,
+        stack: error?.stack,
+        name: error?.name
+      });
     }
   };
 

@@ -81,9 +81,12 @@ export function useZapierWebhooks() {
   })
 
   const subscribeMutation = useMutation({
-    mutationFn: (subscription: Parameters<typeof zapierService.subscribeWebhook>[0]) =>
-      zapierService.subscribeWebhook(subscription),
+    mutationFn: (subscription: Parameters<typeof zapierService.subscribeWebhook>[0]) => {
+      console.log('🚀 Mutation starting with subscription data:', subscription);
+      return zapierService.subscribeWebhook(subscription);
+    },
     onSuccess: (result) => {
+      console.log('✅ Mutation success with result:', result);
       if (result.success) {
         queryClient.invalidateQueries({ queryKey: ['zapier-webhooks'] })
         toast({
@@ -92,6 +95,7 @@ export function useZapierWebhooks() {
           variant: "default"
         })
       } else {
+        console.error('❌ Mutation success but result indicates failure:', result.error);
         const isAuthError = result.error?.includes('Authentication') || result.error?.includes('expired')
         toast({
           title: "Subscription Failed",
@@ -104,10 +108,11 @@ export function useZapierWebhooks() {
       }
     },
     onError: (error) => {
+      console.error('❌ Mutation error:', error);
       const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
       const isAuthError = errorMessage.includes('Authentication') || errorMessage.includes('expired')
       toast({
-        title: "Subscription Error",
+        title: "Subscription Error", 
         description: errorMessage,
         variant: "destructive"
       })
