@@ -627,38 +627,31 @@ Deno.serve(async (req) => {
     
     console.log('Zapier webhooks request:', req.method, action, endpoint)
     
-    // Validate authentication
-    const authHeader = req.headers.get('Authorization')
+    // Validate authentication with enhanced error handling
+    const authHeader = req.headers.get('authorization')
     console.log('Authorization header present:', !!authHeader)
     console.log('Authorization format correct:', authHeader?.startsWith('Bearer '))
     
-    if (!authHeader?.startsWith('Bearer ')) {
-      console.error('Authentication failed: Missing or malformed Authorization header')
+    if (!authHeader) {
+      console.error('Authentication failed: No authorization header provided')
       return new Response(
-        JSON.stringify({ error: 'Missing or invalid authorization header' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Missing Authorization header. Please include "Authorization: Bearer <token>" in your request.' 
+        }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
-    
-    const token = authHeader.split(' ')[1]
-    console.log('Token length:', token?.length)
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
-    
-    if (authError || !user) {
-      console.error('Authentication failed:', {
-        hasUser: !!user,
-        errorMessage: authError?.message,
-        errorName: authError?.name,
-        userId: user?.id
-      })
+
+    if (!authHeader.startsWith('Bearer ')) {
+      console.error('Authentication failed: Malformed authorization header format')
       return new Response(
         JSON.stringify({ 
-          error: 'Invalid authentication token',
-          details: authError?.message || 'User not found'
+          success: false, 
+          error: 'Invalid Authorization header format. Expected "Bearer <token>".' 
         }),
         { 
           status: 401, 
@@ -667,7 +660,92 @@ Deno.serve(async (req) => {
       )
     }
     
-    console.log(`Authenticated user: ${user.id}`)
+    const token = authHeader.replace('Bearer ', '').trim()
+    console.log('Token extracted, length:', token?.length)
+    console.log('Token preview:', token ? token.substring(0, 20) + '...' : 'empty')
+    
+    if (!token) {
+      console.error('Authentication failed: Empty token')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Empty authentication token provided' 
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+
+    // Verify JWT token with detailed error logging
+    let user, authError
+    try {
+      const authResult = await supabase.auth.getUser(token)
+      user = authResult.data?.user
+      authError = authResult.error
+    } catch (tokenError) {
+      console.error('Token verification error:', tokenError)
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'Token verification failed - invalid token format or network error'
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
+    if (authError) {
+      console.error('Authentication error details:', {
+        message: authError.message,
+        name: authError.name,
+        status: authError.status,
+        code: authError.code
+      })
+      
+      // Provide specific error messages based on common auth error types
+      let errorMessage = 'Authentication failed'
+      if (authError.message?.includes('expired')) {
+        errorMessage = 'Authentication token has expired. Please log in again.'
+      } else if (authError.message?.includes('invalid')) {
+        errorMessage = 'Invalid authentication token. Please log in again.'
+      } else if (authError.message?.includes('malformed')) {
+        errorMessage = 'Malformed authentication token. Please log in again.'
+      }
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: errorMessage,
+          auth_error: authError.message
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
+    if (!user) {
+      console.error('Authentication failed: No user found for valid token')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'No user found for the provided token. Please log in again.'
+        }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      )
+    }
+    
+    console.log('Authenticated user:', user.id)
+    console.log('User email:', user.email)
+    console.log('User roles:', user.user_metadata?.roles || 'none')
     
     // Route requests based on action from body or path
     switch (action) {
