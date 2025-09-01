@@ -553,15 +553,15 @@ async function testWebhook(webhookId: string, userId: string): Promise<Response>
       }
     }
     
-    // Deliver webhook asynchronously
-    EdgeRuntime.waitUntil(
-      deliverWebhook({
-        webhook_id: webhookId,
-        trigger_data: testPayload,
-        attempt_count: 1,
-        max_attempts: 1 // Single attempt for tests
-      })
-    )
+    // Deliver webhook asynchronously (no await to prevent blocking)
+    deliverWebhook({
+      webhook_id: webhookId,
+      trigger_data: testPayload,
+      attempt_count: 1,
+      max_attempts: 1 // Single attempt for tests
+    }).catch(error => {
+      console.error('Test webhook delivery error:', error)
+    })
     
     return new Response(
       JSON.stringify({
