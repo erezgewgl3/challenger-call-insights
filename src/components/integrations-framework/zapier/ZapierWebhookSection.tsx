@@ -68,12 +68,24 @@ export function ZapierWebhookSection() {
     );
 
     console.log('Valid API Key found:', !!validApiKey, validApiKey?.id);
+    console.log('All API keys:', apiKeys.apiKeys.map(k => ({ id: k.id, active: k.is_active, scopes: k.scopes })));
 
-    if (!validApiKey) {
+    if (!validApiKey || !validApiKey.id) {
       console.log('❌ No valid API key with webhook:subscribe scope');
       toast({
         title: 'No Valid API Key',
         description: 'Please generate an API key with webhook:subscribe permissions first.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Additional validation for UUID format
+    if (!validApiKey.id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.log('❌ Invalid API key ID format:', validApiKey.id);
+      toast({
+        title: 'Invalid API Key',
+        description: 'API key format is invalid. Please regenerate your API key.',
         variant: 'destructive'
       });
       return;

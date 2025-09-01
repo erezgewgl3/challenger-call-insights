@@ -335,6 +335,23 @@ async function subscribeWebhook(subscription: WebhookSubscription, userId: strin
     }
     console.log('✅ URL validation passed')
     
+    // Validate API key ID format first
+    if (!subscription.api_key_id || subscription.api_key_id === 'default' || !subscription.api_key_id.match(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)) {
+      console.log('❌ Invalid API key ID format:', subscription.api_key_id);
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          error: 'Invalid API key ID format. Please ensure you have generated a valid API key.',
+          details: 'API key ID must be a valid UUID',
+          code: 'INVALID_API_KEY_FORMAT'
+        }),
+        { 
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        }
+      );
+    }
+
     // Verify API key exists and belongs to user
     console.log('🔍 Checking API key:', subscription.api_key_id)
     const { data: apiKey, error: keyError } = await supabase
