@@ -1551,6 +1551,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: Json
       }
+      cleanup_old_audit_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
       cleanup_old_webhook_logs: {
         Args: Record<PropertyKey, never>
         Returns: number
