@@ -155,16 +155,16 @@ export const zapierService = {
   // Webhook management endpoints
   async subscribeWebhook(subscription: WebhookSubscription) {
     try {
-      // Refresh session to ensure valid authentication
-      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession()
-      if (sessionError) {
-        console.warn('Session refresh failed, trying existing session:', sessionError)
-        const { data: { session: existingSession } } = await supabase.auth.getSession()
-        if (!existingSession) throw new Error('Authentication required - please log in again')
+      console.log('🔐 Starting webhook subscription for:', subscription)
+      
+      // Simplified authentication - let Supabase handle token management
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        console.error('❌ No active session found')
+        throw new Error('Authentication required - please log in')
       }
 
-      const activeSession = session || (await supabase.auth.getSession()).data.session
-      if (!activeSession) throw new Error('Authentication required - please log in again')
+      console.log('✅ Session found, user ID:', session.user.id)
 
       const { data, error } = await supabase.functions.invoke('zapier-webhooks', {
         body: {
@@ -173,15 +173,23 @@ export const zapierService = {
         }
       })
 
+      console.log('📡 Edge function response:', { data, error })
+
       if (error) {
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          throw new Error('Authentication expired - please refresh and try again')
-        }
+        console.error('❌ Edge function error:', error)
         throw error
       }
+      
+      if (!data || !data.success) {
+        const errorMsg = data?.error || 'Unknown error from webhook service'
+        console.error('❌ Service error:', errorMsg)
+        throw new Error(errorMsg)
+      }
+
+      console.log('✅ Webhook subscription successful')
       return { success: true, data }
     } catch (error) {
-      console.error('Subscribe webhook error:', error)
+      console.error('❌ Subscribe webhook error:', error)
       const errorMessage = error instanceof Error ? error.message : 'Failed to subscribe webhook'
       return { success: false, error: errorMessage }
     }
@@ -189,27 +197,14 @@ export const zapierService = {
 
   async listWebhooks(): Promise<{ success: boolean; data?: ZapierWebhook[]; error?: string }> {
     try {
-      // Refresh session to ensure valid authentication
-      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession()
-      if (sessionError) {
-        console.warn('Session refresh failed, trying existing session:', sessionError)
-        const { data: { session: existingSession } } = await supabase.auth.getSession()
-        if (!existingSession) throw new Error('Authentication required - please log in again')
-      }
-
-      const activeSession = session || (await supabase.auth.getSession()).data.session
-      if (!activeSession) throw new Error('Authentication required - please log in again')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Authentication required')
 
       const { data, error } = await supabase.functions.invoke('zapier-webhooks', {
         body: { action: 'list' }
       })
 
-      if (error) {
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          throw new Error('Authentication expired - please refresh and try again')
-        }
-        throw error
-      }
+      if (error) throw error
       return { success: true, data: data?.webhooks || [] }
     } catch (error) {
       console.error('List webhooks error:', error)
@@ -220,16 +215,8 @@ export const zapierService = {
 
   async unsubscribeWebhook(webhookId: string) {
     try {
-      // Refresh session to ensure valid authentication
-      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession()
-      if (sessionError) {
-        console.warn('Session refresh failed, trying existing session:', sessionError)
-        const { data: { session: existingSession } } = await supabase.auth.getSession()
-        if (!existingSession) throw new Error('Authentication required - please log in again')
-      }
-
-      const activeSession = session || (await supabase.auth.getSession()).data.session
-      if (!activeSession) throw new Error('Authentication required - please log in again')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Authentication required')
 
       const { data, error } = await supabase.functions.invoke('zapier-webhooks', {
         body: {
@@ -238,12 +225,7 @@ export const zapierService = {
         }
       })
 
-      if (error) {
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          throw new Error('Authentication expired - please refresh and try again')
-        }
-        throw error
-      }
+      if (error) throw error
       return { success: true, data }
     } catch (error) {
       console.error('Unsubscribe webhook error:', error)
@@ -254,16 +236,8 @@ export const zapierService = {
 
   async testWebhook(webhookId: string) {
     try {
-      // Refresh session to ensure valid authentication
-      const { data: { session }, error: sessionError } = await supabase.auth.refreshSession()
-      if (sessionError) {
-        console.warn('Session refresh failed, trying existing session:', sessionError)
-        const { data: { session: existingSession } } = await supabase.auth.getSession()
-        if (!existingSession) throw new Error('Authentication required - please log in again')
-      }
-
-      const activeSession = session || (await supabase.auth.getSession()).data.session
-      if (!activeSession) throw new Error('Authentication required - please log in again')
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Authentication required')
 
       const { data, error } = await supabase.functions.invoke('zapier-webhooks', {
         body: {
@@ -272,12 +246,7 @@ export const zapierService = {
         }
       })
 
-      if (error) {
-        if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
-          throw new Error('Authentication expired - please refresh and try again')
-        }
-        throw error
-      }
+      if (error) throw error
       return { success: true, data }
     } catch (error) {
       console.error('Test webhook error:', error)

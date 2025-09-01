@@ -81,9 +81,20 @@ export function useZapierWebhooks() {
   })
 
   const subscribeMutation = useMutation({
-    mutationFn: (subscription: Parameters<typeof zapierService.subscribeWebhook>[0]) => {
+    mutationFn: async (subscription: Parameters<typeof zapierService.subscribeWebhook>[0]) => {
       console.log('🚀 Mutation starting with subscription data:', subscription);
-      return zapierService.subscribeWebhook(subscription);
+      
+      // First attempt
+      let result = await zapierService.subscribeWebhook(subscription);
+      
+      // If authentication error, wait and retry once
+      if (!result.success && result.error?.includes('Authentication')) {
+        console.log('🔄 Authentication error, retrying in 1 second...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        result = await zapierService.subscribeWebhook(subscription);
+      }
+      
+      return result;
     },
     onSuccess: (result) => {
       console.log('✅ Mutation success with result:', result);
@@ -103,7 +114,11 @@ export function useZapierWebhooks() {
           variant: "destructive"
         })
         if (isAuthError) {
-          setTimeout(() => window.location.reload(), 2000)
+          toast({
+            title: "Session Expired",
+            description: "Please refresh the page to continue.",
+            variant: "destructive"
+          })
         }
       }
     },
@@ -117,7 +132,11 @@ export function useZapierWebhooks() {
         variant: "destructive"
       })
       if (isAuthError) {
-        setTimeout(() => window.location.reload(), 2000)
+        toast({
+          title: "Session Expired",
+          description: "Please refresh the page to continue.",
+          variant: "destructive"
+        })
       }
     }
   })

@@ -317,21 +317,26 @@ async function deliverWebhook(deliveryAttempt: DeliveryAttempt): Promise<void> {
 // Subscribe to webhook
 async function subscribeWebhook(subscription: WebhookSubscription, userId: string): Promise<Response> {
   try {
-    console.log('Creating webhook subscription for user:', userId)
+    console.log('=== SUBSCRIBE WEBHOOK DEBUG ===')
+    console.log('User ID:', userId)
+    console.log('Subscription data:', subscription)
     
     // Validate webhook URL
     const urlValidation = validateWebhookUrl(subscription.webhook_url)
     if (!urlValidation.valid) {
+      console.error('❌ URL validation failed:', urlValidation.error)
       return new Response(
-        JSON.stringify({ error: urlValidation.error }),
+        JSON.stringify({ success: false, error: urlValidation.error }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
+    console.log('✅ URL validation passed')
     
     // Verify API key exists and belongs to user
+    console.log('🔍 Checking API key:', subscription.api_key_id)
     const { data: apiKey, error: keyError } = await supabase
       .from('zapier_api_keys')
       .select('*')
@@ -340,48 +345,77 @@ async function subscribeWebhook(subscription: WebhookSubscription, userId: strin
       .eq('is_active', true)
       .single()
     
+    console.log('API key query result:', { apiKey: !!apiKey, keyError })
+    
     if (keyError || !apiKey) {
+      console.error('❌ API key validation failed:', keyError)
       return new Response(
-        JSON.stringify({ error: 'Invalid API key' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Invalid API key - not found or not owned by user',
+          details: keyError?.message 
+        }),
         { 
           status: 401, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
+    console.log('✅ API key found:', apiKey.key_name)
     
     // Check if webhook scopes include webhook:subscribe
+    console.log('🔍 Checking API key scopes:', apiKey.scopes)
     if (!apiKey.scopes.includes('webhook:subscribe')) {
+      console.error('❌ API key missing webhook:subscribe scope')
       return new Response(
-        JSON.stringify({ error: 'API key does not have webhook:subscribe scope' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'API key does not have webhook:subscribe scope' 
+        }),
         { 
           status: 403, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
+    console.log('✅ API key has webhook:subscribe scope')
     
     // Generate secret token if not provided
     const secretToken = subscription.secret_token || crypto.randomUUID()
     
     // Create webhook subscription
+    console.log('💾 Inserting webhook into database...')
+    const insertData = {
+      user_id: userId,
+      api_key_id: subscription.api_key_id,
+      trigger_type: subscription.trigger_type,
+      webhook_url: subscription.webhook_url,
+      secret_token: secretToken,
+      is_active: true
+    }
+    console.log('Insert data:', insertData)
+    
     const { data: webhook, error: insertError } = await supabase
       .from('zapier_webhooks')
-      .insert({
-        user_id: userId,
-        api_key_id: subscription.api_key_id,
-        trigger_type: subscription.trigger_type,
-        webhook_url: subscription.webhook_url,
-        secret_token: secretToken,
-        is_active: true
-      })
+      .insert(insertData)
       .select()
       .single()
     
     if (insertError) {
-      console.error('Webhook subscription error:', insertError)
+      console.error('❌ Database insertion error:', insertError)
+      console.error('Insert error details:', {
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint,
+        code: insertError.code
+      })
       return new Response(
-        JSON.stringify({ error: 'Failed to create webhook subscription' }),
+        JSON.stringify({ 
+          success: false, 
+          error: 'Failed to create webhook subscription',
+          details: insertError.message,
+          code: 'DATABASE_ERROR'
+        }),
         { 
           status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -389,7 +423,7 @@ async function subscribeWebhook(subscription: WebhookSubscription, userId: strin
       )
     }
     
-    console.log('Webhook subscription created:', webhook.id)
+    console.log('✅ Webhook subscription created successfully:', webhook.id)
     
     return new Response(
       JSON.stringify({
@@ -407,9 +441,14 @@ async function subscribeWebhook(subscription: WebhookSubscription, userId: strin
     )
     
   } catch (error) {
-    console.error('Subscribe webhook error:', error)
+    console.error('💥 Subscribe webhook error:', error)
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ 
+        success: false, 
+        error: 'Internal server error during webhook creation',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }),
       { 
         status: 500, 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
