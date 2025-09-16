@@ -62,12 +62,16 @@ export function ZapierConnectionTest() {
     // Test Database Connection
     setTestResults([...tests]);
     try {
+      console.debug('[ZapierConnectionTest] Testing connection with key:', testApiKey?.substring(0, 8) + '...');
       const connectionResult = await testConnection(testApiKey);
-      setRawResponse(connectionResult?.data ?? null);
+      console.debug('[ZapierConnectionTest] Connection result:', connectionResult);
       
-      if (connectionResult.success && connectionResult.data) {
+      // Always set raw response - even on failures
+      setRawResponse((connectionResult as any)?.data ?? { error: connectionResult?.error, success: false });
+      
+      if (connectionResult.success && (connectionResult as any).data) {
         // Fix: Access nested results from edge function response
-        const results = connectionResult.data.results || {};
+        const results = (connectionResult as any).data.results || {};
         const database = results.database || {};
         const authentication = results.authentication || {};
         
@@ -87,7 +91,7 @@ export function ZapierConnectionTest() {
           message: authentication.valid ? 'API authentication successful' : 'API authentication failed',
           details: authentication.valid 
             ? `Valid API key for user ${authentication.user_id || 'unknown'}` 
-            : connectionResult.data.message || authentication.reason || 'Authentication failed'
+            : (connectionResult as any).data?.message || authentication.reason || connectionResult.error || 'Authentication failed'
         };
 
         // Data Access Test
@@ -104,11 +108,15 @@ export function ZapierConnectionTest() {
             ...test,
             status: 'failed',
             message: 'Connection test failed',
-            details: connectionResult.data?.message || connectionResult.error || 'Unknown error'
+            details: (connectionResult as any).data?.message || connectionResult.error || 'Unknown error'
           };
         });
       }
     } catch (error) {
+      console.error('[ZapierConnectionTest] Test execution error:', error);
+      // Ensure raw response is set even on exception
+      setRawResponse({ error: error instanceof Error ? error.message : 'Unknown error', success: false });
+      
       // Mark all tests as failed on error
       tests.forEach((test, index) => {
         tests[index] = {
@@ -256,19 +264,22 @@ export function ZapierConnectionTest() {
               )}
             </div>
             
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Or enter API Key manually</label>
-              <input
-                type="text"
-                placeholder="Enter API Key ID or Secret..."
-                value={manualApiKey}
-                onChange={(e) => {
-                  setManualApiKey(e.target.value);
-                  setSelectedApiKey('');
-                }}
-                className="w-full p-2 border rounded-md bg-background"
-              />
-            </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Or enter API Key manually</label>
+                <input
+                  type="text"
+                  placeholder="Enter API Key ID or Secret..."
+                  value={manualApiKey}
+                  onChange={(e) => {
+                    setManualApiKey(e.target.value);
+                    setSelectedApiKey('');
+                  }}
+                  className="w-full p-2 border rounded-md bg-background"
+                />
+                {!selectedApiKey && !manualApiKey && (
+                  <p className="text-xs text-muted-foreground">Select an API key or paste a secret to run tests.</p>
+                )}
+              </div>
           </div>
 
           <Button 
@@ -318,34 +329,20 @@ export function ZapierConnectionTest() {
                 </div>
               ))}
 
-              {/* Raw response toggle */}
-              {rawResponse && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium">Raw response</span>
-                    <Button variant="secondary" size="sm" onClick={() => setShowRaw(!showRaw)}>
-                      {showRaw ? 'Hide' : 'Show'} raw
-                    </Button>
-                  </div>
-                  {showRaw && (
-                    <pre className="max-h-64 overflow-auto rounded-md border p-3 text-xs">
-                      {JSON.stringify(rawResponse, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              )}
             </div>
           )}
+
+          {/* Single Raw Response Panel */}
           {rawResponse && (
-            <div className="mt-2">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium">Raw response</span>
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">Raw response (edge function)</span>
                 <Button variant="secondary" size="sm" onClick={() => setShowRaw(!showRaw)}>
                   {showRaw ? 'Hide' : 'Show'} raw
                 </Button>
               </div>
               {showRaw && (
-                <pre className="max-h-64 overflow-auto rounded-md border p-3 text-xs">
+                <pre className="max-h-64 overflow-auto rounded-md border p-3 text-xs bg-muted">
                   {JSON.stringify(rawResponse, null, 2)}
                 </pre>
               )}

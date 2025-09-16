@@ -366,16 +366,32 @@ export const zapierService = {
         }
       })
 
-      if (error) throw error
+      if (error) {
+        // Edge function invocation error - wrap it with data structure
+        const errorData = {
+          message: error.message || 'Edge function invocation failed',
+          stage: 'invoke',
+          error: error
+        }
+        return { success: false, data: errorData, error: error.message }
+      }
 
       if (data && typeof data === 'object' && data.success === false) {
+        // Edge function returned error - pass through with data structure
         return { success: false, data, error: data.message || 'Connection test failed' }
       }
 
+      // Success case
       return { success: true, data }
     } catch (error) {
       console.error('Test connection error:', error)
-      return { success: false, error: error instanceof Error ? error.message : 'Connection test failed' }
+      // Wrap any unexpected errors with data structure
+      const errorData = {
+        message: error instanceof Error ? error.message : 'Connection test failed',
+        stage: 'exception',
+        error: error
+      }
+      return { success: false, data: errorData, error: error instanceof Error ? error.message : 'Connection test failed' }
     }
   },
 
