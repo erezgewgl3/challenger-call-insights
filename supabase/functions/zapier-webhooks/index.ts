@@ -843,7 +843,7 @@ Deno.serve(async (req) => {
         return await listWebhooks(user.id)
 
       case 'unsubscribe':
-        if (req.method !== 'DELETE') {
+        if (req.method !== 'POST') {
           return new Response(
             JSON.stringify({ error: 'Method not allowed' }),
             { 
