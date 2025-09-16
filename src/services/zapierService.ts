@@ -367,6 +367,11 @@ export const zapierService = {
       })
 
       if (error) throw error
+
+      if (data && typeof data === 'object' && data.success === false) {
+        return { success: false, data, error: data.message || 'Connection test failed' }
+      }
+
       return { success: true, data }
     } catch (error) {
       console.error('Test connection error:', error)
@@ -387,6 +392,11 @@ export const zapierService = {
       })
 
       if (error) throw error
+
+      if (data && typeof data === 'object' && data.success === false) {
+        return { success: false, data, error: data.message || 'Webhook delivery test failed' }
+      }
+
       return { success: true, data }
     } catch (error) {
       console.error('Test webhook delivery error:', error)

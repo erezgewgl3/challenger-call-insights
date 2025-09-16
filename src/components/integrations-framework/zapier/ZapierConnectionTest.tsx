@@ -25,6 +25,8 @@ export function ZapierConnectionTest() {
   const [isRunningTests, setIsRunningTests] = useState(false);
   const [selectedApiKey, setSelectedApiKey] = useState<string>('');
   const [manualApiKey, setManualApiKey] = useState<string>('');
+  const [rawResponse, setRawResponse] = useState<any | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
 
   // Auto-select first active API key on mount
   useEffect(() => {
@@ -49,7 +51,8 @@ export function ZapierConnectionTest() {
 
     setIsRunningTests(true);
     setTestResults([]);
-    
+    setRawResponse(null);
+    setShowRaw(false);
     const tests: TestResult[] = [
       { test: 'Database Connection', status: 'pending', message: 'Testing database connectivity...' },
       { test: 'API Authentication', status: 'pending', message: 'Validating API key...' },
@@ -60,6 +63,7 @@ export function ZapierConnectionTest() {
     setTestResults([...tests]);
     try {
       const connectionResult = await testConnection(testApiKey);
+      setRawResponse(connectionResult?.data ?? null);
       
       if (connectionResult.success && connectionResult.data) {
         // Fix: Access nested results from edge function response
@@ -313,6 +317,23 @@ export function ZapierConnectionTest() {
                   </div>
                 </div>
               ))}
+
+              {/* Raw response toggle */}
+              {rawResponse && (
+                <div className="mt-2">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium">Raw response</span>
+                    <Button variant="secondary" size="sm" onClick={() => setShowRaw(!showRaw)}>
+                      {showRaw ? 'Hide' : 'Show'} raw
+                    </Button>
+                  </div>
+                  {showRaw && (
+                    <pre className="max-h-64 overflow-auto rounded-md border p-3 text-xs">
+                      {JSON.stringify(rawResponse, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </CardContent>

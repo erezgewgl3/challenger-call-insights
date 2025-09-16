@@ -272,17 +272,22 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    console.log('[zapier-test] Incoming request', { method: req.method, url: req.url });
     const body = await req.json().catch(() => ({}));
     const { apiKey, webhookUrl, test } = body;
+    console.log('[zapier-test] Parsed body', { hasApiKey: Boolean(apiKey), hasWebhookUrl: Boolean(webhookUrl), test });
 
     let result: TestResult;
 
     if (test === 'webhook-delivery' && webhookUrl) {
+      console.log('[zapier-test] Running webhook delivery test');
       result = await testWebhookDelivery(webhookUrl);
     } else if (test === 'connection' && apiKey) {
+      console.log('[zapier-test] Running connection test');
       result = await testConnection(apiKey);
     } else if (apiKey && !test) {
       // Default to connection test if only API key provided
+      console.log('[zapier-test] Defaulting to connection test');
       result = await testConnection(apiKey);
     } else {
       return new Response(JSON.stringify({
@@ -298,6 +303,7 @@ const handler = async (req: Request): Promise<Response> => {
       });
     }
 
+    console.log('[zapier-test] Test result', { success: result.success, responseTime: result.responseTime });
     return new Response(JSON.stringify(result), {
       status: result.success ? 200 : 400,
       headers: {
@@ -312,7 +318,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(JSON.stringify({
       success: false,
       message: 'Test failed due to internal error',
-      error: error.message,
+      error: (error as Error).message,
       responseTime: 0,
       results: {}
     }), {
