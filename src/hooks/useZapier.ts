@@ -257,33 +257,25 @@ export function useZapierConnection() {
     error?: string
   }>({ status: 'idle' })
 
-  const testConnection = useCallback(async () => {
+  const testConnection = useCallback(async (apiKey?: string) => {
     setConnectionStatus({ status: 'testing' })
     
     try {
-      const result = await zapierService.testConnection()
+      const result = await zapierService.testConnection(apiKey)
       
       if (result.success) {
         setConnectionStatus({
           status: 'connected',
           lastTested: new Date()
         })
-        toast({
-          title: "Connection Successful",
-          description: "Your Zapier integration is working correctly.",
-          variant: "default"
-        })
+        return result
       } else {
         setConnectionStatus({
           status: 'error',
           error: result.error,
           lastTested: new Date()
         })
-        toast({
-          title: "Connection Failed",
-          description: result.error || "Unable to connect to Zapier services",
-          variant: "destructive"
-        })
+        return result
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Connection test failed'
@@ -292,11 +284,7 @@ export function useZapierConnection() {
         error: errorMessage,
         lastTested: new Date()
       })
-      toast({
-        title: "Connection Error",
-        description: errorMessage,
-        variant: "destructive"
-      })
+      return { success: false, error: errorMessage }
     }
   }, [])
 

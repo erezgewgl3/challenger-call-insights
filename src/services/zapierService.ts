@@ -354,21 +354,43 @@ export const zapierService = {
   },
 
   // Testing endpoints
-  async testConnection() {
+  async testConnection(apiKey?: string) {
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      
-      const connectionTest = {
-        authenticated: !!session,
-        user_id: session?.user?.id || null,
-        timestamp: new Date().toISOString(),
-        supabase_connection: 'healthy'
-      }
+      if (!session) throw new Error('Authentication required')
 
-      return { success: true, data: connectionTest }
+      const { data, error } = await supabase.functions.invoke('zapier-test', {
+        body: {
+          test: 'connection',
+          apiKey: apiKey
+        }
+      })
+
+      if (error) throw error
+      return { success: true, data }
     } catch (error) {
       console.error('Test connection error:', error)
       return { success: false, error: error instanceof Error ? error.message : 'Connection test failed' }
+    }
+  },
+
+  async testWebhookDelivery(webhookUrl: string) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('Authentication required')
+
+      const { data, error } = await supabase.functions.invoke('zapier-test', {
+        body: {
+          test: 'webhook-delivery',
+          webhookUrl: webhookUrl
+        }
+      })
+
+      if (error) throw error
+      return { success: true, data }
+    } catch (error) {
+      console.error('Test webhook delivery error:', error)
+      return { success: false, error: error instanceof Error ? error.message : 'Webhook delivery test failed' }
     }
   },
 

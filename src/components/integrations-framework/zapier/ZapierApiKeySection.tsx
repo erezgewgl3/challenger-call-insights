@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Plus, Copy, Trash2, Eye, EyeOff, Key, Calendar, Activity } from 'lucide-react';
 import { useZapierApiKeys } from '@/hooks/useZapier';
+import { zapierService } from '@/services/zapierService';
 import { useToast } from '@/hooks/use-toast';
 import { format, formatDistanceToNow } from 'date-fns';
 
@@ -38,18 +39,35 @@ export function ZapierApiKeySection() {
     }
 
     try {
-      generateApiKey({
-        keyName: keyName.trim(),
-        scopes: selectedScopes
-      });
+      const result = await zapierService.generateApiKey(keyName.trim(), selectedScopes);
       
-      // The mutation will handle success/error via onSuccess/onError callbacks
+      if (result.success && result.data?.api_key) {
+        // Show the generated secret key
+        setGeneratedKey(result.data.api_key);
+        
+        toast({
+          title: "API Key Generated",
+          description: "Your new Zapier API key has been created successfully.",
+          variant: "default"
+        });
+      } else {
+        toast({
+          title: "Generation Failed",
+          description: result.error || "Failed to generate API key",
+          variant: "destructive"
+        });
+      }
+      
       setKeyName('');
       setSelectedScopes(['read:analysis']);
       setShowCreateForm(false);
     } catch (error) {
-      // Error handling is done in the mutation callbacks
       console.error('Generate key error:', error);
+      toast({
+        title: "Generation Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred",
+        variant: "destructive"
+      });
     }
   };
 

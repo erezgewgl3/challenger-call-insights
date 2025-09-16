@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { CheckCircle, XCircle, AlertTriangle, Activity, Clock, Zap, RefreshCw } from 'lucide-react';
-import { useZapierConnection, useZapierData } from '@/hooks/useZapier';
+import { Input } from '@/components/ui/input';
+import { useZapierConnection, useZapierData, useZapierApiKeys } from '@/hooks/useZapier';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -18,65 +19,90 @@ interface TestResult {
 export function ZapierConnectionTest() {
   const { testConnection, isConnected, isTesting } = useZapierConnection();
   const { recentAnalyses } = useZapierData();
+  const { apiKeys } = useZapierApiKeys();
   const { toast } = useToast();
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isRunningTests, setIsRunningTests] = useState(false);
+  const [selectedApiKey, setSelectedApiKey] = useState<string>('');
+  const [manualApiKey, setManualApiKey] = useState<string>('');
 
   const runComprehensiveTest = async () => {
+    const testApiKey = selectedApiKey || manualApiKey;
+    if (!testApiKey) {
+      toast({
+        title: 'API Key Required',
+        description: 'Please select an API key or enter one manually to run tests.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     setIsRunningTests(true);
     setTestResults([]);
     
     const tests: TestResult[] = [
       { test: 'Database Connection', status: 'pending', message: 'Testing database connectivity...' },
-      { test: 'API Authentication', status: 'pending', message: 'Validating API keys...' },
-      { test: 'Webhook Delivery', status: 'pending', message: 'Testing webhook endpoints...' },
+      { test: 'API Authentication', status: 'pending', message: 'Validating API key...' },
       { test: 'Data Access', status: 'pending', message: 'Verifying data permissions...' },
     ];
 
-    // Simulate progressive testing
-    for (let i = 0; i < tests.length; i++) {
-      setTestResults([...tests.slice(0, i + 1)]);
-      await new Promise(resolve => setTimeout(resolve, 800));
+    // Test Database Connection
+    setTestResults([...tests]);
+    try {
+      const connectionResult = await testConnection(testApiKey);
       
-      // Simulate test results
-      switch (i) {
-        case 0: // Database Connection
-          tests[i] = {
-            ...tests[i],
-            status: 'passed',
-            message: 'Database connection successful',
-            details: 'Connected to Supabase with proper credentials'
+      if (connectionResult.success && connectionResult.data) {
+        const { database, api_authentication, user_context } = connectionResult.data;
+        
+        // Database Connection Test
+        tests[0] = {
+          ...tests[0],
+          status: database?.status === 'healthy' ? 'passed' : 'failed',
+          message: database?.status === 'healthy' ? 'Database connection successful' : 'Database connection failed',
+          details: `Response time: ${database?.responseTime}ms`
+        };
+
+        // API Authentication Test  
+        tests[1] = {
+          ...tests[1],
+          status: api_authentication?.success ? 'passed' : 'failed',
+          message: api_authentication?.success ? 'API authentication successful' : 'API authentication failed',
+          details: api_authentication?.success 
+            ? `Valid API key for user ${user_context?.user_id}` 
+            : api_authentication?.reason || 'Authentication failed'
+        };
+
+        // Data Access Test
+        tests[2] = {
+          ...tests[2],
+          status: recentAnalyses.length > 0 ? 'passed' : 'warning',
+          message: recentAnalyses.length > 0 ? 'Data access verified' : 'Limited data available',
+          details: `Found ${recentAnalyses.length} recent analysis records`
+        };
+      } else {
+        // Mark all tests as failed if connection test fails
+        tests.forEach((test, index) => {
+          tests[index] = {
+            ...test,
+            status: 'failed',
+            message: 'Connection test failed',
+            details: connectionResult.error || 'Unknown error'
           };
-          break;
-        case 1: // API Authentication
-          tests[i] = {
-            ...tests[i],
-            status: isConnected ? 'passed' : 'failed',
-            message: isConnected ? 'API authentication successful' : 'API authentication failed',
-            details: isConnected ? 'Valid API keys found and verified' : 'No valid API keys found'
-          };
-          break;
-        case 2: // Webhook Delivery
-          testConnection();
-          tests[i] = {
-            ...tests[i],
-            status: 'passed',
-            message: 'Webhook test initiated',
-            details: 'Connection test started successfully'
-          };
-          break;
-        case 3: // Data Access
-          tests[i] = {
-            ...tests[i],
-            status: recentAnalyses.length > 0 ? 'passed' : 'warning',
-            message: recentAnalyses.length > 0 ? 'Data access verified' : 'Limited data available',
-            details: `Found ${recentAnalyses.length} recent analysis records`
-          };
-          break;
+        });
       }
-      
-      setTestResults([...tests]);
+    } catch (error) {
+      // Mark all tests as failed on error
+      tests.forEach((test, index) => {
+        tests[index] = {
+          ...test,
+          status: 'failed',
+          message: 'Test execution failed',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        };
+      });
     }
+
+    setTestResults([...tests]);
 
     const allPassed = tests.every(test => test.status === 'passed');
     const hasWarnings = tests.some(test => test.status === 'warning');
@@ -132,7 +158,7 @@ export function ZapierConnectionTest() {
   const calculateProgress = () => {
     if (!isRunningTests) return 0;
     const completedTests = testResults.filter(test => test.status !== 'pending').length;
-    return (completedTests / 4) * 100;
+    return (completedTests / 3) * 100; // Changed from 4 to 3 tests
   };
 
   return (
@@ -187,9 +213,49 @@ export function ZapierConnectionTest() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* API Key Selection */}
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select API Key for Testing</label>
+              {apiKeys.length > 0 ? (
+                <select 
+                  value={selectedApiKey} 
+                  onChange={(e) => {
+                    setSelectedApiKey(e.target.value);
+                    setManualApiKey('');
+                  }}
+                  className="w-full p-2 border rounded-md bg-background"
+                >
+                  <option value="">Select an API key...</option>
+                  {apiKeys.filter(key => key.is_active).map(key => (
+                    <option key={key.id} value={key.id}>
+                      {key.key_name} ({key.id})
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <p className="text-sm text-muted-foreground">No active API keys found</p>
+              )}
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Or enter API Key manually</label>
+              <input
+                type="text"
+                placeholder="Enter API Key ID or Secret..."
+                value={manualApiKey}
+                onChange={(e) => {
+                  setManualApiKey(e.target.value);
+                  setSelectedApiKey('');
+                }}
+                className="w-full p-2 border rounded-md bg-background"
+              />
+            </div>
+          </div>
+
           <Button 
             onClick={runComprehensiveTest}
-            disabled={isRunningTests || isTesting}
+            disabled={isRunningTests || isTesting || (!selectedApiKey && !manualApiKey)}
             className="w-full"
           >
             {isRunningTests ? (
