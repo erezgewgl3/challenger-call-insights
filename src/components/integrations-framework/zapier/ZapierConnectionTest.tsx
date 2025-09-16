@@ -91,7 +91,6 @@ export function ZapierConnectionTest() {
   };
 
   const runComprehensiveTest = async () => {
-    alert('DEBUG: runComprehensiveTest function called!');
     const testApiKey = selectedApiKey || manualApiKey;
     if (!testApiKey) {
       toast({
@@ -322,7 +321,7 @@ export function ZapierConnectionTest() {
   const apiKeyAnalysis = analyzeApiKey(currentApiKey);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -331,7 +330,7 @@ export function ZapierConnectionTest() {
           </CardTitle>
           <CardDescription>Current status of your Zapier integration</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
@@ -367,7 +366,7 @@ export function ZapierConnectionTest() {
           </CardTitle>
           <CardDescription>Run comprehensive tests to verify your integration health</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="p-4 space-y-4">
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium mb-2 block">Select API Key for Testing</label>
@@ -517,7 +516,7 @@ export function ZapierConnectionTest() {
           <CardTitle>Recent Activity</CardTitle>
           <CardDescription>Latest API calls and webhook deliveries</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4">
           {recentAnalyses.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <Activity className="h-8 w-8 mx-auto mb-2 opacity-50" />
