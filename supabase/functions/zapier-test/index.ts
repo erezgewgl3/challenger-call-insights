@@ -28,31 +28,52 @@ async function hashApiKey(apiKey: string): Promise<string> {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-// Validate API key
-async function validateApiKey(apiKey: string) {
+// Validate API key (supports secret or UUID key_id)
+async function validateApiKey(apiKeyInput: string) {
   try {
-    const keyHash = await hashApiKey(apiKey);
-    
-    const { data, error } = await supabase
-      .from('zapier_api_keys')
-      .select('user_id, scopes, is_active, expires_at, rate_limit_per_hour')
-      .eq('api_key_hash', keyHash)
-      .eq('is_active', true)
-      .single();
+    if (!apiKeyInput) return { valid: false, error: 'Missing API key' };
 
-    if (error || !data) {
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const looksLikeUuid = uuidRegex.test(apiKeyInput);
+
+    let record: any | null = null;
+
+    if (looksLikeUuid) {
+      const { data, error } = await supabase
+        .from('zapier_api_keys')
+        .select('id, user_id, scopes, is_active, expires_at, rate_limit_per_hour')
+        .eq('id', apiKeyInput)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (error) console.warn('UUID lookup error:', error.message);
+      record = data ?? null;
+    }
+
+    if (!record) {
+      const keyHash = await hashApiKey(apiKeyInput);
+      const { data, error } = await supabase
+        .from('zapier_api_keys')
+        .select('id, user_id, scopes, is_active, expires_at, rate_limit_per_hour')
+        .eq('api_key_hash', keyHash)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (error) console.warn('Hash lookup error:', error.message);
+      record = data ?? null;
+    }
+
+    if (!record) {
       return { valid: false, error: 'Invalid or inactive API key' };
     }
 
-    if (new Date(data.expires_at) < new Date()) {
+    if (record.expires_at && new Date(record.expires_at) < new Date()) {
       return { valid: false, error: 'API key expired' };
     }
 
-    return { 
-      valid: true, 
-      userId: data.user_id, 
-      scopes: data.scopes,
-      rateLimit: data.rate_limit_per_hour
+    return {
+      valid: true,
+      userId: record.user_id,
+      scopes: record.scopes,
+      rateLimit: record.rate_limit_per_hour
     };
   } catch (error) {
     return { valid: false, error: 'Validation failed' };

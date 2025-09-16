@@ -132,83 +132,101 @@ async function generateApiKey(userData: ApiKeyData): Promise<Response> {
   }
 }
 
-// Validate API key and check rate limits
-async function validateApiKey(apiKey: string): Promise<ValidationResult> {
+// Validate API key and check rate limits (supports hashed secret or UUID key_id)
+async function validateApiKey(apiKeyInput: string): Promise<ValidationResult> {
   try {
-    if (!apiKey || !apiKey.startsWith('sw_')) {
-      return { valid: false }
+    if (!apiKeyInput) {
+      return { valid: false };
     }
-    
-    const apiKeyHash = await hashApiKey(apiKey)
-    
-    // Get API key record
-    const { data: keyRecord, error: keyError } = await supabase
-      .from('zapier_api_keys')
-      .select('*')
-      .eq('api_key_hash', apiKeyHash)
-      .eq('is_active', true)
-      .single()
-    
-    if (keyError || !keyRecord) {
-      console.log('API key not found or inactive')
-      return { valid: false }
+
+    // Detect if the provided value is a UUID (likely key_id copied from UI)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const looksLikeUuid = uuidRegex.test(apiKeyInput);
+
+    let keyRecord: any | null = null;
+
+    if (looksLikeUuid) {
+      // Try lookup by id first (backward compatibility with copied key_id)
+      const { data, error } = await supabase
+        .from('zapier_api_keys')
+        .select('*')
+        .eq('id', apiKeyInput)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) console.warn('UUID lookup error:', error);
+      keyRecord = data ?? null;
     }
-    
+
+    if (!keyRecord) {
+      // Fallback to hashed secret lookup (current recommended flow)
+      const apiKeyHash = await hashApiKey(apiKeyInput);
+      const { data, error } = await supabase
+        .from('zapier_api_keys')
+        .select('*')
+        .eq('api_key_hash', apiKeyHash)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (error) console.warn('Hash lookup error:', error);
+      keyRecord = data ?? null;
+    }
+
+    if (!keyRecord) {
+      console.log('API key not found or inactive');
+      return { valid: false };
+    }
+
     // Check expiration
-    if (new Date(keyRecord.expires_at) < new Date()) {
-      console.log('API key expired')
-      return { valid: false }
+    if (keyRecord.expires_at && new Date(keyRecord.expires_at) < new Date()) {
+      console.log('API key expired');
+      return { valid: false };
     }
-    
-    // Check rate limiting (last hour) - count actual API usage by checking webhooks for this user
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
-    
-    // Get webhooks for this user's API key
+
+    // Rate limiting (last hour) – count actual API usage by webhook logs
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
     const { data: userWebhooks } = await supabase
       .from('zapier_webhooks')
       .select('id')
-      .eq('user_id', keyRecord.user_id)
-    
-    const webhookIds = userWebhooks?.map(w => w.id) || []
-    
+      .eq('user_id', keyRecord.user_id);
+
+    const webhookIds = userWebhooks?.map((w: any) => w.id) || [];
+
     const { count: recentUsage, error: countError } = await supabase
       .from('zapier_webhook_logs')
       .select('*', { count: 'exact', head: true })
-      .in('webhook_id', webhookIds)
-      .gte('created_at', oneHourAgo)
-    
+      .in('webhook_id', webhookIds.length ? webhookIds : ['00000000-0000-0000-0000-000000000000'])
+      .gte('created_at', oneHourAgo);
+
     if (countError) {
-      console.error('Rate limit check error:', countError)
-      return { valid: false }
+      console.error('Rate limit check error:', countError);
+      return { valid: false };
     }
-    
-    if ((recentUsage || 0) >= keyRecord.rate_limit_per_hour) {
-      console.log('Rate limit exceeded for API key:', keyRecord.id)
-      return { 
-        valid: false, 
-        rate_limit_exceeded: true 
-      }
+
+    if ((recentUsage || 0) >= (keyRecord.rate_limit_per_hour ?? 1000)) {
+      console.log('Rate limit exceeded for API key:', keyRecord.id);
+      return { valid: false, rate_limit_exceeded: true };
     }
-    
-    // Update usage count and last used
+
+    // Update usage count and last used (tolerate nulls)
     await supabase
       .from('zapier_api_keys')
       .update({
-        usage_count: keyRecord.usage_count + 1,
-        last_used: new Date().toISOString()
+        usage_count: (keyRecord.usage_count ?? 0) + 1,
+        last_used: new Date().toISOString(),
       })
-      .eq('id', keyRecord.id)
-    
+      .eq('id', keyRecord.id);
+
     return {
       valid: true,
       user_id: keyRecord.user_id,
       api_key_id: keyRecord.id,
-      expires_at: keyRecord.expires_at
-    }
-    
+      expires_at: keyRecord.expires_at,
+    };
   } catch (error) {
-    console.error('Validate API key error:', error)
-    return { valid: false }
+    console.error('Validate API key error:', error);
+    return { valid: false };
   }
 }
 
