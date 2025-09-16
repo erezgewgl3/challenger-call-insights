@@ -91,6 +91,7 @@ export function ZapierConnectionTest() {
   };
 
   const runComprehensiveTest = async () => {
+    alert('DEBUG: runComprehensiveTest function called!');
     const testApiKey = selectedApiKey || manualApiKey;
     if (!testApiKey) {
       toast({
