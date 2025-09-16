@@ -336,6 +336,21 @@ export function ZapierConnectionTest() {
               )}
             </div>
           )}
+          {rawResponse && (
+            <div className="mt-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Raw response</span>
+                <Button variant="secondary" size="sm" onClick={() => setShowRaw(!showRaw)}>
+                  {showRaw ? 'Hide' : 'Show'} raw
+                </Button>
+              </div>
+              {showRaw && (
+                <pre className="max-h-64 overflow-auto rounded-md border p-3 text-xs">
+                  {JSON.stringify(rawResponse, null, 2)}
+                </pre>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 

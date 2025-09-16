@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,7 @@ import {
   Globe,
   Code
 } from "lucide-react";
-import { useZapierConnection, useZapierWebhooks, useZapierData } from "@/hooks/useZapier";
+import { useZapierConnection, useZapierWebhooks, useZapierData, useZapierApiKeys } from "@/hooks/useZapier";
 import { toast } from "@/hooks/use-toast";
 
 interface ZapierTestPanelProps {
@@ -31,6 +31,7 @@ export function ZapierTestPanel({ className }: ZapierTestPanelProps) {
   const { connectionStatus, testConnection, isTesting } = useZapierConnection();
   const { webhooks, testWebhook, isTesting: isTestingWebhook } = useZapierWebhooks();
   const { recentAnalyses } = useZapierData();
+  const { apiKeys } = useZapierApiKeys();
   
   const [customWebhookUrl, setCustomWebhookUrl] = useState('');
   const [customPayload, setCustomPayload] = useState('');
@@ -42,6 +43,17 @@ export function ZapierTestPanel({ className }: ZapierTestPanelProps) {
     message: string;
     timestamp: Date;
   }>>([]);
+  const [selectedApiKey, setSelectedApiKey] = useState('');
+  const [manualApiKey, setManualApiKey] = useState('');
+  const [rawResponse, setRawResponse] = useState<any | null>(null);
+  const [showRaw, setShowRaw] = useState(false);
+
+  useEffect(() => {
+    if (apiKeys.length > 0 && !selectedApiKey && !manualApiKey) {
+      const firstActive = apiKeys.find(k => k.is_active);
+      if (firstActive) setSelectedApiKey(firstActive.id);
+    }
+  }, [apiKeys, selectedApiKey, manualApiKey]);
 
   const addTestResult = (type: string, status: 'success' | 'error' | 'pending', message: string) => {
     const result = {
@@ -55,8 +67,27 @@ export function ZapierTestPanel({ className }: ZapierTestPanelProps) {
   };
 
   const handleConnectionTest = async () => {
+    const testApiKey = selectedApiKey || manualApiKey;
+    if (!testApiKey) {
+      toast({
+        title: "API Key Required",
+        description: "Select an API key or enter one manually.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     addTestResult('connection', 'pending', 'Testing connection...');
-    await testConnection();
+    setRawResponse(null);
+    setShowRaw(false);
+
+    const result = await testConnection(testApiKey);
+    const success = Boolean(result && (result as any).success !== false && !('error' in (result as any)));
+    const message = (result as any)?.data?.message || (result as any)?.error || (success ? 'Connection test passed' : 'Connection test failed');
+
+    addTestResult('connection', success ? 'success' : 'error', message);
+    if ((result as any)?.data) setRawResponse((result as any).data);
+  };
     
     // Add result based on connection status
     setTimeout(() => {
@@ -260,10 +291,49 @@ export function ZapierTestPanel({ className }: ZapierTestPanelProps) {
                     <AlertDescription>{connectionStatus.error}</AlertDescription>
                   </Alert>
                 )}
+
+                {/* API Key Selection */}
+                <div className="space-y-3">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Select API Key for Testing</Label>
+                    {apiKeys.length > 0 ? (
+                      <select 
+                        value={selectedApiKey}
+                        onChange={(e) => {
+                          setSelectedApiKey(e.target.value);
+                          setManualApiKey('');
+                        }}
+                        className="w-full p-2 border rounded-md bg-background"
+                      >
+                        <option value="">Select an API key...</option>
+                        {apiKeys.filter(k => k.is_active).map(k => (
+                          <option key={k.id} value={k.id}>
+                            {k.key_name} ({k.id})
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No active API keys found</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Or enter API Key manually</Label>
+                    <Input
+                      type="text"
+                      placeholder="Enter API Key ID or Secret..."
+                      value={manualApiKey}
+                      onChange={(e) => {
+                        setManualApiKey(e.target.value);
+                        setSelectedApiKey('');
+                      }}
+                    />
+                  </div>
+                </div>
                 
                 <Button 
                   onClick={handleConnectionTest} 
-                  disabled={isTesting}
+                  disabled={isTesting || (!selectedApiKey && !manualApiKey)}
                   className="w-full"
                 >
                   {isTesting ? (
@@ -278,6 +348,23 @@ export function ZapierTestPanel({ className }: ZapierTestPanelProps) {
                     </>
                   )}
                 </Button>
+
+                {/* Raw response toggle */}
+                {rawResponse && (
+                  <div className="mt-2">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Raw response</span>
+                      <Button variant="secondary" size="sm" onClick={() => setShowRaw(!showRaw)}>
+                        {showRaw ? 'Hide' : 'Show'} raw
+                      </Button>
+                    </div>
+                    {showRaw && (
+                      <pre className="max-h-64 overflow-auto rounded-md border p-3 text-xs">
+                        {JSON.stringify(rawResponse, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           </TabsContent>
