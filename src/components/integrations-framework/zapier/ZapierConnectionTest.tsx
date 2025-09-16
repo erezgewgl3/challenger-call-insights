@@ -6,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { CheckCircle, XCircle, AlertTriangle, Activity, Clock, Zap, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useZapierConnection, useZapierData, useZapierApiKeys } from '@/hooks/useZapier';
+import { zapierService } from '@/services/zapierService';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -155,6 +156,29 @@ export function ZapierConnectionTest() {
     setIsRunningTests(false);
   };
 
+  const handleValidateKey = async () => {
+    const testApiKey = selectedApiKey || manualApiKey;
+    if (!testApiKey) {
+      toast({ title: 'API Key Required', description: 'Select or enter an API key to validate.', variant: 'destructive' });
+      return;
+    }
+    try {
+      const res = await zapierService.validateApiKey(testApiKey);
+      setShowRaw(true);
+      if (res.success) {
+        toast({ title: 'API Key Valid', description: 'The API key is valid.' });
+        setRawResponse(res.data);
+      } else {
+        toast({ title: 'API Key Invalid', description: res.error || 'Invalid or expired API key', variant: 'destructive' });
+        setRawResponse(res.data ?? { success: false, error: res.error });
+      }
+    } catch (e) {
+      console.error('[ZapierConnectionTest] validate error:', e);
+      setShowRaw(true);
+      setRawResponse({ success: false, error: e instanceof Error ? e.message : 'Unknown error' });
+    }
+  };
+
   const getStatusIcon = (status: TestResult['status']) => {
     switch (status) {
       case 'passed':
@@ -300,6 +324,10 @@ export function ZapierConnectionTest() {
             )}
           </Button>
 
+          <Button variant="secondary" onClick={handleValidateKey} disabled={!selectedApiKey && !manualApiKey} className="w-full">
+            Validate API Key Only
+          </Button>
+
           {isRunningTests && (
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
@@ -332,22 +360,20 @@ export function ZapierConnectionTest() {
             </div>
           )}
 
-          {/* Single Raw Response Panel */}
-          {rawResponse && (
-            <div className="mt-4 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Raw response (edge function)</span>
-                <Button variant="secondary" size="sm" onClick={() => setShowRaw(!showRaw)}>
-                  {showRaw ? 'Hide' : 'Show'} raw
-                </Button>
-              </div>
-              {showRaw && (
-                <pre className="max-h-64 overflow-auto rounded-md border p-3 text-xs bg-muted">
-                  {JSON.stringify(rawResponse, null, 2)}
-                </pre>
-              )}
+          {/* Diagnostics / Raw Response Panel */}
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Raw response (edge function)</span>
+              <Button variant="secondary" size="sm" onClick={() => setShowRaw(!showRaw)}>
+                {showRaw ? 'Hide' : 'Show'} raw
+              </Button>
             </div>
-          )}
+            {showRaw && (
+              <pre className="max-h-64 overflow-auto rounded-md border p-3 text-xs bg-muted">
+                {rawResponse ? JSON.stringify(rawResponse, null, 2) : 'No data yet'}
+              </pre>
+            )}
+          </div>
         </CardContent>
       </Card>
 

@@ -295,7 +295,7 @@ const handler = async (req: Request): Promise<Response> => {
         message: 'Invalid test parameters. Provide either apiKey for connection test or webhookUrl for webhook test.',
         error: 'Missing required parameters'
       }), {
-        status: 400,
+        status: 200,
         headers: {
           'Content-Type': 'application/json',
           ...corsHeaders,
@@ -305,7 +305,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log('[zapier-test] Test result', { success: result.success, responseTime: result.responseTime });
     return new Response(JSON.stringify(result), {
-      status: result.success ? 200 : 400,
+      status: 200,
       headers: {
         'Content-Type': 'application/json',
         ...corsHeaders,
@@ -322,7 +322,7 @@ const handler = async (req: Request): Promise<Response> => {
       responseTime: 0,
       results: {}
     }), {
-      status: 500,
+      status: 200,
       headers: {
         'Content-Type': 'application/json',
         ...corsHeaders,
