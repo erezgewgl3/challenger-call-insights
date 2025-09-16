@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,16 @@ export function ZapierConnectionTest() {
   const [selectedApiKey, setSelectedApiKey] = useState<string>('');
   const [manualApiKey, setManualApiKey] = useState<string>('');
 
+  // Auto-select first active API key on mount
+  useEffect(() => {
+    if (apiKeys.length > 0 && !selectedApiKey && !manualApiKey) {
+      const firstActiveKey = apiKeys.find(key => key.is_active);
+      if (firstActiveKey) {
+        setSelectedApiKey(firstActiveKey.id);
+      }
+    }
+  }, [apiKeys, selectedApiKey, manualApiKey]);
+
   const runComprehensiveTest = async () => {
     const testApiKey = selectedApiKey || manualApiKey;
     if (!testApiKey) {
@@ -52,24 +62,28 @@ export function ZapierConnectionTest() {
       const connectionResult = await testConnection(testApiKey);
       
       if (connectionResult.success && connectionResult.data) {
-        const { database, api_authentication, user_context } = connectionResult.data;
+        // Fix: Access nested results from edge function response
+        const results = connectionResult.data.results || {};
+        const database = results.database || {};
+        const authentication = results.authentication || {};
         
         // Database Connection Test
         tests[0] = {
           ...tests[0],
-          status: database?.status === 'healthy' ? 'passed' : 'failed',
-          message: database?.status === 'healthy' ? 'Database connection successful' : 'Database connection failed',
-          details: `Response time: ${database?.responseTime}ms`
+          status: database.status === 'healthy' ? 'passed' : database.status === 'degraded' ? 'warning' : 'failed',
+          message: database.status === 'healthy' ? 'Database connection successful' : 
+                   database.status === 'degraded' ? 'Database connection degraded' : 'Database connection failed',
+          details: `Response time: ${database.response_time || database.responseTime || 0}ms`
         };
 
         // API Authentication Test  
         tests[1] = {
           ...tests[1],
-          status: api_authentication?.success ? 'passed' : 'failed',
-          message: api_authentication?.success ? 'API authentication successful' : 'API authentication failed',
-          details: api_authentication?.success 
-            ? `Valid API key for user ${user_context?.user_id}` 
-            : api_authentication?.reason || 'Authentication failed'
+          status: authentication.valid ? 'passed' : 'failed',
+          message: authentication.valid ? 'API authentication successful' : 'API authentication failed',
+          details: authentication.valid 
+            ? `Valid API key for user ${authentication.user_id || 'unknown'}` 
+            : connectionResult.data.message || authentication.reason || 'Authentication failed'
         };
 
         // Data Access Test
@@ -86,7 +100,7 @@ export function ZapierConnectionTest() {
             ...test,
             status: 'failed',
             message: 'Connection test failed',
-            details: connectionResult.error || 'Unknown error'
+            details: connectionResult.data?.message || connectionResult.error || 'Unknown error'
           };
         });
       }
