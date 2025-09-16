@@ -304,19 +304,37 @@ Deno.serve(async (req) => {
       )
     }
     
-    // This endpoint is called internally, so we check for service role key
-    const authHeader = req.headers.get('Authorization')
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    // Check if this is an external API call (requires service role key)
+    const authHeader = req.headers.get('authorization');
+    const isExternalCall = authHeader && authHeader.startsWith('Bearer ');
     
-    if (!authHeader?.startsWith('Bearer ') || authHeader.split(' ')[1] !== serviceRoleKey) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
+    // Check if this is an internal Edge Function call
+    const isInternalCall = req.headers.get('x-supabase-edge-function') ||
+      req.headers.get('user-agent')?.includes('Deno');
+    
+    if (!isExternalCall && !isInternalCall) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: corsHeaders
+      });
     }
+    
+    // For external calls, validate the service role key
+    if (isExternalCall) {
+      const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+      
+      if (authHeader.split(' ')[1] !== serviceRoleKey) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+          }
+        )
+      }
+    }
+    
+    // For internal calls, we trust the Edge Function environment
     
     const triggerEvent: TriggerEvent = await req.json()
     
