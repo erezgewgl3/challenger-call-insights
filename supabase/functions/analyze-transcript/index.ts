@@ -359,7 +359,7 @@ async function deliverWebhooksDirectly(userId: string, analysisId: string, webho
       .from('zapier_webhooks')
       .select('*')
       .eq('user_id', userId)
-      .eq('trigger_type', 'analysis_complete')
+      .eq('trigger_type', 'analysis_completed')
       .eq('is_active', true);
 
     if (webhooksError) {
