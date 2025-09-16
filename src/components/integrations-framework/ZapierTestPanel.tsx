@@ -89,15 +89,6 @@ export function ZapierTestPanel({ className }: ZapierTestPanelProps) {
     if ((result as any)?.data) setRawResponse((result as any).data);
   };
     
-    // Add result based on connection status
-    setTimeout(() => {
-      if (connectionStatus.status === 'connected') {
-        addTestResult('connection', 'success', 'Connection test passed');
-      } else {
-        addTestResult('connection', 'error', connectionStatus.error || 'Connection test failed');
-      }
-    }, 1000);
-  };
 
   const handleWebhookTest = async (webhookId: string) => {
     const webhook = webhooks.find(w => w.id === webhookId);
