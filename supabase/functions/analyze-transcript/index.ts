@@ -275,6 +275,7 @@ serve(async (req) => {
     console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id, 'Heat Level:', heatLevel);
 
     // Trigger webhook delivery asynchronously (never blocks analysis pipeline)
+    console.log('[WEBHOOK DEBUG] About to trigger analysis webhooks for user:', userId);
     EdgeRuntime.waitUntil(
       triggerAnalysisWebhooks(supabase, analysisData, transcriptId, userId)
         .catch(error => {
@@ -328,6 +329,7 @@ serve(async (req) => {
 // Trigger webhook delivery for analysis completion (asynchronous, non-blocking)
 async function triggerAnalysisWebhooks(supabase: any, analysisData: any, transcriptId: string, userId: string) {
   try {
+    console.log('[WEBHOOK DEBUG] triggerAnalysisWebhooks called with analysisId:', analysisData.id);
     console.log('🔍 [WEBHOOK] Starting webhook trigger for analysis:', analysisData.id);
 
     // Get transcript data for webhook payload
@@ -395,11 +397,13 @@ async function triggerAnalysisWebhooks(supabase: any, analysisData: any, transcr
       return;
     }
 
+    console.log('[WEBHOOK DEBUG] Found webhooks:', webhooks.length);
     console.log('🔍 [WEBHOOK] Found', webhooks.length, 'active webhooks for user:', userId);
 
     // Trigger webhook delivery via zapier-trigger function for each webhook
     for (const webhook of webhooks) {
       try {
+        console.log('[WEBHOOK DEBUG] Calling zapier-trigger for webhook:', webhook.webhook_url);
         console.log('🔍 [WEBHOOK] Triggering delivery for webhook:', webhook.id);
 
         // Call zapier-trigger function asynchronously
