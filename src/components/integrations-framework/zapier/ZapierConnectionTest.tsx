@@ -27,7 +27,6 @@ export function ZapierConnectionTest() {
   const [manualApiKey, setManualApiKey] = useState('');
   const [rawResponse, setRawResponse] = useState<any>(null);
   const [showRaw, setShowRaw] = useState(false);
-  const [networkRequest, setNetworkRequest] = useState<any>(null);
 
   // Helper function to format time ago
   const timeAgo = (date: Date) => {
@@ -55,41 +54,25 @@ export function ZapierConnectionTest() {
   const analyzeApiKey = (key: string) => {
     if (!key) return { type: 'none', preview: 'No key provided' };
     
-    // UUID pattern check
     const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (uuidPattern.test(key)) {
-      return { 
-        type: 'UUID', 
-        preview: `${key.substring(0, 8)}...` 
-      };
+      return { type: 'UUID', preview: `${key.substring(0, 8)}...` };
     }
     
-    // Secret pattern check
     if (key.startsWith('sw_')) {
-      return { 
-        type: 'Secret', 
-        preview: `${key.substring(0, 8)}...` 
-      };
+      return { type: 'Secret', preview: `${key.substring(0, 8)}...` };
     }
     
-    // Unknown format
-    return { 
-      type: 'Unknown', 
-      preview: `${key.substring(0, 8)}...` 
-    };
+    return { type: 'Unknown', preview: `${key.substring(0, 8)}...` };
   };
 
   // Robust response parser that handles multiple possible structures
   const parseEdgeFunctionResponse = (connectionResult: any) => {
     console.log('[ZapierConnectionTest] Raw connection result:', JSON.stringify(connectionResult, null, 2));
     
-    // Store both the processed result and the raw network data
-    setNetworkRequest(connectionResult);
-    
     let responseData = null;
     let success = false;
     
-    // Try multiple possible response structures
     if (connectionResult?.data) {
       responseData = connectionResult.data;
       success = connectionResult.success || responseData.success || false;
@@ -101,7 +84,6 @@ export function ZapierConnectionTest() {
       success = false;
     }
     
-    // Always set raw response for debugging - make it auto-visible
     setRawResponse(responseData);
     setShowRaw(true);
     
@@ -122,7 +104,6 @@ export function ZapierConnectionTest() {
     setIsRunningTests(true);
     setTestResults([]);
     setRawResponse(null);
-    setNetworkRequest(null);
     setShowRaw(false);
     
     const tests: TestResult[] = [
@@ -141,7 +122,6 @@ export function ZapierConnectionTest() {
       const { responseData, success } = parseEdgeFunctionResponse(connectionResult);
 
       if (success && responseData) {
-        // Try multiple possible response structures for results
         const results = responseData.results || responseData.data?.results || {};
         const database = results.database || responseData.database || {};
         const authentication = results.authentication || responseData.authentication || {};
@@ -172,7 +152,6 @@ export function ZapierConnectionTest() {
             ? `Valid API key for user ${authentication.user_id.substring(0, 8)}...`
             : 'API key validation passed';
         } else {
-          // Extract detailed error message
           authDetails = responseData.message || 
                        authentication.reason || 
                        authentication.error ||
@@ -194,7 +173,6 @@ export function ZapierConnectionTest() {
           details: `Found ${recentAnalyses.length} recent analysis records`
         };
       } else {
-        // Handle failure case with detailed error information
         const errorMessage = responseData?.message || 
                             responseData?.error || 
                             connectionResult?.error || 
@@ -214,7 +192,6 @@ export function ZapierConnectionTest() {
     } catch (error) {
       console.error('[ZapierConnectionTest] Test execution error:', error);
       
-      // Ensure raw response is set even on exception
       const errorData = { 
         error: error instanceof Error ? error.message : 'Unknown error',
         success: false,
@@ -345,7 +322,6 @@ export function ZapierConnectionTest() {
 
   return (
     <div className="space-y-6">
-      {/* Connection Status Overview */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -382,7 +358,6 @@ export function ZapierConnectionTest() {
         </CardContent>
       </Card>
 
-      {/* Test Suite */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -392,7 +367,6 @@ export function ZapierConnectionTest() {
           <CardDescription>Run comprehensive tests to verify your integration health</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* API Key Selection with Diagnostic Info */}
           <div className="space-y-3">
             <div>
               <label className="text-sm font-medium mb-2 block">Select API Key for Testing</label>
@@ -431,7 +405,6 @@ export function ZapierConnectionTest() {
               />
             </div>
 
-            {/* Diagnostic Info */}
             {currentApiKey && (
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                 <div className="flex items-center gap-2 mb-1">
@@ -449,7 +422,6 @@ export function ZapierConnectionTest() {
             )}
           </div>
 
-          {/* Test Controls */}
           <div className="flex gap-2">
             {isRunningTests ? (
               <Button disabled className="flex-1">
@@ -482,7 +454,6 @@ export function ZapierConnectionTest() {
             </div>
           )}
 
-          {/* Test Results */}
           {testResults.length > 0 && (
             <div className="space-y-3">
               <h4 className="font-medium">Test Results</h4>
@@ -506,7 +477,6 @@ export function ZapierConnectionTest() {
             </div>
           )}
 
-          {/* Enhanced Raw Response Panel - Always Visible with Clear Headers */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="font-medium flex items-center gap-2">
@@ -541,7 +511,6 @@ export function ZapierConnectionTest() {
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
       <Card>
         <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
