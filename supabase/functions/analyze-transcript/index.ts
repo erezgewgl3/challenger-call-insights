@@ -276,8 +276,26 @@ serve(async (req) => {
 
     // Trigger webhook delivery asynchronously (never blocks analysis pipeline)
     console.log('[WEBHOOK DEBUG] About to trigger analysis webhooks for user:', userId);
+    
+    // Prepare webhook payload
+    const webhookPayload = {
+      trigger: "analysis_complete",
+      timestamp: new Date().toISOString(),
+      analysis: {
+        id: analysisData.id,
+        transcript_id: transcriptId,
+        heat_level: analysisData.heat_level?.toLowerCase() || 'low',
+        momentum: analysisData.guidance?.momentum || 'steady',
+        stage_recommendation: analysisData.guidance?.recommendation || 'continue',
+        challenger_scores: analysisData.challenger_scores || { teaching: 0, tailoring: 0, control: 0 },
+        next_steps: analysisData.guidance?.next_steps || [],
+        call_summary: analysisData.call_summary || {},
+        competitive_insights: analysisData.guidance?.competitive_insights || {}
+      }
+    };
+    
     EdgeRuntime.waitUntil(
-      triggerAnalysisWebhooks(supabase, analysisData, transcriptId, userId)
+      deliverWebhooksDirectly(userId, analysisData.id, webhookPayload)
         .catch(error => {
           console.error('🔍 [WEBHOOK] Webhook delivery failed (non-blocking):', error);
         })
@@ -326,111 +344,106 @@ serve(async (req) => {
   }
 });
 
-// Trigger webhook delivery for analysis completion (asynchronous, non-blocking)
-async function triggerAnalysisWebhooks(supabase: any, analysisData: any, transcriptId: string, userId: string) {
+// Direct webhook delivery function (eliminates need for separate zapier-trigger function)
+async function deliverWebhooksDirectly(userId: string, analysisId: string, webhookPayload: any) {
   try {
-    console.log('[WEBHOOK DEBUG] triggerAnalysisWebhooks called with analysisId:', analysisData.id);
-    console.log('🔍 [WEBHOOK] Starting webhook trigger for analysis:', analysisData.id);
-
-    // Get transcript data for webhook payload
-    const { data: transcript, error: transcriptError } = await supabase
-      .from('transcripts')
-      .select(`
-        id,
-        title,
-        meeting_date,
-        duration_minutes,
-        participants,
-        accounts(
-          id,
-          name,
-          deal_stage
-        )
-      `)
-      .eq('id', transcriptId)
-      .single();
-
-    if (transcriptError) {
-      console.error('🔍 [WEBHOOK] Failed to fetch transcript data:', transcriptError);
-      return;
-    }
-
-    // Transform analysis data to Zapier payload format
-    const webhookPayload = {
-      trigger: "analysis_complete",
-      timestamp: new Date().toISOString(),
-      analysis: {
-        id: analysisData.id,
-        transcript_id: transcriptId,
-        call_date: transcript.meeting_date,
-        duration_minutes: transcript.duration_minutes,
-        deal_intelligence: {
-          heat_level: analysisData.heat_level?.toLowerCase() || 'low',
-          momentum: analysisData.guidance?.momentum || 'steady',
-          stage_recommendation: analysisData.guidance?.recommendation || 'continue',
-          challenger_scores: analysisData.challenger_scores || { teaching: 0, tailoring: 0, control: 0 }
-        },
-        participants: transcript.participants || [],
-        next_steps: analysisData.guidance?.next_steps || [],
-        call_summary: analysisData.call_summary || {},
-        competitive_insights: analysisData.guidance?.competitive_insights || {}
-      }
-    };
-
-    console.log('🔍 [WEBHOOK] Webhook payload prepared for user:', userId);
-
-    // Find all active webhooks for this user with analysis_complete trigger
+    console.log('[WEBHOOK] Starting direct webhook delivery for analysis:', analysisId);
+    
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+    
+    // Fetch active webhooks for user
     const { data: webhooks, error: webhooksError } = await supabase
       .from('zapier_webhooks')
-      .select('id, webhook_url, secret_token, trigger_type')
+      .select('*')
       .eq('user_id', userId)
-      .eq('is_active', true)
-      .in('trigger_type', ['analysis_complete', 'analysis_completed']);
+      .eq('trigger_type', 'analysis_complete')
+      .eq('is_active', true);
 
     if (webhooksError) {
-      console.error('🔍 [WEBHOOK] Failed to fetch user webhooks:', webhooksError);
+      console.error('[WEBHOOK] Error fetching webhooks:', webhooksError);
       return;
     }
 
     if (!webhooks || webhooks.length === 0) {
-      console.log('🔍 [WEBHOOK] No active webhooks found for user:', userId);
+      console.log('[WEBHOOK] No active webhooks found for user:', userId);
       return;
     }
 
-    console.log('[WEBHOOK DEBUG] Found webhooks:', webhooks.length);
-    console.log('🔍 [WEBHOOK] Found', webhooks.length, 'active webhooks for user:', userId);
+    console.log('[WEBHOOK] Found active webhooks:', webhooks.length);
 
-    // Trigger webhook delivery via zapier-trigger function for each webhook
+    // Deliver to each webhook
     for (const webhook of webhooks) {
+      const logId = crypto.randomUUID();
+      
       try {
-        console.log('[WEBHOOK DEBUG] Calling zapier-trigger for webhook:', webhook.webhook_url);
-        console.log('🔍 [WEBHOOK] Triggering delivery for webhook:', webhook.id);
-
-        // Call zapier-trigger function asynchronously
-        const triggerResponse = await supabase.functions.invoke('zapier-trigger', {
-          body: {
-            trigger_type: 'analysis_complete',
-            user_id: userId,
-            analysis_id: analysisData.id,
-            data: webhookPayload
-          }
+        // Log webhook attempt
+        await supabase.from('zapier_webhook_logs').insert({
+          id: logId,
+          webhook_id: webhook.id,
+          trigger_data: webhookPayload,
+          delivery_status: 'pending'
         });
 
-        if (triggerResponse.error) {
-          console.error('🔍 [WEBHOOK] Failed to trigger webhook:', webhook.id, triggerResponse.error);
+        console.log('[WEBHOOK] Delivering to URL:', webhook.webhook_url);
+
+        // Make HTTP request to webhook URL
+        const response = await fetch(webhook.webhook_url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': 'Sales-Whisperer-Webhook/1.0'
+          },
+          body: JSON.stringify({
+            trigger: 'analysis_complete',
+            timestamp: new Date().toISOString(),
+            analysis: webhookPayload
+          })
+        });
+
+        // Update log with delivery result
+        await supabase.from('zapier_webhook_logs').update({
+          delivery_status: response.ok ? 'delivered' : 'failed',
+          http_status_code: response.status,
+          response_body: response.ok ? null : await response.text(),
+          delivered_at: response.ok ? new Date().toISOString() : null
+        }).eq('id', logId);
+
+        // Update webhook success/failure counters
+        if (response.ok) {
+          await supabase.from('zapier_webhooks').update({
+            success_count: webhook.success_count + 1,
+            last_triggered: new Date().toISOString()
+          }).eq('id', webhook.id);
+          console.log('[WEBHOOK] Successfully delivered to:', webhook.webhook_url);
         } else {
-          console.log('🔍 [WEBHOOK] Successfully triggered webhook:', webhook.id);
+          await supabase.from('zapier_webhooks').update({
+            failure_count: webhook.failure_count + 1,
+            last_error: `HTTP ${response.status}: ${response.statusText}`
+          }).eq('id', webhook.id);
+          console.error('[WEBHOOK] Failed to deliver to:', webhook.webhook_url, response.status);
         }
 
-      } catch (webhookError) {
-        console.error('🔍 [WEBHOOK] Error triggering individual webhook:', webhook.id, webhookError);
+      } catch (error) {
+        console.error('[WEBHOOK] Delivery error for:', webhook.webhook_url, error);
+        
+        // Log the error
+        await supabase.from('zapier_webhook_logs').update({
+          delivery_status: 'failed',
+          error_message: error instanceof Error ? error.message : 'Unknown error'
+        }).eq('id', logId);
+
+        await supabase.from('zapier_webhooks').update({
+          failure_count: webhook.failure_count + 1,
+          last_error: error instanceof Error ? error.message : 'Unknown error'
+        }).eq('id', webhook.id);
       }
     }
-
-    console.log('🔍 [WEBHOOK] Webhook trigger process completed for analysis:', analysisData.id);
-
+    
   } catch (error) {
-    console.error('🔍 [WEBHOOK] Webhook trigger system error:', error);
+    console.error('[WEBHOOK] Fatal error in webhook delivery:', error);
   }
 }
 
