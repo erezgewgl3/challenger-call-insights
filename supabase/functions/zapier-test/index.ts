@@ -198,7 +198,13 @@ async function testConnection(apiKey: string): Promise<TestResult> {
         success: false,
         message: validation.error || 'API key validation failed',
         responseTime: Date.now() - startTime,
-        results: { authentication: 'failed' },
+        results: { 
+          authentication: {
+            valid: false,
+            error: 'Invalid or expired API key',
+            reason: 'authentication_failed'
+          }
+        },
         recommendations: [
           'Check your API key is correct',
           'Verify the API key hasn\'t expired',
