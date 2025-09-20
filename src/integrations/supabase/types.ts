@@ -381,6 +381,59 @@ export type Database = {
           },
         ]
       }
+      external_transcript_queue: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          max_retries: number | null
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          queue_position: number | null
+          queue_status: string | null
+          retry_count: number | null
+          transcript_id: string
+          updated_at: string | null
+          webhook_payload: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          queue_position?: number | null
+          queue_status?: string | null
+          retry_count?: number | null
+          transcript_id: string
+          updated_at?: string | null
+          webhook_payload?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          max_retries?: number | null
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          queue_position?: number | null
+          queue_status?: string | null
+          retry_count?: number | null
+          transcript_id?: string
+          updated_at?: string | null
+          webhook_payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_transcript_queue_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gdpr_audit_log: {
         Row: {
           admin_id: string | null
@@ -730,6 +783,70 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      queue_assignments: {
+        Row: {
+          accepted_at: string | null
+          assigned_at: string | null
+          assigned_by: string | null
+          assigned_to: string
+          created_at: string | null
+          id: string
+          notes: string | null
+          rejected_at: string | null
+          status: string | null
+          transcript_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          rejected_at?: string | null
+          status?: string | null
+          transcript_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          assigned_at?: string | null
+          assigned_by?: string | null
+          assigned_to?: string
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          rejected_at?: string | null
+          status?: string | null
+          transcript_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "queue_assignments_assigned_by_fkey"
+            columns: ["assigned_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_assignments_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "queue_assignments_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
             referencedColumns: ["id"]
           },
         ]
@@ -1095,12 +1212,17 @@ export type Database = {
       transcripts: {
         Row: {
           account_id: string | null
+          assigned_user_id: string | null
+          assignment_metadata: Json | null
           created_at: string | null
+          deal_context: Json | null
           duration_minutes: number | null
           error_message: string | null
+          external_source: string | null
           id: string
           meeting_date: string
           participants: Json | null
+          priority_level: string | null
           processed_at: string | null
           processing_error: string | null
           processing_started_at: string | null
@@ -1111,15 +1233,21 @@ export type Database = {
           status: Database["public"]["Enums"]["processing_status"] | null
           title: string
           user_id: string | null
+          zoho_deal_id: string | null
         }
         Insert: {
           account_id?: string | null
+          assigned_user_id?: string | null
+          assignment_metadata?: Json | null
           created_at?: string | null
+          deal_context?: Json | null
           duration_minutes?: number | null
           error_message?: string | null
+          external_source?: string | null
           id?: string
           meeting_date: string
           participants?: Json | null
+          priority_level?: string | null
           processed_at?: string | null
           processing_error?: string | null
           processing_started_at?: string | null
@@ -1130,15 +1258,21 @@ export type Database = {
           status?: Database["public"]["Enums"]["processing_status"] | null
           title: string
           user_id?: string | null
+          zoho_deal_id?: string | null
         }
         Update: {
           account_id?: string | null
+          assigned_user_id?: string | null
+          assignment_metadata?: Json | null
           created_at?: string | null
+          deal_context?: Json | null
           duration_minutes?: number | null
           error_message?: string | null
+          external_source?: string | null
           id?: string
           meeting_date?: string
           participants?: Json | null
+          priority_level?: string | null
           processed_at?: string | null
           processing_error?: string | null
           processing_started_at?: string | null
@@ -1149,6 +1283,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["processing_status"] | null
           title?: string
           user_id?: string | null
+          zoho_deal_id?: string | null
         }
         Relationships: [
           {
@@ -1156,6 +1291,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcripts_assigned_user_id_fkey"
+            columns: ["assigned_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -1543,6 +1685,14 @@ export type Database = {
         Args: { prompt_id_param: string }
         Returns: undefined
       }
+      assign_transcript_to_user: {
+        Args: {
+          assignment_notes?: string
+          transcript_uuid: string
+          user_email: string
+        }
+        Returns: Json
+      }
       check_prompt_access_rate_limit: {
         Args: { p_user_id?: string }
         Returns: boolean
@@ -1613,6 +1763,10 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_user_queue_summary: {
+        Args: { user_uuid: string }
+        Returns: Json
       }
       hash_token: {
         Args: { token: string }
@@ -1725,6 +1879,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      lookup_user_by_email: {
+        Args: { email_address: string }
+        Returns: string
       }
       mark_password_reset_token_used: {
         Args: {
