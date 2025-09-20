@@ -25,6 +25,8 @@ export function ZapierWebhookSection() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [triggerType, setTriggerType] = useState<string>('');
+  const [replacingWebhookId, setReplacingWebhookId] = useState<string | null>(null);
+  const [isReplacing, setIsReplacing] = useState(false);
 
   const validateWebhookUrl = (url: string): boolean => {
     try {
@@ -102,6 +104,28 @@ export function ZapierWebhookSection() {
     try {
       const result = await subscribeWebhook(subscriptionData);
       console.log('✅ Webhook subscription result:', result);
+      
+      // If we're replacing a webhook, delete the old one
+      if (replacingWebhookId) {
+        setIsReplacing(true);
+        try {
+          await unsubscribeWebhook(replacingWebhookId);
+          toast({
+            title: 'Webhook Replaced Successfully',
+            description: 'Old webhook deleted and new webhook created.',
+          });
+        } catch (error) {
+          console.error('Failed to delete old webhook:', error);
+          toast({
+            title: 'Webhook Created',
+            description: 'New webhook created, but failed to delete the old one. Please delete it manually.',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsReplacing(false);
+          setReplacingWebhookId(null);
+        }
+      }
       
       // Only clear form on successful subscription
       setWebhookUrl('');
@@ -181,14 +205,14 @@ export function ZapierWebhookSection() {
   };
 
   const handleReplaceWebhook = (webhook: any) => {
-    // Pre-fill the form with the same trigger type
+    setReplacingWebhookId(webhook.id);
     setTriggerType(webhook.trigger_type);
     setWebhookUrl('');
     setShowCreateForm(true);
     
     toast({
       title: 'Replace Webhook',
-      description: 'Create a new webhook with a fresh URL from Zapier, then delete the old one.',
+      description: 'Enter the new webhook URL. The old webhook will be automatically deleted after successful creation.',
     });
   };
 
@@ -254,15 +278,18 @@ export function ZapierWebhookSection() {
               <div className="flex gap-2">
                 <Button 
                   onClick={handleSubscribeWebhook}
-                  disabled={isSubscribing || !webhookUrl.trim() || !triggerType}
+                  disabled={isSubscribing || isReplacing || !webhookUrl.trim() || !triggerType}
                   className="flex-1"
                 >
-                  {isSubscribing ? 'Creating...' : 'Subscribe Webhook'}
+                  {isSubscribing ? 'Creating...' : 
+                   isReplacing ? 'Replacing...' : 
+                   replacingWebhookId ? 'Replace Webhook' : 'Subscribe Webhook'}
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={() => {
                     setShowCreateForm(false);
+                    setReplacingWebhookId(null);
                     setWebhookUrl('');
                     setTriggerType('');
                   }}
