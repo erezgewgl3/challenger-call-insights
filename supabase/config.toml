@@ -3,6 +3,9 @@ project_id = "jtunkyfoadoowpymibjr"
 [functions.external-transcript-ingest]
 verify_jwt = false
 
+[functions.queue-assignment-actions]
+verify_jwt = true
+
 [functions.analyze-transcript]
 verify_jwt = true
 
