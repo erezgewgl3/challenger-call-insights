@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Plus, Webhook, Trash2, TestTube, Clock, CheckCircle, XCircle, ExternalLink } from 'lucide-react';
+import { Plus, Webhook, Trash2, TestTube, Clock, CheckCircle, XCircle, ExternalLink, AlertTriangle, AlertCircle, RotateCcw } from 'lucide-react';
 import { useZapierIntegration } from '@/hooks/useZapier';
 import { useToast } from '@/hooks/use-toast';
 import { formatDistanceToNow } from 'date-fns';
@@ -136,6 +136,62 @@ export function ZapierWebhookSection() {
     return `${url.substring(0, maxLength - 3)}...`;
   };
 
+  const isWebhookExpired = (webhook: any) => {
+    return webhook.last_error && (
+      webhook.last_error.includes('404') || 
+      webhook.last_error.includes('410') ||
+      webhook.last_error.toLowerCase().includes('not found') ||
+      webhook.last_error.toLowerCase().includes('unsubscribe me')
+    );
+  };
+
+  const getWebhookStatusInfo = (webhook: any) => {
+    if (isWebhookExpired(webhook)) {
+      return {
+        type: 'expired',
+        message: 'URL Expired - Create New Webhook',
+        icon: AlertTriangle,
+        badgeVariant: 'destructive' as const,
+        description: 'Delete this webhook and create a new one with a fresh Zapier URL'
+      };
+    }
+    
+    if (webhook.last_error) {
+      return {
+        type: 'error',
+        message: 'Connection Issues',
+        icon: AlertCircle,
+        badgeVariant: 'secondary' as const,
+        description: 'There are issues with this webhook connection'
+      };
+    }
+    
+    const successRate = getSuccessRate(webhook);
+    if (successRate < 70 && webhook.failure_count > 0) {
+      return {
+        type: 'warning',
+        message: 'Low Success Rate',
+        icon: AlertTriangle,
+        badgeVariant: 'outline' as const,
+        description: 'This webhook has a low success rate'
+      };
+    }
+    
+    return null;
+  };
+
+  const handleReplaceWebhook = (webhook: any) => {
+    // Pre-fill the form with the same trigger type
+    setTriggerType(webhook.trigger_type);
+    setWebhookUrl('');
+    setShowCreateForm(true);
+    
+    toast({
+      title: 'Replace Webhook',
+      description: 'Create a new webhook with a fresh URL from Zapier, then delete the old one.',
+    });
+  };
+
   return (
     <div className="space-y-6">
       {/* Create Webhook Form */}
@@ -243,10 +299,10 @@ export function ZapierWebhookSection() {
                   'text-gray-400';
                 
                 return (
-                  <div key={webhook.id} className="border rounded-lg p-4 space-y-3">
+                  <div key={webhook.id} className={`border rounded-lg p-4 space-y-3 ${isWebhookExpired(webhook) ? 'border-red-200 bg-red-50/50' : ''}`}>
                     <div className="flex items-start justify-between">
                       <div className="space-y-1 flex-1">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-medium">{truncateUrl(webhook.webhook_url)}</h4>
                           <Badge variant={webhook.is_active ? 'default' : 'secondary'}>
                             {webhook.is_active ? 'Active' : 'Inactive'}
@@ -254,12 +310,56 @@ export function ZapierWebhookSection() {
                           <Badge variant="outline">
                             {triggerTypes.find(t => t.value === webhook.trigger_type)?.label || webhook.trigger_type}
                           </Badge>
+                          
+                          {/* Status Badge */}
+                          {(() => {
+                            const status = getWebhookStatusInfo(webhook);
+                            if (!status) return null;
+                            
+                            return (
+                              <Badge variant={status.badgeVariant} className="flex items-center gap-1">
+                                <status.icon className="h-3 w-3" />
+                                {status.message}
+                              </Badge>
+                            );
+                          })()}
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {triggerTypes.find(t => t.value === webhook.trigger_type)?.description}
                         </p>
+                        
+                        {/* Status Description */}
+                        {(() => {
+                          const status = getWebhookStatusInfo(webhook);
+                          if (!status) return null;
+                          
+                          return (
+                            <p className={`text-xs font-medium ${
+                              status.type === 'expired' ? 'text-red-600' : 
+                              status.type === 'error' ? 'text-orange-600' : 
+                              'text-yellow-600'
+                            }`}>
+                              {status.description}
+                            </p>
+                          );
+                        })()}
                       </div>
                       <div className="flex gap-2">
+                        {/* Replace Button - only show for expired webhooks */}
+                        {isWebhookExpired(webhook) && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleReplaceWebhook(webhook)}
+                            className="text-blue-600 hover:text-blue-700 border-blue-200 hover:border-blue-300"
+                            title="Replace with new webhook URL"
+                          >
+                            <RotateCcw className="h-4 w-4 mr-1" />
+                            Replace
+                          </Button>
+                        )}
+                        
+                        {/* Existing action buttons */}
                         <Button
                           variant="outline"
                           size="icon"
