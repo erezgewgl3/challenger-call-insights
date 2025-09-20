@@ -1,5 +1,8 @@
 project_id = "jtunkyfoadoowpymibjr"
 
+[functions.external-transcript-ingest]
+verify_jwt = false
+
 [functions.analyze-transcript]
 verify_jwt = true
 

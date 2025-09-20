@@ -68,7 +68,7 @@ export function DataRetentionTab() {
           id, 
           title, 
           created_at,
-          user:users(email)
+          user:users!transcripts_user_id_fkey(email)
         `)
         .order('created_at', { ascending: true });
 
