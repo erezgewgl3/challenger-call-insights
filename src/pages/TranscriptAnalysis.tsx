@@ -19,6 +19,13 @@ interface TranscriptData {
   meeting_date: string
   account_id?: string
   raw_text?: string
+  zoho_deal_id?: string
+  deal_context?: {
+    company_name?: string
+    contact_name?: string
+    deal_name?: string
+  }
+  is_assigned?: boolean
 }
 
 export default function TranscriptAnalysis() {
@@ -39,7 +46,7 @@ export default function TranscriptAnalysis() {
       try {
         setIsLoading(true)
         
-        // Fetch transcript details
+        // Fetch transcript details with CRM context
         const { data: transcriptData, error: transcriptError } = await supabase
           .from('transcripts')
           .select('*')
@@ -55,7 +62,10 @@ export default function TranscriptAnalysis() {
           duration_minutes: transcriptData.duration_minutes || 0,
           meeting_date: transcriptData.meeting_date,
           account_id: transcriptData.account_id,
-          raw_text: transcriptData.raw_text
+          raw_text: transcriptData.raw_text,
+          zoho_deal_id: transcriptData.zoho_deal_id,
+          deal_context: transcriptData.deal_context as any,
+          is_assigned: transcriptData.assigned_user_id !== transcriptData.user_id
         })
 
       } catch (err) {

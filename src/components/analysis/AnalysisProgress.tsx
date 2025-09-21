@@ -2,7 +2,10 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Brain, FileText, Clock, Zap, Target, X, CheckCircle, Loader } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { Brain, FileText, Clock, Zap, Target, X, CheckCircle, Loader, ExternalLink, ArrowRight, XCircle } from 'lucide-react'
+import { ZohoContextCard } from '../transcript-queue/ZohoContextCard'
 
 interface AnalysisProgressProps {
   progress: number
@@ -13,6 +16,14 @@ interface AnalysisProgressProps {
   onCancel?: () => void
   phase?: string
   message?: string
+  dealContext?: {
+    company_name?: string
+    contact_name?: string
+    deal_name?: string
+  }
+  zohoDealId?: string | null
+  isAssignedTranscript?: boolean
+  onComplete?: () => void
 }
 
 export function AnalysisProgress({
@@ -22,7 +33,11 @@ export function AnalysisProgress({
   fileSize,
   fileDuration,
   onCancel,
-  message
+  message,
+  dealContext,
+  zohoDealId,
+  isAssignedTranscript = false,
+  onComplete
 }: AnalysisProgressProps) {
 
   const getStrategyInfo = () => {
@@ -69,20 +84,30 @@ export function AnalysisProgress({
     return '30-90 seconds'
   }
 
-  // Define analysis stages
+  // Define analysis stages with CRM integration
   const getAnalysisStages = () => {
-    const stages = [
-      { id: 'processing', label: 'Processing transcript', threshold: 33 },
-      { id: 'analyzing', label: 'AI analyzing conversation', threshold: 66 },
-      { id: 'generating', label: 'Generating insights', threshold: 90 },
-      { id: 'complete', label: 'Analysis complete', threshold: 100 }
+    const baseStages = [
+      { id: 'parsing', label: 'Parsing Transcript', threshold: 10 },
+      { id: 'analysis', label: 'AI Analysis', threshold: 40 },
+      { id: 'insights', label: 'Generating Insights', threshold: 70 },
+      { id: 'formatting', label: 'Formatting Results', threshold: 90 }
     ]
 
-    return stages.map(stage => ({
+    // Add CRM preparation step if dealing with external transcript
+    if (dealContext || zohoDealId) {
+      baseStages.push(
+        { id: 'crm_prep', label: 'Preparing CRM Updates', threshold: 95 },
+        { id: 'complete', label: 'Processing Complete', threshold: 100 }
+      )
+    } else {
+      baseStages.push({ id: 'complete', label: 'Analysis Complete', threshold: 100 })
+    }
+
+    return baseStages.map(stage => ({
       ...stage,
       isCompleted: progress >= stage.threshold,
-      isActive: progress >= (stage.threshold - 33) && progress < stage.threshold,
-      isCurrent: progress < stage.threshold && progress >= Math.max(0, stage.threshold - 33)
+      isActive: progress >= (stage.threshold - 10) && progress < stage.threshold,
+      isCurrent: progress < stage.threshold && progress >= Math.max(0, stage.threshold - 10)
     }))
   }
 
@@ -98,100 +123,152 @@ export function AnalysisProgress({
   const currentStage = stages.find(stage => stage.isCurrent) || stages[0]
 
   return (
-    <Card className="shadow-md bg-white animate-fade-in">
-      <CardHeader className="p-4 pb-2">
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center space-x-2 text-lg text-slate-900">
-            <div className="p-1 bg-blue-50 rounded-lg border border-blue-200">
-              {strategyInfo.icon}
-            </div>
-            <div className="flex items-center space-x-2">
-              <span className="font-semibold">{strategyInfo.title}</span>
-              <span className="text-sm text-slate-600 font-normal">• {strategyInfo.description}</span>
-            </div>
-          </CardTitle>
-          {onCancel && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onCancel}
-              className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
-      </CardHeader>
-
-      <CardContent className="p-4 pt-0">
-        <div className="flex items-center space-x-3">
-          {/* Animated Spinner */}
-          <div className="flex-shrink-0">
-            <div className="relative w-12 h-12 flex items-center justify-center">
-              {progress >= 100 ? (
-                <div className={`w-10 h-10 rounded-full bg-${strategyInfo.color}-100 flex items-center justify-center`}>
-                  <CheckCircle className={`w-5 h-5 text-${strategyInfo.color}-600`} />
-                </div>
-              ) : (
-                <div className={`w-10 h-10 rounded-full bg-${strategyInfo.color}-100 flex items-center justify-center`}>
-                  <Loader className={`w-5 h-5 text-${strategyInfo.color}-600 animate-spin`} />
-                </div>
+    <div className="space-y-6">
+      {/* Zoho Context Display */}
+      {(dealContext || zohoDealId) && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Badge variant="outline">Zoho CRM Integration</Badge>
+              {isAssignedTranscript && (
+                <Badge variant="default">Assigned Transcript</Badge>
               )}
-            </div>
-          </div>
-
-          {/* Information Display */}
-          <div className="flex-1 space-y-2">
-            {/* Current Status with File Info */}
-            <div>
-              <h3 className="text-base font-semibold text-slate-900">
-                {message || currentStage.label}
-              </h3>
-              {fileName && (
-                <div className="flex items-center space-x-2 text-xs text-slate-600">
-                  <FileText className="w-3 h-3" />
-                  <span className="truncate max-w-32">{fileName}</span>
-                  {fileSize && <span>{formatFileSize(fileSize)}</span>}
-                  {fileDuration && <span>{fileDuration} min meeting</span>}
-                </div>
-              )}
-            </div>
-
-            {/* Stage Progress with Time Estimation */}
-            <div className="space-y-1">
-              {stages.map((stage, index) => (
-                <div key={stage.id} className="flex items-center space-x-2">
-                  {/* Stage Indicator */}
-                  <div className="flex items-center justify-center w-3 h-3">
-                    {stage.isCompleted ? (
-                      <CheckCircle className={`w-3 h-3 text-${strategyInfo.color}-600`} />
-                    ) : stage.isCurrent ? (
-                      <div className={`w-1 h-1 rounded-full bg-${strategyInfo.color}-500 animate-pulse`} />
-                    ) : (
-                      <div className="w-1 h-1 rounded-full bg-slate-300" />
-                    )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ZohoContextCard
+              dealContext={dealContext || {}}
+              zohoDealId={zohoDealId}
+            />
+            
+            {progress >= 100 && (
+              <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="text-sm font-medium text-green-800">
+                      Ready to update Zoho CRM
+                    </span>
                   </div>
-                  
-                  {/* Stage Label */}
-                  <span className={`text-xs ${
-                    stage.isCompleted || stage.isCurrent 
-                      ? 'text-slate-900 font-medium' 
-                      : 'text-slate-500'
-                  }`}>
-                    {stage.label}
-                  </span>
+                  <Button size="sm" variant="outline" className="ml-auto">
+                    <ArrowRight className="h-4 w-4 mr-1" />
+                    Send to CRM
+                  </Button>
                 </div>
-              ))}
-              
-              {/* Time Estimation integrated */}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Processing Steps */}
+      <Card className="shadow-md bg-white animate-fade-in">
+        <CardHeader className="p-4 pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center space-x-2 text-lg text-slate-900">
+              <div className="p-1 bg-blue-50 rounded-lg border border-blue-200">
+                {strategyInfo.icon}
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="font-semibold">{strategyInfo.title}</span>
+                <span className="text-sm text-slate-600 font-normal">• {strategyInfo.description}</span>
+              </div>
+            </CardTitle>
+            {onCancel && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCancel}
+                className="text-slate-400 hover:text-slate-600 h-8 w-8 p-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </CardHeader>
+
+        <CardContent className="p-4 pt-0">
+          <div className="space-y-4">
+            {/* Overall Progress */}
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Overall Progress</span>
+                <span>{Math.round(progress)}%</span>
+              </div>
+              <Progress value={progress} className="h-2" />
+            </div>
+
+            {/* Current Step */}
+            {currentStage && progress < 100 && (
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Loader className="h-4 w-4 animate-spin" />
+                <span className="font-medium">{message || currentStage.label}</span>
+              </div>
+            )}
+
+            {/* Step List */}
+            <div className="space-y-2">
+              {stages.map((stage, index) => {
+                const isCompleted = progress >= stage.threshold
+                const isCurrent = progress >= Math.max(0, stage.threshold - 10) && progress < stage.threshold
+
+                return (
+                  <div
+                    key={stage.id}
+                    className={`flex items-center gap-3 p-2 rounded-lg transition-all ${
+                      isCurrent ? 'bg-primary/10 border border-primary/20' :
+                      isCompleted ? 'bg-green-50 border border-green-200' :
+                      'bg-muted/30'
+                    }`}
+                  >
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                      isCompleted ? 'bg-green-600 text-white' :
+                      isCurrent ? 'bg-primary text-white' :
+                      'bg-muted text-muted-foreground'
+                    }`}>
+                      {isCompleted ? (
+                        <CheckCircle className="h-4 w-4" />
+                      ) : isCurrent ? (
+                        <Loader className="h-3 w-3 animate-spin" />
+                      ) : (
+                        <Clock className="h-3 w-3" />
+                      )}
+                    </div>
+                    
+                    <span className={`flex-1 ${
+                      isCurrent ? 'font-medium' : 
+                      isCompleted ? 'text-green-800' :
+                      'text-muted-foreground'
+                    }`}>
+                      {stage.label}
+                    </span>
+
+                    <span className="text-xs text-muted-foreground">
+                      {stage.threshold}%
+                    </span>
+                  </div>
+                )
+              })}
+
+              {/* Time Estimation */}
               <div className="flex items-center space-x-2 text-xs text-slate-500 pl-5">
                 <Clock className="w-3 h-3" />
                 <span>Expected: {getTimeEstimate()}</span>
               </div>
             </div>
+
+            {/* Completion Actions */}
+            {progress >= 100 && onComplete && (
+              <div className="pt-4 border-t">
+                <Button onClick={onComplete} className="w-full">
+                  View Analysis Results
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            )}
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

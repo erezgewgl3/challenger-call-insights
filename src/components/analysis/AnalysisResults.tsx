@@ -4,7 +4,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { TrendingUp, Target, MessageSquare, Mail, CheckCircle, ArrowRight, Lightbulb, Users } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { TrendingUp, Target, MessageSquare, Mail, CheckCircle, ArrowRight, Lightbulb, Users, ExternalLink, Download, Send, ArrowLeft } from 'lucide-react'
+import { ZohoContextCard } from '../transcript-queue/ZohoContextCard'
 
 interface ChallengerScores {
   teaching: number
@@ -31,13 +33,29 @@ interface AnalysisResultsProps {
   guidance: Guidance
   emailFollowUp: EmailFollowUp
   transcriptTitle: string
+  transcriptData?: {
+    id: string
+    meeting_date: string
+    zoho_deal_id?: string
+    deal_context?: {
+      company_name?: string
+      contact_name?: string
+      deal_name?: string
+    }
+    is_assigned?: boolean
+  }
+  onSendToCRM?: () => void
+  onBackToQueue?: () => void
 }
 
 export function AnalysisResults({ 
   challengerScores, 
   guidance, 
   emailFollowUp, 
-  transcriptTitle 
+  transcriptTitle,
+  transcriptData,
+  onSendToCRM,
+  onBackToQueue
 }: AnalysisResultsProps) {
   const getImpactLevel = (score: number) => {
     if (score >= 4) return { level: 'Strong', color: 'bg-green-500', textColor: 'text-green-700' }
@@ -61,18 +79,93 @@ export function AnalysisResults({
   const controlImpact = getImpactLevel(challengerScores.control)
   const recommendationStyle = getRecommendationStyle(guidance.recommendation)
   const RecommendationIcon = recommendationStyle.icon
+  
+  const zohoDealUrl = transcriptData?.zoho_deal_id 
+    ? `https://crm.zoho.com/crm/ShowEntityInfo.do?id=${transcriptData.zoho_deal_id}&module=Potentials`
+    : null
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header Section */}
-      <div className="text-center space-y-2 mb-8">
-        <h1 className="text-3xl font-bold text-slate-900">Conversation Flow Insights</h1>
-        <p className="text-lg text-slate-600">Analysis complete for "{transcriptTitle}"</p>
-        <Badge className={recommendationStyle.color} variant="secondary">
-          <RecommendationIcon className="w-4 h-4 mr-1" />
-          {guidance.recommendation} Forward
-        </Badge>
-      </div>
+      {/* Header with CRM Context */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="space-y-2">
+              <CardTitle className="text-3xl font-bold">{transcriptTitle}</CardTitle>
+              <div className="flex items-center gap-2">
+                {transcriptData && (
+                  <Badge variant="outline">
+                    {new Date(transcriptData.meeting_date).toLocaleDateString()}
+                  </Badge>
+                )}
+                {transcriptData?.is_assigned && (
+                  <Badge variant="default">Assigned Transcript</Badge>
+                )}
+                <Badge className={recommendationStyle.color} variant="secondary">
+                  <RecommendationIcon className="w-4 h-4 mr-1" />
+                  {guidance.recommendation} Forward
+                </Badge>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {onBackToQueue && (
+                <Button variant="outline" onClick={onBackToQueue}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Queue
+                </Button>
+              )}
+              <Button variant="outline">
+                <Download className="h-4 w-4 mr-2" />
+                Export PDF
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+
+        {transcriptData?.deal_context && (
+          <CardContent>
+            <ZohoContextCard
+              dealContext={transcriptData.deal_context}
+              zohoDealId={transcriptData.zoho_deal_id}
+            />
+          </CardContent>
+        )}
+      </Card>
+
+      {/* CRM Integration Actions */}
+      {transcriptData?.zoho_deal_id && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <h3 className="font-medium">Ready for CRM Integration</h3>
+                <p className="text-sm text-muted-foreground">
+                  Send analysis results back to Zoho CRM to update the deal
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                {zohoDealUrl && (
+                  <Button variant="outline" size="sm" asChild>
+                    <a href={zohoDealUrl} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      View Deal
+                    </a>
+                  </Button>
+                )}
+                
+                {onSendToCRM && (
+                  <Button onClick={onSendToCRM} size="sm">
+                    <Send className="h-4 w-4 mr-2" />
+                    Send to Zoho CRM
+                  </Button>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Impact Overview Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

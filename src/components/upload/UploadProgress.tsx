@@ -15,6 +15,13 @@ interface UploadProgressProps {
   fileName?: string
   fileSize?: number
   fileDuration?: number
+  dealContext?: {
+    company_name?: string
+    contact_name?: string
+    deal_name?: string
+  }
+  zohoDealId?: string | null
+  isAssignedTranscript?: boolean
 }
 
 export function UploadProgress({ 
@@ -25,7 +32,10 @@ export function UploadProgress({
   onUploadAnother,
   fileName,
   fileSize,
-  fileDuration
+  fileDuration,
+  dealContext,
+  zohoDealId,
+  isAssignedTranscript = false
 }: UploadProgressProps) {
   
   // Determine analysis strategy based on duration
@@ -45,6 +55,9 @@ export function UploadProgress({
         fileName={fileName}
         fileSize={fileSize}
         fileDuration={fileDuration}
+        dealContext={dealContext}
+        zohoDealId={zohoDealId}
+        isAssignedTranscript={isAssignedTranscript}
         onCancel={onRetry}
       />
     )
