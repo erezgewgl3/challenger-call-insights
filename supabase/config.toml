@@ -41,3 +41,9 @@ verify_jwt = false
 
 [functions.zapier-webhooks]
 verify_jwt = true
+
+[functions.zapier-config]
+verify_jwt = false
+
+[functions.trigger-crm-webhook]
+verify_jwt = true

@@ -1,0 +1,483 @@
+{
+  "version": "2.0.0",
+  "platformVersion": "15.0.0",
+  "name": "Sales Whisperer",
+  "description": "AI-powered sales call analysis and CRM integration that transforms transcripts into actionable insights",
+  "homepage": "https://saleswhisperer.ai",
+  "author": "Sales Whisperer Team",
+  "logo": "https://saleswhisperer.ai/logo.png",
+  "categories": ["CRM", "Sales", "AI"],
+  "authentication": {
+    "type": "api_key",
+    "test": {
+      "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/zapier-config/test-connection",
+      "method": "GET",
+      "headers": {
+        "Authorization": "Bearer {{auth_token}}"
+      }
+    },
+    "fields": [
+      {
+        "key": "auth_token",
+        "label": "Sales Whisperer API Token",
+        "required": true,
+        "type": "password",
+        "helpText": "Get your API token from the Sales Whisperer dashboard under Settings > Integrations > API Keys"
+      }
+    ]
+  },
+  "triggers": [
+    {
+      "key": "analysis_complete",
+      "noun": "Analysis",
+      "display": {
+        "label": "Analysis Complete",
+        "description": "Triggered when Sales Whisperer completes analyzing a sales transcript and generates insights"
+      },
+      "operation": {
+        "type": "hook",
+        "performSubscribe": {
+          "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/zapier-webhooks",
+          "method": "POST",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.auth_token}}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "target_url": "{{bundle.targetUrl}}",
+            "event": "analysis_complete",
+            "trigger_type": "analysis_complete"
+          }
+        },
+        "performUnsubscribe": {
+          "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/zapier-webhooks",
+          "method": "DELETE",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.auth_token}}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "target_url": "{{bundle.targetUrl}}",
+            "event": "analysis_complete"
+          }
+        },
+        "sample": {
+          "id": "01234567-89ab-cdef-0123-456789abcdef",
+          "transcript_id": "01234567-89ab-cdef-0123-456789abcdef",
+          "zoho_deal_id": "4567890123456789012",
+          "analysis_complete": true,
+          "analysis_timestamp": "2025-09-21T14:45:00Z",
+          "deal_heat": "Hot",
+          "momentum": "Strong Forward",
+          "challenger_score": 4,
+          "competitive_position": "Strong Position",
+          "win_strategy": "Focus on ROI calculation and integration capabilities",
+          "key_takeaways": [
+            "Decision maker confirmed with budget authority",
+            "Clear business impact quantified at $200K",
+            "Technical requirements clearly defined"
+          ],
+          "next_steps": [
+            {
+              "action": "Schedule technical demo with solutions engineer",
+              "priority": "high",
+              "due_date": "2025-09-24"
+            }
+          ],
+          "deal_updates": {
+            "cf_ai_heat_level": "Hot",
+            "cf_deal_momentum": "Strong Forward",
+            "cf_challenger_teaching": 4,
+            "cf_competitive_position": "Strong Position"
+          }
+        }
+      }
+    },
+    {
+      "key": "high_value_lead",
+      "noun": "High Value Lead",
+      "display": {
+        "label": "High Value Lead Identified",
+        "description": "Triggered when analysis identifies a high-value sales opportunity (Hot deals with strong momentum)"
+      },
+      "operation": {
+        "type": "hook",
+        "performSubscribe": {
+          "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/zapier-webhooks",
+          "method": "POST",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.auth_token}}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "target_url": "{{bundle.targetUrl}}",
+            "event": "high_value_lead",
+            "trigger_type": "high_value_lead",
+            "filter_criteria": {
+              "heat_level": "Hot",
+              "challenger_score_min": 4
+            }
+          }
+        },
+        "performUnsubscribe": {
+          "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/zapier-webhooks",
+          "method": "DELETE",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.auth_token}}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "target_url": "{{bundle.targetUrl}}",
+            "event": "high_value_lead"
+          }
+        },
+        "sample": {
+          "id": "high-value-lead-123",
+          "transcript_id": "01234567-89ab-cdef-0123-456789abcdef",
+          "deal_heat": "Hot",
+          "challenger_score": 5,
+          "momentum": "Strong Forward",
+          "estimated_value": 250000,
+          "probability": 85,
+          "urgency": "High",
+          "decision_maker_engaged": true
+        }
+      }
+    }
+  ],
+  "actions": [
+    {
+      "key": "send_transcript",
+      "noun": "Transcript",
+      "display": {
+        "label": "Send Transcript for Analysis",
+        "description": "Send a sales call transcript to Sales Whisperer for AI-powered analysis and insights"
+      },
+      "operation": {
+        "perform": {
+          "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/external-transcript-ingest",
+          "method": "POST",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.auth_token}}",
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "transcript_text": "{{bundle.inputData.transcript_text}}",
+            "assigned_user_email": "{{bundle.inputData.assigned_user_email}}",
+            "zoho_deal_id": "{{bundle.inputData.zoho_deal_id}}",
+            "meeting_metadata": {
+              "title": "{{bundle.inputData.meeting_title}}",
+              "participants": "{{bundle.inputData.participants}}",
+              "meeting_date": "{{bundle.inputData.meeting_date}}",
+              "duration_minutes": "{{bundle.inputData.duration_minutes}}",
+              "company_name": "{{bundle.inputData.company_name}}",
+              "contact_name": "{{bundle.inputData.contact_name}}",
+              "deal_name": "{{bundle.inputData.deal_name}}"
+            },
+            "priority": "{{bundle.inputData.priority}}",
+            "callback_webhook": "{{bundle.inputData.callback_webhook}}",
+            "source": "zapier"
+          }
+        },
+        "inputFields": [
+          {
+            "key": "transcript_text",
+            "label": "Transcript Content",
+            "type": "text",
+            "required": true,
+            "helpText": "The full transcript text from your sales call to analyze"
+          },
+          {
+            "key": "assigned_user_email",
+            "label": "Assign to Sales Rep Email",
+            "type": "string",
+            "required": true,
+            "helpText": "Email address of the Sales Whisperer user who should receive the analysis"
+          },
+          {
+            "key": "meeting_title",
+            "label": "Meeting Title",
+            "type": "string",
+            "required": false,
+            "helpText": "Title or subject of the sales call",
+            "default": "Sales Call Analysis"
+          },
+          {
+            "key": "participants",
+            "label": "Call Participants",
+            "type": "string",
+            "required": false,
+            "helpText": "Comma-separated list of call participants (e.g., 'John Doe (Sales), Jane Smith (Prospect)')"
+          },
+          {
+            "key": "meeting_date",
+            "label": "Meeting Date",
+            "type": "datetime",
+            "required": false,
+            "helpText": "When the sales call took place"
+          },
+          {
+            "key": "duration_minutes",
+            "label": "Call Duration (Minutes)",
+            "type": "integer",
+            "required": false,
+            "helpText": "Length of the sales call in minutes"
+          },
+          {
+            "key": "company_name",
+            "label": "Prospect Company",
+            "type": "string",
+            "required": false,
+            "helpText": "Name of the prospect's company"
+          },
+          {
+            "key": "contact_name",
+            "label": "Primary Contact",
+            "type": "string",
+            "required": false,
+            "helpText": "Name of the main prospect/contact on the call"
+          },
+          {
+            "key": "deal_name",
+            "label": "Deal/Opportunity Name",
+            "type": "string",
+            "required": false,
+            "helpText": "Name of the sales opportunity in your CRM"
+          },
+          {
+            "key": "zoho_deal_id",
+            "label": "Zoho Deal ID",
+            "type": "string",
+            "required": false,
+            "helpText": "Zoho CRM Deal ID to link this analysis to (for automatic CRM updates)"
+          },
+          {
+            "key": "priority",
+            "label": "Analysis Priority",
+            "type": "string",
+            "choices": ["urgent", "high", "normal", "low"],
+            "default": "normal",
+            "helpText": "Priority level for processing this transcript"
+          },
+          {
+            "key": "callback_webhook",
+            "label": "Results Webhook URL",
+            "type": "string",
+            "required": false,
+            "helpText": "Optional webhook URL to receive analysis results (for advanced integrations)"
+          }
+        ],
+        "sample": {
+          "success": true,
+          "transcript_id": "01234567-89ab-cdef-0123-456789abcdef",
+          "queue_position": 3,
+          "estimated_processing_time": "2-5 minutes",
+          "status": "queued",
+          "message": "Transcript queued for AI analysis"
+        }
+      }
+    },
+    {
+      "key": "get_analysis",
+      "noun": "Analysis",
+      "display": {
+        "label": "Get Analysis Results",
+        "description": "Retrieve completed analysis results for a specific transcript"
+      },
+      "operation": {
+        "perform": {
+          "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/zapier-data/analysis/{{bundle.inputData.analysis_id}}",
+          "method": "GET",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.auth_token}}"
+          }
+        },
+        "inputFields": [
+          {
+            "key": "analysis_id",
+            "label": "Analysis ID",
+            "type": "string",
+            "required": true,
+            "helpText": "The analysis ID returned when you sent the transcript for analysis"
+          }
+        ],
+        "sample": {
+          "success": true,
+          "data": {
+            "analysis_id": "01234567-89ab-cdef-0123-456789abcdef",
+            "deal_intelligence": {
+              "heat_level": "hot",
+              "deal_stage_recommendation": "Push",
+              "priority_score": 85,
+              "next_action": "Schedule technical demo",
+              "timeline": "Within 48 hours"
+            },
+            "conversation_insights": {
+              "key_takeaways": [
+                "Decision maker confirmed with budget authority",
+                "Clear business impact quantified",
+                "Technical requirements defined"
+              ],
+              "challenger_scores": {
+                "teaching": 4,
+                "tailoring": 4,
+                "control": 4
+              },
+              "next_steps": [
+                "Schedule technical demo",
+                "Prepare ROI calculation"
+              ]
+            },
+            "metadata": {
+              "transcript_title": "Discovery Call",
+              "meeting_date": "2025-09-21T14:00:00Z",
+              "analysis_timestamp": "2025-09-21T14:45:00Z"
+            }
+          }
+        }
+      }
+    },
+    {
+      "key": "get_recent_analyses",
+      "noun": "Recent Analyses",
+      "display": {
+        "label": "Get Recent Analyses",
+        "description": "Retrieve a list of recent analysis results for monitoring and reporting"
+      },
+      "operation": {
+        "perform": {
+          "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/zapier-data/recent-analyses",
+          "method": "GET",
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.auth_token}}"
+          },
+          "params": {
+            "limit": "{{bundle.inputData.limit}}"
+          }
+        },
+        "inputFields": [
+          {
+            "key": "limit",
+            "label": "Number of Results",
+            "type": "integer",
+            "required": false,
+            "default": 10,
+            "helpText": "Maximum number of recent analyses to retrieve (1-50)"
+          }
+        ],
+        "sample": {
+          "success": true,
+          "data": [
+            {
+              "analysis_id": "01234567-89ab-cdef-0123-456789abcdef",
+              "deal_intelligence": {
+                "heat_level": "hot",
+                "priority_score": 85
+              },
+              "metadata": {
+                "transcript_title": "Discovery Call",
+                "analysis_timestamp": "2025-09-21T14:45:00Z"
+              }
+            }
+          ],
+          "count": 1
+        }
+      }
+    }
+  ],
+  "searches": [
+    {
+      "key": "find_analysis",
+      "noun": "Analysis",
+      "display": {
+        "label": "Find Analysis by Deal ID",
+        "description": "Search for analysis results by CRM deal ID or transcript title"
+      },
+      "operation": {
+        "perform": {
+          "url": "https://jtunkyfoadoowpymibjr.supabase.co/functions/v1/zapier-data/search",
+          "method": "GET", 
+          "headers": {
+            "Authorization": "Bearer {{bundle.authData.auth_token}}"
+          },
+          "params": {
+            "deal_id": "{{bundle.inputData.deal_id}}",
+            "title": "{{bundle.inputData.title}}",
+            "heat_level": "{{bundle.inputData.heat_level}}"
+          }
+        },
+        "inputFields": [
+          {
+            "key": "deal_id",
+            "label": "CRM Deal ID",
+            "type": "string",
+            "required": false,
+            "helpText": "Search by CRM deal ID (Zoho, Salesforce, etc.)"
+          },
+          {
+            "key": "title",
+            "label": "Transcript Title",
+            "type": "string",
+            "required": false,
+            "helpText": "Search by transcript or meeting title"
+          },
+          {
+            "key": "heat_level",
+            "label": "Deal Heat Level",
+            "type": "string",
+            "choices": ["Hot", "Warm", "Cold"],
+            "required": false,
+            "helpText": "Filter by AI-assessed deal temperature"
+          }
+        ],
+        "sample": {
+          "success": true,
+          "data": [
+            {
+              "analysis_id": "01234567-89ab-cdef-0123-456789abcdef",
+              "deal_intelligence": {
+                "heat_level": "hot",
+                "priority_score": 85
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "resources": {
+    "analysis": {
+      "noun": "Analysis",
+      "sample": {
+        "id": "01234567-89ab-cdef-0123-456789abcdef",
+        "deal_heat": "Hot",
+        "challenger_score": 4,
+        "created_at": "2025-09-21T14:45:00Z"
+      },
+      "outputFields": [
+        {
+          "key": "id",
+          "label": "Analysis ID",
+          "type": "string"
+        },
+        {
+          "key": "deal_heat",
+          "label": "Deal Heat Level",
+          "type": "string"
+        },
+        {
+          "key": "challenger_score",
+          "label": "Challenger Teaching Score",
+          "type": "integer"
+        },
+        {
+          "key": "created_at",
+          "label": "Analysis Date",
+          "type": "datetime"
+        }
+      ]
+    }
+  },
+  "connectionLabel": "{{bundle.authData.auth_token}}",
+  "includeApiKeyInQueryString": false
+}
