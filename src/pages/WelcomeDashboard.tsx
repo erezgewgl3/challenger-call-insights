@@ -9,6 +9,7 @@ import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
 import { ZoomStatusBadge } from '@/components/dashboard/ZoomStatusBadge';
 import { ZoomMeetingsWidget } from '@/components/dashboard/ZoomMeetingsWidget';
 import { QueueInterfaceTester } from '@/components/testing/QueueInterfaceTester';
+import ApiTester from '@/components/testing/ApiTester';
 import { FileText, TrendingUp, Thermometer, Clock, LogOut, Brain } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -417,17 +418,42 @@ export default function WelcomeDashboard() {
             </div>
           )}
 
-          {/* Queue Interface Testing Section */}
+          {/* Testing Interface Section */}
           <div className="mb-10">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-foreground mb-2">
-                Queue Management Testing
+                Testing & Development Tools
               </h2>
               <p className="text-muted-foreground">
-                Test the enhanced queue interface with external transcript assignments and filtering
+                Test the enhanced queue interface, API endpoints, and external integrations
               </p>
             </div>
-            <QueueInterfaceTester />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">🧪 Queue Interface Testing</CardTitle>
+                  <CardDescription>
+                    Test queue management UI with filtering and assignment workflows
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <QueueInterfaceTester />
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">🔌 API Endpoint Testing</CardTitle>
+                  <CardDescription>
+                    Test all API endpoints including queue management, assignments, and Zapier config
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ApiTester />
+                </CardContent>
+              </Card>
+            </div>
           </div>
 
           {/* Getting Started - Progressive Disclosure */}
