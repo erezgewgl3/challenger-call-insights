@@ -9,8 +9,12 @@ import { QueueFilters } from './QueueFilters';
 import { AssignedQueueSection } from './AssignedQueueSection';
 import { OwnedQueueSection } from './OwnedQueueSection';
 import { BulkActions } from './BulkActions';
+import { ConnectionStatus } from './ConnectionStatus';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useRealtimeQueue } from '@/hooks/useRealtimeQueue';
+import { useRealtimeNotifications } from '@/hooks/useRealtimeNotifications';
+import { useAuth } from '@/hooks/useAuth';
 
 interface QueueDrawerProps {
   open: boolean;
@@ -64,6 +68,22 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  // Real-time functionality
+  const { isConnected, connectionStatus, refreshQueue } = useRealtimeQueue({
+    userId: user?.id,
+    enableNotifications: true,
+    enableProgressUpdates: true
+  });
+
+  // Real-time notifications
+  useRealtimeNotifications({
+    userId: user?.id,
+    enableAssignmentNotifications: true,
+    enableProgressNotifications: true,
+    enableSystemNotifications: true
+  });
 
   // Fetch queue data with filters
   const { data: queueData, isLoading, error } = useQuery({
@@ -84,7 +104,8 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
       if (response.error) throw response.error;
       return response.data as QueueData;
     },
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: connectionStatus === 'connected' ? 0 : 30000, // No polling when real-time is connected
+    refetchOnWindowFocus: connectionStatus !== 'connected' // Only refocus when not connected
   });
 
   // Assignment action mutation
@@ -151,6 +172,10 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
               Transcript Processing Queue
             </SheetTitle>
             <div className="flex items-center gap-2">
+              <ConnectionStatus 
+                status={connectionStatus}
+                onRefresh={refreshQueue}
+              />
               <Button
                 variant="outline"
                 size="sm"

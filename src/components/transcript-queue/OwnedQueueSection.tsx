@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Calendar, Clock, Loader2, Play, Upload } from 'lucide-react';
 import { QueueItem } from './QueueDrawer';
+import { LiveProgressIndicator } from './LiveProgressIndicator';
 
 interface OwnedQueueSectionProps {
   items: QueueItem[];
@@ -171,6 +172,13 @@ function OwnedQueueItem({
       </CardHeader>
 
       <CardContent className="pt-0">
+        {/* Live Progress Indicator */}
+        {item.processing_status === 'processing' && (
+          <div className="mb-3">
+            <LiveProgressIndicator transcriptId={item.id} />
+          </div>
+        )}
+        
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">

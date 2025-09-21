@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Building2, User, Calendar, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
 import { QueueItem } from './QueueDrawer';
 import { ZohoContextCard } from './ZohoContextCard';
+import { LiveProgressIndicator } from './LiveProgressIndicator';
 
 interface AssignedQueueSectionProps {
   items: QueueItem[];
@@ -161,6 +162,13 @@ function AssignedQueueItem({
       </CardHeader>
 
       <CardContent className="pt-0">
+        {/* Live Progress Indicator */}
+        {item.processing_status === 'processing' && (
+          <div className="mb-3">
+            <LiveProgressIndicator transcriptId={item.id} />
+          </div>
+        )}
+        
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
