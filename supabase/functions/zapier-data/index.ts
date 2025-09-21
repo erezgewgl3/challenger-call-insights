@@ -1,3 +1,4 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2'
 import { corsHeaders } from '../_shared/cors.ts'
 
@@ -5,6 +6,16 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 )
+
+// Additional interface for bidirectional webhook payloads
+interface CRMWebhookPayload {
+  transcript_id: string;
+  zoho_deal_id: string;
+  analysis_results: any;
+  deal_context: any;
+  callback_webhook?: string;
+  crm_format?: 'zoho' | 'salesforce' | 'hubspot';
+}
 
 interface CRMFormattedAnalysis {
   analysis_id: string
@@ -427,6 +438,313 @@ async function submitContactMatchDecision(userId: string, requestBody: any): Pro
   }
 }
 
+// Handle bidirectional webhook delivery (no API key required)
+async function handleBidirectionalWebhook(requestBody: CRMWebhookPayload): Promise<Response> {
+  console.log('🔗 [BIDIRECTIONAL] Processing CRM webhook delivery:', {
+    transcript_id: requestBody.transcript_id,
+    zoho_deal_id: requestBody.zoho_deal_id,
+    crm_format: requestBody.crm_format || 'zoho'
+  });
+
+  // Validate required fields
+  if (!requestBody.transcript_id || !requestBody.zoho_deal_id || !requestBody.analysis_results) {
+    return new Response(JSON.stringify({
+      success: false,
+      error: 'Missing required fields: transcript_id, zoho_deal_id, analysis_results'
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  // Transform analysis results for CRM format
+  const transformedData = transformForCRMWebhook(
+    requestBody.analysis_results,
+    requestBody.crm_format || 'zoho',
+    requestBody.deal_context
+  );
+
+  // Prepare webhook delivery payload
+  const webhookPayload = {
+    zoho_deal_id: requestBody.zoho_deal_id,
+    transcript_id: requestBody.transcript_id,
+    analysis_complete: true,
+    analysis_timestamp: new Date().toISOString(),
+    deal_updates: transformedData.deal_updates,
+    tasks_to_create: transformedData.tasks || [],
+    notes_to_add: transformedData.notes || [],
+    original_analysis: requestBody.analysis_results,
+    deal_context: requestBody.deal_context
+  };
+
+  // Deliver to callback webhook if provided
+  if (requestBody.callback_webhook) {
+    try {
+      const deliveryResult = await deliverWebhook(requestBody.callback_webhook, webhookPayload);
+      
+      // Log delivery result
+      await logWebhookDelivery({
+        transcript_id: requestBody.transcript_id,
+        webhook_url: requestBody.callback_webhook,
+        payload: webhookPayload,
+        success: deliveryResult.success,
+        response: deliveryResult.response,
+        error: deliveryResult.error
+      });
+
+      return new Response(JSON.stringify({
+        success: deliveryResult.success,
+        delivery_result: deliveryResult,
+        transformed_data: transformedData
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+
+    } catch (error) {
+      console.error('🔗 [ERROR] Webhook delivery failed:', error);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Webhook delivery failed',
+        details: error.message
+      }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+  }
+
+  // Return transformed data even if no webhook delivery
+  return new Response(JSON.stringify({
+    success: true,
+    transformed_data: transformedData,
+    message: 'Data transformed successfully, no webhook delivery requested'
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+// Transform for CRM webhook format (different from existing CRM format)
+function transformForCRMWebhook(analysisResults: any, crmFormat: string, dealContext: any) {
+  console.log('🔗 [TRANSFORM] Transforming for CRM format:', crmFormat);
+
+  const baseTransformation = {
+    deal_updates: {},
+    tasks: [],
+    notes: []
+  };
+
+  // Extract key insights from analysis
+  const dealHeat = extractDealHeat(analysisResults);
+  const momentum = extractMomentum(analysisResults);
+  const challengerScore = extractChallengerScore(analysisResults);
+  const competitivePosition = extractCompetitivePosition(analysisResults);
+
+  switch (crmFormat) {
+    case 'zoho':
+      return {
+        ...baseTransformation,
+        deal_updates: {
+          cf_ai_heat_level: dealHeat,
+          cf_deal_momentum: momentum,
+          cf_challenger_teaching: challengerScore,
+          cf_competitive_position: competitivePosition,
+          cf_ai_last_updated: new Date().toISOString()
+        },
+        tasks: createTasksFromAnalysis(analysisResults, 'zoho'),
+        notes: createNotesFromAnalysis(analysisResults, dealContext)
+      };
+
+    case 'salesforce':
+      return {
+        ...baseTransformation,
+        deal_updates: {
+          Heat_Score__c: dealHeat,
+          AI_Momentum__c: momentum,
+          Challenger_Teaching__c: challengerScore,
+          Competitive_Position__c: competitivePosition,
+          AI_Last_Updated__c: new Date().toISOString()
+        }
+      };
+
+    case 'hubspot':
+      return {
+        ...baseTransformation,
+        deal_updates: {
+          hs_deal_score: mapHeatToScore(dealHeat),
+          deal_momentum: momentum.toLowerCase(),
+          challenger_teaching_score: challengerScore,
+          competitive_position: competitivePosition.toLowerCase()
+        }
+      };
+
+    default:
+      return baseTransformation;
+  }
+}
+
+// Helper functions for CRM webhook transformation
+function extractDealHeat(analysis: any): string {
+  if (analysis.heat_level) return analysis.heat_level;
+  
+  const guidance = analysis.guidance || {};
+  const challengerScores = analysis.challenger_scores || {};
+  
+  const avgScore = Object.values(challengerScores).length > 0 
+    ? Object.values(challengerScores).reduce((a: number, b: number) => a + b, 0) / Object.keys(challengerScores).length
+    : 2.5;
+  
+  if (avgScore >= 4 || guidance.recommendation === 'Push') return 'Hot';
+  if (avgScore >= 3 || guidance.recommendation === 'Continue') return 'Warm';
+  return 'Cold';
+}
+
+function extractMomentum(analysis: any): string {
+  const guidance = analysis.guidance || {};
+  if (guidance.recommendation === 'Push') return 'Strong Forward';
+  if (guidance.recommendation === 'Continue') return 'Moderate';
+  if (guidance.recommendation === 'Pause') return 'Stalled';
+  return 'Unknown';
+}
+
+function extractChallengerScore(analysis: any): number {
+  const challengerScores = analysis.challenger_scores || {};
+  return challengerScores.teaching || challengerScores.Teaching || 3;
+}
+
+function extractCompetitivePosition(analysis: any): string {
+  const guidance = analysis.guidance || {};
+  const keyInsights = guidance.key_insights || [];
+  
+  if (keyInsights.some((insight: string) => insight.toLowerCase().includes('advantage'))) {
+    return 'Strong Position';
+  }
+  if (keyInsights.some((insight: string) => insight.toLowerCase().includes('competitive'))) {
+    return 'Competitive';
+  }
+  return 'Needs Assessment';
+}
+
+function createTasksFromAnalysis(analysis: any, crmFormat: string) {
+  const tasks = [];
+  const actionPlan = analysis.action_plan || {};
+  const immediateActions = actionPlan.immediate_actions || [];
+  
+  immediateActions.slice(0, 3).forEach((action: string) => {
+    if (crmFormat === 'zoho') {
+      tasks.push({
+        Subject: action.substring(0, 100),
+        Description: `AI-generated action from Sales Whisperer analysis`,
+        Priority: 'High',
+        Due_Date: calculateDueDate('3 days'),
+        Status: 'Not Started',
+        cf_ai_generated: true
+      });
+    }
+  });
+  
+  return tasks;
+}
+
+function createNotesFromAnalysis(analysis: any, dealContext: any) {
+  const notes = [];
+  const guidance = analysis.guidance || {};
+  const challengerScores = analysis.challenger_scores || {};
+  
+  notes.push({
+    Title: `Sales Whisperer AI Analysis - ${new Date().toLocaleDateString()}`,
+    Content: `Sales Whisperer AI Analysis Results:
+
+Deal Heat: ${extractDealHeat(analysis)}
+Momentum: ${extractMomentum(analysis)}
+
+Challenger Scores:
+- Teaching: ${challengerScores.teaching || challengerScores.Teaching || 'N/A'}
+- Tailoring: ${challengerScores.tailoring || challengerScores.Tailoring || 'N/A'}
+- Taking Control: ${challengerScores.control || challengerScores.Control || 'N/A'}
+
+Key Insights:
+${guidance.key_insights?.join('\n- ') || 'None captured'}
+
+Recommendation: ${guidance.recommendation || 'None'}
+
+Strategy: ${guidance.message || 'No specific strategy provided'}`
+  });
+  
+  return notes;
+}
+
+function calculateDueDate(timeline: string): string {
+  const now = new Date();
+  
+  if (timeline?.includes('24 hours') || timeline?.includes('today')) {
+    return new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  }
+  
+  if (timeline?.includes('week')) {
+    return new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  }
+  
+  return new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+}
+
+function mapHeatToScore(heat: string): number {
+  switch (heat.toLowerCase()) {
+    case 'hot': return 90;
+    case 'warm': return 60;
+    case 'cold': return 30;
+    default: return 50;
+  }
+}
+
+async function deliverWebhook(webhookUrl: string, payload: any) {
+  console.log('🔗 [DELIVERY] Sending webhook to:', webhookUrl);
+  
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'Sales-Whisperer-Webhook/1.0'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const responseText = await response.text();
+    
+    return {
+      success: response.ok,
+      status: response.status,
+      response: responseText,
+      error: response.ok ? null : `HTTP ${response.status}: ${responseText}`
+    };
+
+  } catch (error) {
+    return {
+      success: false,
+      error: error.message,
+      response: null
+    };
+  }
+}
+
+async function logWebhookDelivery(logData: any) {
+  try {
+    await supabase
+      .from('webhook_delivery_log')
+      .insert({
+        transcript_id: logData.transcript_id,
+        webhook_url: logData.webhook_url,
+        payload_size: JSON.stringify(logData.payload).length,
+        success: logData.success,
+        response_status: logData.response?.status,
+        error_message: logData.error,
+        delivered_at: new Date().toISOString()
+      });
+  } catch (error) {
+    console.error('🔗 [ERROR] Failed to log webhook delivery:', error);
+  }
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -441,7 +759,13 @@ Deno.serve(async (req) => {
 
     console.log('Zapier data request:', req.method, url.pathname)
 
-    // Extract API key from Authorization header
+    // Check if this is a bidirectional webhook request (no API key needed)
+    if (req.method === 'POST' && endpoint === 'webhook-delivery') {
+      const requestBody = await req.json()
+      return await handleBidirectionalWebhook(requestBody)
+    }
+
+    // For all other requests, require API key authentication
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -469,7 +793,7 @@ Deno.serve(async (req) => {
 
     const userId = validation.userId
 
-    // Route requests
+    // Route authenticated requests
     switch (true) {
       // GET /analysis/:id - Get specific analysis data
       case action === 'analysis' && req.method === 'GET':

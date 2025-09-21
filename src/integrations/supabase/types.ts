@@ -1430,6 +1430,50 @@ export type Database = {
         }
         Relationships: []
       }
+      webhook_delivery_log: {
+        Row: {
+          created_at: string | null
+          delivered_at: string | null
+          error_message: string | null
+          id: string
+          payload_size: number | null
+          response_status: number | null
+          success: boolean
+          transcript_id: string | null
+          webhook_url: string
+        }
+        Insert: {
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          payload_size?: number | null
+          response_status?: number | null
+          success: boolean
+          transcript_id?: string | null
+          webhook_url: string
+        }
+        Update: {
+          created_at?: string | null
+          delivered_at?: string | null
+          error_message?: string | null
+          id?: string
+          payload_size?: number | null
+          response_status?: number | null
+          success?: boolean
+          transcript_id?: string | null
+          webhook_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webhook_delivery_log_transcript_id_fkey"
+            columns: ["transcript_id"]
+            isOneToOne: false
+            referencedRelation: "transcripts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zapier_api_keys: {
         Row: {
           api_key_hash: string
