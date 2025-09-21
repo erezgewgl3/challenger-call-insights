@@ -8,6 +8,7 @@ import { CompactTranscriptUpload } from '@/components/upload/CompactTranscriptUp
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
 import { ZoomStatusBadge } from '@/components/dashboard/ZoomStatusBadge';
 import { ZoomMeetingsWidget } from '@/components/dashboard/ZoomMeetingsWidget';
+import { QueueInterfaceTester } from '@/components/testing/QueueInterfaceTester';
 import { FileText, TrendingUp, Thermometer, Clock, LogOut, Brain } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -415,6 +416,19 @@ export default function WelcomeDashboard() {
               />
             </div>
           )}
+
+          {/* Queue Interface Testing Section */}
+          <div className="mb-10">
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-foreground mb-2">
+                Queue Management Testing
+              </h2>
+              <p className="text-muted-foreground">
+                Test the enhanced queue interface with external transcript assignments and filtering
+              </p>
+            </div>
+            <QueueInterfaceTester />
+          </div>
 
           {/* Getting Started - Progressive Disclosure */}
           {transcriptCount === 0 && (
