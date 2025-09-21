@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AlertCircle, Clock, Loader2, Settings } from 'lucide-react';
-import { QueueDrawer } from './QueueDrawer';
+import { QueueDrawer } from '../transcript-queue/QueueDrawer';
 import { Button } from '@/components/ui/button';
 
 interface ProcessingStatusProps {
@@ -63,9 +63,8 @@ export function ProcessingStatus({ user_id }: ProcessingStatusProps) {
       </div>
 
       <QueueDrawer 
-        isOpen={showQueue} 
-        onClose={() => setShowQueue(false)}
-        user_id={user_id}
+        open={showQueue} 
+        onOpenChange={setShowQueue}
       />
     </>
   );
