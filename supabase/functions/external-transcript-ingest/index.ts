@@ -8,12 +8,16 @@ const corsHeaders = {
 };
 
 interface ExternalTranscriptPayload {
-  transcript_text: string;
+  transcript_text?: string;
+  transcript_file_url?: string;
+  transcript_filename?: string;
   zoho_deal_id?: string;
+  zoho_meeting_id?: string;
   assigned_user_email: string;
   meeting_metadata?: {
     title?: string;
-    participants?: string[];
+    meeting_host?: string;
+    participants?: string[] | string;
     meeting_date?: string;
     duration_minutes?: number;
     company_name?: string;
@@ -21,7 +25,7 @@ interface ExternalTranscriptPayload {
     deal_name?: string;
   };
   priority?: 'urgent' | 'high' | 'normal' | 'low';
-  source?: 'zapier' | 'zoho' | 'api';
+  source?: 'zapier' | 'zoho' | 'api' | 'zoho_meeting';
   callback_webhook?: string;
 }
 
@@ -74,6 +78,26 @@ serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
+    }
+
+    // Download transcript content if file URL provided
+    let transcriptText = payload.transcript_text;
+    if (payload.transcript_file_url && !transcriptText) {
+      try {
+        console.log('🔗 [INGEST] Downloading transcript from URL:', payload.transcript_file_url);
+        transcriptText = await downloadTranscriptFile(payload.transcript_file_url);
+        console.log('🔗 [INGEST] Downloaded transcript, length:', transcriptText.length);
+      } catch (error) {
+        console.error('🔗 [ERROR] File download failed:', error);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Failed to download transcript file',
+          details: error.message
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
     }
 
     // Look up user by email
@@ -132,7 +156,7 @@ serve(async (req) => {
     }
 
     // Prepare transcript data
-    const transcriptData = prepareTranscriptData(payload, userData, accountId);
+    const transcriptData = prepareTranscriptData(payload, userData, accountId, transcriptText);
     
     console.log('🔗 [INGEST] Creating transcript with data:', {
       zoho_deal_id: transcriptData.zoho_deal_id,
@@ -217,9 +241,9 @@ serve(async (req) => {
 function validatePayload(payload: ExternalTranscriptPayload): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
 
-  // Required fields
-  if (!payload.transcript_text || payload.transcript_text.trim().length === 0) {
-    errors.push('transcript_text is required and cannot be empty');
+  // Either transcript_text or transcript_file_url is required
+  if (!payload.transcript_text && !payload.transcript_file_url) {
+    errors.push('Either transcript_text or transcript_file_url is required');
   }
 
   if (!payload.assigned_user_email || !isValidEmail(payload.assigned_user_email)) {
@@ -231,13 +255,22 @@ function validatePayload(payload: ExternalTranscriptPayload): { isValid: boolean
     errors.push('priority must be one of: urgent, high, normal, low');
   }
 
-  if (payload.source && !['zapier', 'zoho', 'api'].includes(payload.source)) {
-    errors.push('source must be one of: zapier, zoho, api');
+  if (payload.source && !['zapier', 'zoho', 'api', 'zoho_meeting'].includes(payload.source)) {
+    errors.push('source must be one of: zapier, zoho, api, zoho_meeting');
   }
 
   // Transcript length validation
   if (payload.transcript_text && payload.transcript_text.length > 500000) {
     errors.push('transcript_text exceeds maximum length of 500,000 characters');
+  }
+
+  // URL validation
+  if (payload.transcript_file_url) {
+    try {
+      new URL(payload.transcript_file_url);
+    } catch {
+      errors.push('transcript_file_url must be a valid URL');
+    }
   }
 
   return {
@@ -251,31 +284,80 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
+async function downloadTranscriptFile(fileUrl: string): Promise<string> {
+  const response = await fetch(fileUrl);
+  
+  if (!response.ok) {
+    throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+  }
+  
+  const contentType = response.headers.get('content-type') || '';
+  const text = await response.text();
+  
+  // Handle JSON responses that might contain transcript data
+  if (contentType.includes('application/json')) {
+    try {
+      const jsonData = JSON.parse(text);
+      // Try to extract transcript from common JSON structures
+      if (jsonData.transcript) return jsonData.transcript;
+      if (jsonData.text) return jsonData.text;
+      if (jsonData.content) return jsonData.content;
+      // If it's a direct string, return as-is
+      if (typeof jsonData === 'string') return jsonData;
+      // Otherwise return the JSON as formatted text
+      return JSON.stringify(jsonData, null, 2);
+    } catch {
+      // If JSON parsing fails, return raw text
+      return text;
+    }
+  }
+  
+  return text;
+}
+
 function prepareTranscriptData(
   payload: ExternalTranscriptPayload,
   userId: string,
-  accountId: string | null
+  accountId: string | null,
+  transcriptText: string
 ): any {
   const metadata = payload.meeting_metadata || {};
+  
+  // Handle participants - normalize to array
+  let participants = [];
+  if (metadata.participants) {
+    if (Array.isArray(metadata.participants)) {
+      participants = metadata.participants;
+    } else if (typeof metadata.participants === 'string') {
+      participants = metadata.participants.split(',').map(p => p.trim());
+    }
+  }
+  
+  // Normalize source value
+  const normalizedSource = payload.source === 'zoho_meeting' ? 'zoho' : (payload.source || 'zapier');
   
   return {
     user_id: userId,
     account_id: accountId,
     assigned_user_id: userId,
     title: metadata.title || `External Transcript - ${new Date().toISOString().split('T')[0]}`,
-    participants: metadata.participants || [],
+    participants: participants,
     meeting_date: metadata.meeting_date || new Date().toISOString(),
     duration_minutes: metadata.duration_minutes || null,
-    raw_text: payload.transcript_text,
+    raw_text: transcriptText,
     processing_status: 'pending',
-    external_source: payload.source || 'zapier',
+    external_source: normalizedSource,
     priority_level: payload.priority || 'normal',
-    zoho_deal_id: payload.zoho_deal_id || null,
+    zoho_deal_id: payload.zoho_deal_id || payload.zoho_meeting_id || null,
+    source_meeting_id: payload.zoho_meeting_id || null,
     assignment_metadata: {
       callback_webhook: payload.callback_webhook,
       company_name: metadata.company_name,
       contact_name: metadata.contact_name,
       deal_name: metadata.deal_name,
+      meeting_host: metadata.meeting_host,
+      transcript_filename: payload.transcript_filename,
+      transcript_file_url: payload.transcript_file_url,
       source_timestamp: new Date().toISOString(),
       auto_assigned: true
     },
@@ -283,10 +365,11 @@ function prepareTranscriptData(
       company_name: metadata.company_name,
       contact_name: metadata.contact_name,
       deal_name: metadata.deal_name,
-      zoho_deal_id: payload.zoho_deal_id
+      meeting_host: metadata.meeting_host,
+      zoho_deal_id: payload.zoho_deal_id || payload.zoho_meeting_id
     },
     source_metadata: {
-      external_source: payload.source || 'zapier',
+      external_source: normalizedSource,
       webhook_payload: payload,
       ingestion_timestamp: new Date().toISOString()
     }
