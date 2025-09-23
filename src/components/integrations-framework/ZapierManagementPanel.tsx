@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
@@ -19,6 +19,52 @@ interface ZapierManagementPanelProps {
 export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanelProps) {
   const { isSetupComplete, connection, apiKeys, webhooks } = useZapierIntegration();
   const [activeTab, setActiveTab] = useState('api-keys');
+  const [lastVerifiedAt, setLastVerifiedAt] = useState<Date | null>(null);
+
+  // Load last verified time from session storage on mount
+  useEffect(() => {
+    const stored = sessionStorage.getItem('zapier:lastConnectedAt');
+    if (stored) {
+      setLastVerifiedAt(new Date(stored));
+    }
+  }, []);
+
+  // Background connection test when panel opens
+  const runBackgroundTest = useCallback(async () => {
+    if (!isSetupComplete) {
+      return;
+    }
+    
+    // Skip if we have a recent successful verification (within 15 minutes)
+    if (lastVerifiedAt && Date.now() - lastVerifiedAt.getTime() < 15 * 60 * 1000) {
+      return;
+    }
+
+    // Skip if already connected or currently testing
+    if (connection.connectionStatus.status === 'connected' || connection.connectionStatus.status === 'testing') {
+      return;
+    }
+
+    try {
+      await connection.testConnection();
+      // Check if connection is now successful
+      if (connection.isConnected) {
+        const now = new Date();
+        setLastVerifiedAt(now);
+        sessionStorage.setItem('zapier:lastConnectedAt', now.toISOString());
+      }
+    } catch (error) {
+      // Silent failure for background test
+      console.log('Background Zapier connection test failed:', error);
+    }
+  }, [isSetupComplete, connection, lastVerifiedAt]);
+
+  // Run background test when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      runBackgroundTest();
+    }
+  }, [isOpen, runBackgroundTest]);
 
   const getOverallStatus = () => {
     // Check if basic setup is incomplete
@@ -26,8 +72,10 @@ export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanel
       return { status: 'setup', color: 'bg-yellow-500', text: 'Setup Required' };
     }
     
-    // Check if connection is active or recently tested successfully
-    if (connection.isConnected || connection.connectionStatus.status === 'connected') {
+    // Check if connection is active, recently tested successfully, or has recent verification
+    const hasRecentVerification = lastVerifiedAt && Date.now() - lastVerifiedAt.getTime() < 15 * 60 * 1000;
+    
+    if (connection.isConnected || connection.connectionStatus.status === 'connected' || hasRecentVerification) {
       return { status: 'connected', color: 'bg-green-500', text: 'Connected' };
     }
     
