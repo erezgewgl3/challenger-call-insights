@@ -46,10 +46,36 @@ interface UserWithCounts {
   status?: 'active' | 'pending_deletion' | 'deleted';
   created_at: string;
   last_login?: string;
+  owned_transcript_count: number;
+  assigned_transcript_count: number;
+  account_count: number;
+  pending_deletion: boolean;
+  deletion_scheduled_for?: string;
+}
+
+// Interface for dialog components (legacy format)
+interface DialogUserWithCounts {
+  id: string;
+  email: string;
+  role: 'sales_user' | 'admin';
+  status?: 'active' | 'pending_deletion' | 'deleted';
+  created_at: string;
+  last_login?: string;
   transcript_count: number;
   account_count: number;
-  deletion_requested_at?: string;
 }
+
+// Transform function to convert new format to dialog format
+const transformUserForDialogs = (user: UserWithCounts): DialogUserWithCounts => ({
+  id: user.id,
+  email: user.email,
+  role: user.role,
+  status: user.status,
+  created_at: user.created_at,
+  last_login: user.last_login,
+  transcript_count: user.owned_transcript_count + user.assigned_transcript_count,
+  account_count: user.account_count,
+});
 
 type UserStatus = 'active' | 'inactive' | 'dormant' | 'never';
 
@@ -105,7 +131,7 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
   // Bulk deletion dialog state
   const [bulkDeletionDialog, setBulkDeletionDialog] = useState<{
     isOpen: boolean;
-    users: UserWithCounts[];
+    users: DialogUserWithCounts[];
   }>({ isOpen: false, users: [] });
 
   // Permanent deletion dialog state
@@ -116,7 +142,7 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
 
   const [bulkPermanentDeletionDialog, setBulkPermanentDeletionDialog] = useState<{
     isOpen: boolean;
-    users: UserWithCounts[];
+    users: DialogUserWithCounts[];
   }>({ isOpen: false, users: [] });
 
   // Password reset dialog state
@@ -128,32 +154,18 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
 
   const usersPerPage = 20;
 
-  // Fetch users data
+  // Fetch users data using secure RPC function
   const { data: users, isLoading, error } = useQuery({
     queryKey: ['admin', 'users'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select(`
-          *,
-          transcript_count:transcripts(count),
-          account_count:accounts(count),
-          deletion_requests!deletion_requests_user_id_fkey(created_at)
-        `)
-        .order('created_at', { ascending: false });
+      const { data, error } = await supabase.rpc('get_admin_user_statistics');
       
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to fetch admin user statistics:', error);
+        throw error;
+      }
       
-      return data.map(user => {
-        return {
-          ...user,
-          transcript_count: user.transcript_count?.[0]?.count || 0,
-          account_count: user.account_count?.[0]?.count || 0,
-          deletion_requested_at: user.deletion_requests && user.deletion_requests.length > 0 
-            ? user.deletion_requests[0].created_at 
-            : null
-        };
-      }) as UserWithCounts[];
+      return data as UserWithCounts[];
     }
   });
 
@@ -385,7 +397,7 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
     
     setBulkDeletionDialog({
       isOpen: true,
-      users: [...eligibleUsers]
+      users: eligibleUsers.map(transformUserForDialogs)
     });
   };
 
@@ -428,7 +440,7 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
     
     setBulkPermanentDeletionDialog({
       isOpen: true,
-      users: [...eligibleUsers]
+      users: eligibleUsers.map(transformUserForDialogs)
     });
   };
 
@@ -985,7 +997,7 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
               <TableBody>
                 {paginatedUsers.map((user) => {
                   const status = getUserStatus(user.last_login);
-                  const isPendingDeletion = user.status === 'pending_deletion';
+                  const isPendingDeletion = user.pending_deletion;
                   
                   return (
                     <TableRow key={user.id} className={isPendingDeletion ? "opacity-60 bg-red-50" : ""}>
@@ -1012,10 +1024,10 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
                               )}
                             </div>
                             <div className="text-sm text-muted-foreground">
-                              {isPendingDeletion && user.deletion_requested_at ? (
-                                <span className="text-red-600">
-                                  Deletion requested {formatDistanceToNow(new Date(user.deletion_requested_at), { addSuffix: true })}
-                                </span>
+                               {user.pending_deletion && user.deletion_scheduled_for ? (
+                                 <span className="text-red-600">
+                                   Deletion scheduled {formatDistanceToNow(new Date(user.deletion_scheduled_for), { addSuffix: true })}
+                                 </span>
                               ) : (
                                 `Member since ${formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}`
                               )}
@@ -1042,9 +1054,12 @@ export function UsersOverview({ onNavigateToInvites }: UsersOverviewProps) {
                          )}
                        </TableCell>
                       <TableCell>
-                        <div className="text-sm text-muted-foreground">
-                          {user.transcript_count} transcripts, {user.account_count} accounts
-                        </div>
+                         <div className="text-sm text-muted-foreground">
+                           {user.owned_transcript_count} transcripts
+                           {user.assigned_transcript_count > 0 && (
+                             <span> (+{user.assigned_transcript_count} assigned)</span>
+                           )}, {user.account_count} accounts
+                         </div>
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>

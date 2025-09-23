@@ -1804,6 +1804,22 @@ export type Database = {
           version_number: number
         }[]
       }
+      get_admin_user_statistics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          account_count: number
+          assigned_transcript_count: number
+          created_at: string
+          deletion_scheduled_for: string
+          email: string
+          id: string
+          last_login: string
+          owned_transcript_count: number
+          pending_deletion: boolean
+          role: Database["public"]["Enums"]["user_role"]
+          status: Database["public"]["Enums"]["user_status"]
+        }[]
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
