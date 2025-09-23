@@ -29,6 +29,19 @@ export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanel
     }
   }, []);
 
+  // Listen for successful verification events from child components
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { when?: string } | undefined;
+      const when = detail?.when || new Date().toISOString();
+      setLastVerifiedAt(new Date(when));
+      sessionStorage.setItem('zapier:lastConnectedAt', when);
+    };
+    window.addEventListener('zapier:connectionVerified', handler as EventListener);
+    return () => window.removeEventListener('zapier:connectionVerified', handler as EventListener);
+  }, []);
+
+
   // Background connection test when panel opens
   const runBackgroundTest = useCallback(async () => {
     if (!isSetupComplete) {
@@ -46,9 +59,9 @@ export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanel
     }
 
     try {
-      await connection.testConnection();
+      const result = await connection.testConnection();
       // Check if connection is now successful
-      if (connection.isConnected) {
+      if (result && (result as any).success) {
         const now = new Date();
         setLastVerifiedAt(now);
         sessionStorage.setItem('zapier:lastConnectedAt', now.toISOString());

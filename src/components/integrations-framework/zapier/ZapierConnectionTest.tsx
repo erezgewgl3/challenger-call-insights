@@ -212,6 +212,16 @@ export function ZapierConnectionTest() {
 
     setTestResults([...tests]);
 
+    // If core checks passed, broadcast a verified connection event and persist timestamp
+    const corePassed = tests[0]?.status === 'passed' && tests[1]?.status === 'passed';
+    if (corePassed) {
+      const when = new Date().toISOString();
+      try {
+        sessionStorage.setItem('zapier:lastConnectedAt', when);
+      } catch {}
+      window.dispatchEvent(new CustomEvent('zapier:connectionVerified', { detail: { when } }));
+    }
+
     const allPassed = tests.every(test => test.status === 'passed');
     const hasWarnings = tests.some(test => test.status === 'warning');
     const hasFailed = tests.some(test => test.status === 'failed');
@@ -252,6 +262,11 @@ export function ZapierConnectionTest() {
       setShowRaw(true);
       
       if (res.success) {
+        // Persist and broadcast verified connection state
+        const when = new Date().toISOString();
+        try { sessionStorage.setItem('zapier:lastConnectedAt', when); } catch {}
+        window.dispatchEvent(new CustomEvent('zapier:connectionVerified', { detail: { when } }));
+
         toast({ title: 'API Key Valid', description: 'The API key is valid and active.' });
         setRawResponse(res.data || res);
       } else {
