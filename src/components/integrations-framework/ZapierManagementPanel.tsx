@@ -21,8 +21,17 @@ export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanel
   const [activeTab, setActiveTab] = useState('api-keys');
 
   const getOverallStatus = () => {
-    if (!isSetupComplete) return { status: 'setup', color: 'bg-yellow-500', text: 'Setup Required' };
-    if (connection.isConnected) return { status: 'connected', color: 'bg-green-500', text: 'Connected' };
+    // Check if basic setup is incomplete
+    if (!isSetupComplete) {
+      return { status: 'setup', color: 'bg-yellow-500', text: 'Setup Required' };
+    }
+    
+    // Check if connection is active or recently tested successfully
+    if (connection.isConnected || connection.connectionStatus.status === 'connected') {
+      return { status: 'connected', color: 'bg-green-500', text: 'Connected' };
+    }
+    
+    // If setup is complete but no successful connection, show connection issues
     return { status: 'error', color: 'bg-red-500', text: 'Connection Issues' };
   };
 
