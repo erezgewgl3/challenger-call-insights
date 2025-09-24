@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useAuth } from '@/hooks/useAuth';
 import { CompactTranscriptUpload } from '@/components/upload/CompactTranscriptUpload';
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
-import { ZoomStatusBadge } from '@/components/dashboard/ZoomStatusBadge';
+import { IntegrationsStatusBadge } from '@/components/dashboard/IntegrationsStatusBadge';
 import { ZoomMeetingsWidget } from '@/components/dashboard/ZoomMeetingsWidget';
 import { QueueInterfaceTester } from '@/components/testing/QueueInterfaceTester';
 import ApiTester from '@/components/testing/ApiTester';
@@ -308,7 +308,7 @@ export default function WelcomeDashboard() {
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-muted-foreground">Welcome, {user?.email}</span>
-              <ZoomStatusBadge />
+              <IntegrationsStatusBadge />
               <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground hover:text-foreground">
                 Sign Out
               </Button>
