@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { ExternalLink, Settings, Zap, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { useZapierIntegration } from "@/hooks/useZapier";
+import { useZapierStatus } from "@/hooks/useZapierStatus";
 import { IntegrationIcon } from "./IntegrationIcon";
 
 interface ZapierIntegrationCardProps {
@@ -16,37 +17,11 @@ export function ZapierIntegrationCard({
   onOpenManager,
   className
 }: ZapierIntegrationCardProps) {
-  const { apiKeys, webhooks, isSetupComplete, setupStatus, connection } = useZapierIntegration();
-
-  // Calculate webhook success rate over last 24 hours
-  const calculateSuccessRate = () => {
-    if (!webhooks.webhooks.length) return 0;
-    
-    const totalHooks = webhooks.webhooks.length;
-    const successfulHooks = webhooks.webhooks.filter(hook => 
-      hook.success_count > hook.failure_count
-    ).length;
-    
-    return Math.round((successfulHooks / totalHooks) * 100);
-  };
-
-  const successRate = calculateSuccessRate();
-  const activeWebhooks = webhooks.webhooks.filter(hook => hook.is_active).length;
-  const activeApiKeys = apiKeys.apiKeys.filter(key => key.is_active).length;
-
-  const getStatusColor = () => {
-    if (!isSetupComplete) return "bg-gray-500";
-    if (connection.isConnected && successRate >= 90) return "bg-green-500";
-    if (connection.isConnected && successRate >= 70) return "bg-yellow-500";
-    return "bg-red-500";
-  };
-
-  const getStatusText = () => {
-    if (!isSetupComplete) return "Setup Required";
-    if (connection.isConnected && successRate >= 90) return "Healthy";
-    if (connection.isConnected && successRate >= 70) return "Degraded";
-    return "Issues Detected";
-  };
+  const { isSetupComplete, setupStatus } = useZapierIntegration();
+  const { getStatus } = useZapierStatus();
+  
+  const status = getStatus();
+  const { successRate, activeWebhooks, activeApiKeys } = status;
 
   return (
     <Card className={`relative transition-all duration-200 hover:shadow-md ${className || ""}`}>
@@ -56,8 +31,8 @@ export function ZapierIntegrationCard({
             <div className="relative">
               <Zap className="h-8 w-8 text-orange-500" />
               <div 
-                className={`absolute -top-1 -right-1 h-3 w-3 rounded-full ${getStatusColor()}`}
-                title={getStatusText()}
+                className={`absolute -top-1 -right-1 h-3 w-3 rounded-full ${status.color}`}
+                title={status.text}
               />
             </div>
             <div>
@@ -71,10 +46,10 @@ export function ZapierIntegrationCard({
           </div>
           <div className="flex flex-col items-end gap-2">
             <Badge 
-              variant={isSetupComplete ? "default" : "secondary"}
+              variant={status.status === 'connected' ? "default" : "secondary"}
               className="capitalize"
             >
-              {getStatusText()}
+              {status.text}
             </Badge>
           </div>
         </div>
@@ -142,8 +117,8 @@ export function ZapierIntegrationCard({
                   Create webhooks for your Zaps
                 </li>
                 <li className="flex items-center gap-2">
-                  <div className={`h-1.5 w-1.5 rounded-full ${
-                    connection.isConnected ? 'bg-green-500' : 'bg-gray-300'
+                <div className={`h-1.5 w-1.5 rounded-full ${
+                    status.status === 'connected' ? 'bg-green-500' : 'bg-gray-300'
                   }`} />
                   Test the connection
                 </li>
