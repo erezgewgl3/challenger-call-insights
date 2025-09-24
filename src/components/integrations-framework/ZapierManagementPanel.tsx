@@ -58,6 +58,12 @@ export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanel
       return;
     }
 
+    // Only run background test if we have at least one active API key
+    const hasActiveApiKey = apiKeys.apiKeys.some(key => key.is_active);
+    if (!hasActiveApiKey) {
+      return;
+    }
+
     try {
       const result = await connection.testConnection();
       // Check if connection is now successful
@@ -70,7 +76,7 @@ export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanel
       // Silent failure for background test
       console.log('Background Zapier connection test failed:', error);
     }
-  }, [isSetupComplete, connection, lastVerifiedAt]);
+  }, [isSetupComplete, connection, lastVerifiedAt, apiKeys.apiKeys]);
 
   // Run background test when panel opens
   useEffect(() => {
@@ -88,7 +94,14 @@ export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanel
     // Check if connection is active, recently tested successfully, or has recent verification
     const hasRecentVerification = lastVerifiedAt && Date.now() - lastVerifiedAt.getTime() < 15 * 60 * 1000;
     
-    if (connection.isConnected || connection.connectionStatus.status === 'connected' || hasRecentVerification) {
+    // Check for recent webhook activity (successful webhooks indicate connectivity)
+    const hasRecentWebhookActivity = webhooks.webhooks.some(webhook => {
+      if (!webhook.is_active) return false;
+      const lastActivity = webhook.last_triggered || webhook.created_at;
+      return lastActivity && Date.now() - new Date(lastActivity).getTime() < 15 * 60 * 1000;
+    });
+    
+    if (connection.isConnected || connection.connectionStatus.status === 'connected' || hasRecentVerification || hasRecentWebhookActivity) {
       return { status: 'connected', color: 'bg-green-500', text: 'Connected' };
     }
     
