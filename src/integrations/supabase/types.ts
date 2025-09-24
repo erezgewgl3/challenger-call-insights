@@ -1562,6 +1562,47 @@ export type Database = {
           },
         ]
       }
+      zapier_connection_verifications: {
+        Row: {
+          created_at: string
+          error_details: Json | null
+          id: string
+          success: boolean
+          user_id: string
+          verification_data: Json | null
+          verification_method: string
+          verified_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          success: boolean
+          user_id: string
+          verification_data?: Json | null
+          verification_method: string
+          verified_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_details?: Json | null
+          id?: string
+          success?: boolean
+          user_id?: string
+          verification_data?: Json | null
+          verification_method?: string
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zapier_connection_verifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       zapier_match_reviews: {
         Row: {
           analysis_id: string

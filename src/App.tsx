@@ -15,6 +15,7 @@ import PromptManagement from "./pages/PromptManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import GDPRCompliance from "./pages/admin/GDPRCompliance";
 import NotFound from "./pages/NotFound";
+import { ZapierStatusProvider } from "@/contexts/ZapierStatusContext";
 import TranscriptAnalysis from "./pages/TranscriptAnalysis";
 import PasswordReset from "./pages/PasswordReset";
 import IntegrationCallback from "./pages/IntegrationCallback";
@@ -31,7 +32,8 @@ function App() {
         <AuthProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+        <BrowserRouter>
+          <ZapierStatusProvider>
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<LoginForm />} />
@@ -85,7 +87,8 @@ function App() {
               } />
               <Route path="*" element={<NotFound />} />
             </Routes>
-          </BrowserRouter>
+          </ZapierStatusProvider>
+        </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

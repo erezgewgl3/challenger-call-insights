@@ -19,17 +19,17 @@ interface ZapierManagementPanelProps {
 
 export function ZapierManagementPanel({ isOpen, onClose }: ZapierManagementPanelProps) {
   const { isSetupComplete, apiKeys, webhooks } = useZapierIntegration();
-  const { getStatus, runBackgroundTest } = useZapierStatus();
+  const { status, refreshStatus } = useZapierStatus();
   const [activeTab, setActiveTab] = useState('api-keys');
 
   // Run background test when panel opens
   useEffect(() => {
     if (isOpen) {
-      runBackgroundTest();
+      refreshStatus();
     }
-  }, [isOpen, runBackgroundTest]);
+  }, [isOpen, refreshStatus]);
 
-  const status = getStatus();
+  
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

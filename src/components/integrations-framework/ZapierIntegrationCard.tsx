@@ -18,9 +18,8 @@ export function ZapierIntegrationCard({
   className
 }: ZapierIntegrationCardProps) {
   const { isSetupComplete, setupStatus } = useZapierIntegration();
-  const { getStatus } = useZapierStatus();
+  const { status } = useZapierStatus();
   
-  const status = getStatus();
   const { successRate, activeWebhooks, activeApiKeys } = status;
 
   return (
@@ -127,7 +126,7 @@ export function ZapierIntegrationCard({
           )}
 
           {/* Recent Issues */}
-          {isSetupComplete && successRate < 90 && (
+          {status.isSetupComplete && successRate < 90 && (
             <div className="rounded-lg bg-destructive/10 p-3">
               <div className="flex items-center gap-2 mb-2">
                 <AlertTriangle className="h-4 w-4 text-destructive" />
