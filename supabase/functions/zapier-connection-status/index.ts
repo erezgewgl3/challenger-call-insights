@@ -50,7 +50,7 @@ serve(async (req) => {
     }
   } catch (error) {
     console.error('Error in zapier-connection-status function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
@@ -207,12 +207,12 @@ async function handleVerifyConnection(supabaseClient: any, userId: string, req: 
         user_id: userId,
         verification_method: testType,
         success: false,
-        error_details: { error: error.message }
+        error_details: { error: error instanceof Error ? error.message : 'Unknown error' }
       });
 
     return new Response(JSON.stringify({ 
       success: false, 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -283,7 +283,7 @@ async function performConnectionTest(supabaseClient: any, userId: string, apiKey
     return {
       success: false,
       error: 'Connection test failed',
-      data: { error: error.message }
+      data: { error: error instanceof Error ? error.message : 'Unknown error' }
     };
   }
 }

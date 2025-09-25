@@ -269,8 +269,8 @@ serve(async (req) => {
 
     if (analysisError) {
       console.error('🔍 [ERROR] Failed to save analysis results:', analysisError);
-      await updateTranscriptError(supabase, transcriptId, `Analysis save failed: ${analysisError.message}`);
-      throw new Error(`Failed to save analysis: ${analysisError.message}`);
+      await updateTranscriptError(supabase, transcriptId, `Analysis save failed: ${analysisError instanceof Error ? analysisError.message : 'Unknown error'}`);
+      throw new Error(`Failed to save analysis: ${analysisError instanceof Error ? analysisError.message : 'Unknown error'}`);
     }
 
     console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id, 'Heat Level:', heatLevel);

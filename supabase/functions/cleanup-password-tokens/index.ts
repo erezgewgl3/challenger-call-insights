@@ -37,7 +37,7 @@ const handler = async (req: Request): Promise<Response> => {
       return new Response(
         JSON.stringify({ 
           error: 'Token cleanup failed',
-          details: cleanupError.message,
+          details: cleanupError instanceof Error ? cleanupError.message : 'Unknown error',
           timestamp: new Date().toISOString()
         }),
         {
@@ -75,7 +75,7 @@ const handler = async (req: Request): Promise<Response> => {
     return new Response(
       JSON.stringify({ 
         error: 'Cleanup operation failed',
-        message: error.message,
+        message: error instanceof Error ? error.message : 'Unknown error',
         timestamp: new Date().toISOString()
       }),
       {

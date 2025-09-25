@@ -60,7 +60,7 @@ serve(async (req) => {
     const { data: connections, error: connectionsError } = await query;
 
     if (connectionsError) {
-      throw new Error(`Failed to fetch connections: ${connectionsError.message}`);
+      throw new Error(`Failed to fetch connections: ${connectionsError instanceof Error ? connectionsError.message : 'Unknown error'}`);
     }
 
     // For each active connection, validate the token if possible

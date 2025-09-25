@@ -613,29 +613,29 @@ async function handleQueueStatus(req: Request, supabase: any) {
         failed: queueStats.filter((t: any) => t.processing_status === 'failed').length
       },
       source_breakdown: {
-        zoho: queueStats.filter(t => t.external_source === 'zoho').length,
-        zapier: queueStats.filter(t => t.external_source === 'zapier').length,
-        api: queueStats.filter(t => t.external_source === 'api').length,
-        webhook: queueStats.filter(t => t.external_source === 'webhook').length
+        zoho: queueStats.filter((t: any) => t.external_source === 'zoho').length,
+        zapier: queueStats.filter((t: any) => t.external_source === 'zapier').length,
+        api: queueStats.filter((t: any) => t.external_source === 'api').length,
+        webhook: queueStats.filter((t: any) => t.external_source === 'webhook').length
       },
       priority_breakdown: {
-        urgent: queueStats.filter(t => t.priority_level === 'urgent').length,
-        high: queueStats.filter(t => t.priority_level === 'high').length,
-        normal: queueStats.filter(t => t.priority_level === 'normal').length,
-        low: queueStats.filter(t => t.priority_level === 'low').length
+        urgent: queueStats.filter((t: any) => t.priority_level === 'urgent').length,
+        high: queueStats.filter((t: any) => t.priority_level === 'high').length,
+        normal: queueStats.filter((t: any) => t.priority_level === 'normal').length,
+        low: queueStats.filter((t: any) => t.priority_level === 'low').length
       },
       time_analysis: {
-        processed_last_hour: queueStats.filter(t => 
+        processed_last_hour: queueStats.filter((t: any) => 
           new Date(t.created_at) > hourAgo && t.processing_status === 'completed'
         ).length,
-        processed_last_24h: queueStats.filter(t => 
+        processed_last_24h: queueStats.filter((t: any) => 
           new Date(t.created_at) > dayAgo && t.processing_status === 'completed'
         ).length,
-        average_queue_position: queueStats.filter(t => t.processing_status === 'pending').length / 2
+        average_queue_position: queueStats.filter((t: any) => t.processing_status === 'pending').length / 2
       },
       assignment_stats: {
-        assigned: queueStats.filter(t => t.assigned_user_id !== null).length,
-        unassigned: queueStats.filter(t => t.assigned_user_id === null).length
+        assigned: queueStats.filter((t: any) => t.assigned_user_id !== null).length,
+        unassigned: queueStats.filter((t: any) => t.assigned_user_id === null).length
       }
     };
 
@@ -658,7 +658,7 @@ async function handleQueueStatus(req: Request, supabase: any) {
     return new Response(JSON.stringify({
       success: false,
       error: 'Internal server error',
-      details: error.message
+      details: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
