@@ -1,13 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-import React from 'npm:react@18.3.1';
-import { renderAsync } from 'npm:@react-email/components@0.0.22';
-import { InviteEmail } from './_templates/invite-email.tsx';
-import { RegistrationFailureEmail } from './_templates/registration-failure-email.tsx';
-import { IntegrationConnectedEmail } from './_templates/integration-connected-email.tsx';
-import { IntegrationFailedEmail } from './_templates/integration-failed-email.tsx';
-import { IntegrationErrorEmail } from './_templates/integration-error-email.tsx';
-import { IntegrationTipsEmail } from './_templates/integration-tips-email.tsx';
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -359,7 +350,7 @@ Sales Whisperer Admin System
       throw new Error("RESEND_API_KEY environment variable is not set");
     }
 
-    // Prepare email payload for Resend
+    // Prepare email payload for Resend API
     const emailPayload = {
       from: from || "Sales Whisperer <support@saleswhisperer.net>",
       to: Array.isArray(to) ? to : [to],
@@ -368,35 +359,38 @@ Sales Whisperer Admin System
       text: emailContent.text,
     };
 
-    console.log("Sending email with Resend:", { 
+    console.log("Sending email with Resend API:", { 
       to: Array.isArray(to) ? to.length + " recipients" : to,
       subject: emailSubject,
       template,
       fromAddress: emailPayload.from
     });
 
-    console.log("Full Resend API request payload:", JSON.stringify(emailPayload, null, 2));
+    // Send email with native fetch to Resend API
+    const resendResponse = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(emailPayload),
+    });
 
-    // Initialize Resend client with validated API key
-    const resend = new Resend(apiKey);
-    console.log("Resend client initialized successfully");
-
-    // Send email with Resend
-    const emailResponse = await resend.emails.send(emailPayload);
+    const emailResponse = await resendResponse.json();
 
     console.log("Raw Resend API response:", JSON.stringify(emailResponse, null, 2));
-    console.log("Resend response status:", emailResponse ? "received" : "null");
+    console.log("Resend response status:", resendResponse.status);
     
     // Check if the response indicates success
-    if (emailResponse.error) {
-      console.error("Resend API returned error:", emailResponse.error);
-      throw new Error(`Resend API error: ${JSON.stringify(emailResponse.error)}`);
+    if (!resendResponse.ok || emailResponse.error) {
+      console.error("Resend API returned error:", emailResponse.error || `Status: ${resendResponse.status}`);
+      throw new Error(`Resend API error: ${JSON.stringify(emailResponse.error || emailResponse)}`);
     }
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        emailId: emailResponse.data?.id,
+        emailId: emailResponse.data?.id || emailResponse.id,
         message: "Email sent successfully" 
       }),
       {

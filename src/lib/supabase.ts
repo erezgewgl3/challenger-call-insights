@@ -32,27 +32,36 @@ export const authHelpers = {
         return { valid: false, error: 'Failed to validate invite token' }
       }
 
-      if (!result?.valid) {
+      // Type-safe validation result handling
+      const validationResult = result as {
+        valid: boolean;
+        error?: string;
+        invite_id?: string;
+        requires_password_reset?: boolean;
+        existing_user_id?: string;
+      };
+      
+      if (!validationResult?.valid) {
         return { 
           valid: false, 
-          error: result?.error || 'Invalid or expired invite token' 
+          error: validationResult?.error || 'Invalid or expired invite token' 
         }
       }
-
+      
       // Handle password reset case
-      if (result.requires_password_reset && result.existing_user_id) {
+      if (validationResult.requires_password_reset && validationResult.existing_user_id) {
         return { 
           valid: true, 
-          invite: { id: result.invite_id },
+          invite: { id: validationResult.invite_id },
           requiresPasswordReset: true,
-          existingUser: { id: result.existing_user_id }
+          existingUser: { id: validationResult.existing_user_id }
         }
       }
-
+      
       // Valid invite for new user registration
       return { 
         valid: true, 
-        invite: { id: result.invite_id }
+        invite: { id: validationResult.invite_id }
       }
     } catch (error) {
       console.error('Invite validation error:', error)
@@ -72,9 +81,11 @@ export const authHelpers = {
         return { success: false, error: error.message }
       }
 
-      if (!result?.success) {
-        console.error('Error marking invite as used:', result?.error)
-        return { success: false, error: result?.error || 'Failed to mark invite as used' }
+      // Type-safe result handling
+      const markResult = result as { success: boolean; error?: string };
+      if (!markResult?.success) {
+        console.error('Error marking invite as used:', markResult?.error)
+        return { success: false, error: markResult?.error || 'Failed to mark invite as used' }
       }
 
       return { success: true }
