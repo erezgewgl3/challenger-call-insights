@@ -11,9 +11,38 @@ export interface ProcessedEvent {
   timestamp: Date;
 }
 
+// Type definitions for common webhook payloads
+interface GitHubPayload {
+  repository?: { id?: number | string };
+  pull_request?: { id?: number | string };
+  action?: string;
+  ref?: string;
+  commits?: unknown[];
+  pusher?: unknown;
+  sender?: unknown;
+}
+
+interface StripePayload {
+  type?: string;
+  data?: {
+    object?: { id?: string };
+  };
+}
+
+interface SlackPayload {
+  event?: {
+    ts?: string;
+    text?: string;
+    user?: string;
+    channel?: string;
+  };
+}
+
+type WebhookPayload = GitHubPayload | StripePayload | SlackPayload | Record<string, unknown>;
+
 export interface EventProcessingRule {
   eventPattern: RegExp;
-  transformer: (payload: Record<string, unknown>) => ProcessedEvent;
+  transformer: (payload: WebhookPayload) => ProcessedEvent;
   validator?: (event: ProcessedEvent) => boolean;
 }
 
@@ -41,7 +70,7 @@ export class EventProcessor {
   async processEvent(
     integrationType: string,
     eventType: string,
-    payload: Record<string, unknown>
+    payload: WebhookPayload
   ): Promise<ProcessedEvent[]> {
     const rules = this.rules.get(integrationType) || [];
     const processedEvents: ProcessedEvent[] = [];
@@ -143,16 +172,16 @@ export class EventProcessor {
     return [
       {
         eventPattern: /^push$/,
-        transformer: (payload) => ({
+        transformer: (payload: WebhookPayload) => ({
           eventType: 'push',
           entityType: 'repository',
-          entityId: String(payload.repository?.id || ''),
+          entityId: String((payload as GitHubPayload).repository?.id || ''),
           action: 'push',
           data: {
-            ref: payload.ref,
-            commits: payload.commits,
-            repository: payload.repository,
-            pusher: payload.pusher
+            ref: (payload as GitHubPayload).ref,
+            commits: (payload as GitHubPayload).commits,
+            repository: (payload as GitHubPayload).repository,
+            pusher: (payload as GitHubPayload).pusher
           },
           metadata: {
             source: 'github',
@@ -163,15 +192,15 @@ export class EventProcessor {
       },
       {
         eventPattern: /^pull_request$/,
-        transformer: (payload) => ({
+        transformer: (payload: WebhookPayload) => ({
           eventType: 'pull_request',
           entityType: 'pull_request',
-          entityId: String(payload.pull_request?.id || ''),
-          action: String(payload.action || ''),
+          entityId: String((payload as GitHubPayload).pull_request?.id || ''),
+          action: String((payload as GitHubPayload).action || ''),
           data: {
-            pull_request: payload.pull_request,
-            repository: payload.repository,
-            sender: payload.sender
+            pull_request: (payload as GitHubPayload).pull_request,
+            repository: (payload as GitHubPayload).repository,
+            sender: (payload as GitHubPayload).sender
           },
           metadata: {
             source: 'github',
@@ -188,32 +217,32 @@ export class EventProcessor {
     return [
       {
         eventPattern: /^payment_intent\./,
-        transformer: (payload) => ({
-          eventType: String(payload.type || ''),
+        transformer: (payload: WebhookPayload) => ({
+          eventType: String((payload as StripePayload).type || ''),
           entityType: 'payment_intent',
-          entityId: String(payload.data?.object?.id || ''),
-          action: String(payload.type?.split('.')[1] || ''),
-          data: payload.data as Record<string, unknown>,
+          entityId: String((payload as StripePayload).data?.object?.id || ''),
+          action: String((payload as StripePayload).type?.split('.')[1] || ''),
+          data: (payload as StripePayload).data as Record<string, unknown>,
           metadata: {
             source: 'stripe',
             originalPayload: payload
           },
-          timestamp: new Date(Number(payload.created) * 1000)
+          timestamp: new Date(Number((payload as StripePayload & { created?: number }).created) * 1000)
         })
       },
       {
         eventPattern: /^customer\./,
-        transformer: (payload) => ({
-          eventType: String(payload.type || ''),
+        transformer: (payload: WebhookPayload) => ({
+          eventType: String((payload as StripePayload).type || ''),
           entityType: 'customer',
-          entityId: String(payload.data?.object?.id || ''),
-          action: String(payload.type?.split('.')[1] || ''),
-          data: payload.data as Record<string, unknown>,
+          entityId: String((payload as StripePayload).data?.object?.id || ''),
+          action: String((payload as StripePayload).type?.split('.')[1] || ''),
+          data: (payload as StripePayload).data as Record<string, unknown>,
           metadata: {
             source: 'stripe',
             originalPayload: payload
           },
-          timestamp: new Date(Number(payload.created) * 1000)
+          timestamp: new Date(Number((payload as StripePayload & { created?: number }).created) * 1000)
         })
       }
     ];
@@ -224,16 +253,16 @@ export class EventProcessor {
     return [
       {
         eventPattern: /^message$/,
-        transformer: (payload) => ({
+        transformer: (payload: WebhookPayload) => ({
           eventType: 'message',
           entityType: 'message',
-          entityId: String(payload.event?.ts || Date.now()),
+          entityId: String((payload as SlackPayload).event?.ts || Date.now()),
           action: 'sent',
           data: {
-            text: payload.event?.text,
-            user: payload.event?.user,
-            channel: payload.event?.channel,
-            timestamp: payload.event?.ts
+            text: (payload as SlackPayload).event?.text,
+            user: (payload as SlackPayload).event?.user,
+            channel: (payload as SlackPayload).event?.channel,
+            timestamp: (payload as SlackPayload).event?.ts
           },
           metadata: {
             source: 'slack',
@@ -244,16 +273,16 @@ export class EventProcessor {
       },
       {
         eventPattern: /^app_mention$/,
-        transformer: (payload) => ({
+        transformer: (payload: WebhookPayload) => ({
           eventType: 'app_mention',
           entityType: 'message',
-          entityId: String(payload.event?.ts || Date.now()),
+          entityId: String((payload as SlackPayload).event?.ts || Date.now()),
           action: 'mentioned',
           data: {
-            text: payload.event?.text,
-            user: payload.event?.user,
-            channel: payload.event?.channel,
-            timestamp: payload.event?.ts
+            text: (payload as SlackPayload).event?.text,
+            user: (payload as SlackPayload).event?.user,
+            channel: (payload as SlackPayload).event?.channel,
+            timestamp: (payload as SlackPayload).event?.ts
           },
           metadata: {
             source: 'slack',
@@ -268,17 +297,17 @@ export class EventProcessor {
   // Initialize default rules for common integrations
   initializeDefaultRules(): void {
     // GitHub rules
-    this.createGitHubRules().forEach(rule => {
+    EventProcessor.createGitHubRules().forEach((rule: EventProcessingRule) => {
       this.registerRule('github', rule);
     });
 
     // Stripe rules
-    this.createStripeRules().forEach(rule => {
+    EventProcessor.createStripeRules().forEach((rule: EventProcessingRule) => {
       this.registerRule('stripe', rule);
     });
 
     // Slack rules
-    this.createSlackRules().forEach(rule => {
+    EventProcessor.createSlackRules().forEach((rule: EventProcessingRule) => {
       this.registerRule('slack', rule);
     });
 
@@ -288,17 +317,17 @@ export class EventProcessor {
   // Generic event transformation for unknown integrations
   static createGenericEvent(
     eventType: string,
-    payload: Record<string, unknown>,
+    payload: WebhookPayload,
     integrationType: string
   ): ProcessedEvent {
-    const commonPatterns = this.extractCommonPatterns(payload);
+    const commonPatterns = this.extractCommonPatterns(payload as Record<string, unknown>);
     
     return {
       eventType: commonPatterns.eventType || eventType,
       entityType: commonPatterns.entityType || 'unknown',
       entityId: commonPatterns.entityId || `${Date.now()}`,
       action: commonPatterns.action || 'unknown',
-      data: commonPatterns.data || payload,
+      data: commonPatterns.data || (payload as Record<string, unknown>),
       metadata: {
         source: integrationType,
         originalPayload: payload,
