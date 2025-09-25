@@ -93,7 +93,7 @@ const handler = async (req: Request): Promise<Response> => {
     ).length;
 
     // Identify issues
-    const issues = [];
+    const issues: WebhookHealthResult['issues'] = [];
 
     if (deliveryRate < 95) {
       issues.push({
@@ -203,7 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
       issues: [{
         type: 'system_error',
         severity: 'critical',
-        message: `Health check failed: ${error.message}`,
+        message: `Health check failed: ${(error instanceof Error ? error.message : String(error))}`,
         count: 1
       }]
     };

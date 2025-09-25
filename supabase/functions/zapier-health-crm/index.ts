@@ -118,13 +118,13 @@ const handler = async (req: Request): Promise<Response> => {
     const throughput = totalOperations;
 
     // Identify issues
-    const issues = [];
+    const issues: CrmHealthResult['issues'] = [];
 
     // Check for failing connections
     if (failingConnections > 0) {
-      const affectedConnections = connections
+      const affectedConnections: string[] = connections
         .filter(c => c.connection_status === 'error' || c.connection_status === 'disconnected')
-        .map(c => c.connection_name);
+        .map(c => String(c.connection_name));
 
       issues.push({
         type: 'failing_connections',
@@ -181,7 +181,7 @@ const handler = async (req: Request): Promise<Response> => {
         severity: staleConnections.length > activeConnections / 2 ? 'medium' : 'low',
         message: `${staleConnections.length} connection(s) haven't synced in 24+ hours`,
         count: staleConnections.length,
-        affectedConnections: staleConnections.map(c => c.connection_name)
+        affectedConnections: staleConnections.map(c => String(c.connection_name))
       });
     }
 
@@ -276,7 +276,7 @@ const handler = async (req: Request): Promise<Response> => {
       issues: [{
         type: 'system_error',
         severity: 'critical',
-        message: `Health check failed: ${error.message}`,
+        message: `Health check failed: ${(error instanceof Error ? error.message : String(error))}`,
         count: 1
       }]
     };

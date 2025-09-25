@@ -68,7 +68,7 @@ async function checkDatabaseHealth(): Promise<ServiceHealth> {
       status: 'unhealthy',
       responseTime: Date.now() - startTime,
       lastCheck: new Date().toISOString(),
-      error: error.message
+      error: (error instanceof Error ? error.message : String(error))
     };
   }
 }
@@ -91,7 +91,7 @@ async function checkWebhookHealth(): Promise<ServiceHealth> {
         status: 'unhealthy',
         responseTime,
         lastCheck: new Date().toISOString(),
-        error: error.message
+         error: (error instanceof Error ? error.message : String(error))
       };
     }
 
@@ -118,7 +118,7 @@ async function checkWebhookHealth(): Promise<ServiceHealth> {
       status: 'unhealthy',
       responseTime: Date.now() - startTime,
       lastCheck: new Date().toISOString(),
-      error: error.message
+      error: (error instanceof Error ? error.message : String(error))
     };
   }
 }
@@ -168,7 +168,7 @@ async function checkMatchingHealth(): Promise<ServiceHealth> {
       status: 'unhealthy',
       responseTime: Date.now() - startTime,
       lastCheck: new Date().toISOString(),
-      error: error.message
+      error: (error instanceof Error ? error.message : String(error))
     };
   }
 }
@@ -218,7 +218,7 @@ async function checkCrmHealth(): Promise<ServiceHealth> {
       status: 'unhealthy',
       responseTime: Date.now() - startTime,
       lastCheck: new Date().toISOString(),
-      error: error.message
+      error: (error instanceof Error ? error.message : String(error))
     };
   }
 }

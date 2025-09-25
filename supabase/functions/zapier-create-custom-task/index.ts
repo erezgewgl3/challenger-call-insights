@@ -161,7 +161,7 @@ serve(async (req) => {
         for (const trigger of triggers) {
           const condition = trigger.trigger_condition as any;
           
-          if (this.evaluateTaskPriorityTrigger(condition, taskData)) {
+          if (evaluateTaskPriorityTrigger(condition ?? {}, taskData)) {
             console.log(`Triggering priority task webhook: ${trigger.webhook_url}`);
             
             try {
@@ -198,7 +198,7 @@ serve(async (req) => {
     }
 
     // Generate suggested follow-up actions based on task type
-    const followUpSuggestions = this.generateFollowUpSuggestions(
+    const followUpSuggestions = generateFollowUpSuggestions(
       task_type,
       taskData,
       context_data
@@ -218,10 +218,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in create-custom-task:', error);
+    const message = error instanceof Error ? error.message : String(error);
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 
-        details: error.message 
+        details: message 
       }),
       { 
         status: 500, 

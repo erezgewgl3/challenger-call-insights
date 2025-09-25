@@ -505,7 +505,7 @@ async function handleBidirectionalWebhook(requestBody: CRMWebhookPayload): Promi
       return new Response(JSON.stringify({
         success: false,
         error: 'Webhook delivery failed',
-        details: error.message
+        details: (error instanceof Error ? error.message : String(error))
       }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -589,9 +589,8 @@ function extractDealHeat(analysis: any): string {
   const guidance = analysis.guidance || {};
   const challengerScores = analysis.challenger_scores || {};
   
-  const avgScore = Object.values(challengerScores).length > 0 
-    ? Object.values(challengerScores).reduce((a: number, b: number) => a + b, 0) / Object.keys(challengerScores).length
-    : 2.5;
+  const values = (Object.values(challengerScores) as any[]).map((v) => Number(v) || 0);
+  const avgScore = values.length > 0 ? values.reduce((a: number, b: number) => a + b, 0) / values.length : 2.5;
   
   if (avgScore >= 4 || guidance.recommendation === 'Push') return 'Hot';
   if (avgScore >= 3 || guidance.recommendation === 'Continue') return 'Warm';
@@ -625,7 +624,7 @@ function extractCompetitivePosition(analysis: any): string {
 }
 
 function createTasksFromAnalysis(analysis: any, crmFormat: string) {
-  const tasks = [];
+  const tasks: any[] = [];
   const actionPlan = analysis.action_plan || {};
   const immediateActions = actionPlan.immediate_actions || [];
   
@@ -721,7 +720,7 @@ async function deliverWebhook(webhookUrl: string, payload: any) {
   } catch (error) {
     return {
       success: false,
-      error: error.message,
+      error: (error instanceof Error ? error.message : String(error)),
       response: null
     };
   }

@@ -101,8 +101,7 @@ const handler = async (req: Request): Promise<Response> => {
     // Calculate throughput (matches per hour)
     const throughput = totalMatches;
 
-    // Identify issues
-    const issues = [];
+    const issues: MatchingHealthResult['issues'] = [];
 
     const pendingRate = totalMatches > 0 ? (pendingMatches / totalMatches) * 100 : 0;
     
@@ -230,7 +229,7 @@ const handler = async (req: Request): Promise<Response> => {
       issues: [{
         type: 'system_error',
         severity: 'critical',
-        message: `Health check failed: ${error.message}`,
+        message: `Health check failed: ${(error instanceof Error ? error.message : String(error))}`,
         count: 1
       }]
     };

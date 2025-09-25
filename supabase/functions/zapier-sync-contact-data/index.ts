@@ -71,7 +71,7 @@ serve(async (req) => {
     });
 
     // Perform contact matching analysis
-    const matchingResults = await this.analyzeContactMatches(
+    const matchingResults = await analyzeContactMatches(
       contact_data,
       suggested_matches || [],
       matching_confidence || 0
@@ -106,7 +106,7 @@ serve(async (req) => {
         for (const trigger of triggers) {
           const condition = trigger.trigger_condition as any;
           
-          if (this.evaluateFailedMatchTrigger(condition, matchingResults)) {
+          if (evaluateFailedMatchTrigger(condition ?? {}, matchingResults)) {
             console.log(`Triggering failed match webhook: ${trigger.webhook_url}`);
             
             // Update trigger timestamp
@@ -138,7 +138,7 @@ serve(async (req) => {
     await syncManager.executeSyncOperation(syncOperation.id);
 
     // Update any existing transcripts with improved contact matching
-    await this.updateTranscriptParticipants(
+    const updatedCount = await updateTranscriptParticipants(
       supabase,
       user_id,
       contact_data,
@@ -162,7 +162,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 
-        details: error.message 
+        details: (error instanceof Error ? error.message : String(error)) 
       }),
       { 
         status: 500, 
@@ -179,7 +179,7 @@ serve(async (req) => {
   ) {
     const matches = suggestedMatches.map(match => ({
       ...match,
-      confidence: this.calculateMatchConfidence(contactData, match)
+      confidence: calculateMatchConfidence(contactData, match)
     }));
 
     const bestMatch = matches.reduce((best, current) => 
@@ -206,7 +206,7 @@ serve(async (req) => {
 
     // Name match
     if (contactData.name && matchCandidate.name) {
-      const nameSimilarity = this.calculateStringSimilarity(
+      const nameSimilarity = calculateStringSimilarity(
         contactData.name.toLowerCase(),
         matchCandidate.name.toLowerCase()
       );
@@ -224,7 +224,7 @@ serve(async (req) => {
 
     // Company match
     if (contactData.company && matchCandidate.company) {
-      const companySimilarity = this.calculateStringSimilarity(
+      const companySimilarity = calculateStringSimilarity(
         contactData.company.toLowerCase(),
         matchCandidate.company.toLowerCase()
       );
@@ -242,7 +242,7 @@ serve(async (req) => {
     
     if (longer.length === 0) return 1.0;
     
-    const distance = this.levenshteinDistance(longer, shorter);
+    const distance = levenshteinDistance(longer, shorter);
     return (longer.length - distance) / longer.length;
   }
 

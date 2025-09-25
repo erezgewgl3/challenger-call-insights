@@ -106,7 +106,7 @@ serve(async (req) => {
         for (const trigger of triggers) {
           const condition = trigger.trigger_condition as any;
           
-          if (this.evaluatePriorityActionTrigger(condition, activity_data, task_details)) {
+          if (evaluatePriorityActionTrigger(condition ?? {}, activity_data, task_details)) {
             console.log(`Triggering priority action webhook: ${trigger.webhook_url}`);
             
             // Update trigger timestamp
@@ -160,7 +160,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         error: 'Internal server error', 
-        details: error.message 
+        details: (error instanceof Error ? error.message : String(error)) 
       }),
       { 
         status: 500, 
