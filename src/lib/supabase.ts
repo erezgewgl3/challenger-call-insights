@@ -17,55 +17,43 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
 export type AuthUser = Database['public']['Tables']['users']['Row']
 export type InviteToken = Database['public']['Tables']['invites']['Row']
 
-// Auth helper functions (enhanced with password reset support)
+// Auth helper functions (enhanced with password reset support and secure validation)
 export const authHelpers = {
   async validateInviteToken(token: string, email: string) {
     try {
-      // First, check if invite exists and is valid
-      const { data: invite, error: inviteError } = await supabase
-        .from('invites')
-        .select('*')
-        .eq('token', token)
-        .eq('email', email)
-        .gt('expires_at', new Date().toISOString())
-        .single()
+      // Use secure validation function instead of direct table access
+      const { data: result, error } = await supabase.rpc('validate_invite_token_secure', {
+        p_token: token,
+        p_email: email
+      })
 
-      if (inviteError) {
-        console.error('Invite validation error:', inviteError)
-        return { valid: false, error: 'Invalid or expired invite token' }
+      if (error) {
+        console.error('Invite validation error:', error)
+        return { valid: false, error: 'Failed to validate invite token' }
       }
 
-      // Check if user already exists
-      const { data: existingUser, error: userError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', email)
-        .single()
-
-      if (existingUser) {
-        // If user exists with pending_deletion status, allow password reset
-        if (existingUser.status === 'pending_deletion') {
-          return { 
-            valid: true, 
-            invite, 
-            requiresPasswordReset: true,
-            existingUser 
-          }
-        }
-        // If user exists and is active, they shouldn't be using an invite
+      if (!result?.valid) {
         return { 
           valid: false, 
-          error: 'User already exists and is active. Please log in instead.' 
+          error: result?.error || 'Invalid or expired invite token' 
         }
       }
 
-      // If invite is already used and no existing user with pending_deletion, reject
-      if (invite.used_at) {
-        return { valid: false, error: 'Invite token has already been used' }
+      // Handle password reset case
+      if (result.requires_password_reset && result.existing_user_id) {
+        return { 
+          valid: true, 
+          invite: { id: result.invite_id },
+          requiresPasswordReset: true,
+          existingUser: { id: result.existing_user_id }
+        }
       }
 
       // Valid invite for new user registration
-      return { valid: true, invite }
+      return { 
+        valid: true, 
+        invite: { id: result.invite_id }
+      }
     } catch (error) {
       console.error('Invite validation error:', error)
       return { valid: false, error: 'Failed to validate invite token' }
@@ -74,14 +62,19 @@ export const authHelpers = {
 
   async markInviteAsUsed(inviteId: string) {
     try {
-      const { error } = await supabase
-        .from('invites')
-        .update({ used_at: new Date().toISOString() })
-        .eq('id', inviteId)
+      // Use secure function instead of direct table access
+      const { data: result, error } = await supabase.rpc('mark_invite_as_used_secure', {
+        p_invite_id: inviteId
+      })
 
       if (error) {
         console.error('Error marking invite as used:', error)
         return { success: false, error: error.message }
+      }
+
+      if (!result?.success) {
+        console.error('Error marking invite as used:', result?.error)
+        return { success: false, error: result?.error || 'Failed to mark invite as used' }
       }
 
       return { success: true }

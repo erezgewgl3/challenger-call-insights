@@ -1985,6 +1985,10 @@ export type Database = {
         Args: { email_address: string }
         Returns: string
       }
+      mark_invite_as_used_secure: {
+        Args: { p_invite_id: string }
+        Returns: Json
+      }
       mark_password_reset_token_used: {
         Args: {
           p_ip_address?: string
@@ -2016,6 +2020,10 @@ export type Database = {
           p_file_size: number
           p_user_id: string
         }
+        Returns: Json
+      }
+      validate_invite_token_secure: {
+        Args: { p_email: string; p_token: string }
         Returns: Json
       }
       validate_password_reset_token: {
