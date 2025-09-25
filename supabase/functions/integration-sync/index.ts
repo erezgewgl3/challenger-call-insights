@@ -138,7 +138,7 @@ serve(async (req) => {
         .update({
           operation_status: 'failed',
           completed_at: new Date().toISOString(),
-          error_details: { error: syncError.message },
+          error_details: { error: syncError instanceof Error ? syncError.message : 'Unknown error' },
         })
         .eq('id', syncOperation.id);
 
@@ -155,7 +155,7 @@ serve(async (req) => {
                 integration_icon: getIntegrationIcon(connection.integration_type),
                 user_email: userResult.user.email,
                 error_type: 'Sync Error',
-                error_message: syncError.message,
+                error_message: syncError instanceof Error ? syncError.message : 'Unknown error',
                 sync_id: syncOperation.id,
                 dashboard_url: 'https://app.saleswhisperer.net/dashboard',
                 occurred_at: new Date().toISOString()
@@ -175,7 +175,7 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

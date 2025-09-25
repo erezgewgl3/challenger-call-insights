@@ -153,11 +153,12 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in get-zoom-meetings:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: errorMessage,
       meetings: []
     }), {
-      status: error.message.includes('authentication') ? 401 : 500,
+      status: errorMessage.includes('authentication') ? 401 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

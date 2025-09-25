@@ -155,7 +155,7 @@ export class StripeWebhookHandler implements IntegrationHandler {
       }
     } catch (error) {
       console.error('Error handling payment intent event:', error);
-      return { action: 'payment_intent_failed', error: error.message };
+      return { action: 'payment_intent_failed', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -197,7 +197,7 @@ export class StripeWebhookHandler implements IntegrationHandler {
       }
     } catch (error) {
       console.error('Error handling customer event:', error);
-      return { action: 'customer_failed', error: error.message };
+      return { action: 'customer_failed', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -242,7 +242,7 @@ export class StripeWebhookHandler implements IntegrationHandler {
       }
     } catch (error) {
       console.error('Error handling invoice event:', error);
-      return { action: 'invoice_failed', error: error.message };
+      return { action: 'invoice_failed', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -286,7 +286,7 @@ export class StripeWebhookHandler implements IntegrationHandler {
       }
     } catch (error) {
       console.error('Error handling subscription event:', error);
-      return { action: 'subscription_failed', error: error.message };
+      return { action: 'subscription_failed', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 }

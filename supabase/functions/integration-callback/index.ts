@@ -581,7 +581,7 @@ serve(async (req) => {
                   integration_name: stateValidation.integrationId || 'Integration',
                   integration_icon: getIntegrationIcon(stateValidation.integrationId || ''),
                   user_email: userResult.user.email,
-                  error_message: error.message,
+                  error_message: error instanceof Error ? error.message : 'Unknown error',
                   retry_url: 'https://saleswhispererv2-0.lovable.app/integrations',
                   failed_at: new Date().toISOString()
                 }
@@ -596,7 +596,7 @@ serve(async (req) => {
     
     // Return appropriate error response format  
     if (req.method === 'POST') {
-      return new Response(JSON.stringify({ error: error.message }), {
+      return new Response(JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }), {
         headers: { 'Content-Type': 'application/json', ...corsHeaders },
         status: 400,
       });
@@ -605,7 +605,7 @@ serve(async (req) => {
         <html>
           <body>
             <h1>Connection Failed</h1>
-            <p>Error: ${error.message}</p>
+            <p>Error: ${error instanceof Error ? error.message : 'Unknown error'}</p>
             <script>window.close();</script>
           </body>
         </html>

@@ -92,7 +92,7 @@ serve(async (req) => {
         return new Response(JSON.stringify({
           success: false,
           error: 'Failed to download transcript file',
-          details: error.message
+          details: error instanceof Error ? error.message : 'Unknown error'
         }), {
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -100,7 +100,16 @@ serve(async (req) => {
       }
     }
 
-    // Look up user by email
+    // Validate transcript content is available
+    if (!transcriptText || transcriptText.trim().length === 0) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Transcript content is required and cannot be empty'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     const { data: userData, error: userError } = await supabase
       .rpc('lookup_user_by_email', { email_address: payload.assigned_user_email });
 
@@ -230,7 +239,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: 'Internal server error',
-      message: error.message
+      message: error instanceof Error ? error.message : 'Unknown error'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -324,7 +333,7 @@ function prepareTranscriptData(
   const metadata = payload.meeting_metadata || {};
   
   // Handle participants - normalize to array
-  let participants = [];
+  let participants: string[] = [];
   if (metadata.participants) {
     if (Array.isArray(metadata.participants)) {
       participants = metadata.participants;

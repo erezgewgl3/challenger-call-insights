@@ -75,7 +75,7 @@ serve(async (req) => {
           break;
       }
     } catch (revokeError) {
-      console.warn(`[DISCONNECT-INTEGRATION] Could not revoke token at provider: ${revokeError.message}`);
+      console.warn(`[DISCONNECT-INTEGRATION] Could not revoke token at provider: ${revokeError instanceof Error ? revokeError.message : 'Unknown error'}`);
       // Continue with local disconnection even if provider revocation fails
     }
 
@@ -113,7 +113,7 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

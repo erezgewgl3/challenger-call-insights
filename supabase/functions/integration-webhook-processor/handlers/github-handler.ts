@@ -139,7 +139,7 @@ export class GitHubWebhookHandler implements IntegrationHandler {
       };
     } catch (error) {
       console.error('Error handling push event:', error);
-      return { action: 'push_failed', error: error.message };
+      return { action: 'push_failed', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -167,7 +167,7 @@ export class GitHubWebhookHandler implements IntegrationHandler {
       }
     } catch (error) {
       console.error('Error handling pull request event:', error);
-      return { action: 'pr_failed', error: error.message };
+      return { action: 'pr_failed', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 
@@ -185,7 +185,7 @@ export class GitHubWebhookHandler implements IntegrationHandler {
       };
     } catch (error) {
       console.error('Error handling issue event:', error);
-      return { action: 'issue_failed', error: error.message };
+      return { action: 'issue_failed', error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 }

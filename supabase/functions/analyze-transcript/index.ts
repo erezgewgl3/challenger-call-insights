@@ -220,8 +220,9 @@ serve(async (req) => {
         aiResponse = await callClaude(finalPrompt);
       } catch (claudeError) {
         console.error('🔍 [ERROR] Both AI providers failed:', claudeError);
-        await updateTranscriptError(supabase, transcriptId, `AI analysis failed: ${claudeError.message}`);
-        throw new Error(`AI analysis failed: ${claudeError.message}`);
+        const errorMessage = claudeError instanceof Error ? claudeError.message : 'Unknown error';
+        await updateTranscriptError(supabase, transcriptId, `AI analysis failed: ${errorMessage}`);
+        throw new Error(`AI analysis failed: ${errorMessage}`);
       }
     }
     
@@ -294,12 +295,11 @@ serve(async (req) => {
       }
     };
     
-    EdgeRuntime.waitUntil(
-      deliverWebhooksDirectly(userId, analysisData.id, webhookPayload)
-        .catch(error => {
-          console.error('🔍 [WEBHOOK] Webhook delivery failed (non-blocking):', error);
-        })
-    );
+    // Deliver webhooks asynchronously (non-blocking)
+    deliverWebhooksDirectly(userId, analysisData.id, webhookPayload)
+      .catch(error => {
+        console.error('🔍 [WEBHOOK] Webhook delivery failed (non-blocking):', error);
+      });
 
     // Update transcript status to completed (triggers real-time update)
     console.log('🔍 [DB] Updating transcript status to completed');
@@ -335,7 +335,7 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
+      error: error instanceof Error ? error.message : 'Unknown error',
       timestamp: new Date().toISOString()
     }), {
       status: 500,

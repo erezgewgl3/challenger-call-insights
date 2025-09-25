@@ -243,7 +243,7 @@ serve(async (req) => {
             
           } catch (userError) {
             console.error(`Error processing user ${uid}:`, userError);
-            throw new Error(`Failed to process user ${uid}: ${userError.message}`);
+            throw new Error(`Failed to process user ${uid}: ${userError instanceof Error ? userError.message : 'Unknown error'}`);
           }
         }
       } catch (error) {
@@ -278,7 +278,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message 
+        error: error instanceof Error ? error.message : 'Unknown error' 
       }),
       { 
         status: 500,

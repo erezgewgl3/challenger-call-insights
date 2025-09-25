@@ -46,7 +46,8 @@ serve(async (req) => {
         sync_frequency_minutes,
         created_at,
         updated_at,
-        configuration
+        configuration,
+        credentials
       `)
       .eq('user_id', userData.user.id);
 
@@ -119,7 +120,7 @@ serve(async (req) => {
             }
           } catch (error) {
             isTokenValid = false;
-            lastError = error.message;
+            lastError = error instanceof Error ? error.message : 'Unknown error';
           }
 
           // Update connection status if token is invalid
@@ -185,7 +186,7 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error instanceof Error ? error.message : 'Unknown error'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,
