@@ -100,14 +100,18 @@ serve(async (req) => {
     }
 
     // Prepare analysis results for webhook delivery
+    const analysis = Array.isArray(transcript.conversation_analysis) 
+      ? transcript.conversation_analysis[0] 
+      : transcript.conversation_analysis;
+    
     const analysisResults = {
-      id: transcript.conversation_analysis.id,
-      challenger_scores: transcript.conversation_analysis.challenger_scores,
-      guidance: transcript.conversation_analysis.guidance,
-      email_followup: transcript.conversation_analysis.email_followup,
-      heat_level: transcript.conversation_analysis.heat_level,
-      action_plan: transcript.conversation_analysis.action_plan,
-      key_takeaways: transcript.conversation_analysis.key_takeaways
+      id: analysis?.id,
+      challenger_scores: analysis?.challenger_scores,
+      guidance: analysis?.guidance,
+      email_followup: analysis?.email_followup,
+      heat_level: analysis?.heat_level,
+      action_plan: analysis?.action_plan,
+      key_takeaways: analysis?.key_takeaways
     };
 
     console.log('🔗 [CRM-TRIGGER] Triggering bidirectional webhook delivery');
@@ -154,7 +158,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: 'Internal server error',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

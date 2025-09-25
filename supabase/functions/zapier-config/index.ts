@@ -51,7 +51,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: 'Internal server error',
-      details: error.message
+      details: error instanceof Error ? error.message : String(error)
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -111,7 +111,7 @@ async function handleConnectionTest(req: Request, supabase: any) {
     return new Response(JSON.stringify({
       success: false,
       connection_status: 'failed',
-      error: error.message
+      error: error instanceof Error ? error.message : String(error)
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -439,8 +439,8 @@ async function handleWebhookTest(req: Request, supabase: any) {
     return new Response(JSON.stringify({
       success: false,
       webhook_url,
-      error: error.message,
-      error_type: error.name
+      error: error instanceof Error ? error.message : String(error),
+      error_type: error instanceof Error ? error.name : 'Unknown'
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
@@ -607,10 +607,10 @@ async function handleQueueStatus(req: Request, supabase: any) {
     const stats = {
       total_external_transcripts: queueStats.length,
       status_breakdown: {
-        pending: queueStats.filter(t => t.processing_status === 'pending').length,
-        processing: queueStats.filter(t => t.processing_status === 'processing').length,
-        completed: queueStats.filter(t => t.processing_status === 'completed').length,
-        failed: queueStats.filter(t => t.processing_status === 'failed').length
+        pending: queueStats.filter((t: any) => t.processing_status === 'pending').length,
+        processing: queueStats.filter((t: any) => t.processing_status === 'processing').length,
+        completed: queueStats.filter((t: any) => t.processing_status === 'completed').length,
+        failed: queueStats.filter((t: any) => t.processing_status === 'failed').length
       },
       source_breakdown: {
         zoho: queueStats.filter(t => t.external_source === 'zoho').length,

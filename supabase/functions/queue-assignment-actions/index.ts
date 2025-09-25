@@ -164,7 +164,7 @@ async function processSingleAction(
     return { success: true, status: newStatus };
 
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }
 
@@ -205,6 +205,6 @@ async function processBulkAction(
     };
 
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 }

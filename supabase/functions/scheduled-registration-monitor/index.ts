@@ -133,7 +133,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error) {
     console.error('Error in scheduled-registration-monitor function:', error);
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       success: false
     }), {
       status: 500,
