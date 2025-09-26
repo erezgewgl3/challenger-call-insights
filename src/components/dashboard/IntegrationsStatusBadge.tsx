@@ -56,46 +56,40 @@ export const IntegrationsStatusBadge: React.FC = () => {
       };
     }
 
-    if (hasErrors) {
+    // Issue State: One or more integrations have problems
+    if (hasErrors || (hasAnyConnection && connectedCount < totalCount)) {
       return {
         variant: 'destructive' as const,
         className: 'cursor-pointer hover:bg-destructive/90 transition-colors',
         icon: XCircle,
         iconClassName: 'h-3 w-3 mr-1.5',
-        text: 'Connection Issues',
-        description: `${connectedCount}/${totalCount} integrations have errors. Click to resolve.`
+        text: 'Integration Issues',
+        description: hasErrors 
+          ? 'Some integrations have connection errors. Click to resolve.'
+          : `${connectedCount} of ${totalCount} integrations connected. Click to complete setup.`
       };
     }
 
-    if (connectedCount === totalCount) {
+    // Green State: All defined integrations working
+    if (connectedCount === totalCount && totalCount > 0) {
       return {
         variant: 'default' as const,
         className: 'cursor-pointer hover:bg-primary/90 transition-colors bg-green-600 text-white border-green-600',
         icon: CheckCircle,
         iconClassName: 'h-3 w-3 mr-1.5',
-        text: 'All Connected',
+        text: 'Integrations',
         description: `All ${totalCount} integrations are connected and working properly.`
       };
     }
 
-    if (hasAnyConnection) {
-      return {
-        variant: 'secondary' as const,
-        className: 'cursor-pointer hover:bg-amber-100 transition-colors bg-amber-50 text-amber-700 border-amber-200',
-        icon: AlertTriangle,
-        iconClassName: 'h-3 w-3 mr-1.5',
-        text: `Setup Incomplete (${connectedCount}/${totalCount})`,
-        description: `${connectedCount} of ${totalCount} integrations connected. Complete setup for full functionality.`
-      };
-    }
-
+    // Neutral State: No integrations defined or connected
     return {
       variant: 'outline' as const,
-      className: 'cursor-pointer hover:bg-blue-50 transition-colors bg-blue-50 text-blue-700 border-blue-200',
+      className: 'cursor-pointer hover:bg-muted/50 transition-colors border-muted text-muted-foreground bg-muted/20',
       icon: Settings,
       iconClassName: 'h-3 w-3 mr-1.5',
-      text: 'Complete Setup',
-      description: 'Connect your integrations to get started with Sales Whisperer.'
+      text: 'Integrations',
+      description: 'Connect your integrations to enhance your workflow.'
     };
   };
 
