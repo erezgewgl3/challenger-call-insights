@@ -176,14 +176,14 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
   }
 
   return (
-    <div className="space-y-4">
+    <div className="h-full flex flex-col space-y-4">
       <div className="flex items-center gap-2">
         <Video className="h-5 w-5 text-blue-500" />
         <h3 className="text-lg font-semibold">Your Zoom Connection</h3>
       </div>
 
       {isConnected && connection ? (
-        <Card>
+        <Card className="flex-1 flex flex-col">
           <CardHeader>
             <div className="flex items-start justify-between">
               <div>
@@ -201,7 +201,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
             </div>
           </CardHeader>
           
-          <CardContent className="space-y-6">
+          <CardContent className="flex-1 flex flex-col space-y-6">
             {/* Connection Details */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">

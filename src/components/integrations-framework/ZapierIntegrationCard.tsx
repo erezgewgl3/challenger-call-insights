@@ -23,7 +23,7 @@ export function ZapierIntegrationCard({
   const { successRate, activeWebhooks, activeApiKeys } = status;
 
   return (
-    <Card className={`relative transition-all duration-200 hover:shadow-md ${className || ""}`}>
+    <Card className={`h-full flex flex-col relative transition-all duration-200 hover:shadow-md ${className || ""}`}>
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
@@ -54,8 +54,8 @@ export function ZapierIntegrationCard({
         </div>
       </CardHeader>
       
-      <CardContent className="pt-0">
-        <div className="space-y-4">
+      <CardContent className="flex-1 flex flex-col pt-0">
+        <div className="flex flex-col space-y-4 h-full">
           {/* Setup Progress */}
           {!isSetupComplete && (
             <div className="space-y-2">
@@ -141,7 +141,7 @@ export function ZapierIntegrationCard({
           )}
 
           {/* Actions */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-auto">
             <Button 
               onClick={onOpenManager}
               className="flex-1"

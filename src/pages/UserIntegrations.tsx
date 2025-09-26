@@ -80,9 +80,13 @@ export default function UserIntegrations() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <ZoomUserConnection />
-            <ZapierIntegrationManager />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div className="h-full">
+              <ZoomUserConnection />
+            </div>
+            <div className="h-full">
+              <ZapierIntegrationManager />
+            </div>
           </div>
         </CardContent>
       </Card>

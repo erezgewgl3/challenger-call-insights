@@ -88,7 +88,7 @@ export const PersonalZoomSetup: React.FC<PersonalZoomSetupProps> = ({ onConnect,
   };
 
   return (
-    <Card>
+    <Card className="h-full flex flex-col">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Video className="h-5 w-5 text-blue-600" />
@@ -99,7 +99,7 @@ export const PersonalZoomSetup: React.FC<PersonalZoomSetupProps> = ({ onConnect,
         </CardDescription>
       </CardHeader>
       
-      <CardContent>
+      <CardContent className="flex-1 flex flex-col">
         <Tabs value={setupMode} onValueChange={(value) => setSetupMode(value as 'system' | 'personal')}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="system">Quick Connect</TabsTrigger>
