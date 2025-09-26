@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback, ReactNode } from 'react'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface ZapierStatus {
   status: 'setup' | 'connected' | 'error';
@@ -39,8 +40,9 @@ interface ZapierStatusProviderProps {
 
 export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
-  // Query for fetching status from server
+  // Query for fetching status from server - only when authenticated
   const {
     data: status,
     isLoading,
@@ -66,7 +68,8 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000)
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    enabled: !!user // Only run query when user is authenticated
   });
 
   // Mutation for verifying connection
@@ -92,26 +95,33 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
       // Invalidate and refetch status to get updated data
       queryClient.invalidateQueries({ queryKey: ['zapier-status'] });
       
-      if (data.success) {
-        toast({
-          title: "Connection Verified",
-          description: "Your Zapier integration is working correctly.",
-        });
-      } else {
-        toast({
-          title: "Connection Issues",
-          description: data.error || "Connection test failed",
-          variant: "destructive"
-        });
+      // Only show toast if user is authenticated
+      if (user) {
+        if (data.success) {
+          toast({
+            title: "Connection Verified",
+            description: "Your Zapier integration is working correctly.",
+          });
+        } else {
+          toast({
+            title: "Connection Issues",
+            description: data.error || "Connection test failed",
+            variant: "destructive"
+          });
+        }
       }
     },
     onError: (error: Error) => {
       console.error('Connection verification failed:', error);
-      toast({
-        title: "Verification Failed",
-        description: error.message,
-        variant: "destructive"
-      });
+      
+      // Only show toast if user is authenticated
+      if (user) {
+        toast({
+          title: "Verification Failed",
+          description: error.message,
+          variant: "destructive"
+        });
+      }
     }
   });
 
@@ -145,9 +155,9 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
     refetch();
   }, [queryClient, refetch]);
 
-  // Run background test on mount if setup is complete but status is not connected
+  // Run background test on mount if setup is complete but status is not connected - only when authenticated
   React.useEffect(() => {
-    if (status && status.isSetupComplete && status.status !== 'connected' && status.activeApiKeys > 0) {
+    if (user && status && status.isSetupComplete && status.status !== 'connected' && status.activeApiKeys > 0) {
       console.log('Running background connection test...');
       
       // Get the first active API key for background test
@@ -174,7 +184,7 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
       const timeoutId = setTimeout(backgroundTest, 1000);
       return () => clearTimeout(timeoutId);
     }
-  }, [status, verifyConnectionMutation]);
+  }, [user, status, verifyConnectionMutation]);
 
   const contextValue: ZapierStatusContextType = {
     status: status || null,
