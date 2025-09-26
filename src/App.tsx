@@ -33,61 +33,82 @@ function App() {
           <Toaster />
           <Sonner />
         <BrowserRouter>
-          <ZapierStatusProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/login" element={<LoginForm />} />
-              <Route path="/register" element={<RegisterForm />} />
-              <Route path="/reset-password" element={<PasswordReset />} />
-              <Route path="/dashboard" element={
+          <Routes>
+            {/* Public routes - no ZapierStatusProvider */}
+            <Route path="/" element={<Index />} />
+            <Route path="/login" element={<LoginForm />} />
+            <Route path="/register" element={<RegisterForm />} />
+            <Route path="/reset-password" element={<PasswordReset />} />
+            <Route path="/integrations/callback" element={<IntegrationCallback />} />
+            <Route path="*" element={<NotFound />} />
+            
+            {/* Authenticated routes - wrapped with ZapierStatusProvider */}
+            <Route path="/dashboard" element={
+              <ZapierStatusProvider>
                 <AuthGuard>
                   <SmartDashboard />
                 </AuthGuard>
-              } />
-              <Route path="/integrations" element={
+              </ZapierStatusProvider>
+            } />
+            <Route path="/integrations" element={
+              <ZapierStatusProvider>
                 <AuthGuard>
                   <UserIntegrations />
                 </AuthGuard>
-              } />
-              <Route path="/admin" element={
-                <AdminGuard>
-                  <AdminDashboard />
-                </AdminGuard>
-              } />
-              <Route path="/admin/prompts" element={
-                <AdminGuard>
-                  <PromptManagement />
-                </AdminGuard>
-              } />
-              <Route path="/admin/users" element={
-                <AdminGuard>
-                  <UserManagement />
-                </AdminGuard>
-              } />
-              <Route path="/admin/gdpr-compliance" element={
-                <AdminGuard>
-                  <GDPRCompliance />
-                </AdminGuard>
-              } />
-              <Route path="/admin/integrations" element={
-                <AdminGuard>
-                  <AdminIntegrationDashboard />
-                </AdminGuard>
-              } />
-              <Route path="/analysis/:transcriptId" element={
+              </ZapierStatusProvider>
+            } />
+            <Route path="/analysis/:transcriptId" element={
+              <ZapierStatusProvider>
                 <AuthGuard>
                   <TranscriptAnalysis />
                 </AuthGuard>
-              } />
-              <Route path="/integrations/callback" element={<IntegrationCallback />} />
-              <Route path="/admin/integrations/callback" element={
+              </ZapierStatusProvider>
+            } />
+            
+            {/* Admin routes - wrapped with ZapierStatusProvider */}
+            <Route path="/admin" element={
+              <ZapierStatusProvider>
+                <AdminGuard>
+                  <AdminDashboard />
+                </AdminGuard>
+              </ZapierStatusProvider>
+            } />
+            <Route path="/admin/prompts" element={
+              <ZapierStatusProvider>
+                <AdminGuard>
+                  <PromptManagement />
+                </AdminGuard>
+              </ZapierStatusProvider>
+            } />
+            <Route path="/admin/users" element={
+              <ZapierStatusProvider>
+                <AdminGuard>
+                  <UserManagement />
+                </AdminGuard>
+              </ZapierStatusProvider>
+            } />
+            <Route path="/admin/gdpr-compliance" element={
+              <ZapierStatusProvider>
+                <AdminGuard>
+                  <GDPRCompliance />
+                </AdminGuard>
+              </ZapierStatusProvider>
+            } />
+            <Route path="/admin/integrations" element={
+              <ZapierStatusProvider>
+                <AdminGuard>
+                  <AdminIntegrationDashboard />
+                </AdminGuard>
+              </ZapierStatusProvider>
+            } />
+            <Route path="/admin/integrations/callback" element={
+              <ZapierStatusProvider>
                 <AdminGuard>
                   <AdminIntegrationCallback />
                 </AdminGuard>
-              } />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </ZapierStatusProvider>
+              </ZapierStatusProvider>
+            } />
+          </Routes>
         </BrowserRouter>
         </AuthProvider>
       </TooltipProvider>
