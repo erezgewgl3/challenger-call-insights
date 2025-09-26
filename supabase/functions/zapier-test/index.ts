@@ -103,7 +103,7 @@ async function testDatabaseConnection(): Promise<{ status: string; responseTime:
     return { 
       status: 'failed', 
       responseTime: Date.now() - startTime, 
-      error: error.message 
+      error: (error as Error).message
     };
   }
 }
@@ -169,12 +169,12 @@ async function testWebhookDelivery(webhookUrl: string): Promise<TestResult> {
     
     return {
       success: false,
-      message: `Webhook delivery failed: ${error.message}`,
+      message: `Webhook delivery failed: ${(error as Error).message}`,
       responseTime,
       results: {
         webhook_url: webhookUrl,
-        error: error.message,
-        error_type: error.name
+        error: (error as Error).message,
+        error_type: (error as Error).name
       },
       recommendations: [
         'Check if the webhook URL is accessible',
@@ -260,9 +260,9 @@ async function testConnection(apiKey: string): Promise<TestResult> {
   } catch (error) {
     return {
       success: false,
-      message: `Connection test failed: ${error.message}`,
+      message: `Connection test failed: ${(error as Error).message}`,
       responseTime: Date.now() - startTime,
-      results: { error: error.message },
+      results: { error: (error as Error).message },
       recommendations: [
         'Check your network connection',
         'Verify API endpoints are accessible',

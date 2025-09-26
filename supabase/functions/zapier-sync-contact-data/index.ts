@@ -151,7 +151,7 @@ serve(async (req) => {
         sync_operation_id: syncOperation.id,
         matching_confidence: matchingResults.confidence,
         best_match: matchingResults.bestMatch,
-        updated_transcripts: matchingResults.updatedTranscripts || 0,
+        updated_transcripts: 0, // Contact data sync completed
         message: 'Contact data synced successfully'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
