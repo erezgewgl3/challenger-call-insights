@@ -8,6 +8,7 @@ interface ZoomConnectionStatus {
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
+  connectionStatus: 'active' | 'error' | 'inactive' | 'not_found';
 }
 
 export const useZoomConnection = (): ZoomConnectionStatus => {
@@ -41,9 +42,20 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
         'data' in data && 
         data.data;
 
-      console.log('Zoom connection status result:', { hasConnection, data });
+      // Extract connection status from database
+      const connectionRecord = hasConnection && typeof data.data === 'object' && data.data !== null ? 
+        data.data as { connection_status?: string } : null;
+      
+      const connectionStatus = connectionRecord?.connection_status || 'not_found';
+      
+      const isActive = connectionStatus === 'active';
 
-      return { connected: !!hasConnection };
+      console.log('Zoom connection status result:', { hasConnection, connectionStatus, isActive, data });
+
+      return { 
+        connected: isActive,
+        connectionStatus: connectionStatus as 'active' | 'error' | 'inactive' | 'not_found'
+      };
     },
     enabled: !!user?.id,
     staleTime: 30 * 1000, // 30 seconds - shorter for faster updates after OAuth
@@ -58,6 +70,7 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
     isLoading,
     error: error as Error | null,
     refetch,
+    connectionStatus: data?.connectionStatus || 'not_found',
   };
 };
 

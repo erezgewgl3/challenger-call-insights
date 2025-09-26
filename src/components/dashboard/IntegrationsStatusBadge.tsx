@@ -11,11 +11,12 @@ interface IntegrationInfo {
   connected: boolean;
   loading: boolean;
   error?: string;
+  isDefined: boolean; // Has a database record (attempted configuration)
 }
 
 export const IntegrationsStatusBadge: React.FC = () => {
   const navigate = useNavigate();
-  const { isConnected: zoomConnected, isLoading: zoomLoading, error: zoomError } = useZoomConnection();
+  const { isConnected: zoomConnected, isLoading: zoomLoading, connectionStatus: zoomConnectionStatus } = useZoomConnection();
   const { status: zapierStatus, isLoading: zapierLoading } = useZapierStatus();
 
   const handleClick = () => {
@@ -23,25 +24,29 @@ export const IntegrationsStatusBadge: React.FC = () => {
   };
 
   // Build integration info array
-  const integrations: IntegrationInfo[] = [
+  const allIntegrations: IntegrationInfo[] = [
     {
       name: 'Zoom',
       connected: zoomConnected,
       loading: zoomLoading,
-      error: zoomError?.message
+      error: zoomConnectionStatus === 'error' ? 'Connection broken' : undefined,
+      isDefined: zoomConnectionStatus !== 'not_found' // Has database record
     },
     {
       name: 'Zapier',
       connected: zapierStatus.status === 'connected',
       loading: zapierLoading,
-      error: zapierStatus.status === 'error' ? 'Connection error' : undefined
+      error: zapierStatus.status === 'error' ? 'Connection error' : undefined,
+      isDefined: zapierStatus.status !== 'setup' // Some configuration exists
     }
   ];
 
-  const connectedCount = integrations.filter(i => i.connected).length;
-  const totalCount = integrations.length;
-  const hasErrors = integrations.some(i => i.error);
-  const isLoading = integrations.some(i => i.loading);
+  // Only count integrations that are actually defined (attempted configuration)
+  const definedIntegrations = allIntegrations.filter(i => i.isDefined);
+  const connectedCount = definedIntegrations.filter(i => i.connected).length;
+  const totalCount = definedIntegrations.length;
+  const hasErrors = definedIntegrations.some(i => i.error);
+  const isLoading = allIntegrations.some(i => i.loading);
   const hasAnyConnection = connectedCount > 0;
 
   const getBadgeConfig = () => {
@@ -56,17 +61,15 @@ export const IntegrationsStatusBadge: React.FC = () => {
       };
     }
 
-    // Issue State: One or more integrations have problems
-    if (hasErrors || (hasAnyConnection && connectedCount < totalCount)) {
+    // Issue State: One or more defined integrations have problems
+    if (hasErrors && totalCount > 0) {
       return {
         variant: 'destructive' as const,
         className: 'cursor-pointer hover:bg-destructive/90 transition-colors',
         icon: XCircle,
         iconClassName: 'h-3 w-3 mr-1.5',
         text: 'Integration Issues',
-        description: hasErrors 
-          ? 'Some integrations have connection errors. Click to resolve.'
-          : `${connectedCount} of ${totalCount} integrations connected. Click to complete setup.`
+        description: 'Some integrations have connection errors. Click to resolve.'
       };
     }
 
@@ -124,7 +127,7 @@ export const IntegrationsStatusBadge: React.FC = () => {
         <div className="space-y-2">
           <p className="font-medium">{config.description}</p>
           <div className="space-y-1">
-            {integrations.map((integration) => (
+            {definedIntegrations.map((integration) => (
               <div key={integration.name} className="flex items-center justify-between text-xs">
                 <span className="text-muted-foreground">{integration.name}:</span>
                 <span className={`font-medium ${
