@@ -88,15 +88,22 @@ export const PersonalZoomSetup: React.FC<PersonalZoomSetupProps> = ({ onConnect,
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Video className="h-5 w-5 text-blue-600" />
-          Connect Your Zoom Account
-        </CardTitle>
-        <CardDescription>
-          Connect your Zoom account to automatically analyze meeting transcripts
-        </CardDescription>
+    <Card className="h-full flex flex-col transition-all duration-200 hover:shadow-md">
+      <CardHeader className="pb-4">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Video className="h-8 w-8 text-blue-500" />
+            <div className="absolute -top-1 -right-1 h-3 w-3 rounded-full bg-gray-300" />
+          </div>
+          <div>
+            <CardTitle className="text-lg font-semibold">
+              Zoom Integration
+            </CardTitle>
+            <CardDescription className="text-sm text-muted-foreground">
+              Automatically analyze meeting transcripts
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       
       <CardContent className="flex-1 flex flex-col">

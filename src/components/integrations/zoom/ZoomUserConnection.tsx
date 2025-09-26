@@ -176,32 +176,37 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
   }
 
   return (
-    <div className="h-full flex flex-col space-y-4">
-      <div className="flex items-center gap-2">
-        <Video className="h-5 w-5 text-blue-500" />
-        <h3 className="text-lg font-semibold">Your Zoom Connection</h3>
-      </div>
-
+    <div className="h-full flex flex-col">
       {isConnected && connection ? (
-        <Card className="flex-1 flex flex-col">
-          <CardHeader>
+        <Card className="flex-1 flex flex-col transition-all duration-200 hover:shadow-md">
+          <CardHeader className="pb-4">
             <div className="flex items-start justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  Connected to Zoom
-                </CardTitle>
-                <CardDescription>
-                  Your Zoom account is connected and ready to analyze meeting transcripts
-                </CardDescription>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Video className="h-8 w-8 text-blue-500" />
+                  <div 
+                    className={`absolute -top-1 -right-1 h-3 w-3 rounded-full ${
+                      connection.connection_status === 'active' ? 'bg-green-500' : 'bg-yellow-500'
+                    }`}
+                    title={connection.connection_status}
+                  />
+                </div>
+                <div>
+                  <CardTitle className="text-lg font-semibold">
+                    Zoom Integration
+                  </CardTitle>
+                  <CardDescription className="text-sm text-muted-foreground">
+                    Automatically analyze meeting transcripts
+                  </CardDescription>
+                </div>
               </div>
-              <Badge variant={connection.connection_status === 'active' ? 'default' : 'secondary'}>
+              <Badge variant={connection.connection_status === 'active' ? 'default' : 'secondary'} className="capitalize">
                 {connection.connection_status}
               </Badge>
             </div>
           </CardHeader>
           
-          <CardContent className="flex-1 flex flex-col space-y-6">
+          <CardContent className="flex-1 flex flex-col space-y-6 pt-0">
             {/* Connection Details */}
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
