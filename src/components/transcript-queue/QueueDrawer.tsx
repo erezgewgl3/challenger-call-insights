@@ -89,8 +89,18 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
   const { data: queueData, isLoading, error } = useQuery({
     queryKey: ['transcript-queue', filters, activeTab],
     queryFn: async () => {
-      // Keep server defaults; we don't need to pass filters for initial visibility
-      const response = await supabase.functions.invoke('get-transcript-queue');
+      // Send default filters to show pending transcripts by default
+      const defaultFilters = {
+        status: ['pending'],
+        assignment_type: 'all',
+        ...Object.fromEntries(
+          Object.entries(filters).map(([key, values]) => [key, values.join(',')])
+        )
+      };
+
+      const response = await supabase.functions.invoke('get-transcript-queue', {
+        body: { filters: defaultFilters }
+      });
       if (response.error) throw response.error;
       return response.data as QueueData;
     },

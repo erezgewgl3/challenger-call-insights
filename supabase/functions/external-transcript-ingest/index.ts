@@ -194,37 +194,15 @@ serve(async (req) => {
 
     console.log('🔗 [INGEST] Transcript created:', transcript.id);
 
-    // Create assignment record
-    const { data: assignment, error: assignmentError } = await supabase
-      .from('queue_assignments')
-      .insert({
-        transcript_id: transcript.id,
-        assigned_to: userData,
-        assigned_by: null, // System assignment
-        status: 'pending',
-        notes: `Auto-assigned from ${payload.source || 'external'} integration`
-      })
-      .select()
-      .single();
-
-    if (assignmentError) {
-      console.error('🔗 [ERROR] Assignment creation failed:', assignmentError);
-      // Don't fail the whole request for assignment errors
-    }
-
-    // Get queue position
-    const { data: queueData, error: queueError } = await supabase
-      .from('external_transcript_queue')
-      .select('queue_position')
-      .eq('transcript_id', transcript.id)
-      .single();
+    // For external integrations, we create owned transcripts, not assignments
+    // Skip creating assignment records - the transcript is now owned by the user
+    
+    console.log('🔗 [SUCCESS] External transcript created as owned transcript');
 
     const response: ProcessingResponse = {
       success: true,
       transcript_id: transcript.id,
-      assignment_id: assignment?.id,
-      queue_position: queueData?.queue_position || null,
-      warning: assignmentError ? 'Assignment record creation failed' : undefined
+      // No assignment or queue position needed for owned transcripts
     };
 
     console.log('🔗 [SUCCESS] External transcript ingested successfully');
@@ -348,7 +326,7 @@ function prepareTranscriptData(
   return {
     user_id: userId,
     account_id: accountId,
-    assigned_user_id: userId,
+    assigned_user_id: null, // External integrations create owned transcripts, not assignments
     title: metadata.title || `External Transcript - ${new Date().toISOString().split('T')[0]}`,
     participants: participants,
     meeting_date: metadata.meeting_date || new Date().toISOString(),

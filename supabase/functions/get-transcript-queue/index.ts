@@ -95,9 +95,31 @@ serve(async (req) => {
       });
     }
 
-    // Parse query parameters
+    // Parse query parameters from both URL and body
     const url = new URL(req.url);
-    const filters = parseFilters(url.searchParams);
+    let filters = parseFilters(url.searchParams);
+    
+    // Also support POST body for parameters
+    if (req.method === 'POST') {
+      try {
+        const body = await req.json();
+        if (body.filters) {
+          filters = { ...filters, ...body.filters };
+        }
+      } catch {
+        // Ignore JSON parsing errors, use URL params only
+      }
+    }
+    
+    // Default to showing pending transcripts if no filters specified
+    if (!filters.status || filters.status.length === 0) {
+      filters.status = ['pending'];
+    }
+    
+    // Default to showing all assignment types if not specified
+    if (!filters.assignment_type) {
+      filters.assignment_type = 'all';
+    }
 
     console.log('📋 [QUEUE] Filters applied:', filters);
 
@@ -239,8 +261,11 @@ function parseFilters(searchParams: URLSearchParams): QueueFilters {
 
 function processQueueItems(transcripts: any[], currentUserId: string): QueueItem[] {
   return transcripts.map((transcript, index) => {
-    const isAssigned = transcript.assigned_user_id === currentUserId && 
-                      transcript.user_id !== currentUserId;
+    // Fixed classification logic:
+    // - Owned: user_id = current_user AND assigned_user_id IS NULL
+    // - Assigned: assigned_user_id = current_user AND user_id != current_user
+    const isOwned = transcript.user_id === currentUserId && !transcript.assigned_user_id;
+    const isAssigned = transcript.assigned_user_id === currentUserId && transcript.user_id !== currentUserId;
     
     const assignmentStatus = transcript.queue_assignments?.[0]?.status || null;
     
