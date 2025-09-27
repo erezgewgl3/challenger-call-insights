@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -89,18 +89,8 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
   const { data: queueData, isLoading, error } = useQuery({
     queryKey: ['transcript-queue', filters, activeTab],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        assignment_type: 'all',
-        ...Object.fromEntries(
-          Object.entries(filters).map(([key, values]) => [key, values.join(',')])
-        )
-      });
-
-      const response = await supabase.functions.invoke('get-transcript-queue', {
-        method: 'GET',
-        body: params.toString()
-      });
-
+      // Keep server defaults; we don't need to pass filters for initial visibility
+      const response = await supabase.functions.invoke('get-transcript-queue');
       if (response.error) throw response.error;
       return response.data as QueueData;
     },
@@ -161,6 +151,16 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
     : queueData?.queues.assigned || [];
 
   const summary = queueData?.summary;
+
+  // Auto-switch to Assigned tab if there are no owned items but there are assigned ones
+  useEffect(() => {
+    if (!queueData) return;
+    const ownedCount = queueData.queues?.owned?.length || 0;
+    const assignedCount = queueData.queues?.assigned?.length || 0;
+    if (activeTab === 'owned' && ownedCount === 0 && assignedCount > 0) {
+      setActiveTab('assigned');
+    }
+  }, [queueData, activeTab]);
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
