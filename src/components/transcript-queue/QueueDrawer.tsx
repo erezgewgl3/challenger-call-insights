@@ -61,9 +61,9 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [filters, setFilters] = useState({
-    status: ['pending'],
-    priority: [],
-    source: []
+    status: ['pending', 'uploaded', 'processing'], // Show all active statuses
+    priority: [], // Show all priorities
+    source: [] // Show all sources (empty means no filter)
   });
 
   const { toast } = useToast();
@@ -241,9 +241,24 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
                 <OwnedQueueSection
                   items={currentQueue}
                   isLoading={isLoading}
-                  onItemProcess={(id) => {
-                    // Handle processing - integrate with existing analyze flow
-                    console.log('Process transcript:', id);
+                  onItemProcess={async (id) => {
+                    try {
+                      const response = await supabase.functions.invoke('analyze-transcript', {
+                        body: { transcript_id: id }
+                      });
+                      if (response.error) throw response.error;
+                      toast({
+                        title: "Analysis Started",
+                        description: "Transcript analysis has been queued for processing",
+                      });
+                      queryClient.invalidateQueries({ queryKey: ['transcript-queue'] });
+                    } catch (error) {
+                      toast({
+                        title: "Analysis Failed", 
+                        description: error.message,
+                        variant: "destructive",
+                      });
+                    }
                   }}
                 />
               </TabsContent>
