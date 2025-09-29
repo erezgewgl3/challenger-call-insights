@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.12 (cd3cf9e)"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -525,12 +525,15 @@ export type Database = {
           connection_status: string
           created_at: string
           credentials: Json
+          error_count: number | null
           id: string
           integration_type: string
+          last_error: string | null
           last_sync_at: string | null
           sync_frequency_minutes: number | null
           updated_at: string
           user_id: string
+          webhook_url: string | null
         }
         Insert: {
           configuration?: Json
@@ -538,12 +541,15 @@ export type Database = {
           connection_status?: string
           created_at?: string
           credentials?: Json
+          error_count?: number | null
           id?: string
           integration_type: string
+          last_error?: string | null
           last_sync_at?: string | null
           sync_frequency_minutes?: number | null
           updated_at?: string
           user_id: string
+          webhook_url?: string | null
         }
         Update: {
           configuration?: Json
@@ -551,12 +557,15 @@ export type Database = {
           connection_status?: string
           created_at?: string
           credentials?: Json
+          error_count?: number | null
           id?: string
           integration_type?: string
+          last_error?: string | null
           last_sync_at?: string | null
           sync_frequency_minutes?: number | null
           updated_at?: string
           user_id?: string
+          webhook_url?: string | null
         }
         Relationships: []
       }
@@ -1864,6 +1873,10 @@ export type Database = {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: string
+      }
+      get_unified_transcript_queue: {
+        Args: { p_user_id: string }
+        Returns: Json
       }
       get_user_queue_summary: {
         Args: { user_uuid: string }
