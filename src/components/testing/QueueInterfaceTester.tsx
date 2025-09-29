@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { QueueDrawer } from '@/components/transcript-queue/QueueDrawer';
+import { QueueDrawer } from '@/components/upload/QueueDrawer';
 import { QueueTestDataGenerator } from './QueueTestDataGenerator';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -191,10 +191,13 @@ export function QueueInterfaceTester() {
       </Card>
 
       {/* Queue Drawer */}
-      <QueueDrawer 
-        open={showQueue} 
-        onOpenChange={setShowQueue}
-      />
+      {user?.id && (
+        <QueueDrawer 
+          isOpen={showQueue} 
+          onClose={() => setShowQueue(false)}
+          user_id={user.id}
+        />
+      )}
     </div>
   );
 }

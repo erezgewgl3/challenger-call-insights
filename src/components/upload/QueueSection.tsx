@@ -12,7 +12,7 @@ interface QueueSectionProps {
     processing_started_at?: string;
     processing_error?: string;
   }>;
-  type: 'processing' | 'failed' | 'manual';
+  type: 'processing' | 'failed' | 'manual' | 'completed' | 'assigned';
   showRetryButton?: boolean;
   showAnalyzeButton?: boolean;
 }

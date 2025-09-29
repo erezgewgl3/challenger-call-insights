@@ -54,7 +54,7 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
         p_user_id: user_id
       });
       if (error) throw error;
-      return data as QueueData;
+      return data as unknown as QueueData;
     },
     enabled: isOpen && !!user_id,
     refetchInterval: isOpen ? 5000 : false, // Real-time updates when open
@@ -72,7 +72,7 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
         table: 'transcripts'
       }, (payload) => {
         // Check if this update affects the current user
-        const transcript = payload.new || payload.old;
+        const transcript = (payload.new || payload.old) as any;
         if (transcript?.user_id === user_id || transcript?.assigned_user_id === user_id) {
           queryClient.invalidateQueries({ queryKey: ['unified-transcript-queue'] });
         }
