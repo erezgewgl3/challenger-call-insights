@@ -1874,6 +1874,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      get_integration_registry: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
       get_unified_transcript_queue: {
         Args: { p_user_id: string }
         Returns: Json
