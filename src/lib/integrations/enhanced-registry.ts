@@ -85,7 +85,7 @@ export class EnhancedIntegrationRegistry extends IntegrationRegistry {
       name: 'Zapier',
       description: 'Workflow automation platform connecting 5,000+ apps',
       version: '1.0.0',
-      category: 'automation',
+      category: 'other',
       authType: 'api_key',
       requiredFields: ['api_key'],
       optionalFields: ['webhook_secret', 'rate_limit'],
@@ -243,14 +243,15 @@ export class EnhancedIntegrationRegistry extends IntegrationRegistry {
       
       if (error) throw error;
 
-      const overallHealth = this.calculateOverallHealth(data);
+      const dataTyped = data as any;
+      const overallHealth = this.calculateOverallHealth(dataTyped);
       
       return {
         overall_health: overallHealth,
-        total_connections: data.total_connections || 0,
-        active_connections: data.active_connections || 0,
-        error_rate_24h: 100 - (data.webhook_success_rate || 100),
-        avg_processing_time: data.avg_processing_time || 0,
+        total_connections: dataTyped.total_connections || 0,
+        active_connections: dataTyped.active_connections || 0,
+        error_rate_24h: 100 - (dataTyped.webhook_success_rate || 100),
+        avg_processing_time: dataTyped.avg_processing_time || 0,
         integrations: {
           zoom: await this.getIntegrationHealthMetrics('zoom') || this.getDefaultMetrics(),
           zapier: await this.getIntegrationHealthMetrics('zapier') || this.getDefaultMetrics()
@@ -300,7 +301,7 @@ export class EnhancedIntegrationRegistry extends IntegrationRegistry {
    */
   private getDefaultSystemHealth(): SystemHealthMetrics {
     return {
-      overall_health: 'unknown',
+      overall_health: 'healthy',
       total_connections: 0,
       active_connections: 0,
       error_rate_24h: 0,

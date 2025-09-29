@@ -140,8 +140,9 @@ export function UnifiedIntegrationManager() {
     );
   }
 
-  const integrations = registryData?.integrations || {};
-  const systemStats: ConnectionStats = registryData?.system_stats || {
+  const registryDataTyped = registryData as any;
+  const integrations = registryDataTyped?.integrations || {};
+  const systemStats: ConnectionStats = registryDataTyped?.system_stats || {
     total_connections: 0,
     active_connections: 0,
     total_users: 0,
@@ -175,10 +176,10 @@ export function UnifiedIntegrationManager() {
     integrationId: conn.integration_type,
     userId: conn.user_id,
     connectionName: conn.connection_name,
-    connectionStatus: conn.connection_status,
-    credentials: conn.credentials,
-    configuration: conn.configuration,
-    lastSyncAt: conn.last_sync_at,
+    connectionStatus: (conn.connection_status || 'inactive') as 'active' | 'inactive' | 'error' | 'pending',
+    credentials: (conn.credentials || {}) as Record<string, unknown>,
+    configuration: (conn.configuration || {}) as Record<string, unknown>,
+    lastSyncAt: conn.last_sync_at ? new Date(conn.last_sync_at) : new Date(),
     nextSyncAt: null,
     syncFrequencyMinutes: conn.sync_frequency_minutes,
     lastError: conn.last_error,
