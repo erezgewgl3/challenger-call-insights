@@ -11,11 +11,14 @@ export interface AuthUser extends User {
 export const authService = {
   async fetchUserRole(userId: string): Promise<UserRole> {
     try {
+      // Query the new user_roles table instead of users table
       const { data, error } = await supabase
-        .from('users')
+        .from('user_roles')
         .select('role')
-        .eq('id', userId)
-        .single()
+        .eq('user_id', userId)
+        .order('role', { ascending: true }) // admin comes before sales_user
+        .limit(1)
+        .maybeSingle()
 
       if (error) {
         console.error('Error fetching user role:', error)
