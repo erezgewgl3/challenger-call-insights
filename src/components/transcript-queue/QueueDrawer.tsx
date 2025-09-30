@@ -253,7 +253,7 @@ export function QueueDrawer({ open, onOpenChange }: QueueDrawerProps) {
                   isLoading={isLoading}
                   onItemProcess={async (id) => {
                     try {
-                      const response = await supabase.functions.invoke('analyze-transcript', {
+                      const response = await supabase.functions.invoke('manual-process-transcript', {
                         body: { transcript_id: id }
                       });
                       if (response.error) throw response.error;

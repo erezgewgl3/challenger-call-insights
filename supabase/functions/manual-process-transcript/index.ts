@@ -12,17 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        auth: {
-          persistSession: false,
-        },
-      }
-    );
-
-    // Get user from auth header
+    // Get user from auth header and create a user-bound Supabase client
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
       return new Response(
@@ -31,9 +21,20 @@ serve(async (req) => {
       );
     }
 
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
+    const accessToken = authHeader.replace('Bearer ', '');
+
+    // Impersonate the user by forwarding the Authorization header so RLS sees auth.uid()
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: { headers: { Authorization: `Bearer ${accessToken}` } },
+        auth: { persistSession: false },
+      }
     );
+
+    // Validate token and fetch user
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
 
     if (authError || !user) {
       return new Response(
@@ -107,7 +108,7 @@ serve(async (req) => {
         body: {
           transcriptId: transcript_id,
           userId: user.id,
-          textLength: transcript.raw_text?.length || 0,
+          transcriptText: transcript.raw_text || '',
           durationMinutes: transcript.duration_minutes || 0
         }
       });
