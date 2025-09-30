@@ -57,14 +57,26 @@ serve(async (req) => {
       .select('id, user_id, assigned_user_id, title, raw_text, duration_minutes')
       .eq('id', transcript_id)
       .or(`user_id.eq.${user.id},assigned_user_id.eq.${user.id}`)
-      .single();
+      .maybeSingle();
 
-    if (fetchError || !transcript) {
+    if (fetchError) {
       console.error('Transcript fetch error:', fetchError);
       return new Response(
         JSON.stringify({ 
+          error: 'Database error fetching transcript',
+          details: fetchError.message 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!transcript) {
+      console.error('Transcript not found:', transcript_id, 'for user:', user.id);
+      return new Response(
+        JSON.stringify({ 
           error: 'Transcript not found or access denied',
-          details: fetchError?.message 
+          transcript_id,
+          user_id: user.id
         }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

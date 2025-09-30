@@ -19,6 +19,9 @@ interface TranscriptItemProps {
     external_source?: string;
     meeting_date?: string;
     priority_level?: string;
+    zoho_deal_id?: string;
+    zoho_meeting_id?: string;
+    original_filename?: string;
   };
   showRetryButton?: boolean;
   showAnalyzeButton?: boolean;
@@ -98,7 +101,7 @@ export function TranscriptItem({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
           <p className="font-medium text-foreground truncate">
-            {transcript.title}
+            {transcript.original_filename || transcript.title}
           </p>
           {transcript.external_source && (
             <SourceBadge source={transcript.external_source} />
@@ -107,6 +110,19 @@ export function TranscriptItem({
             <Badge variant="destructive" className="text-xs">High Priority</Badge>
           )}
         </div>
+        
+        {/* Deal and Meeting Context */}
+        {(transcript.zoho_deal_id || transcript.zoho_meeting_id) && (
+          <div className="flex items-center gap-3 mb-1 text-xs text-muted-foreground">
+            {transcript.zoho_deal_id && (
+              <span>Deal: #{transcript.zoho_deal_id}</span>
+            )}
+            {transcript.zoho_meeting_id && (
+              <span>Meeting: {transcript.zoho_meeting_id}</span>
+            )}
+          </div>
+        )}
+        
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
           {transcript.meeting_date && (
             <span>{format(new Date(transcript.meeting_date), 'MMM d, yyyy')}</span>

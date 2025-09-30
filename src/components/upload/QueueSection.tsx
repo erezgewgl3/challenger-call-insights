@@ -14,6 +14,9 @@ interface QueueSectionProps {
     external_source?: string;
     meeting_date?: string;
     priority_level?: string;
+    zoho_deal_id?: string;
+    zoho_meeting_id?: string;
+    original_filename?: string;
   }>;
   type: 'processing' | 'failed' | 'manual' | 'completed' | 'assigned';
   showRetryButton?: boolean;
