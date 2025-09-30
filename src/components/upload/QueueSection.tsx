@@ -6,11 +6,14 @@ interface QueueSectionProps {
   title: string;
   items: Array<{
     id: string;
-    filename: string;
+    title: string;
     created_at: string;
     processing_status: string;
     processing_started_at?: string;
     processing_error?: string;
+    external_source?: string;
+    meeting_date?: string;
+    priority_level?: string;
   }>;
   type: 'processing' | 'failed' | 'manual' | 'completed' | 'assigned';
   showRetryButton?: boolean;

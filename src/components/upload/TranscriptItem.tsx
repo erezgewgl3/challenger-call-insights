@@ -5,16 +5,20 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, RotateCcw, Play, AlertCircle } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow, format } from 'date-fns';
+import { SourceBadge } from '@/components/ui/SourceBadge';
 
 interface TranscriptItemProps {
   transcript: {
     id: string;
-    filename: string;
+    title: string;
     created_at: string;
     processing_status: string;
     processing_started_at?: string;
     processing_error?: string;
+    external_source?: string;
+    meeting_date?: string;
+    priority_level?: string;
   };
   showRetryButton?: boolean;
   showAnalyzeButton?: boolean;
@@ -56,21 +60,24 @@ export function TranscriptItem({
   const handleAnalyze = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.functions.invoke('manual-process-transcript', {
+      const { data, error } = await supabase.functions.invoke('manual-process-transcript', {
         body: { transcript_id: transcript.id }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
       
       toast({
         title: "Analysis started",
         description: "Your transcript is now being processed.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to start analysis:', error);
       toast({
         title: "Failed to start analysis",
-        description: "Please try again later.",
+        description: error?.message || "Please try again later.",
         variant: "destructive"
       });
     } finally {
@@ -89,10 +96,21 @@ export function TranscriptItem({
   return (
     <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
       <div className="flex-1 min-w-0">
-        <p className="font-medium text-foreground truncate">
-          {transcript.filename}
-        </p>
+        <div className="flex items-center gap-2 mb-1">
+          <p className="font-medium text-foreground truncate">
+            {transcript.title}
+          </p>
+          {transcript.external_source && (
+            <SourceBadge source={transcript.external_source} />
+          )}
+          {transcript.priority_level === 'high' && (
+            <Badge variant="destructive" className="text-xs">High Priority</Badge>
+          )}
+        </div>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
+          {transcript.meeting_date && (
+            <span>{format(new Date(transcript.meeting_date), 'MMM d, yyyy')}</span>
+          )}
           <span>{formatTimeAgo(transcript.created_at)}</span>
           {transcript.processing_error && (
             <TooltipProvider>
@@ -100,7 +118,7 @@ export function TranscriptItem({
                 <TooltipTrigger asChild>
                   <span className="text-destructive truncate max-w-48 flex items-center gap-1">
                     <AlertCircle className="h-3 w-3" />
-                    {transcript.processing_error}
+                    Error
                   </span>
                 </TooltipTrigger>
                 <TooltipContent>

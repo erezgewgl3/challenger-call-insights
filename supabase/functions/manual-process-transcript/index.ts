@@ -51,17 +51,21 @@ serve(async (req) => {
       );
     }
 
-    // Verify the transcript belongs to the user
+    // Verify the transcript belongs to the user OR is assigned to the user
     const { data: transcript, error: fetchError } = await supabaseClient
       .from('transcripts')
-      .select('id, user_id, title, raw_text, duration_minutes')
+      .select('id, user_id, assigned_user_id, title, raw_text, duration_minutes')
       .eq('id', transcript_id)
-      .eq('user_id', user.id)
+      .or(`user_id.eq.${user.id},assigned_user_id.eq.${user.id}`)
       .single();
 
     if (fetchError || !transcript) {
+      console.error('Transcript fetch error:', fetchError);
       return new Response(
-        JSON.stringify({ error: 'Transcript not found or access denied' }),
+        JSON.stringify({ 
+          error: 'Transcript not found or access denied',
+          details: fetchError?.message 
+        }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -85,6 +89,7 @@ serve(async (req) => {
     }
 
     // Call the analyze-transcript function
+    console.log('Starting analysis for transcript:', transcript_id);
     try {
       const { error: analysisError } = await supabaseClient.functions.invoke('analyze-transcript', {
         body: {
