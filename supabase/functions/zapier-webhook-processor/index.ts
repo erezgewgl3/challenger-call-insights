@@ -124,12 +124,28 @@ serve(async (req) => {
       }
     }
 
-    // Validate transcript content
+    // Validate transcript content (critical security check)
     const validation = processor.validateTranscriptContent(transcriptText || '');
     if (!validation.valid) {
+      console.error('🔗 [ERROR] Transcript validation failed:', validation.error);
+      
+      // Log the validation failure for debugging
+      await supabase.rpc('integration_framework_log_webhook', {
+        connection_id: connection.id,
+        webhook_event: 'transcript.validation_failed',
+        payload: {
+          error: validation.error,
+          content_preview: transcriptText?.substring(0, 500)
+        },
+        headers: Object.fromEntries(req.headers.entries())
+      });
+      
       return new Response(JSON.stringify({
         success: false,
-        error: validation.error
+        error: validation.error,
+        hint: validation.error.includes('HTML') || validation.error.includes('login') 
+          ? 'Authentication credentials may be expired or invalid. Please verify your integration settings.'
+          : 'Please verify the transcript content format.'
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

@@ -157,6 +157,34 @@ serve(async (req) => {
       durationMinutes 
     });
 
+    // Critical: Validate transcript content before processing
+    if (!transcriptText || transcriptText.trim().length === 0) {
+      const errorMsg = 'Transcript content is empty or missing';
+      console.error('🔍 [ERROR]', errorMsg);
+      await updateTranscriptError(supabase, transcriptId, errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Detect HTML content (login pages, error pages)
+    const htmlIndicators = [/<html[\s>]/i, /<head[\s>]/i, /<body[\s>]/i, /<DOCTYPE/i];
+    const isHTML = htmlIndicators.some(indicator => indicator.test(transcriptText));
+    
+    if (isHTML) {
+      const errorMsg = 'Invalid transcript: HTML content detected. This indicates the source system returned a login page or error page instead of transcript data. Please verify authentication credentials and re-upload.';
+      console.error('🔍 [ERROR]', errorMsg);
+      console.error('🔍 [ERROR] Content preview:', transcriptText.substring(0, 300));
+      await updateTranscriptError(supabase, transcriptId, errorMsg);
+      throw new Error(errorMsg);
+    }
+
+    // Check for minimum viable transcript content
+    if (transcriptText.trim().length < 100) {
+      const errorMsg = 'Transcript content too short for meaningful analysis (minimum 100 characters)';
+      console.error('🔍 [ERROR]', errorMsg);
+      await updateTranscriptError(supabase, transcriptId, errorMsg);
+      throw new Error(errorMsg);
+    }
+
     // Update transcript status to processing (triggers real-time update)
     console.log('🔍 [DB] Updating transcript status to processing');
     const { error: statusError } = await supabase

@@ -230,24 +230,53 @@ export class UnifiedTranscriptProcessor {
 
       if (!response.ok) {
         console.error(`📥 [ERROR] Download failed: ${response.status} ${response.statusText}`);
+        
+        // Specific handling for auth errors
+        if (response.status === 401 || response.status === 403) {
+          console.error(`📥 [AUTH ERROR] Authentication failed - credentials may be expired or invalid`);
+        }
+        
         return null;
       }
 
       const contentType = response.headers.get('content-type') || '';
       const content = await response.text();
 
+      // Critical: Detect HTML content before processing
+      if (contentType.includes('text/html') || content.trim().startsWith('<!DOCTYPE') || content.trim().startsWith('<html')) {
+        console.error(`📥 [ERROR] HTML content received instead of transcript - authentication likely failed`);
+        console.error(`📥 [ERROR] Content preview: ${content.substring(0, 200)}...`);
+        return null;
+      }
+
       // Handle different content types
       if (contentType.includes('application/json')) {
         try {
           const jsonData = JSON.parse(content);
           // Extract transcript from common JSON structures
-          return jsonData.transcript || jsonData.text || jsonData.content || JSON.stringify(jsonData, null, 2);
+          const extracted = jsonData.transcript || jsonData.text || jsonData.content || JSON.stringify(jsonData, null, 2);
+          
+          // Validate extracted content isn't HTML
+          const validation = this.validateTranscriptContent(extracted);
+          if (!validation.valid) {
+            console.error(`📥 [ERROR] Extracted content failed validation: ${validation.error}`);
+            return null;
+          }
+          
+          return extracted;
         } catch {
           return content;
         }
       }
 
-      console.log(`📥 [SUCCESS] Downloaded transcript, length: ${content.length}`);
+      // Final validation before returning
+      const validation = this.validateTranscriptContent(content);
+      if (!validation.valid) {
+        console.error(`📥 [ERROR] Downloaded content failed validation: ${validation.error}`);
+        return null;
+      }
+
+      console.log(`📥 [SUCCESS] Downloaded and validated transcript, length: ${content.length}`);
       return content;
     } catch (error) {
       console.error('📥 [ERROR] Download error:', error);
@@ -270,6 +299,73 @@ export class UnifiedTranscriptProcessor {
     // Check for minimum content
     if (content.trim().length < 50) {
       return { valid: false, error: 'Transcript content too short (minimum 50 characters)' };
+    }
+
+    // Critical: Detect HTML content (especially login pages)
+    const htmlIndicators = [
+      /<html[\s>]/i,
+      /<head[\s>]/i,
+      /<body[\s>]/i,
+      /<DOCTYPE/i,
+      /<script[\s>]/i,
+      /<meta[\s>]/i,
+      /<link[\s>]/i,
+      /<form[\s>]/i
+    ];
+
+    const lowerContent = content.toLowerCase();
+    for (const indicator of htmlIndicators) {
+      if (indicator.test(content)) {
+        console.error('❌ [VALIDATION] HTML content detected - likely a login page or error page');
+        return { 
+          valid: false, 
+          error: 'Invalid content: HTML/webpage detected instead of transcript. This usually indicates authentication failure or expired credentials.' 
+        };
+      }
+    }
+
+    // Check for common login/error page text patterns
+    const errorPatterns = [
+      'sign in',
+      'login',
+      'authentication required',
+      'session expired',
+      'access denied',
+      'unauthorized',
+      '401',
+      '403',
+      'forbidden'
+    ];
+
+    const hasMultipleErrorIndicators = errorPatterns.filter(pattern => 
+      lowerContent.includes(pattern)
+    ).length >= 2;
+
+    if (hasMultipleErrorIndicators) {
+      console.error('❌ [VALIDATION] Login/error page content detected');
+      return { 
+        valid: false, 
+        error: 'Invalid content: Appears to be a login or error page. Please verify authentication credentials.' 
+      };
+    }
+
+    // Check for conversation patterns (at least some dialogue structure)
+    const conversationIndicators = [
+      /\w+:\s+/,  // "Name: text" format
+      /Speaker\s+\d+/i,  // "Speaker 1" format
+      /\[\w+\]/,  // "[Name]" format
+    ];
+
+    const hasConversationPattern = conversationIndicators.some(pattern => 
+      pattern.test(content)
+    );
+
+    if (!hasConversationPattern && content.length < 1000) {
+      console.warn('⚠️ [VALIDATION] No clear conversation structure detected in short content');
+      return { 
+        valid: false, 
+        error: 'Content does not appear to be a conversation transcript. Expected dialogue format with speaker labels.' 
+      };
     }
 
     return { valid: true };
