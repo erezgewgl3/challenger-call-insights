@@ -1,17 +1,8 @@
-
-import { createClient } from '@supabase/supabase-js'
+// Re-export the single Supabase client instance to avoid multiple client warnings
+import { supabase } from '@/integrations/supabase/client'
 import type { Database } from '@/integrations/supabase/types'
 
-const supabaseUrl = "https://jtunkyfoadoowpymibjr.supabase.co"
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0dW5reWZvYWRvb3dweW1pYmpyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTEwMDg3NjEsImV4cCI6MjA2NjU4NDc2MX0.Hjb_P57qg2IKFi7Ox9moiFMUfN73EQgmhGOK7AuUCH4"
-
-export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    persistSession: true,
-    autoRefreshToken: true,
-  }
-})
+export { supabase }
 
 // Helper types for authentication
 export type AuthUser = Database['public']['Tables']['users']['Row']
