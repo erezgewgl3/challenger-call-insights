@@ -47,13 +47,16 @@ interface QueueData {
 export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDrawerProps) {
   const queryClient = useQueryClient();
 
-  const { data: queueData, isLoading } = useQuery({
+  const { data: queueData, isLoading, error: queryError } = useQuery({
     queryKey: ['unified-transcript-queue', user_id],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_unified_transcript_queue', {
         p_user_id: user_id
       });
-      if (error) throw error;
+      if (error) {
+        console.error('Failed to fetch unified queue:', error);
+        throw error;
+      }
       return data as unknown as QueueData;
     },
     enabled: isOpen && !!user_id,
@@ -74,7 +77,7 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
         // Check if this update affects the current user
         const transcript = (payload.new || payload.old) as any;
         if (transcript?.user_id === user_id || transcript?.assigned_user_id === user_id) {
-          queryClient.invalidateQueries({ queryKey: ['unified-transcript-queue'] });
+          queryClient.invalidateQueries({ queryKey: ['unified-transcript-queue', user_id] });
         }
       })
       .on('postgres_changes', {
@@ -83,7 +86,7 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
         table: 'conversation_analysis'
       }, () => {
         // Analysis updates affect queue display
-        queryClient.invalidateQueries({ queryKey: ['unified-transcript-queue'] });
+        queryClient.invalidateQueries({ queryKey: ['unified-transcript-queue', user_id] });
       })
       .on('postgres_changes', {
         event: '*',
@@ -91,7 +94,7 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
         table: 'integration_connections'
       }, () => {
         // Integration changes might affect queue
-        queryClient.invalidateQueries({ queryKey: ['unified-transcript-queue'] });
+        queryClient.invalidateQueries({ queryKey: ['unified-transcript-queue', user_id] });
       })
       .subscribe();
 
@@ -157,7 +160,18 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
         
         <ScrollArea className="flex-1">
           <div className="p-6">
-            {isLoading ? (
+            {queryError ? (
+              <div className="text-center py-12">
+                <AlertTriangle className="h-16 w-16 text-destructive mx-auto mb-4" />
+                <h3 className="text-lg font-semibold mb-2">Failed to load queue</h3>
+                <p className="text-muted-foreground mb-4">
+                  There was an error loading your transcripts. Please try again.
+                </p>
+                <p className="text-sm text-muted-foreground font-mono">
+                  {queryError instanceof Error ? queryError.message : 'Unknown error'}
+                </p>
+              </div>
+            ) : isLoading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (
                   <div key={i} className="animate-pulse">
