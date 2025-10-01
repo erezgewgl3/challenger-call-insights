@@ -21,6 +21,7 @@ interface QueueSectionProps {
   type: 'processing' | 'failed' | 'manual' | 'completed' | 'assigned';
   showRetryButton?: boolean;
   showAnalyzeButton?: boolean;
+  onDelete?: (transcriptId: string) => Promise<void>;
 }
 
 export function QueueSection({ 
@@ -28,7 +29,8 @@ export function QueueSection({
   items, 
   type, 
   showRetryButton = false, 
-  showAnalyzeButton = false 
+  showAnalyzeButton = false,
+  onDelete
 }: QueueSectionProps) {
   if (items.length === 0) return null;
 
@@ -46,6 +48,7 @@ export function QueueSection({
             transcript={transcript}
             showRetryButton={showRetryButton}
             showAnalyzeButton={showAnalyzeButton}
+            onDelete={onDelete}
           />
         ))}
       </div>

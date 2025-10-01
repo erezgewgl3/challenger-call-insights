@@ -1,18 +1,29 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Calendar, Clock, Loader2, Play, Upload } from 'lucide-react';
+import { Calendar, Clock, Loader2, Play, Upload, Trash2 } from 'lucide-react';
 import { QueueItem } from './QueueDrawer';
 import { LiveProgressIndicator } from './LiveProgressIndicator';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface OwnedQueueSectionProps {
   items: QueueItem[];
   isLoading: boolean;
   onItemProcess: (itemId: string) => void;
+  onItemDelete?: (itemId: string) => Promise<void>;
 }
 
-export function OwnedQueueSection({ items, isLoading, onItemProcess }: OwnedQueueSectionProps) {
+export function OwnedQueueSection({ items, isLoading, onItemProcess, onItemDelete }: OwnedQueueSectionProps) {
   if (isLoading) {
     return (
       <div className="p-6">
@@ -59,6 +70,7 @@ export function OwnedQueueSection({ items, isLoading, onItemProcess }: OwnedQueu
           icon={<Loader2 className="h-4 w-4 animate-spin" />}
           items={processingItems}
           onItemProcess={onItemProcess}
+          onItemDelete={onItemDelete}
           showProcessButton={false}
         />
       )}
@@ -69,6 +81,7 @@ export function OwnedQueueSection({ items, isLoading, onItemProcess }: OwnedQueu
           icon={<Clock className="h-4 w-4" />}
           items={failedItems}
           onItemProcess={onItemProcess}
+          onItemDelete={onItemDelete}
           showProcessButton={true}
           variant="destructive"
         />
@@ -80,6 +93,7 @@ export function OwnedQueueSection({ items, isLoading, onItemProcess }: OwnedQueu
           icon={<Play className="h-4 w-4" />}
           items={pendingItems}
           onItemProcess={onItemProcess}
+          onItemDelete={onItemDelete}
           showProcessButton={true}
         />
       )}
@@ -92,6 +106,7 @@ function QueueGroup({
   icon,
   items,
   onItemProcess,
+  onItemDelete,
   showProcessButton,
   variant = 'default'
 }: {
@@ -99,6 +114,7 @@ function QueueGroup({
   icon: React.ReactNode;
   items: QueueItem[];
   onItemProcess: (itemId: string) => void;
+  onItemDelete?: (itemId: string) => Promise<void>;
   showProcessButton: boolean;
   variant?: 'default' | 'destructive';
 }) {
@@ -120,6 +136,7 @@ function QueueGroup({
             key={item.id}
             item={item}
             onProcess={() => onItemProcess(item.id)}
+            onDelete={onItemDelete ? () => onItemDelete(item.id) : undefined}
             showProcessButton={showProcessButton}
           />
         ))}
@@ -131,12 +148,17 @@ function QueueGroup({
 function OwnedQueueItem({
   item,
   onProcess,
+  onDelete,
   showProcessButton
 }: {
   item: QueueItem;
   onProcess: () => void;
+  onDelete?: () => Promise<void>;
   showProcessButton: boolean;
 }) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const statusColors = {
     pending: 'outline',
     processing: 'default',
@@ -144,32 +166,60 @@ function OwnedQueueItem({
     completed: 'secondary'
   };
 
+  const handleDelete = async () => {
+    if (!onDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await onDelete();
+      setShowDeleteDialog(false);
+    } catch (error) {
+      console.error('Delete failed:', error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 mb-2">
-              <h4 className="font-medium">{item.title}</h4>
-              <Badge variant={statusColors[item.processing_status] as any}>
-                {item.processing_status}
-              </Badge>
-              {item.priority_level !== 'normal' && (
-                <Badge variant="outline" className="text-xs">
-                  {item.priority_level}
+    <>
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h4 className="font-medium">{item.title}</h4>
+                <Badge variant={statusColors[item.processing_status] as any}>
+                  {item.processing_status}
                 </Badge>
+                {item.priority_level !== 'normal' && (
+                  <Badge variant="outline" className="text-xs">
+                    {item.priority_level}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {showProcessButton && (
+                <Button size="sm" onClick={onProcess} className="flex items-center gap-1">
+                  <Play className="h-3 w-3" />
+                  {item.processing_status === 'failed' ? 'Retry' : 'Analyze'}
+                </Button>
+              )}
+              
+              {onDelete && (
+                <Button 
+                  size="sm" 
+                  variant="ghost" 
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               )}
             </div>
           </div>
-
-          {showProcessButton && (
-            <Button size="sm" onClick={onProcess} className="flex items-center gap-1">
-              <Play className="h-3 w-3" />
-              {item.processing_status === 'failed' ? 'Retry' : 'Analyze'}
-            </Button>
-          )}
-        </div>
-      </CardHeader>
+        </CardHeader>
 
       <CardContent className="pt-0">
         {/* Live Progress Indicator */}
@@ -199,5 +249,36 @@ function OwnedQueueItem({
         </div>
       </CardContent>
     </Card>
+
+    {/* Delete Confirmation Dialog */}
+    <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Transcript?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete the transcript "{item.title}" and all its analysis data. 
+            This action cannot be undone.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            disabled={isDeleting}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            {isDeleting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Deleting...
+              </>
+            ) : (
+              'Delete'
+            )}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

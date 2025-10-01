@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ClipboardList, User, Users, Activity, CheckCircle, AlertTriangle } from 'lucide-react';
 import { QueueSection } from './QueueSection';
+import { toast } from 'sonner';
 
 interface UnifiedQueueDrawerProps {
   isOpen: boolean;
@@ -46,6 +47,29 @@ interface QueueData {
 
 export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDrawerProps) {
   const queryClient = useQueryClient();
+
+  const handleDeleteTranscript = async (transcriptId: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-transcript', {
+        body: { transcript_id: transcriptId }
+      });
+
+      if (error) throw error;
+      
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to delete transcript');
+      }
+
+      toast.success('Transcript deleted successfully');
+      
+      // Invalidate queries to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['unified-transcript-queue', user_id] });
+    } catch (error) {
+      console.error('Delete transcript error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to delete transcript');
+      throw error; // Re-throw to let the component handle loading states
+    }
+  };
 
   const { data: queueData, isLoading, error: queryError } = useQuery({
     queryKey: ['unified-transcript-queue', user_id],
@@ -229,6 +253,7 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
                       items={queueData.owned.failed}
                       type="failed"
                       showRetryButton={true}
+                      onDelete={handleDeleteTranscript}
                     />
                   )}
                   
@@ -239,6 +264,7 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
                       items={queueData.owned.pending}
                       type="manual"
                       showAnalyzeButton={true}
+                      onDelete={handleDeleteTranscript}
                     />
                   )}
                   
@@ -248,6 +274,7 @@ export function UnifiedQueueDrawer({ isOpen, onClose, user_id }: UnifiedQueueDra
                       title="✅ Recently Completed"
                       items={queueData.owned.completed.slice(0, 5)}
                       type="completed"
+                      onDelete={handleDeleteTranscript}
                     />
                   )}
 

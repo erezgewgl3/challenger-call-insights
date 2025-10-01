@@ -1824,6 +1824,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: number
       }
+      delete_transcript_cascade: {
+        Args: { p_transcript_id: string; p_user_id: string }
+        Returns: Json
+      }
       enhanced_file_validation: {
         Args:
           | {
