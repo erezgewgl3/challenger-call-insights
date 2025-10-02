@@ -158,7 +158,8 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
            t.title;
   };
 
-  const formatDuration = (minutes: number) => {
+  const formatDuration = (minutes: number | null | undefined) => {
+    if (!minutes || minutes === 0) return null
     if (minutes < 60) return `${minutes}m`
     const hours = Math.floor(minutes / 60)
     const remainingMinutes = minutes % 60
@@ -279,10 +280,12 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                              <Users className="h-3 w-3 mr-1" />
                              {getParticipantNames(transcript).length}
                            </span>
-                           <span className="flex items-center">
-                             <Clock className="h-3 w-3 mr-1" />
-                             {formatDuration(transcript.duration_minutes)}
-                           </span>
+                           {formatDuration(transcript.duration_minutes) && (
+                             <span className="flex items-center">
+                               <Clock className="h-3 w-3 mr-1" />
+                               {formatDuration(transcript.duration_minutes)}
+                             </span>
+                           )}
                          </div>
                          {transcript.analysis_created_at && (
                            <div className="flex items-center text-xs text-slate-500">
