@@ -20,6 +20,7 @@ interface TranscriptData {
   account_id?: string
   raw_text?: string
   zoho_deal_id?: string
+  extracted_company_name?: string
   deal_context?: {
     company_name?: string
     contact_name?: string
@@ -64,6 +65,7 @@ export default function TranscriptAnalysis() {
           account_id: transcriptData.account_id,
           raw_text: transcriptData.raw_text,
           zoho_deal_id: transcriptData.zoho_deal_id,
+          extracted_company_name: transcriptData.extracted_company_name,
           deal_context: transcriptData.deal_context as any,
           is_assigned: transcriptData.assigned_user_id !== transcriptData.user_id
         })

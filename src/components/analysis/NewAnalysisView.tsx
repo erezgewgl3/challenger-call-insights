@@ -64,6 +64,10 @@ interface TranscriptData {
   participants: string[]
   duration_minutes: number
   meeting_date: string
+  extracted_company_name?: string
+  deal_context?: {
+    company_name?: string
+  }
 }
 
 interface NewAnalysisViewProps {
@@ -82,6 +86,11 @@ export function NewAnalysisView({
   
   const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
   const [isExporting, setIsExporting] = useState(false)
+
+  // Prioritize company name over generic title
+  const displayTitle = transcript.extracted_company_name || 
+                      transcript.deal_context?.company_name || 
+                      transcript.title
 
   // Enhanced data mapping functions - moved before usage
   const getDealHeat = (): DealHeatResult => {
@@ -145,7 +154,7 @@ export function NewAnalysisView({
   const handleExportPDF = useCallback(async () => {
     setIsExporting(true)
     try {
-      const cleanTitle = transcript.title.trim()
+      const cleanTitle = displayTitle.trim()
       // 🚀 NEW: Pass React state control to PDF export
       await exportToPDF('analysis-content', cleanTitle, {
         sectionsOpen,
@@ -154,7 +163,7 @@ export function NewAnalysisView({
     } finally {
       setIsExporting(false)
     }
-  }, [exportToPDF, transcript.title, sectionsOpen, toggleSection])
+  }, [exportToPDF, displayTitle, sectionsOpen, toggleSection])
   
   const copyToClipboard = async (text: string, type: string) => {
     try {
@@ -418,7 +427,7 @@ export function NewAnalysisView({
             </div>
             
             <div className="space-y-3">
-              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-tight">{transcript.title}</h1>
+              <h1 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-tight">{displayTitle}</h1>
               <div className="flex flex-wrap items-center gap-2 lg:gap-4 text-sm text-slate-600">
                 <span className="font-medium">{formatDate(transcript.meeting_date)}</span>
                 <span className="hidden sm:inline">•</span>

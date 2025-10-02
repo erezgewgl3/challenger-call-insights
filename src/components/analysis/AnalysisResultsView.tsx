@@ -73,6 +73,8 @@ export function AnalysisResultsView({
         .select(`
           id,
           title,
+          extracted_company_name,
+          deal_context,
           conversation_analysis (
             challenger_scores,
             guidance,
@@ -86,6 +88,12 @@ export function AnalysisResultsView({
 
       if (transcript?.conversation_analysis?.[0]) {
         const analysis = transcript.conversation_analysis[0]
+        
+        // Prioritize company name over generic title
+        const dealContext = transcript.deal_context as { company_name?: string } | null
+        const displayTitle = transcript.extracted_company_name || 
+                           dealContext?.company_name || 
+                           transcript.title
         
         return {
           challengerScores: (analysis.challenger_scores as unknown as ChallengerScores) || { teaching: null, tailoring: null, control: null },
@@ -101,7 +109,7 @@ export function AnalysisResultsView({
             timing: null,
             channel: null
           },
-          transcriptTitle: transcript.title
+          transcriptTitle: displayTitle
         }
       }
 

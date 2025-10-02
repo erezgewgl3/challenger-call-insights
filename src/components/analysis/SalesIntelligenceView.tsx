@@ -24,6 +24,10 @@ interface TranscriptData {
   error_message?: string
   account_id?: string
   raw_text?: string
+  extracted_company_name?: string
+  deal_context?: {
+    company_name?: string
+  }
 }
 
 interface AnalysisData {
@@ -85,7 +89,9 @@ export function SalesIntelligenceView({
         status: transcriptData.status,
         error_message: transcriptData.error_message,
         account_id: transcriptData.account_id,
-        raw_text: transcriptData.raw_text
+        raw_text: transcriptData.raw_text,
+        extracted_company_name: transcriptData.extracted_company_name,
+        deal_context: transcriptData.deal_context as any
       })
 
       // Set analysis data if available
@@ -226,12 +232,16 @@ export function SalesIntelligenceView({
 
   // Show error state with retry option
   if (transcript.status === 'error') {
+    const displayTitle = transcript.extracted_company_name || 
+                        transcript.deal_context?.company_name || 
+                        transcript.title
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center space-y-6">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold text-slate-900">{transcript.title}</h1>
+              <h1 className="text-3xl font-bold text-slate-900">{displayTitle}</h1>
               <Badge variant="destructive" className="bg-red-100 text-red-800">
                 Analysis Failed
               </Badge>
@@ -292,12 +302,16 @@ export function SalesIntelligenceView({
 
   // Show processing state
   if (transcript.status === 'processing') {
+    const displayTitle = transcript.extracted_company_name || 
+                        transcript.deal_context?.company_name || 
+                        transcript.title
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center space-y-6">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold text-slate-900">{transcript.title}</h1>
+              <h1 className="text-3xl font-bold text-slate-900">{displayTitle}</h1>
               <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                 Intelligence Processing
               </Badge>
@@ -344,12 +358,16 @@ export function SalesIntelligenceView({
   }
 
   // Show no analysis available state
+  const displayTitle = transcript.extracted_company_name || 
+                      transcript.deal_context?.company_name || 
+                      transcript.title
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="text-center space-y-6">
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold text-slate-900">{transcript.title}</h1>
+            <h1 className="text-3xl font-bold text-slate-900">{displayTitle}</h1>
             <Badge variant="secondary" className="bg-gray-100 text-gray-800">
               No Analysis Available
             </Badge>
