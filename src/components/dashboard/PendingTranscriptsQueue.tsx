@@ -4,7 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Clock, Loader2, Building2, User, Calendar, Timer, ExternalLink, Trash2, Video } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { AlertCircle, Clock, Loader2, Building2, User, Calendar, Timer, ExternalLink, Trash2, Video, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { SourceBadge } from '@/components/ui/SourceBadge';
@@ -171,11 +172,11 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     pending_owned: allPendingItems.length
   };
 
-  // Get up to 5 most urgent/recent items to display
+  // All items sorted by urgency and recency
   // Priority: Failed -> Processing -> Pending (with Zoom meetings marked as new)
   const displayItems = [
-    ...failedItems.slice(0, 2),
-    ...processingItems.slice(0, 2),
+    ...failedItems,
+    ...processingItems,
     ...allPendingItems
       .sort((a, b) => {
         // Prioritize new Zoom meetings
@@ -185,8 +186,7 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
         return new Date(b.created_at || b.meeting_date || '').getTime() - 
                new Date(a.created_at || a.meeting_date || '').getTime();
       })
-      .slice(0, 5)
-  ].slice(0, 5);
+  ];
 
   const totalItems = stats.processing_count + stats.error_count + stats.pending_owned;
 
@@ -284,47 +284,31 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     <>
       <Card className="shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-2 text-xl">
-            📋 Transcript Analysis Queue
+          <CardTitle className="flex items-center gap-3 flex-wrap text-lg">
+            <span>📋 Transcript Analysis Queue</span>
+            {stats.processing_count > 0 && (
+              <Badge variant="secondary" className="gap-1.5">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {stats.processing_count} Processing
+              </Badge>
+            )}
+            {stats.error_count > 0 && (
+              <Badge variant="destructive" className="gap-1.5">
+                <AlertCircle className="h-3 w-3" />
+                {stats.error_count} Failed
+              </Badge>
+            )}
+            {stats.pending_owned > 0 && (
+              <Badge className="gap-1.5 bg-green-600 hover:bg-green-700">
+                <CheckCircle className="h-3 w-3" />
+                {stats.pending_owned} Ready
+              </Badge>
+            )}
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4">
-          {/* Summary Stats */}
-          <div className="grid grid-cols-3 gap-4">
-            {stats.processing_count > 0 && (
-              <div className="flex flex-col items-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
-                  <span className="text-2xl font-bold text-blue-600">{stats.processing_count}</span>
-                </div>
-                <span className="text-sm text-blue-600 font-medium">Processing</span>
-              </div>
-            )}
-            
-            {stats.error_count > 0 && (
-              <div className="flex flex-col items-center p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <AlertCircle className="h-4 w-4 text-red-600" />
-                  <span className="text-2xl font-bold text-red-600">{stats.error_count}</span>
-                </div>
-                <span className="text-sm text-red-600 font-medium">Failed</span>
-              </div>
-            )}
-            
-            {stats.pending_owned > 0 && (
-              <div className="flex flex-col items-center p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
-                <div className="flex items-center gap-2 mb-1">
-                  <Clock className="h-4 w-4 text-green-600" />
-                  <span className="text-2xl font-bold text-green-600">{stats.pending_owned}</span>
-                </div>
-                <span className="text-sm text-green-600 font-medium">Ready</span>
-              </div>
-            )}
-          </div>
-
-          {/* Recent Items */}
-          {displayItems.length > 0 && (
+        <CardContent>
+          <ScrollArea className="max-h-[600px] pr-4">
             <div className="space-y-2">
               {displayItems.map((item) => (
                 <div
@@ -442,8 +426,7 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                 </div>
               ))}
             </div>
-          )}
-
+          </ScrollArea>
         </CardContent>
       </Card>
     </>
