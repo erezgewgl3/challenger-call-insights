@@ -4,19 +4,60 @@ export interface WebhookValidationConfig {
   rateLimitPerHour?: number;
 }
 
-export function validateWebhookSignature(
+export async function validateWebhookSignature(
   payload: string,
   signature: string,
   secret: string
-): boolean {
+): Promise<boolean> {
   if (!signature || !secret) return false;
 
-  // Implement HMAC-SHA256 validation for webhook security
-  const crypto = globalThis.crypto;
-  if (!crypto?.subtle) return false;
+  try {
+    // Extract algorithm and signature
+    const parts = signature.split('=');
+    if (parts.length !== 2) return false;
+    
+    const [algorithm, receivedSignature] = parts;
+    if (algorithm !== 'sha256') return false;
 
-  // This is a simplified validation - implement full HMAC in production
-  return signature.includes('sha256=');
+    // Compute HMAC-SHA256
+    const encoder = new TextEncoder();
+    const keyData = encoder.encode(secret);
+    const messageData = encoder.encode(payload);
+    
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw',
+      keyData,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+    
+    const signature_buffer = await crypto.subtle.sign(
+      'HMAC',
+      cryptoKey,
+      messageData
+    );
+    
+    const computedSignature = Array.from(new Uint8Array(signature_buffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    // Timing-safe comparison to prevent timing attacks
+    return timingSafeEqual(computedSignature, receivedSignature);
+  } catch (error) {
+    console.error('Signature validation failed:', error);
+    return false;
+  }
+}
+
+function timingSafeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
 }
 
 export function rateLimitCheck(

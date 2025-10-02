@@ -56,21 +56,37 @@ serve(async (req) => {
     );
 
     // Get webhook payload
-    const payload: ZoomWebhookPayload = await req.json();
+    const rawBody = await req.text();
+    const payload: ZoomWebhookPayload = JSON.parse(rawBody);
     console.log('Received Zoom webhook:', payload.event);
 
-    // Verify webhook signature (in production, you should verify the webhook signature)
+    // Verify webhook signature
     const webhookSecret = Deno.env.get('ZOOM_WEBHOOK_SECRET');
     if (webhookSecret) {
-      const signature = req.headers.get('authorization');
+      const signature = req.headers.get('x-zm-signature');
       if (!signature) {
         console.error('Missing webhook signature');
-        return new Response('Unauthorized', { 
+        return new Response('Unauthorized - Missing signature', { 
           status: 401, 
           headers: corsHeaders 
         });
       }
-      // TODO: Implement proper signature verification
+      
+      // Dynamically import validation function
+      const { validateWebhookSignature } = await import('../_shared/webhook-validation.ts');
+      const isValid = await validateWebhookSignature(rawBody, signature, webhookSecret);
+      
+      if (!isValid) {
+        console.error('Invalid webhook signature');
+        return new Response('Unauthorized - Invalid signature', { 
+          status: 401, 
+          headers: corsHeaders 
+        });
+      }
+      
+      console.log('Webhook signature validated successfully');
+    } else {
+      console.warn('ZOOM_WEBHOOK_SECRET not configured - skipping signature validation');
     }
 
     // Find the Zoom connection for this account

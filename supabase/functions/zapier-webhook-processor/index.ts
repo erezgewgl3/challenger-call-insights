@@ -52,8 +52,47 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Read body once (needed for both signature validation and processing)
+    const rawBody = await req.text();
+    
+    // Verify webhook signature if secret is configured
+    const webhookSecret = Deno.env.get('ZAPIER_WEBHOOK_SECRET');
+    if (webhookSecret) {
+      const signature = req.headers.get('x-zapier-signature');
+      
+      if (!signature) {
+        console.error('Missing webhook signature');
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Unauthorized - Missing signature'
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      // Dynamically import validation function
+      const { validateWebhookSignature } = await import('../_shared/webhook-validation.ts');
+      const isValid = await validateWebhookSignature(rawBody, signature, webhookSecret);
+      
+      if (!isValid) {
+        console.error('Invalid webhook signature');
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Unauthorized - Invalid signature'
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      console.log('Webhook signature validated successfully');
+    } else {
+      console.warn('ZAPIER_WEBHOOK_SECRET not configured - skipping signature validation');
+    }
+
     const processor = new UnifiedTranscriptProcessor();
-    const payload: ZapierWebhookPayload = await req.json();
+    const payload: ZapierWebhookPayload = JSON.parse(rawBody);
     
     console.log('🔗 [ZAPIER] Processing webhook for user:', payload.assigned_user_email);
 
