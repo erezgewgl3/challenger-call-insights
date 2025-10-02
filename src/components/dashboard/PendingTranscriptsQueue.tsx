@@ -98,7 +98,7 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
   const handleAnalyze = async (item: QueueItem) => {
     try {
       const { data, error } = await supabase.functions.invoke('manual-process-transcript', {
-        body: { transcriptId: item.id }
+        body: { transcript_id: item.id }
       });
 
       if (error) throw error;
