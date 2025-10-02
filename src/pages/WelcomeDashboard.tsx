@@ -7,7 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { CompactTranscriptUpload } from '@/components/upload/CompactTranscriptUpload';
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
 import { IntegrationsStatusBadge } from '@/components/dashboard/IntegrationsStatusBadge';
-import { PendingTranscriptsQueue } from '@/components/dashboard/PendingTranscriptsQueue';
+import { CollapsibleProcessingQueue } from '@/components/dashboard/CollapsibleProcessingQueue';
 import { ArchivedDealsDrawer } from '@/components/dashboard/ArchivedDealsDrawer';
 import { Brain } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -113,39 +113,37 @@ export default function WelcomeDashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          {/* Streamlined Hero Section */}
-          <div className="mb-8">
-            <div className="text-center mb-5">
-              <h1 className="text-3xl font-bold text-foreground mb-2">
-                Turn Every Sales Conversation Into Deal Intelligence
-              </h1>
-              <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
-                Upload your call transcript and instantly unlock buying signals, stakeholder insights, and strategic next steps
-              </p>
-            </div>
-
-            {/* Upload Section - More Compact */}
-            <div className="mb-6">
-              <CompactTranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
-            </div>
+          {/* Simplified Hero Section */}
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-bold text-foreground mb-1">
+              Turn Every Sales Conversation Into Deal Intelligence
+            </h1>
+            <p className="text-muted-foreground text-sm">
+              Upload transcripts and get instant buying signals, stakeholder insights, and next steps
+            </p>
           </div>
 
-          {/* Pending Transcripts Queue - NEW */}
+          {/* Prominent Upload Section */}
+          <div className="mb-8 p-6 bg-primary/5 rounded-lg border-2 border-primary/10">
+            <CompactTranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
+          </div>
+
+          {/* Collapsible Processing Queue */}
           {user?.id && (
             <div className="mb-8">
-              <PendingTranscriptsQueue user_id={user.id} />
+              <CollapsibleProcessingQueue user_id={user.id} />
             </div>
           )}
 
-          {/* Deal Intelligence Pipeline */}
+          {/* Your Deals Section */}
           <div className="mb-8">
             <div className="mb-6 flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">
-                  Deal Intelligence Pipeline
+                  Your Deals
                 </h2>
                 <p className="text-muted-foreground text-sm">
-                  Track deal temperature and get actionable insights to close faster
+                  Organized by deal temperature to help you prioritize and close faster
                 </p>
               </div>
               <ArchivedDealsDrawer />

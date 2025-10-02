@@ -281,35 +281,8 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
   };
 
   return (
-    <>
-      <Card className="shadow-sm hover:shadow-md transition-shadow">
-        <CardHeader className="pb-4">
-          <CardTitle className="flex items-center gap-3 flex-wrap text-lg">
-            <span>📋 Transcript Analysis Queue</span>
-            {stats.processing_count > 0 && (
-              <Badge variant="secondary" className="gap-1.5">
-                <Loader2 className="h-3 w-3 animate-spin" />
-                {stats.processing_count} Processing
-              </Badge>
-            )}
-            {stats.error_count > 0 && (
-              <Badge variant="destructive" className="gap-1.5">
-                <AlertCircle className="h-3 w-3" />
-                {stats.error_count} Failed
-              </Badge>
-            )}
-            {stats.pending_owned > 0 && (
-              <Badge className="gap-1.5 bg-green-600 hover:bg-green-700">
-                <CheckCircle className="h-3 w-3" />
-                {stats.pending_owned} Ready
-              </Badge>
-            )}
-          </CardTitle>
-        </CardHeader>
-
-        <CardContent>
-          <ScrollArea className="max-h-[600px] pr-4">
-            <div className="space-y-2">
+    <ScrollArea className="max-h-[500px] pr-4">
+      <div className="space-y-2">
               {displayItems.map((item) => (
                 <div
                   key={item.id}
@@ -425,10 +398,7 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                   </div>
                 </div>
               ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-      </Card>
-    </>
+      </div>
+    </ScrollArea>
   );
 }
