@@ -4,11 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, Loader2, ExternalLink, Trash2, ArrowRight } from 'lucide-react';
+import { AlertCircle, Loader2, FileText, Trash2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { SourceBadge } from '@/components/ui/SourceBadge';
 import { formatDistanceToNow, parseISO } from 'date-fns';
+import { TranscriptViewerDialog } from './TranscriptViewerDialog';
 
 interface PendingTranscriptsQueueProps {
   user_id: string;
@@ -58,6 +59,7 @@ interface QueueData {
 export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [viewingTranscriptId, setViewingTranscriptId] = React.useState<string | null>(null);
 
   // Check if user has Zoom integration
   const { data: hasZoomConnection } = useQuery({
@@ -348,13 +350,14 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                       
-                      {item.zoho_deal_id && (
+                      {item.source !== 'zoom' && item.id && (
                         <Button
                           size="icon"
                           variant="outline"
-                          onClick={() => window.open(`https://crm.zoho.com/crm/org20098764813/tab/Potentials/${item.zoho_deal_id}`, '_blank')}
+                          onClick={() => setViewingTranscriptId(item.id)}
+                          title="View transcript"
                         >
-                          <ExternalLink className="h-4 w-4" />
+                          <FileText className="h-4 w-4" />
                         </Button>
                       )}
                       
@@ -376,6 +379,10 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
           );
         })}
       </div>
+      <TranscriptViewerDialog
+        transcriptId={viewingTranscriptId}
+        onOpenChange={(open) => !open && setViewingTranscriptId(null)}
+      />
     </ScrollArea>
   );
 }
