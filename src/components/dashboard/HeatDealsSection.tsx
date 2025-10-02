@@ -234,6 +234,36 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                           </div>
                         )}
                       </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-accent"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewTranscript(transcript.id)
+                            }}
+                          >
+                            <ArrowRight className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => handleArchive(e, transcript.id)}
+                            disabled={archiveMutation.isPending}
+                          >
+                            <Archive className="h-4 w-4 mr-2" />
+                            Archive Deal
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
                     {transcript.challenger_scores && (
@@ -258,36 +288,6 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                             <div className="text-xs text-slate-500">C</div>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-accent"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-40">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleViewTranscript(transcript.id)
-                              }}
-                            >
-                              <ArrowRight className="h-4 w-4 mr-2" />
-                              View Details
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              onClick={(e) => handleArchive(e, transcript.id)}
-                              disabled={archiveMutation.isPending}
-                            >
-                              <Archive className="h-4 w-4 mr-2" />
-                              Archive Deal
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
                       </div>
                     )}
                   </div>
