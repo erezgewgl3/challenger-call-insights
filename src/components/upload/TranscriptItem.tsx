@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, RotateCcw, Play, AlertCircle, Trash2 } from 'lucide-react';
+import { Loader2, RotateCcw, Play, AlertCircle, Trash2, User, Building2, Calendar, Clock, Activity, ExternalLink } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { SourceBadge } from '@/components/ui/SourceBadge';
 import {
@@ -28,10 +28,17 @@ interface TranscriptItemProps {
     processing_error?: string;
     external_source?: string;
     meeting_date?: string;
+    duration_minutes?: number;
     priority_level?: string;
     zoho_deal_id?: string;
     zoho_meeting_id?: string;
     original_filename?: string;
+    deal_context?: {
+      company_name?: string;
+      contact_name?: string;
+      deal_name?: string;
+      meeting_host?: string;
+    };
   };
   showRetryButton?: boolean;
   showAnalyzeButton?: boolean;
@@ -124,63 +131,114 @@ export function TranscriptItem({
     }
   };
 
+  // Generate smart title from Zoho context or fallback to original
+  const displayTitle = transcript.deal_context?.deal_name 
+    || (transcript.deal_context?.contact_name ? `Call with ${transcript.deal_context.contact_name}` : null)
+    || transcript.title;
+
+  const hasZohoContext = transcript.deal_context && (
+    transcript.deal_context.company_name || 
+    transcript.deal_context.contact_name || 
+    transcript.deal_context.deal_name
+  );
+
+  const zohoUrl = transcript.zoho_deal_id 
+    ? `https://crm.zoho.com/crm/ShowEntityInfo.do?id=${transcript.zoho_deal_id}&module=Potentials`
+    : null;
+
   return (
     <>
-      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <p className="font-medium text-foreground truncate">
-              {transcript.original_filename || transcript.title}
-            </p>
-            {transcript.external_source && (
-              <SourceBadge source={transcript.external_source} />
+      <div className="flex items-start justify-between p-4 bg-card border border-border rounded-lg hover:border-primary/50 transition-colors">
+        <div className="flex-1 min-w-0 space-y-2">
+          {/* Title and Priority */}
+          <div className="flex items-start gap-2">
+            <h3 className="font-semibold text-lg text-foreground leading-tight flex-1">
+              {displayTitle}
+            </h3>
+            {transcript.priority_level === 'urgent' && (
+              <Badge variant="destructive" className="text-xs shrink-0">🔥 Urgent</Badge>
             )}
             {transcript.priority_level === 'high' && (
-              <Badge variant="destructive" className="text-xs">High Priority</Badge>
+              <Badge variant="destructive" className="text-xs shrink-0">High Priority</Badge>
             )}
           </div>
-          
-          {/* Deal and Meeting Context */}
-          {(transcript.zoho_deal_id || transcript.zoho_meeting_id) && (
-            <div className="flex items-center gap-3 mb-1 text-xs text-muted-foreground">
-              {transcript.zoho_deal_id && (
-                <span>Deal: #{transcript.zoho_deal_id}</span>
+
+          {/* Zoho Context Card - Company and Contact */}
+          {hasZohoContext && (
+            <div className="flex items-center gap-3 text-sm">
+              {transcript.deal_context.contact_name && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <User className="h-3.5 w-3.5" />
+                  <span className="font-medium">{transcript.deal_context.contact_name}</span>
+                </div>
               )}
-              {transcript.zoho_meeting_id && (
-                <span>Meeting: {transcript.zoho_meeting_id}</span>
+              {transcript.deal_context.company_name && (
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Building2 className="h-3.5 w-3.5" />
+                  <span>{transcript.deal_context.company_name}</span>
+                </div>
               )}
             </div>
           )}
-          
-          <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            {transcript.meeting_date && (
-              <span>{format(new Date(transcript.meeting_date), 'MMM d, yyyy')}</span>
+
+          {/* Host and Metadata Row */}
+          <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
+            {transcript.deal_context?.meeting_host && (
+              <div className="flex items-center gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                <span>Hosted by {transcript.deal_context.meeting_host}</span>
+              </div>
             )}
-            <span>{formatTimeAgo(transcript.created_at)}</span>
-            {transcript.processing_error && (
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span className="text-destructive truncate max-w-48 flex items-center gap-1">
-                      <AlertCircle className="h-3 w-3" />
-                      Error
-                    </span>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-sm">{transcript.processing_error}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+            {transcript.meeting_date && (
+              <div className="flex items-center gap-1.5">
+                <Calendar className="h-3.5 w-3.5" />
+                <span>{format(new Date(transcript.meeting_date), 'MMM d, yyyy')}</span>
+              </div>
+            )}
+            {transcript.duration_minutes && (
+              <div className="flex items-center gap-1.5">
+                <Clock className="h-3.5 w-3.5" />
+                <span>{transcript.duration_minutes} min</span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
+              <Activity className="h-3.5 w-3.5" />
+              <span>{formatTimeAgo(transcript.created_at)}</span>
+            </div>
+            {transcript.external_source && (
+              <SourceBadge source={transcript.external_source} />
             )}
           </div>
+
+          {/* Error Display */}
+          {transcript.processing_error && (
+            <div className="flex items-start gap-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm">
+              <AlertCircle className="h-4 w-4 text-destructive shrink-0 mt-0.5" />
+              <p className="text-destructive flex-1">{transcript.processing_error}</p>
+            </div>
+          )}
         </div>
         
-        <div className="flex items-center gap-2 ml-4">
+        <div className="flex items-center gap-2 ml-4 shrink-0">
           {transcript.processing_status === 'processing' && (
-            <div className="flex items-center gap-1 text-primary">
+            <div className="flex items-center gap-2 text-primary px-3 py-1.5 bg-primary/10 rounded-md">
               <Loader2 className="h-4 w-4 animate-spin" />
-              <span className="text-sm">Analyzing...</span>
+              <span className="text-sm font-medium">Analyzing...</span>
             </div>
+          )}
+          
+          {zohoUrl && (
+            <Button
+              size="sm"
+              variant="outline"
+              asChild
+              className="shrink-0"
+            >
+              <a href={zohoUrl} target="_blank" rel="noopener noreferrer">
+                <ExternalLink className="h-4 w-4 mr-1" />
+                View in Zoho
+              </a>
+            </Button>
           )}
           
           {showRetryButton && (
@@ -189,6 +247,7 @@ export function TranscriptItem({
               variant="outline"
               onClick={handleRetry}
               disabled={isLoading}
+              className="shrink-0"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -206,6 +265,7 @@ export function TranscriptItem({
               size="sm"
               onClick={handleAnalyze}
               disabled={isLoading}
+              className="shrink-0"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -223,7 +283,7 @@ export function TranscriptItem({
               size="sm"
               variant="ghost"
               onClick={() => setShowDeleteDialog(true)}
-              className="text-destructive hover:text-destructive hover:bg-destructive/10"
+              className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
             >
               <Trash2 className="h-4 w-4" />
             </Button>

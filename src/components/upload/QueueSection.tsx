@@ -13,10 +13,17 @@ interface QueueSectionProps {
     processing_error?: string;
     external_source?: string;
     meeting_date?: string;
+    duration_minutes?: number;
     priority_level?: string;
     zoho_deal_id?: string;
     zoho_meeting_id?: string;
     original_filename?: string;
+    deal_context?: {
+      company_name?: string;
+      contact_name?: string;
+      deal_name?: string;
+      meeting_host?: string;
+    };
   }>;
   type: 'processing' | 'failed' | 'manual' | 'completed' | 'assigned';
   showRetryButton?: boolean;
