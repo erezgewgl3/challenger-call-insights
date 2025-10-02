@@ -4,10 +4,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Clock, Loader2, Settings, Building2, User, Calendar, Timer, ExternalLink, Trash2, Video } from 'lucide-react';
+import { AlertCircle, Clock, Loader2, Building2, User, Calendar, Timer, ExternalLink, Trash2, Video } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { UnifiedQueueDrawer } from '@/components/upload/UnifiedQueueDrawer';
 import { SourceBadge } from '@/components/ui/SourceBadge';
 
 interface PendingTranscriptsQueueProps {
@@ -58,7 +57,6 @@ interface QueueData {
 export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [showFullQueue, setShowFullQueue] = React.useState(false);
 
   // Check if user has Zoom integration
   const { data: hasZoomConnection } = useQuery({
@@ -286,20 +284,9 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     <>
       <Card className="shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-xl">
-              📋 Transcript Analysis Queue
-            </CardTitle>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowFullQueue(true)}
-              className="gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Manage Queue
-            </Button>
-          </div>
+          <CardTitle className="flex items-center gap-2 text-xl">
+            📋 Transcript Analysis Queue
+          </CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-4">
@@ -457,26 +444,8 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
             </div>
           )}
 
-          {/* View All Link */}
-          {totalItems > 5 && (
-            <div className="text-center pt-2">
-              <Button
-                variant="link"
-                onClick={() => setShowFullQueue(true)}
-                className="text-sm text-blue-600 hover:text-blue-700"
-              >
-                View all {totalItems} transcripts →
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
-
-      <UnifiedQueueDrawer
-        isOpen={showFullQueue}
-        onClose={() => setShowFullQueue(false)}
-        user_id={user_id}
-      />
     </>
   );
 }

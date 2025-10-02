@@ -5,8 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
 import { Separator } from '@/components/ui/separator'
-import { TrendingUp, Target, MessageSquare, Mail, CheckCircle, ArrowRight, Lightbulb, Users, ExternalLink, Download, Send, ArrowLeft } from 'lucide-react'
-import { ZohoContextCard } from '../transcript-queue/ZohoContextCard'
+import { TrendingUp, Target, MessageSquare, Mail, CheckCircle, ArrowRight, Lightbulb, Users, ExternalLink, Download, Send, ArrowLeft, Building2, User } from 'lucide-react'
 
 interface ChallengerScores {
   teaching: number
@@ -125,10 +124,37 @@ export function AnalysisResults({
 
         {transcriptData?.deal_context && (
           <CardContent>
-            <ZohoContextCard
-              dealContext={transcriptData.deal_context}
-              zohoDealId={transcriptData.zoho_deal_id}
-            />
+            <div className="space-y-3">
+              {transcriptData.deal_context.deal_name && (
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground">Deal:</span>
+                  <p className="text-sm font-semibold">{transcriptData.deal_context.deal_name}</p>
+                </div>
+              )}
+              {transcriptData.deal_context.company_name && (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{transcriptData.deal_context.company_name}</span>
+                </div>
+              )}
+              {transcriptData.deal_context.contact_name && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{transcriptData.deal_context.contact_name}</span>
+                </div>
+              )}
+              {transcriptData.zoho_deal_id && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`https://crm.zoho.com/crm/org20098764813/tab/Potentials/${transcriptData.zoho_deal_id}`, '_blank')}
+                  className="w-full mt-2"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View in Zoho CRM
+                </Button>
+              )}
+            </div>
           </CardContent>
         )}
       </Card>

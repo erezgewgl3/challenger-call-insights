@@ -4,7 +4,6 @@ import { useDropzone } from 'react-dropzone'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { TranscriptNameDialog } from './TranscriptNameDialog'
-import { ProcessingStatus } from './ProcessingStatus'
 import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
 import { useAuth } from '@/hooks/useAuth'
 import { Upload, Plus, FileText, Info, Eye, MessageSquare, ArrowRight } from 'lucide-react'
@@ -164,9 +163,6 @@ export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscrip
                   <span>Next steps</span>
                 </div>
               </div>
-              
-              {/* Contextual status - only shows when relevant */}
-              {user?.id && <ProcessingStatus user_id={user.id} />}
             </div>
           </CardContent>
         </Card>

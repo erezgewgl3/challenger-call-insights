@@ -4,8 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { Brain, FileText, Clock, Zap, Target, X, CheckCircle, Loader, ExternalLink, ArrowRight, XCircle } from 'lucide-react'
-import { ZohoContextCard } from '../transcript-queue/ZohoContextCard'
+import { Brain, FileText, Clock, Zap, Target, X, CheckCircle, Loader, ExternalLink, ArrowRight, XCircle, Building2, User } from 'lucide-react'
 
 interface AnalysisProgressProps {
   progress: number
@@ -136,10 +135,37 @@ export function AnalysisProgress({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ZohoContextCard
-              dealContext={dealContext || {}}
-              zohoDealId={zohoDealId}
-            />
+            <div className="space-y-3">
+              {dealContext?.deal_name && (
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground">Deal:</span>
+                  <p className="text-sm font-semibold">{dealContext.deal_name}</p>
+                </div>
+              )}
+              {dealContext?.company_name && (
+                <div className="flex items-center gap-2">
+                  <Building2 className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{dealContext.company_name}</span>
+                </div>
+              )}
+              {dealContext?.contact_name && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm">{dealContext.contact_name}</span>
+                </div>
+              )}
+              {zohoDealId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => window.open(`https://crm.zoho.com/crm/org20098764813/tab/Potentials/${zohoDealId}`, '_blank')}
+                  className="w-full mt-2"
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View in Zoho CRM
+                </Button>
+              )}
+            </div>
             
             {progress >= 100 && (
               <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
