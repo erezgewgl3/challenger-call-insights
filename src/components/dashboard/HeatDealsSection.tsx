@@ -114,23 +114,31 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
   const theme = getThemeClasses()
 
   const getDisplayTitle = (t: TranscriptSummary) => {
+    // Priority 1: Use extracted prospect company name
+    if (t.extracted_company_name) return t.extracted_company_name;
+    
+    // Priority 2: Build from extracted participant names
+    if (t.extracted_participants && Array.isArray(t.extracted_participants) && t.extracted_participants.length > 0) {
+      const names = t.extracted_participants.map((p: any) => p.name).join(', ');
+      return `Call with ${names}`;
+    }
+    
+    // Priority 3: Existing fallback chain
     const analysis: any = t.conversation_analysis?.[0];
     const cs = analysis?.call_summary as Record<string, any> | undefined;
     const participants = Array.isArray(analysis?.participants) ? analysis.participants as any[] : [];
     const first = participants?.[0];
     const firstName = typeof first === 'string' ? first : first?.name;
-    return (
-      t.extracted_company_name ||
-      cs?.title ||
-      cs?.meeting_title ||
-      cs?.account?.name ||
-      cs?.company_name ||
-      cs?.deal_name ||
-      cs?.contact_name ||
-      (firstName ? `Call with ${firstName}` : undefined) ||
-      t.account_name ||
-      t.title
-    );
+    
+    return cs?.title ||
+           cs?.meeting_title ||
+           cs?.account?.name ||
+           cs?.company_name ||
+           cs?.deal_name ||
+           cs?.contact_name ||
+           (firstName ? `Call with ${firstName}` : undefined) ||
+           t.account_name ||
+           t.title;
   }
 
   const formatDuration = (minutes: number) => {

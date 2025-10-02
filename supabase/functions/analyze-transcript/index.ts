@@ -135,29 +135,69 @@ function calculateDealHeat(analysis: any): string {
   return 'LOW'
 }
 
-// Extract company name and participants from AI analysis for better display
-function extractMetadataFromAnalysis(parsed: ParsedAnalysis) {
+// Extract prospect company name and participants from AI analysis for better display
+function extractMetadataFromAnalysis(parsed: ParsedAnalysis, sourceMetadata?: any, dealContext?: any) {
   let companyName: string | null = null;
   let participants: any[] | null = null;
 
-  // Extract company from overview or action plan email subjects
+  // Priority 1: Search in AI analysis overview/clientSituation for prospect company mentions
   const overview = parsed.callSummary?.overview || '';
-  const emailSubject = parsed.actionPlan?.actions?.[0]?.copyPasteContent?.subject || '';
+  const clientSituation = parsed.callSummary?.clientSituation || '';
   
+  // Look for prospect company mentions with context
   const companyPatterns = [
-    /(?:with|for|at)\s+([A-Z][A-Za-z\s&]+?)(?:\s+(?:on|regarding|about|to discuss)|,|\.)/,
-    /^(?:Re:|Subject:)\s*(?:Meeting|Call|Discussion)\s+(?:with|at)\s+([A-Z][A-Za-z\s&]+)/
+    // Match company names mentioned with context
+    /(?:prospect|client|customer|company|organization)(?:'s|'s)?\s+(?:called|named)?\s*([A-Z][A-Za-z0-9\s&.,'-]{2,40}?)(?:\s+(?:is|has|was|are|were|will|would|could|should|wants|needs|requires|seeks|explores|evaluates|considers|mentioned|expressed|indicated)|[,.]|$)/i,
+    // Match "at <Company>" patterns
+    /\bat\s+([A-Z][A-Za-z0-9\s&.,'-]{2,40}?)(?:\s+(?:is|has|are|were|in|for|with|to)|[,.]|$)/,
+    // Match company name at start of sentence
+    /^([A-Z][A-Za-z0-9\s&.,'-]{2,40}?)\s+(?:is|has|was|are|were|will|would|could|needs|wants|requires|seeks)/
   ];
   
   for (const pattern of companyPatterns) {
-    const match = overview.match(pattern) || emailSubject.match(pattern);
+    const match = overview.match(pattern) || clientSituation.match(pattern);
     if (match?.[1]) {
-      companyName = match[1].trim();
-      break;
+      const candidate = match[1].trim();
+      // Filter out generic words and user's company (Actifile)
+      if (candidate.length > 2 && 
+          !candidate.toLowerCase().includes('actifile') &&
+          !['The', 'This', 'That', 'Their', 'These', 'Those'].includes(candidate)) {
+        companyName = candidate;
+        break;
+      }
     }
   }
 
-  // Extract structured participants from clientContacts
+  // Priority 2: Check deal_context from Zoho
+  if (!companyName && dealContext) {
+    companyName = dealContext.organization_name || 
+                  dealContext.account_name || 
+                  dealContext.company_name || null;
+  }
+
+  // Priority 3: Check source_metadata
+  if (!companyName && sourceMetadata?.webhook_payload?.meeting_metadata) {
+    const metadata = sourceMetadata.webhook_payload.meeting_metadata;
+    companyName = metadata.organization_name || 
+                  metadata.account_name || 
+                  metadata.company_name || null;
+  }
+
+  // Priority 4: Check competitive intelligence for prospect company
+  if (!companyName && parsed.callSummary?.competitiveIntelligence?.vendorsKnown) {
+    const vendors = parsed.callSummary.competitiveIntelligence.vendorsKnown;
+    if (Array.isArray(vendors) && vendors.length > 0) {
+      // Find first non-Actifile vendor as potential prospect company
+      const prospectVendor = vendors.find((v: string) => 
+        !v.toLowerCase().includes('actifile')
+      );
+      if (prospectVendor) {
+        companyName = prospectVendor;
+      }
+    }
+  }
+
+  // Extract structured participants from clientContacts (prospects only)
   if (parsed.participants?.clientContacts && Array.isArray(parsed.participants.clientContacts)) {
     participants = parsed.participants.clientContacts.map((c: any) => ({
       name: c.name,
@@ -338,7 +378,19 @@ serve(async (req) => {
 
     // Extract metadata for better display (non-blocking)
     try {
-      const extracted = extractMetadataFromAnalysis(parsedResult);
+      // Fetch transcript for source_metadata and deal_context
+      const { data: transcript } = await supabase
+        .from('transcripts')
+        .select('source_metadata, deal_context')
+        .eq('id', transcriptId)
+        .single();
+      
+      const extracted = extractMetadataFromAnalysis(
+        parsedResult, 
+        transcript?.source_metadata, 
+        transcript?.deal_context
+      );
+      
       if (extracted.companyName || extracted.participants) {
         await supabase
           .from('transcripts')

@@ -55,9 +55,14 @@ export default function ActiveDashboard() {
           ? firstParticipant 
           : (firstParticipant?.name as string | undefined);
         
-        // Prefer extracted metadata, then analysis-derived identifiers, then associated account, then DB title as last resort
+        // Priority 1: Use extracted prospect company name
+        // Priority 2: Build from extracted participant names
+        // Priority 3: Existing fallback chain
         const displayTitle = 
           transcript.extracted_company_name ||
+          (transcript.extracted_participants && Array.isArray(transcript.extracted_participants) && transcript.extracted_participants.length > 0
+            ? `Call with ${transcript.extracted_participants.map((p: any) => p.name).join(', ')}`
+            : null) ||
           callSummary?.title ||
           callSummary?.meeting_title ||
           callSummary?.account?.name ||
