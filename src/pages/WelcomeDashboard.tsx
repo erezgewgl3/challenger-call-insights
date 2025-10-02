@@ -8,6 +8,7 @@ import { CompactTranscriptUpload } from '@/components/upload/CompactTranscriptUp
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
 import { IntegrationsStatusBadge } from '@/components/dashboard/IntegrationsStatusBadge';
 import { PendingTranscriptsQueue } from '@/components/dashboard/PendingTranscriptsQueue';
+import { ArchivedDealsDrawer } from '@/components/dashboard/ArchivedDealsDrawer';
 import { Brain } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -46,6 +47,7 @@ export default function WelcomeDashboard() {
         `)
         .eq('user_id', user?.id)
         .eq('status', 'completed')
+        .eq('is_archived', false)
         .order('created_at', { ascending: false })
         .limit(10);
       
@@ -146,6 +148,7 @@ export default function WelcomeDashboard() {
                   Track deal temperature and get actionable insights to close faster
                 </p>
               </div>
+              <ArchivedDealsDrawer />
               {transcripts.length > 0 && (
                 <span className="text-xs text-muted-foreground">
                   Last updated: {new Date().toLocaleTimeString()}

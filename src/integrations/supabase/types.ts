@@ -1221,6 +1221,8 @@ export type Database = {
       transcripts: {
         Row: {
           account_id: string | null
+          archived_at: string | null
+          archived_by: string | null
           assigned_user_id: string | null
           assignment_metadata: Json | null
           created_at: string | null
@@ -1229,6 +1231,7 @@ export type Database = {
           error_message: string | null
           external_source: string | null
           id: string
+          is_archived: boolean
           meeting_date: string
           participants: Json | null
           priority_level: string | null
@@ -1246,6 +1249,8 @@ export type Database = {
         }
         Insert: {
           account_id?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_user_id?: string | null
           assignment_metadata?: Json | null
           created_at?: string | null
@@ -1254,6 +1259,7 @@ export type Database = {
           error_message?: string | null
           external_source?: string | null
           id?: string
+          is_archived?: boolean
           meeting_date: string
           participants?: Json | null
           priority_level?: string | null
@@ -1271,6 +1277,8 @@ export type Database = {
         }
         Update: {
           account_id?: string | null
+          archived_at?: string | null
+          archived_by?: string | null
           assigned_user_id?: string | null
           assignment_metadata?: Json | null
           created_at?: string | null
@@ -1279,6 +1287,7 @@ export type Database = {
           error_message?: string | null
           external_source?: string | null
           id?: string
+          is_archived?: boolean
           meeting_date?: string
           participants?: Json | null
           priority_level?: string | null
@@ -1300,6 +1309,13 @@ export type Database = {
             columns: ["account_id"]
             isOneToOne: false
             referencedRelation: "accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "transcripts_archived_by_fkey"
+            columns: ["archived_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {

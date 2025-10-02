@@ -3,11 +3,12 @@ import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Clock, Users, ArrowRight } from 'lucide-react'
+import { Clock, Users, ArrowRight, Archive } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow, differenceInHours, format } from 'date-fns'
 import { SourceBadge } from '@/components/ui/SourceBadge'
+import { useArchiveTranscript } from '@/hooks/useArchiveTranscript'
 
 interface TranscriptSummary {
   id: string
@@ -35,9 +36,15 @@ interface HeatDealsSectionProps {
 
 export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDealsSectionProps) {
   const navigate = useNavigate()
+  const archiveMutation = useArchiveTranscript()
 
   const handleViewTranscript = (transcriptId: string) => {
     navigate(`/analysis/${transcriptId}`)
+  }
+
+  const handleArchive = (e: React.MouseEvent, transcriptId: string) => {
+    e.stopPropagation()
+    archiveMutation.mutate({ transcriptId, shouldArchive: true })
   }
 
   const getHeatLevel = (analysis: any) => {
@@ -245,18 +252,29 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                             <div className="text-xs text-slate-500">C</div>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-xs"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleViewTranscript(transcript.id)
-                          }}
-                        >
-                          View
-                          <ArrowRight className="h-3 w-3 ml-1" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-xs"
+                            onClick={(e) => handleArchive(e, transcript.id)}
+                            disabled={archiveMutation.isPending}
+                          >
+                            <Archive className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-xs"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleViewTranscript(transcript.id)
+                            }}
+                          >
+                            View
+                            <ArrowRight className="h-3 w-3 ml-1" />
+                          </Button>
+                        </div>
                       </div>
                     )}
                   </div>
