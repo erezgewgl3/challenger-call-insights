@@ -9,6 +9,8 @@ interface TranscriptSummary {
   created_at: string
   status: 'uploaded' | 'processing' | 'completed' | 'error'
   account_name?: string
+  extracted_company_name?: string
+  extracted_participants?: any[]
   challenger_scores?: {
     teaching: number
     tailoring: number
@@ -44,6 +46,8 @@ export function useTranscriptData() {
           duration_minutes,
           created_at,
           status,
+          extracted_company_name,
+          extracted_participants,
           accounts(name),
           conversation_analysis(challenger_scores, recommendations, guidance, call_summary, heat_level, created_at)
         `)
@@ -60,6 +64,8 @@ export function useTranscriptData() {
         created_at: t.created_at,
         status: t.status,
         account_name: (t.accounts as any)?.name,
+        extracted_company_name: t.extracted_company_name as string | undefined,
+        extracted_participants: t.extracted_participants as any[] | undefined,
         challenger_scores: (t.conversation_analysis as any)?.[0]?.challenger_scores as {
           teaching: number
           tailoring: number
