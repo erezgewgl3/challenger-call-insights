@@ -3,12 +3,18 @@ import React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Clock, Users, ArrowRight, Archive } from 'lucide-react'
+import { Clock, Users, ArrowRight, Archive, MoreVertical } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow, differenceInHours, format } from 'date-fns'
 import { SourceBadge } from '@/components/ui/SourceBadge'
 import { useArchiveTranscript } from '@/hooks/useArchiveTranscript'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 interface TranscriptSummary {
   id: string
@@ -252,29 +258,36 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                             <div className="text-xs text-slate-500">C</div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-xs"
-                            onClick={(e) => handleArchive(e, transcript.id)}
-                            disabled={archiveMutation.isPending}
-                          >
-                            <Archive className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity h-6 px-2 text-xs"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewTranscript(transcript.id)
-                            }}
-                          >
-                            View
-                            <ArrowRight className="h-3 w-3 ml-1" />
-                          </Button>
-                        </div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-accent"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleViewTranscript(transcript.id)
+                              }}
+                            >
+                              <ArrowRight className="h-4 w-4 mr-2" />
+                              View Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={(e) => handleArchive(e, transcript.id)}
+                              disabled={archiveMutation.isPending}
+                            >
+                              <Archive className="h-4 w-4 mr-2" />
+                              Archive Deal
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     )}
                   </div>
