@@ -2,13 +2,13 @@ import React, { useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { AlertCircle, Clock, Loader2, Building2, User, Calendar, Timer, ExternalLink, Trash2, Video, CheckCircle } from 'lucide-react';
+import { AlertCircle, Loader2, ExternalLink, Trash2, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { SourceBadge } from '@/components/ui/SourceBadge';
+import { formatDistanceToNow, parseISO } from 'date-fns';
 
 interface PendingTranscriptsQueueProps {
   user_id: string;
@@ -282,122 +282,99 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
 
   return (
     <ScrollArea className="max-h-[500px] pr-4">
-      <div className="space-y-2">
-              {displayItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                      {/* Title, Source Badge, and Status */}
-                      <div className="flex items-center gap-2 mb-2 flex-wrap">
-                        <h4 className="font-semibold text-foreground truncate">
-                          {getDisplayTitle(item)}
-                        </h4>
-                        <SourceBadge source={item.sourceType} />
-                        {item.isNew && (
-                          <Badge variant="default" className="text-xs bg-green-500">New</Badge>
-                        )}
-                        {item.priority_level === 'urgent' && (
-                          <Badge variant="destructive" className="text-xs">Urgent</Badge>
-                        )}
-                        {item.processing_status === 'processing' && (
-                          <Badge className="text-xs bg-blue-500">Processing</Badge>
-                        )}
-                        {item.processing_status === 'error' && (
-                          <Badge variant="destructive" className="text-xs">Failed</Badge>
-                        )}
-                      </div>
-
-                      {/* Rich Context from deal_context */}
-                      {item.deal_context && (item.deal_context.contact_name || item.deal_context.company_name || item.deal_context.meeting_host) && (
-                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
-                          {item.deal_context.contact_name && (
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              {item.deal_context.contact_name}
-                            </span>
-                          )}
-                          {item.deal_context.company_name && (
-                            <span className="flex items-center gap-1">
-                              <Building2 className="h-3 w-3" />
-                              {item.deal_context.company_name}
-                            </span>
-                          )}
-                          {item.deal_context.meeting_host && (
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" />
-                              Hosted by {item.deal_context.meeting_host}
-                            </span>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Standard Metadata */}
-                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
-                        {item.attendees && item.attendees.length > 0 && (
-                          <span className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {item.attendees[0]} participant{item.attendees.length > 1 ? 's' : ''}
-                          </span>
-                        )}
-                        {(item.meeting_date || item.created_at) && (
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(item.meeting_date || item.created_at).toLocaleDateString()}
-                          </span>
-                        )}
-                        {item.duration_minutes && (
-                          <span className="flex items-center gap-1">
-                            <Timer className="h-3 w-3" />
-                            {item.duration_minutes}m
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Error Message */}
-                      {item.error_message && (
-                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
-                          {item.error_message}
-                        </p>
-                      )}
+      <div className="space-y-3">
+        {displayItems.map((item) => {
+          const displayTitle = getDisplayTitle(item);
+          const isProcessing = item.processing_status === 'processing';
+          const isFailed = item.processing_status === 'error';
+          
+          // Determine primary metadata to show (max 2 items)
+          const metadata = [];
+          if (item.deal_context?.contact_name || item.deal_context?.company_name) {
+            metadata.push(item.deal_context.contact_name || item.deal_context.company_name);
+          }
+          if (item.meeting_date || item.created_at) {
+            const daysAgo = Math.floor(
+              (Date.now() - new Date(item.meeting_date || item.created_at).getTime()) / (1000 * 60 * 60 * 24)
+            );
+            if (daysAgo <= 7) {
+              metadata.push(formatDistanceToNow(parseISO(item.meeting_date || item.created_at), { addSuffix: true }));
+            }
+          }
+          
+          return (
+            <div 
+              key={item.id} 
+              className={`border rounded-lg p-5 bg-card hover:bg-accent/5 transition-colors ${
+                isFailed ? 'border-l-4 border-l-destructive' : ''
+              } ${isProcessing ? 'bg-accent/20' : ''}`}
+            >
+              <div className="flex items-center justify-between gap-6">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    {isFailed && <AlertCircle className="h-4 w-4 text-destructive flex-shrink-0" />}
+                    <h3 className="font-semibold text-base truncate">
+                      {displayTitle}
+                    </h3>
+                    <SourceBadge source={item.sourceType} />
+                  </div>
+                  
+                  {metadata.length > 0 && (
+                    <p className="text-sm text-muted-foreground truncate">
+                      {metadata.join(' • ')}
+                    </p>
+                  )}
+                  
+                  {isFailed && item.error_message && (
+                    <div className="mt-3 p-3 bg-destructive/10 border border-destructive/20 rounded-md">
+                      <p className="text-sm text-destructive">{item.error_message}</p>
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      {item.processing_status === 'pending' && (
-                        <Button
-                          size="sm"
-                          onClick={() => handleAnalyze(item)}
-                          className="bg-blue-600 hover:bg-blue-700 gap-1"
-                        >
-                          {item.source === 'zoom' && <Video className="h-3 w-3" />}
-                          Analyze
-                        </Button>
-                      )}
+                  )}
+                </div>
+                
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {isProcessing ? (
+                    <div className="flex items-center gap-2 text-muted-foreground px-4">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span className="text-sm">Processing...</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Button
+                        onClick={() => handleAnalyze(item)}
+                        className="bg-primary hover:bg-primary/90"
+                      >
+                        {isFailed ? 'Retry Analysis' : 'Start Analysis'}
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                      
                       {item.zoho_deal_id && (
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="outline"
                           onClick={() => window.open(`https://crm.zoho.com/crm/org20098764813/tab/Potentials/${item.zoho_deal_id}`, '_blank')}
                         >
-                          <ExternalLink className="h-3 w-3" />
+                          <ExternalLink className="h-4 w-4" />
                         </Button>
                       )}
+                      
                       {item.source !== 'zoom' && (
                         <Button
-                          size="sm"
+                          size="icon"
                           variant="ghost"
                           onClick={() => handleDelete(item)}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
                         >
-                          <Trash2 className="h-3 w-3" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
-                    </div>
-                  </div>
+                    </>
+                  )}
                 </div>
-              ))}
+              </div>
+            </div>
+          );
+        })}
       </div>
     </ScrollArea>
   );

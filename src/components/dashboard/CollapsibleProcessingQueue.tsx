@@ -64,24 +64,9 @@ export function CollapsibleProcessingQueue({ user_id }: CollapsibleProcessingQue
             className="w-full justify-between px-6 py-4 h-auto hover:bg-accent/50"
           >
             <div className="flex items-center gap-3">
-              <span className="text-lg font-semibold">Processing Queue</span>
-              <div className="flex items-center gap-2">
-                {queueStats.processing > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {queueStats.processing} Processing
-                  </Badge>
-                )}
-                {queueStats.failed > 0 && (
-                  <Badge variant="destructive" className="text-xs">
-                    {queueStats.failed} Failed
-                  </Badge>
-                )}
-                {queueStats.pending > 0 && (
-                  <Badge className="text-xs bg-green-600 hover:bg-green-700">
-                    {queueStats.pending} Ready
-                  </Badge>
-                )}
-              </div>
+              <span className="text-lg font-semibold">
+                {queueStats.total} transcript{queueStats.total !== 1 ? 's' : ''} need your attention
+              </span>
             </div>
             {isOpen ? (
               <ChevronUp className="h-5 w-5 text-muted-foreground" />
