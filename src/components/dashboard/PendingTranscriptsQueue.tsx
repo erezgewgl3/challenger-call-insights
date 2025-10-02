@@ -293,12 +293,12 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
           if (item.deal_context?.contact_name || item.deal_context?.company_name) {
             metadata.push(item.deal_context.contact_name || item.deal_context.company_name);
           }
-          if (item.meeting_date || item.created_at) {
+          if (item.created_at || item.meeting_date) {
             const daysAgo = Math.floor(
-              (Date.now() - new Date(item.meeting_date || item.created_at).getTime()) / (1000 * 60 * 60 * 24)
+              (Date.now() - new Date(item.created_at || item.meeting_date).getTime()) / (1000 * 60 * 60 * 24)
             );
             if (daysAgo <= 7) {
-              metadata.push(formatDistanceToNow(parseISO(item.meeting_date || item.created_at), { addSuffix: true }));
+              metadata.push(formatDistanceToNow(parseISO(item.created_at || item.meeting_date), { addSuffix: true }));
             }
           }
           
