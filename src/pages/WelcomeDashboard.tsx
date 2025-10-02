@@ -8,8 +8,7 @@ import { CompactTranscriptUpload } from '@/components/upload/CompactTranscriptUp
 import { HeatDealsSection } from '@/components/dashboard/HeatDealsSection';
 import { IntegrationsStatusBadge } from '@/components/dashboard/IntegrationsStatusBadge';
 import { ZoomMeetingsWidget } from '@/components/dashboard/ZoomMeetingsWidget';
-import { QueueInterfaceTester } from '@/components/testing/QueueInterfaceTester';
-import ApiTester from '@/components/testing/ApiTester';
+import { PendingTranscriptsQueue } from '@/components/dashboard/PendingTranscriptsQueue';
 import { FileText, TrendingUp, Thermometer, Clock, LogOut, Brain } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
@@ -320,34 +319,46 @@ export default function WelcomeDashboard() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 sm:px-0">
-          {/* Compressed Hero Section */}
+          {/* Streamlined Hero Section */}
           <div className="mb-8">
-            <div className="text-center mb-6">
+            <div className="text-center mb-5">
               <h1 className="text-3xl font-bold text-foreground mb-2">
                 Turn Every Sales Conversation Into Deal Intelligence
               </h1>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
-                Upload your call transcript and instantly unlock buying signals, stakeholder insights, and strategic next steps to accelerate your opportunities
+              <p className="text-muted-foreground max-w-2xl mx-auto text-sm">
+                Upload your call transcript and instantly unlock buying signals, stakeholder insights, and strategic next steps
               </p>
             </div>
 
-            {/* Upload Section */}
-            <div className="mb-8">
+            {/* Upload Section - More Compact */}
+            <div className="mb-6">
               <CompactTranscriptUpload onAnalysisComplete={handleAnalysisComplete} />
             </div>
           </div>
 
-          {/* Deal Intelligence Pipeline - Now the primary focus */}
+          {/* Pending Transcripts Queue - NEW */}
+          {user?.id && (
+            <div className="mb-8">
+              <PendingTranscriptsQueue user_id={user.id} />
+            </div>
+          )}
+
+          {/* Deal Intelligence Pipeline */}
           <div className="mb-8">
             <div className="mb-6 flex justify-between items-center">
               <div>
                 <h2 className="text-2xl font-bold text-foreground mb-2">
                   Deal Intelligence Pipeline
                 </h2>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm">
                   Track deal temperature and get actionable insights to close faster
                 </p>
               </div>
+              {transcripts.length > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  Last updated: {new Date().toLocaleTimeString()}
+                </span>
+              )}
             </div>
 
             {/* Three-column layout for all heat levels */}
@@ -418,43 +429,6 @@ export default function WelcomeDashboard() {
             </div>
           )}
 
-          {/* Testing Interface Section */}
-          <div className="mb-10">
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Testing & Development Tools
-              </h2>
-              <p className="text-muted-foreground">
-                Test the enhanced queue interface, API endpoints, and external integrations
-              </p>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">🧪 Queue Interface Testing</CardTitle>
-                  <CardDescription>
-                    Test queue management UI with filtering and assignment workflows
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <QueueInterfaceTester />
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg">🔌 API Endpoint Testing</CardTitle>
-                  <CardDescription>
-                    Test all API endpoints including queue management, assignments, and Zapier config
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ApiTester />
-                </CardContent>
-              </Card>
-            </div>
-          </div>
 
           {/* Getting Started - Progressive Disclosure */}
           {transcriptCount === 0 && (

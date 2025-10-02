@@ -1,0 +1,313 @@
+import React, { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, Clock, Loader2, Settings, Building2, User, Calendar, Timer, ExternalLink, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
+import { UnifiedQueueDrawer } from '@/components/upload/UnifiedQueueDrawer';
+
+interface PendingTranscriptsQueueProps {
+  user_id: string;
+}
+
+interface QueueItem {
+  id: string;
+  title: string;
+  meeting_date?: string;
+  external_source?: string;
+  priority_level?: string;
+  processing_status: string;
+  processing_started_at?: string;
+  processing_error?: string;
+  error_message?: string;
+  created_at: string;
+  zoho_deal_id?: string;
+  zoho_meeting_id?: string;
+  original_filename?: string;
+  duration_minutes?: number;
+}
+
+interface QueueData {
+  owned: {
+    processing: QueueItem[];
+    failed: QueueItem[];
+    pending: QueueItem[];
+  };
+  stats: {
+    processing_count: number;
+    error_count: number;
+    pending_owned: number;
+  };
+}
+
+export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProps) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [showFullQueue, setShowFullQueue] = React.useState(false);
+
+  const { data: queueData, isLoading } = useQuery<QueueData>({
+    queryKey: ['unified-queue', user_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_unified_transcript_queue', {
+        p_user_id: user_id
+      });
+      if (error) throw error;
+      return data as unknown as QueueData;
+    },
+    refetchInterval: 10000, // Refetch every 10 seconds
+    enabled: !!user_id,
+  });
+
+  // Real-time subscriptions
+  useEffect(() => {
+    const channel = supabase
+      .channel('queue-updates')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'transcripts' },
+        () => queryClient.invalidateQueries({ queryKey: ['unified-queue'] })
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
+  const processingItems = queueData?.owned?.processing || [];
+  const failedItems = queueData?.owned?.failed || [];
+  const pendingItems = queueData?.owned?.pending || [];
+  
+  const stats = queueData?.stats || {
+    processing_count: 0,
+    error_count: 0,
+    pending_owned: 0
+  };
+
+  // Get up to 5 most urgent/recent items to display
+  const displayItems = [
+    ...failedItems.slice(0, 2),
+    ...processingItems.slice(0, 2),
+    ...pendingItems.slice(0, 5)
+  ].slice(0, 5);
+
+  const totalItems = stats.processing_count + stats.error_count + stats.pending_owned;
+
+  const handleAnalyze = async (item: QueueItem) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('manual-process-transcript', {
+        body: { transcriptId: item.id }
+      });
+
+      if (error) throw error;
+
+      toast.success('Analysis started');
+      navigate(`/analysis/${item.id}`);
+    } catch (error) {
+      console.error('Error starting analysis:', error);
+      toast.error('Failed to start analysis');
+    }
+  };
+
+  const handleDelete = async (item: QueueItem) => {
+    try {
+      const { error } = await supabase.functions.invoke('delete-transcript', {
+        body: { transcriptId: item.id }
+      });
+
+      if (error) throw error;
+
+      toast.success('Transcript deleted');
+      queryClient.invalidateQueries({ queryKey: ['unified-queue'] });
+    } catch (error) {
+      console.error('Error deleting transcript:', error);
+      toast.error('Failed to delete transcript');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+            Loading Queue...
+          </CardTitle>
+        </CardHeader>
+      </Card>
+    );
+  }
+
+  if (totalItems === 0) {
+    return null; // Don't show if queue is empty
+  }
+
+  return (
+    <>
+      <Card className="shadow-sm hover:shadow-md transition-shadow">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              📋 Transcript Analysis Queue
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFullQueue(true)}
+              className="gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Manage Queue
+            </Button>
+          </div>
+        </CardHeader>
+
+        <CardContent className="space-y-4">
+          {/* Summary Stats */}
+          <div className="grid grid-cols-3 gap-4">
+            {stats.processing_count > 0 && (
+              <div className="flex flex-col items-center p-3 rounded-lg bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+                  <span className="text-2xl font-bold text-blue-600">{stats.processing_count}</span>
+                </div>
+                <span className="text-sm text-blue-600 font-medium">Processing</span>
+              </div>
+            )}
+            
+            {stats.error_count > 0 && (
+              <div className="flex flex-col items-center p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                  <span className="text-2xl font-bold text-red-600">{stats.error_count}</span>
+                </div>
+                <span className="text-sm text-red-600 font-medium">Failed</span>
+              </div>
+            )}
+            
+            {stats.pending_owned > 0 && (
+              <div className="flex flex-col items-center p-3 rounded-lg bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2 mb-1">
+                  <Clock className="h-4 w-4 text-green-600" />
+                  <span className="text-2xl font-bold text-green-600">{stats.pending_owned}</span>
+                </div>
+                <span className="text-sm text-green-600 font-medium">Ready</span>
+              </div>
+            )}
+          </div>
+
+          {/* Recent Items */}
+          {displayItems.length > 0 && (
+            <div className="space-y-2">
+              {displayItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      {/* Title and Status */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <h4 className="font-semibold text-foreground truncate">
+                          {item.title || 'Untitled Transcript'}
+                        </h4>
+                        {item.priority_level === 'urgent' && (
+                          <Badge variant="destructive" className="text-xs">Urgent</Badge>
+                        )}
+                        {item.processing_status === 'processing' && (
+                          <Badge className="text-xs bg-blue-500">Processing</Badge>
+                        )}
+                        {item.processing_status === 'error' && (
+                          <Badge variant="destructive" className="text-xs">Failed</Badge>
+                        )}
+                      </div>
+
+                      {/* Metadata */}
+                      <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
+                        {item.external_source && (
+                          <span className="flex items-center gap-1">
+                            <Building2 className="h-3 w-3" />
+                            {item.external_source}
+                          </span>
+                        )}
+                        {item.meeting_date && (
+                          <span className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(item.meeting_date).toLocaleDateString()}
+                          </span>
+                        )}
+                        {item.duration_minutes && (
+                          <span className="flex items-center gap-1">
+                            <Timer className="h-3 w-3" />
+                            {item.duration_minutes}m
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Error Message */}
+                      {item.error_message && (
+                        <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                          {item.error_message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {item.processing_status === 'pending' && (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAnalyze(item)}
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Analyze
+                        </Button>
+                      )}
+                      {item.zoho_deal_id && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => window.open(`https://crm.zoho.com/crm/org20098764813/tab/Potentials/${item.zoho_deal_id}`, '_blank')}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(item)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* View All Link */}
+          {totalItems > 5 && (
+            <div className="text-center pt-2">
+              <Button
+                variant="link"
+                onClick={() => setShowFullQueue(true)}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                View all {totalItems} transcripts →
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <UnifiedQueueDrawer
+        isOpen={showFullQueue}
+        onClose={() => setShowFullQueue(false)}
+        user_id={user_id}
+      />
+    </>
+  );
+}
