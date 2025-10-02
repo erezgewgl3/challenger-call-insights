@@ -64,7 +64,7 @@ export default function ZeroStateDashboard() {
                 </div>
                 <h4 className="text-lg font-semibold text-foreground mb-2">Upload</h4>
                 <p className="text-sm text-muted-foreground">
-                  Drop your transcript file or connect Zoom
+                  Drop your transcript file (.txt, .docx, .vtt)
                 </p>
               </div>
 

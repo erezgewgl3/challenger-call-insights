@@ -146,7 +146,7 @@ export default function ActiveDashboard() {
                 </div>
                 <div>
                   <h3 className="font-semibold text-foreground">Upload New Transcript</h3>
-                  <p className="text-sm text-muted-foreground">Drop a file or connect Zoom</p>
+                  <p className="text-sm text-muted-foreground">Drop a file to upload (.txt, .docx, .vtt)</p>
                 </div>
               </div>
               <Dialog>
