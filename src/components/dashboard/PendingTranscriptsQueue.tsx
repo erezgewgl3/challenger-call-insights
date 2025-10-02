@@ -4,16 +4,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Clock, Loader2, Settings, Building2, User, Calendar, Timer, ExternalLink, Trash2 } from 'lucide-react';
+import { AlertCircle, Clock, Loader2, Settings, Building2, User, Calendar, Timer, ExternalLink, Trash2, Video } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { UnifiedQueueDrawer } from '@/components/upload/UnifiedQueueDrawer';
+import { SourceBadge } from '@/components/ui/SourceBadge';
 
 interface PendingTranscriptsQueueProps {
   user_id: string;
 }
 
-interface QueueItem {
+interface UnifiedQueueItem {
   id: string;
   title: string;
   meeting_date?: string;
@@ -28,13 +29,18 @@ interface QueueItem {
   zoho_meeting_id?: string;
   original_filename?: string;
   duration_minutes?: number;
+  source: 'database' | 'zoom'; // To differentiate between DB transcripts and Zoom meetings
+  sourceType: 'manual' | 'zoom' | 'zapier' | 'zoho';
+  attendees?: string[];
+  date?: string;
+  isNew?: boolean;
 }
 
 interface QueueData {
   owned: {
-    processing: QueueItem[];
-    failed: QueueItem[];
-    pending: QueueItem[];
+    processing: UnifiedQueueItem[];
+    failed: UnifiedQueueItem[];
+    pending: UnifiedQueueItem[];
   };
   stats: {
     processing_count: number;
@@ -48,18 +54,86 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
   const queryClient = useQueryClient();
   const [showFullQueue, setShowFullQueue] = React.useState(false);
 
-  const { data: queueData, isLoading } = useQuery<QueueData>({
+  // Check if user has Zoom integration
+  const { data: hasZoomConnection } = useQuery({
+    queryKey: ['zoom-connection-check', user_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('integration_connections')
+        .select('id')
+        .eq('user_id', user_id)
+        .eq('integration_type', 'zoom')
+        .eq('connection_status', 'active')
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user_id,
+  });
+
+  // Fetch database transcripts
+  const { data: dbQueueData, isLoading: dbLoading } = useQuery<QueueData>({
     queryKey: ['unified-queue', user_id],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_unified_transcript_queue', {
         p_user_id: user_id
       });
       if (error) throw error;
-      return data as unknown as QueueData;
+      
+      const result = data as any;
+      
+      // Transform to include source info
+      const transformItems = (items: any[]): UnifiedQueueItem[] => 
+        items.map(item => ({
+          ...item,
+          source: 'database' as const,
+          sourceType: (item.external_source === 'zoom' ? 'zoom' : 
+                      item.external_source === 'zapier' ? 'zapier' : 
+                      item.zoho_deal_id ? 'zoho' : 'manual') as 'manual' | 'zoom' | 'zapier' | 'zoho'
+        }));
+
+      return {
+        owned: {
+          processing: transformItems(result?.owned?.processing || []),
+          failed: transformItems(result?.owned?.failed || []),
+          pending: transformItems(result?.owned?.pending || [])
+        },
+        stats: result?.stats || { processing_count: 0, error_count: 0, pending_owned: 0 }
+      };
     },
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 10000,
     enabled: !!user_id,
   });
+
+  // Fetch unprocessed Zoom meetings (only if user has Zoom connected)
+  const { data: zoomMeetings = [], isLoading: zoomLoading } = useQuery({
+    queryKey: ['zoom-meetings-queue', user_id],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke('get-zoom-meetings');
+      if (error) {
+        console.error('Error fetching Zoom meetings:', error);
+        return [];
+      }
+      
+      // Transform Zoom meetings to UnifiedQueueItem format
+      const meetings = data?.meetings || [];
+      return meetings.map((meeting: any): UnifiedQueueItem => ({
+        id: meeting.id,
+        title: meeting.title,
+        meeting_date: meeting.date,
+        duration_minutes: meeting.duration,
+        processing_status: 'pending',
+        created_at: meeting.date,
+        source: 'zoom' as const,
+        sourceType: 'zoom' as const,
+        attendees: meeting.attendees ? [meeting.attendees.toString()] : [],
+        isNew: meeting.isRecent || false
+      }));
+    },
+    enabled: !!user_id && hasZoomConnection === true,
+    refetchInterval: 30000, // Refresh every 30 seconds
+  });
+
+  const isLoading = dbLoading || zoomLoading;
 
   // Real-time subscriptions
   useEffect(() => {
@@ -67,7 +141,10 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
       .channel('queue-updates')
       .on('postgres_changes', 
         { event: '*', schema: 'public', table: 'transcripts' },
-        () => queryClient.invalidateQueries({ queryKey: ['unified-queue'] })
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['unified-queue'] });
+          queryClient.invalidateQueries({ queryKey: ['zoom-meetings-queue'] });
+        }
       )
       .subscribe();
 
@@ -76,42 +153,88 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     };
   }, [queryClient]);
 
-  const processingItems = queueData?.owned?.processing || [];
-  const failedItems = queueData?.owned?.failed || [];
-  const pendingItems = queueData?.owned?.pending || [];
+  // Merge database transcripts and Zoom meetings
+  const processingItems = dbQueueData?.owned?.processing || [];
+  const failedItems = dbQueueData?.owned?.failed || [];
+  const dbPendingItems = dbQueueData?.owned?.pending || [];
   
-  const stats = queueData?.stats || {
-    processing_count: 0,
-    error_count: 0,
-    pending_owned: 0
+  // Combine DB pending items with Zoom meetings
+  const allPendingItems = [...dbPendingItems, ...zoomMeetings];
+  
+  const stats = {
+    processing_count: processingItems.length,
+    error_count: failedItems.length,
+    pending_owned: allPendingItems.length
   };
 
   // Get up to 5 most urgent/recent items to display
+  // Priority: Failed -> Processing -> Pending (with Zoom meetings marked as new)
   const displayItems = [
     ...failedItems.slice(0, 2),
     ...processingItems.slice(0, 2),
-    ...pendingItems.slice(0, 5)
+    ...allPendingItems
+      .sort((a, b) => {
+        // Prioritize new Zoom meetings
+        if (a.isNew && !b.isNew) return -1;
+        if (!a.isNew && b.isNew) return 1;
+        // Then by date
+        return new Date(b.created_at || b.meeting_date || '').getTime() - 
+               new Date(a.created_at || a.meeting_date || '').getTime();
+      })
+      .slice(0, 5)
   ].slice(0, 5);
 
   const totalItems = stats.processing_count + stats.error_count + stats.pending_owned;
 
-  const handleAnalyze = async (item: QueueItem) => {
+  const handleAnalyze = async (item: UnifiedQueueItem) => {
     try {
-      const { data, error } = await supabase.functions.invoke('manual-process-transcript', {
-        body: { transcript_id: item.id }
-      });
+      if (item.source === 'zoom') {
+        // First process the Zoom meeting to create a transcript
+        toast.info('Processing Zoom transcript...');
+        const { data: processData, error: processError } = await supabase.functions.invoke('process-zoom-transcript', {
+          body: {
+            meetingId: item.id,
+            meetingTitle: item.title,
+            meetingDate: item.meeting_date,
+            meetingDuration: item.duration_minutes,
+            attendeeCount: item.attendees?.length || 0
+          }
+        });
 
-      if (error) throw error;
+        if (processError) throw processError;
+        if (!processData.success) throw new Error(processData.error || 'Failed to process meeting');
 
-      toast.success('Analysis started');
-      navigate(`/analysis/${item.id}`);
-    } catch (error) {
+        // Then analyze the created transcript
+        toast.success('Zoom transcript created, starting analysis...');
+        navigate(`/analysis/${processData.transcriptId}`, {
+          state: { source: 'zoom', justCreated: true }
+        });
+      } else {
+        // For database transcripts, just analyze directly
+        const { data, error } = await supabase.functions.invoke('manual-process-transcript', {
+          body: { transcript_id: item.id }
+        });
+
+        if (error) throw error;
+
+        toast.success('Analysis started');
+        navigate(`/analysis/${item.id}`);
+      }
+    } catch (error: any) {
       console.error('Error starting analysis:', error);
-      toast.error('Failed to start analysis');
+      const errorMessage = error.message?.includes('already processed') 
+        ? 'This meeting has already been analyzed' 
+        : 'Failed to start analysis';
+      toast.error(errorMessage);
     }
   };
 
-  const handleDelete = async (item: QueueItem) => {
+  const handleDelete = async (item: UnifiedQueueItem) => {
+    if (item.source === 'zoom') {
+      toast.info('Zoom meetings cannot be deleted from here');
+      return;
+    }
+
     try {
       const { error } = await supabase.functions.invoke('delete-transcript', {
         body: { transcriptId: item.id }
@@ -208,11 +331,15 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      {/* Title and Status */}
-                      <div className="flex items-center gap-2 mb-2">
+                      {/* Title, Source Badge, and Status */}
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <h4 className="font-semibold text-foreground truncate">
                           {item.title || 'Untitled Transcript'}
                         </h4>
+                        <SourceBadge source={item.sourceType} />
+                        {item.isNew && (
+                          <Badge variant="default" className="text-xs bg-green-500">New</Badge>
+                        )}
                         {item.priority_level === 'urgent' && (
                           <Badge variant="destructive" className="text-xs">Urgent</Badge>
                         )}
@@ -226,16 +353,16 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
 
                       {/* Metadata */}
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
-                        {item.external_source && (
+                        {item.attendees && item.attendees.length > 0 && (
                           <span className="flex items-center gap-1">
-                            <Building2 className="h-3 w-3" />
-                            {item.external_source}
+                            <User className="h-3 w-3" />
+                            {item.attendees[0]} participant{item.attendees.length > 1 ? 's' : ''}
                           </span>
                         )}
-                        {item.meeting_date && (
+                        {(item.meeting_date || item.created_at) && (
                           <span className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
-                            {new Date(item.meeting_date).toLocaleDateString()}
+                            {new Date(item.meeting_date || item.created_at).toLocaleDateString()}
                           </span>
                         )}
                         {item.duration_minutes && (
@@ -260,8 +387,9 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                         <Button
                           size="sm"
                           onClick={() => handleAnalyze(item)}
-                          className="bg-blue-600 hover:bg-blue-700"
+                          className="bg-blue-600 hover:bg-blue-700 gap-1"
                         >
+                          {item.source === 'zoom' && <Video className="h-3 w-3" />}
                           Analyze
                         </Button>
                       )}
@@ -274,13 +402,15 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                           <ExternalLink className="h-3 w-3" />
                         </Button>
                       )}
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(item)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      {item.source !== 'zoom' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(item)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
