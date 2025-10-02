@@ -86,6 +86,10 @@ export default function ActiveDashboard() {
           status: transcript.status as 'uploaded' | 'processing' | 'completed' | 'error',
           source: transcript.source_meeting_id ? 'zoom' : 'manual',
           account_name: transcript.accounts?.name,
+          extracted_company_name: transcript.extracted_company_name,
+          extracted_participants: Array.isArray(transcript.extracted_participants) 
+            ? transcript.extracted_participants 
+            : [],
           challenger_scores: transcript.conversation_analysis?.[0]?.challenger_scores as {
             teaching: number;
             tailoring: number;
