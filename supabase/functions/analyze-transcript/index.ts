@@ -312,6 +312,7 @@ serve(async (req) => {
     // Call AI (default to OpenAI with Claude fallback)
     console.log('🔍 [AI] Calling OpenAI (default provider)');
     let aiResponse: string;
+    let usedProvider: 'openai' | 'claude' = 'openai';
     
     try {
       aiResponse = await callOpenAI(finalPrompt);
@@ -319,6 +320,7 @@ serve(async (req) => {
       console.error('🔍 [ERROR] OpenAI failed, trying Claude fallback:', openAIError);
       try {
         aiResponse = await callClaude(finalPrompt);
+        usedProvider = 'claude';
       } catch (claudeError) {
         console.error('🔍 [ERROR] Both AI providers failed:', claudeError);
         const errorMessage = claudeError instanceof Error ? claudeError.message : 'Unknown error';
@@ -390,6 +392,20 @@ serve(async (req) => {
         transcript?.source_metadata, 
         transcript?.deal_context
       );
+      
+      // Use AI to extract company name if regex didn't find it
+      if (!extracted.companyName) {
+        console.log('🔍 [AI-EXTRACT] No company found by regex, using AI extraction');
+        const aiCompanyName = await extractCompanyNameWithAI(
+          parsedResult.callSummary?.overview,
+          parsedResult.callSummary?.clientSituation,
+          usedProvider
+        );
+        if (aiCompanyName) {
+          extracted.companyName = aiCompanyName;
+          console.log('🔍 [AI-EXTRACT] AI found company:', aiCompanyName);
+        }
+      }
       
       if (extracted.companyName || extracted.participants) {
         await supabase
@@ -669,6 +685,108 @@ async function callClaude(prompt: string): Promise<string> {
   console.log('🔍 [API] Claude response received successfully');
   
   return data.content[0].text;
+}
+
+// Lightweight AI extraction for company name only
+async function extractCompanyNameWithAI(
+  overview?: string, 
+  clientSituation?: string,
+  provider: 'openai' | 'claude' = 'openai'
+): Promise<string | null> {
+  if (!overview && !clientSituation) {
+    return null;
+  }
+
+  const contextText = [overview, clientSituation].filter(Boolean).join('\n\n');
+  const extractionPrompt = `Based on the following text from a sales conversation, identify ONLY the prospect/client company name (not the seller's company). Reply with ONLY the company name or the word "NULL" if no prospect company is mentioned.
+
+Text:
+${contextText}
+
+Company name:`;
+
+  try {
+    let response: string;
+    
+    if (provider === 'openai') {
+      const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+      if (!openAIApiKey) {
+        console.warn('🔍 [AI-EXTRACT] OpenAI key not found, skipping AI extraction');
+        return null;
+      }
+
+      const apiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [
+            { role: 'user', content: extractionPrompt }
+          ],
+          temperature: 0,
+          max_tokens: 50,
+        }),
+      });
+
+      if (!apiResponse.ok) {
+        console.warn('🔍 [AI-EXTRACT] OpenAI extraction failed:', apiResponse.status);
+        return null;
+      }
+
+      const data = await apiResponse.json();
+      response = data.choices[0].message.content.trim();
+    } else {
+      const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+      if (!claudeApiKey) {
+        console.warn('🔍 [AI-EXTRACT] Claude key not found, skipping AI extraction');
+        return null;
+      }
+
+      const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${claudeApiKey}`,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 50,
+          messages: [
+            { role: 'user', content: extractionPrompt }
+          ],
+          temperature: 0,
+        }),
+      });
+
+      if (!apiResponse.ok) {
+        console.warn('🔍 [AI-EXTRACT] Claude extraction failed:', apiResponse.status);
+        return null;
+      }
+
+      const data = await apiResponse.json();
+      response = data.content[0].text.trim();
+    }
+
+    // Clean up response
+    if (!response || response.toUpperCase() === 'NULL' || response.length < 2) {
+      return null;
+    }
+
+    // Remove common prefixes and clean
+    const cleaned = response
+      .replace(/^(Company name:|The company is:|Answer:|Response:)/i, '')
+      .replace(/['"]/g, '')
+      .trim();
+
+    return cleaned.length > 1 ? cleaned : null;
+  } catch (error) {
+    console.warn('🔍 [AI-EXTRACT] AI company extraction failed (non-critical):', error);
+    return null;
+  }
 }
 
 function parseAIResponse(aiResponse: string): ParsedAnalysis {
