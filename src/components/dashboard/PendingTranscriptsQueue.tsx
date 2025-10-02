@@ -87,15 +87,22 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
       
       const result = data as any;
       
-      // Transform to include source info
+      // Transform to include source info and extract filename
       const transformItems = (items: any[]): UnifiedQueueItem[] => 
-        items.map(item => ({
-          ...item,
-          source: 'database' as const,
-          sourceType: (item.external_source === 'zoom' ? 'zoom' : 
-                      item.external_source === 'zapier' ? 'zapier' : 
-                      item.zoho_deal_id ? 'zoho' : 'manual') as 'manual' | 'zoom' | 'zapier' | 'zoho'
-        }));
+        items.map(item => {
+          // Extract filename from source_metadata if not directly available
+          const filename = item.original_filename || 
+                          item.source_metadata?.webhook_payload?.meeting_metadata?.file_name;
+          
+          return {
+            ...item,
+            original_filename: filename,
+            source: 'database' as const,
+            sourceType: (item.external_source === 'zoom' ? 'zoom' : 
+                        item.external_source === 'zapier' ? 'zapier' : 
+                        item.zoho_deal_id ? 'zoho' : 'manual') as 'manual' | 'zoom' | 'zapier' | 'zoho'
+          };
+        });
 
       return {
         owned: {
