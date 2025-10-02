@@ -36,6 +36,7 @@ export default function ActiveDashboard() {
             guidance,
             recommendations,
             call_summary,
+            participants,
             created_at
           )
         `)
@@ -59,6 +60,9 @@ export default function ActiveDashboard() {
           callSummary?.title ||
           callSummary?.meeting_title ||
           callSummary?.account?.name ||
+          callSummary?.company_name ||
+          callSummary?.deal_name ||
+          callSummary?.contact_name ||
           (firstParticipantName ? `Call with ${firstParticipantName}` : undefined) ||
           transcript.accounts?.name ||
           transcript.title || '';

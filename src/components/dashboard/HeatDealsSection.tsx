@@ -117,14 +117,19 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
     const participants = Array.isArray(analysis?.participants) ? analysis.participants as any[] : [];
     const first = participants?.[0];
     const firstName = typeof first === 'string' ? first : first?.name;
-    return (
+    const computed = (
       cs?.title ||
       cs?.meeting_title ||
       cs?.account?.name ||
+      cs?.company_name ||
+      cs?.deal_name ||
+      cs?.contact_name ||
       (firstName ? `Call with ${firstName}` : undefined) ||
       t.account_name ||
       t.title
     );
+    console.log('Pipeline title debug', { id: t.id, baseTitle: t.title, account_name: t.account_name, call_summary: cs, participants: analysis?.participants, computed });
+    return computed;
   }
 
   const formatDuration = (minutes: number) => {
