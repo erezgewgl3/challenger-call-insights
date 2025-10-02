@@ -135,6 +135,39 @@ function calculateDealHeat(analysis: any): string {
   return 'LOW'
 }
 
+// Extract company name and participants from AI analysis for better display
+function extractMetadataFromAnalysis(parsed: ParsedAnalysis) {
+  let companyName: string | null = null;
+  let participants: any[] | null = null;
+
+  // Extract company from overview or action plan email subjects
+  const overview = parsed.callSummary?.overview || '';
+  const emailSubject = parsed.actionPlan?.actions?.[0]?.copyPasteContent?.subject || '';
+  
+  const companyPatterns = [
+    /(?:with|for|at)\s+([A-Z][A-Za-z\s&]+?)(?:\s+(?:on|regarding|about|to discuss)|,|\.)/,
+    /^(?:Re:|Subject:)\s*(?:Meeting|Call|Discussion)\s+(?:with|at)\s+([A-Z][A-Za-z\s&]+)/
+  ];
+  
+  for (const pattern of companyPatterns) {
+    const match = overview.match(pattern) || emailSubject.match(pattern);
+    if (match?.[1]) {
+      companyName = match[1].trim();
+      break;
+    }
+  }
+
+  // Extract structured participants from clientContacts
+  if (parsed.participants?.clientContacts && Array.isArray(parsed.participants.clientContacts)) {
+    participants = parsed.participants.clientContacts.map((c: any) => ({
+      name: c.name,
+      role: c.role || c.title
+    }));
+  }
+
+  return { companyName, participants };
+}
+
 serve(async (req) => {
   console.log('🔍 [INIT] Analyze transcript function started');
   
@@ -302,6 +335,23 @@ serve(async (req) => {
     }
 
     console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id, 'Heat Level:', heatLevel);
+
+    // Extract metadata for better display (non-blocking)
+    try {
+      const extracted = extractMetadataFromAnalysis(parsedResult);
+      if (extracted.companyName || extracted.participants) {
+        await supabase
+          .from('transcripts')
+          .update({
+            extracted_company_name: extracted.companyName,
+            extracted_participants: extracted.participants
+          })
+          .eq('id', transcriptId);
+        console.log('🔍 [METADATA] Extracted:', extracted);
+      }
+    } catch (metaError) {
+      console.warn('⚠️ Metadata extraction failed (non-critical):', metaError);
+    }
 
     // Trigger webhook delivery asynchronously (never blocks analysis pipeline)
     console.log('[WEBHOOK DEBUG] About to trigger analysis webhooks for user:', userId);

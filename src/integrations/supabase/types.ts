@@ -1230,6 +1230,8 @@ export type Database = {
           duration_minutes: number | null
           error_message: string | null
           external_source: string | null
+          extracted_company_name: string | null
+          extracted_participants: Json | null
           id: string
           is_archived: boolean
           meeting_date: string
@@ -1258,6 +1260,8 @@ export type Database = {
           duration_minutes?: number | null
           error_message?: string | null
           external_source?: string | null
+          extracted_company_name?: string | null
+          extracted_participants?: Json | null
           id?: string
           is_archived?: boolean
           meeting_date: string
@@ -1286,6 +1290,8 @@ export type Database = {
           duration_minutes?: number | null
           error_message?: string | null
           external_source?: string | null
+          extracted_company_name?: string | null
+          extracted_participants?: Json | null
           id?: string
           is_archived?: boolean
           meeting_date?: string

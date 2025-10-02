@@ -25,6 +25,8 @@ interface TranscriptSummary {
   status: 'uploaded' | 'processing' | 'completed' | 'error'
   account_name?: string
   source?: 'manual' | 'zoom' | string
+  extracted_company_name?: string
+  extracted_participants?: any[]
   challenger_scores?: {
     teaching: number
     tailoring: number
@@ -117,7 +119,8 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
     const participants = Array.isArray(analysis?.participants) ? analysis.participants as any[] : [];
     const first = participants?.[0];
     const firstName = typeof first === 'string' ? first : first?.name;
-    const computed = (
+    return (
+      t.extracted_company_name ||
       cs?.title ||
       cs?.meeting_title ||
       cs?.account?.name ||
@@ -128,8 +131,6 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
       t.account_name ||
       t.title
     );
-    console.log('Pipeline title debug', { id: t.id, baseTitle: t.title, account_name: t.account_name, call_summary: cs, participants: analysis?.participants, computed });
-    return computed;
   }
 
   const formatDuration = (minutes: number) => {

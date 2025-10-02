@@ -55,8 +55,9 @@ export default function ActiveDashboard() {
           ? firstParticipant 
           : (firstParticipant?.name as string | undefined);
         
-        // Prefer analysis-derived identifiers, then associated account, then DB title as last resort
+        // Prefer extracted metadata, then analysis-derived identifiers, then associated account, then DB title as last resort
         const displayTitle = 
+          transcript.extracted_company_name ||
           callSummary?.title ||
           callSummary?.meeting_title ||
           callSummary?.account?.name ||
