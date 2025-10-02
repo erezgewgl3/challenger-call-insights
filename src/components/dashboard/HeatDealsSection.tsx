@@ -111,6 +111,22 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
 
   const theme = getThemeClasses()
 
+  const getDisplayTitle = (t: TranscriptSummary) => {
+    const analysis: any = t.conversation_analysis?.[0];
+    const cs = analysis?.call_summary as Record<string, any> | undefined;
+    const participants = Array.isArray(analysis?.participants) ? analysis.participants as any[] : [];
+    const first = participants?.[0];
+    const firstName = typeof first === 'string' ? first : first?.name;
+    return (
+      cs?.title ||
+      cs?.meeting_title ||
+      cs?.account?.name ||
+      (firstName ? `Call with ${firstName}` : undefined) ||
+      t.account_name ||
+      t.title
+    );
+  }
+
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`
     const hours = Math.floor(minutes / 60)
@@ -206,7 +222,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
                         <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors text-sm mb-1">
-                          {transcript.title}
+                          {getDisplayTitle(transcript)}
                         </h4>
                          <div className="flex items-center space-x-2 text-xs text-slate-500 mb-1">
                            <SourceBadge source={transcript.source || 'manual'} className="text-xs h-4" />

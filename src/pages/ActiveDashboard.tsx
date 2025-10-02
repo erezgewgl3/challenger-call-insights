@@ -46,11 +46,22 @@ export default function ActiveDashboard() {
         .limit(10);
       
       return data?.map(transcript => {
-        const callSummary = transcript.conversation_analysis?.[0]?.call_summary as Record<string, any> | undefined;
-        const displayTitle = callSummary?.deal_name ||
-                            callSummary?.contact_name ||
-                            callSummary?.company_name ||
-                            transcript.title || '';
+        const analysis = transcript.conversation_analysis?.[0] as any | undefined;
+        const callSummary = analysis?.call_summary as Record<string, any> | undefined;
+        const analysisParticipants = Array.isArray(analysis?.participants) ? (analysis.participants as any[]) : [];
+        const firstParticipant = analysisParticipants?.[0];
+        const firstParticipantName = typeof firstParticipant === 'string' 
+          ? firstParticipant 
+          : (firstParticipant?.name as string | undefined);
+        
+        // Prefer analysis-derived identifiers, then associated account, then DB title as last resort
+        const displayTitle = 
+          callSummary?.title ||
+          callSummary?.meeting_title ||
+          callSummary?.account?.name ||
+          (firstParticipantName ? `Call with ${firstParticipantName}` : undefined) ||
+          transcript.accounts?.name ||
+          transcript.title || '';
         
         return {
           id: transcript.id,
