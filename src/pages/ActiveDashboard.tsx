@@ -45,27 +45,35 @@ export default function ActiveDashboard() {
         .order('created_at', { ascending: false })
         .limit(10);
       
-      return data?.map(transcript => ({
-        id: transcript.id,
-        title: transcript.title || '',
-        participants: Array.isArray(transcript.participants) 
-          ? (transcript.participants as string[])
-          : typeof transcript.participants === 'string' 
-            ? [transcript.participants] 
-            : [],
-        duration_minutes: transcript.duration_minutes || 0,
-        created_at: transcript.created_at || '',
-        status: transcript.status as 'uploaded' | 'processing' | 'completed' | 'error',
-        source: transcript.source_meeting_id ? 'zoom' : 'manual',
-        account_name: transcript.accounts?.name,
-        challenger_scores: transcript.conversation_analysis?.[0]?.challenger_scores as {
-          teaching: number;
-          tailoring: number;
-          control: number;
-        } | undefined,
-        conversation_analysis: transcript.conversation_analysis || [],
-        analysis_created_at: transcript.conversation_analysis?.[0]?.created_at
-      })) || [];
+      return data?.map(transcript => {
+        const callSummary = transcript.conversation_analysis?.[0]?.call_summary as Record<string, any> | undefined;
+        const displayTitle = callSummary?.deal_name ||
+                            callSummary?.contact_name ||
+                            callSummary?.company_name ||
+                            transcript.title || '';
+        
+        return {
+          id: transcript.id,
+          title: displayTitle,
+          participants: Array.isArray(transcript.participants) 
+            ? (transcript.participants as string[])
+            : typeof transcript.participants === 'string' 
+              ? [transcript.participants] 
+              : [],
+          duration_minutes: transcript.duration_minutes || 0,
+          created_at: transcript.created_at || '',
+          status: transcript.status as 'uploaded' | 'processing' | 'completed' | 'error',
+          source: transcript.source_meeting_id ? 'zoom' : 'manual',
+          account_name: transcript.accounts?.name,
+          challenger_scores: transcript.conversation_analysis?.[0]?.challenger_scores as {
+            teaching: number;
+            tailoring: number;
+            control: number;
+          } | undefined,
+          conversation_analysis: transcript.conversation_analysis || [],
+          analysis_created_at: transcript.conversation_analysis?.[0]?.created_at
+        };
+      }) || [];
     },
     enabled: !!user?.id,
   });
