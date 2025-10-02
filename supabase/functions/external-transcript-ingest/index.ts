@@ -62,18 +62,117 @@ serve(async (req) => {
     );
 
     // Parse and validate request body
-    const payload: ExternalTranscriptPayload = await req.json();
+    console.log('🔍 [DEBUG] Request method:', req.method);
+    console.log('🔍 [DEBUG] Content-Type header:', req.headers.get('content-type'));
+    console.log('🔍 [DEBUG] Authorization header present:', !!req.headers.get('authorization'));
+
+    let payload: ExternalTranscriptPayload;
+    try {
+      const rawBody = await req.text();
+      console.log('🔍 [DEBUG] Raw request body length:', rawBody.length);
+      console.log('🔍 [DEBUG] Raw request body preview:', rawBody.substring(0, 500));
+      
+      payload = JSON.parse(rawBody);
+      console.log('🔍 [DEBUG] JSON parsing successful');
+    } catch (parseError) {
+      console.error('❌ [ERROR] JSON parsing failed:', parseError);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Invalid JSON in request body',
+        details: parseError instanceof Error ? parseError.message : 'Unknown parsing error'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
     
     console.log('🔗 [INGEST] Processing payload for user:', payload.assigned_user_email);
+
+    console.log('🔍 [DEBUG] Payload structure:', {
+      keys: Object.keys(payload),
+      hasTranscriptText: 'transcript_text' in payload,
+      hasTranscriptFileUrl: 'transcript_file_url' in payload,
+      hasAssignedEmail: 'assigned_user_email' in payload
+    });
+
+    console.log('🔍 [DEBUG] transcript_text details:', {
+      exists: !!payload.transcript_text,
+      type: typeof payload.transcript_text,
+      length: payload.transcript_text?.length || 0,
+      isEmpty: payload.transcript_text?.trim().length === 0,
+      preview: payload.transcript_text?.substring(0, 50) || 'N/A'
+    });
+
+    console.log('🔍 [DEBUG] transcript_file_url details:', {
+      exists: !!payload.transcript_file_url,
+      type: typeof payload.transcript_file_url,
+      value: payload.transcript_file_url || 'N/A'
+    });
+
+    console.log('🔍 [DEBUG] assigned_user_email details:', {
+      exists: !!payload.assigned_user_email,
+      type: typeof payload.assigned_user_email,
+      value: payload.assigned_user_email,
+      isValid: isValidEmail(payload.assigned_user_email || '')
+    });
+
+    console.log('🔍 [DEBUG] Other fields:', {
+      priority: payload.priority,
+      source: payload.source,
+      zoho_meeting_id: payload.zoho_meeting_id,
+      meeting_metadata: payload.meeting_metadata ? Object.keys(payload.meeting_metadata) : null
+    });
 
     // Validate required fields
     const validation = validatePayload(payload);
     if (!validation.isValid) {
-      console.error('🔗 [ERROR] Validation failed:', validation.errors);
+      console.error('❌ [ERROR] Validation failed with errors:', validation.errors);
+      console.error('❌ [ERROR] Failed payload analysis:', {
+        receivedFields: Object.keys(payload),
+        transcript_text: {
+          provided: !!payload.transcript_text,
+          type: typeof payload.transcript_text,
+          length: payload.transcript_text?.length || 0,
+          isEmpty: !payload.transcript_text || payload.transcript_text.trim().length === 0,
+          preview: payload.transcript_text?.substring(0, 100) || 'N/A'
+        },
+        transcript_file_url: {
+          provided: !!payload.transcript_file_url,
+          value: payload.transcript_file_url || 'N/A'
+        },
+        assigned_user_email: {
+          provided: !!payload.assigned_user_email,
+          value: payload.assigned_user_email,
+          type: typeof payload.assigned_user_email
+        },
+        priority: payload.priority,
+        source: payload.source
+      });
+      
       return new Response(JSON.stringify({
         success: false,
         error: 'Validation failed',
-        details: validation.errors
+        details: validation.errors,
+        debugInfo: {
+          receivedFields: Object.keys(payload),
+          fieldTypes: {
+            transcript_text: typeof payload.transcript_text,
+            transcript_file_url: typeof payload.transcript_file_url,
+            assigned_user_email: typeof payload.assigned_user_email,
+            priority: typeof payload.priority,
+            source: typeof payload.source
+          },
+          fieldPresence: {
+            transcript_text: !!payload.transcript_text,
+            transcript_file_url: !!payload.transcript_file_url,
+            assigned_user_email: !!payload.assigned_user_email
+          },
+          contentPreviews: {
+            transcript_text_length: payload.transcript_text?.length || 0,
+            transcript_text_preview: payload.transcript_text?.substring(0, 50) || 'N/A',
+            email_value: payload.assigned_user_email
+          }
+        }
       }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -227,41 +326,133 @@ serve(async (req) => {
 
 function validatePayload(payload: ExternalTranscriptPayload): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
+  console.log('🔍 [VALIDATION] Starting field-by-field validation');
 
-  // Either transcript_text or transcript_file_url is required
-  if (!payload.transcript_text && !payload.transcript_file_url) {
+  // Check 1: Either transcript_text or transcript_file_url is required
+  const hasTranscriptText = !!payload.transcript_text && payload.transcript_text.trim().length > 0;
+  const hasTranscriptFileUrl = !!payload.transcript_file_url;
+  
+  console.log('🔍 [VALIDATION] Check 1 - Transcript content:', {
+    hasTranscriptText,
+    hasTranscriptFileUrl,
+    transcript_text_length: payload.transcript_text?.length || 0,
+    transcript_text_trimmed_length: payload.transcript_text?.trim().length || 0
+  });
+  
+  if (!hasTranscriptText && !hasTranscriptFileUrl) {
+    console.log('❌ [VALIDATION] FAILED: Missing both transcript_text and transcript_file_url');
     errors.push('Either transcript_text or transcript_file_url is required');
+  } else {
+    console.log('✅ [VALIDATION] PASSED: Transcript content check');
   }
 
-  if (!payload.assigned_user_email || !isValidEmail(payload.assigned_user_email)) {
+  // Check 2: Email validation
+  const emailExists = !!payload.assigned_user_email;
+  const emailValid = emailExists && isValidEmail(payload.assigned_user_email);
+  
+  console.log('🔍 [VALIDATION] Check 2 - Email:', {
+    emailExists,
+    emailValid,
+    emailValue: payload.assigned_user_email,
+    emailType: typeof payload.assigned_user_email
+  });
+  
+  if (!emailExists || !emailValid) {
+    console.log('❌ [VALIDATION] FAILED: Invalid or missing email');
     errors.push('assigned_user_email is required and must be a valid email');
+  } else {
+    console.log('✅ [VALIDATION] PASSED: Email validation');
   }
 
-  // Optional field validation
-  if (payload.priority && !['urgent', 'high', 'normal', 'low'].includes(payload.priority)) {
-    errors.push('priority must be one of: urgent, high, normal, low');
+  // Check 3: Priority validation (optional)
+  if (payload.priority) {
+    const validPriorities = ['urgent', 'high', 'normal', 'low'];
+    const priorityValid = validPriorities.includes(payload.priority);
+    
+    console.log('🔍 [VALIDATION] Check 3 - Priority:', {
+      providedValue: payload.priority,
+      isValid: priorityValid,
+      validOptions: validPriorities
+    });
+    
+    if (!priorityValid) {
+      console.log('❌ [VALIDATION] FAILED: Invalid priority value');
+      errors.push('priority must be one of: urgent, high, normal, low');
+    } else {
+      console.log('✅ [VALIDATION] PASSED: Priority validation');
+    }
+  } else {
+    console.log('🔍 [VALIDATION] Check 3 - Priority: Not provided (optional)');
   }
 
-  if (payload.source && !['zapier', 'zoho', 'api', 'zoho_meeting'].includes(payload.source)) {
-    errors.push('source must be one of: zapier, zoho, api, zoho_meeting');
+  // Check 4: Source validation (optional)
+  if (payload.source) {
+    const validSources = ['zapier', 'zoho', 'api', 'zoho_meeting'];
+    const sourceValid = validSources.includes(payload.source);
+    
+    console.log('🔍 [VALIDATION] Check 4 - Source:', {
+      providedValue: payload.source,
+      isValid: sourceValid,
+      validOptions: validSources
+    });
+    
+    if (!sourceValid) {
+      console.log('❌ [VALIDATION] FAILED: Invalid source value');
+      errors.push('source must be one of: zapier, zoho, api, zoho_meeting');
+    } else {
+      console.log('✅ [VALIDATION] PASSED: Source validation');
+    }
+  } else {
+    console.log('🔍 [VALIDATION] Check 4 - Source: Not provided (optional)');
   }
 
-  // Transcript length validation
-  if (payload.transcript_text && payload.transcript_text.length > 500000) {
-    errors.push('transcript_text exceeds maximum length of 500,000 characters');
-  }
-
-  // URL validation
-  if (payload.transcript_file_url) {
-    try {
-      new URL(payload.transcript_file_url);
-    } catch {
-      errors.push('transcript_file_url must be a valid URL');
+  // Check 5: Transcript length validation
+  if (payload.transcript_text) {
+    const textLength = payload.transcript_text.length;
+    const maxLength = 500000;
+    
+    console.log('🔍 [VALIDATION] Check 5 - Transcript length:', {
+      actualLength: textLength,
+      maxLength: maxLength,
+      withinLimit: textLength <= maxLength
+    });
+    
+    if (textLength > maxLength) {
+      console.log('❌ [VALIDATION] FAILED: Transcript exceeds maximum length');
+      errors.push('transcript_text exceeds maximum length of 500,000 characters');
+    } else {
+      console.log('✅ [VALIDATION] PASSED: Transcript length validation');
     }
   }
 
+  // Check 6: URL validation
+  if (payload.transcript_file_url) {
+    let urlValid = false;
+    try {
+      new URL(payload.transcript_file_url);
+      urlValid = true;
+      console.log('✅ [VALIDATION] PASSED: URL validation');
+    } catch (urlError) {
+      console.log('❌ [VALIDATION] FAILED: Invalid URL format');
+      console.log('🔍 [VALIDATION] URL error:', urlError);
+      errors.push('transcript_file_url must be a valid URL');
+    }
+    
+    console.log('🔍 [VALIDATION] Check 6 - URL:', {
+      providedValue: payload.transcript_file_url,
+      isValid: urlValid
+    });
+  }
+
+  const isValid = errors.length === 0;
+  console.log('🔍 [VALIDATION] Final result:', {
+    isValid,
+    errorCount: errors.length,
+    errors
+  });
+
   return {
-    isValid: errors.length === 0,
+    isValid,
     errors
   };
 }
