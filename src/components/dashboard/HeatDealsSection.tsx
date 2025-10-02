@@ -113,22 +113,40 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
 
   const theme = getThemeClasses()
 
+  const getParticipantNames = (t: TranscriptSummary): string[] => {
+    // Priority 1: extracted_participants from database
+    if (t.extracted_participants && Array.isArray(t.extracted_participants) && t.extracted_participants.length > 0) {
+      return t.extracted_participants.map((p: any) => 
+        typeof p === 'string' ? p : (p.name || 'Unknown')
+      ).filter(Boolean);
+    }
+    
+    // Priority 2: transcript.participants
+    if (t.participants && Array.isArray(t.participants) && t.participants.length > 0) {
+      return t.participants.map((p: any) => 
+        typeof p === 'string' ? p : (p.name || 'Unknown')
+      ).filter(Boolean);
+    }
+    
+    // Priority 3: conversation_analysis participants
+    const analysis: any = t.conversation_analysis?.[0];
+    const participants = Array.isArray(analysis?.participants) ? analysis.participants : [];
+    if (participants.length > 0) {
+      return participants.map((p: any) => 
+        typeof p === 'string' ? p : (p.name || 'Unknown')
+      ).filter(Boolean);
+    }
+    
+    return [];
+  };
+
   const getDisplayTitle = (t: TranscriptSummary) => {
     // Priority 1: Use extracted prospect company name
     if (t.extracted_company_name) return t.extracted_company_name;
     
-    // Priority 2: Build from extracted participant names
-    if (t.extracted_participants && Array.isArray(t.extracted_participants) && t.extracted_participants.length > 0) {
-      const names = t.extracted_participants.map((p: any) => p.name).join(', ');
-      return `Call with ${names}`;
-    }
-    
-    // Priority 3: Existing fallback chain
+    // Priority 2: Existing fallback chain
     const analysis: any = t.conversation_analysis?.[0];
     const cs = analysis?.call_summary as Record<string, any> | undefined;
-    const participants = Array.isArray(analysis?.participants) ? analysis.participants as any[] : [];
-    const first = participants?.[0];
-    const firstName = typeof first === 'string' ? first : first?.name;
     
     return cs?.title ||
            cs?.meeting_title ||
@@ -136,10 +154,9 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
            cs?.company_name ||
            cs?.deal_name ||
            cs?.contact_name ||
-           (firstName ? `Call with ${firstName}` : undefined) ||
            t.account_name ||
            t.title;
-  }
+  };
 
   const formatDuration = (minutes: number) => {
     if (minutes < 60) return `${minutes}m`
@@ -238,11 +255,29 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                         <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors text-sm mb-1">
                           {getDisplayTitle(transcript)}
                         </h4>
+                        {(() => {
+                          const names = getParticipantNames(transcript);
+                          if (names.length > 0) {
+                            const displayNames = names.slice(0, 3).join(', ');
+                            const remaining = names.length - 3;
+                            const fullNames = names.join(', ');
+                            return (
+                              <p 
+                                className="text-xs text-slate-600 mb-1 truncate" 
+                                title={fullNames}
+                                aria-label={`Participants: ${fullNames}`}
+                              >
+                                {displayNames}{remaining > 0 ? ` +${remaining} more` : ''}
+                              </p>
+                            );
+                          }
+                          return null;
+                        })()}
                          <div className="flex items-center space-x-2 text-xs text-slate-500 mb-1">
                            <SourceBadge source={transcript.source || 'manual'} className="text-xs h-4" />
                            <span className="flex items-center">
                              <Users className="h-3 w-3 mr-1" />
-                             {transcript.participants.length}
+                             {getParticipantNames(transcript).length}
                            </span>
                            <span className="flex items-center">
                              <Clock className="h-3 w-3 mr-1" />
