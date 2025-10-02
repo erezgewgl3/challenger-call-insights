@@ -29,11 +29,17 @@ interface UnifiedQueueItem {
   zoho_meeting_id?: string;
   original_filename?: string;
   duration_minutes?: number;
-  source: 'database' | 'zoom'; // To differentiate between DB transcripts and Zoom meetings
+  source: 'database' | 'zoom';
   sourceType: 'manual' | 'zoom' | 'zapier' | 'zoho';
   attendees?: string[];
   date?: string;
   isNew?: boolean;
+  deal_context?: {
+    company_name?: string;
+    contact_name?: string;
+    deal_name?: string;
+    meeting_host?: string;
+  };
 }
 
 interface QueueData {
@@ -267,6 +273,15 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     return null; // Don't show if queue is empty
   }
 
+  // Helper to get smart display title from deal context
+  const getDisplayTitle = (item: UnifiedQueueItem): string => {
+    return item.deal_context?.deal_name 
+      || (item.deal_context?.contact_name ? `Call with ${item.deal_context.contact_name}` : null)
+      || item.original_filename
+      || item.title
+      || 'Untitled Transcript';
+  };
+
   return (
     <>
       <Card className="shadow-sm hover:shadow-md transition-shadow">
@@ -330,11 +345,11 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                   className="p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0">
                       {/* Title, Source Badge, and Status */}
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <h4 className="font-semibold text-foreground truncate">
-                          {item.title || 'Untitled Transcript'}
+                          {getDisplayTitle(item)}
                         </h4>
                         <SourceBadge source={item.sourceType} />
                         {item.isNew && (
@@ -351,7 +366,31 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                         )}
                       </div>
 
-                      {/* Metadata */}
+                      {/* Rich Context from deal_context */}
+                      {item.deal_context && (item.deal_context.contact_name || item.deal_context.company_name || item.deal_context.meeting_host) && (
+                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
+                          {item.deal_context.contact_name && (
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              {item.deal_context.contact_name}
+                            </span>
+                          )}
+                          {item.deal_context.company_name && (
+                            <span className="flex items-center gap-1">
+                              <Building2 className="h-3 w-3" />
+                              {item.deal_context.company_name}
+                            </span>
+                          )}
+                          {item.deal_context.meeting_host && (
+                            <span className="flex items-center gap-1">
+                              <User className="h-3 w-3" />
+                              Hosted by {item.deal_context.meeting_host}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Standard Metadata */}
                       <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-2">
                         {item.attendees && item.attendees.length > 0 && (
                           <span className="flex items-center gap-1">
