@@ -433,7 +433,22 @@ serve(async (req) => {
 
     console.log(`[CALLBACK-INTEGRATION] Token exchange successful, creating connection`);
 
-    // SAFE FIX: Use UPSERT to handle reconnections
+    // SECURE: Store credentials in Vault instead of plaintext
+    const { storeCredentialsInVault, generateSecretName } = await import('../_shared/vault-helpers.ts');
+    
+    const secretName = generateSecretName(integrationId, userId);
+    const vaultSecretId = await storeCredentialsInVault(
+      supabase,
+      {
+        access_token: accessToken,
+        refresh_token: refreshToken,
+        expires_at: Date.now() + (3600 * 1000), // 1 hour default
+      },
+      secretName
+    );
+
+    console.log(`[CALLBACK-INTEGRATION] Credentials stored in vault: ${vaultSecretId}`);
+    
     // Get a properly formatted account name based on the user info
     const formattedAccountName = getFormattedAccountName(integrationId, userInfo);
     
@@ -444,11 +459,8 @@ serve(async (req) => {
         integration_type: integrationId,
         connection_name: formattedAccountName,
         connection_status: 'active',
-        credentials: {
-          access_token: accessToken,
-          refresh_token: refreshToken,
-          expires_at: Date.now() + (3600 * 1000), // 1 hour default
-        },
+        vault_secret_id: vaultSecretId, // Reference to vault secret
+        credentials: {}, // Empty - credentials in vault
         configuration: {
           user_info: userInfo,
           connected_at: new Date().toISOString(),

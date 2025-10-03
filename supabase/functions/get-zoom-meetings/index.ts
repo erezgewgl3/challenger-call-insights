@@ -74,14 +74,30 @@ serve(async (req) => {
       });
     }
 
-    console.log('Found Zoom connection, fetching access token');
+    console.log('Found Zoom connection, fetching credentials from vault');
 
-    // Extract access token from credentials
-    const credentials = connection.credentials as any;
+    // SECURE: Retrieve credentials from vault
+    const { getCredentialsFromVault } = await import('../_shared/vault-helpers.ts');
+    
+    let credentials: any;
+    try {
+      if (connection.vault_secret_id) {
+        // New secure method: get from vault
+        credentials = await getCredentialsFromVault(supabase, connection.vault_secret_id);
+      } else {
+        // Legacy fallback: credentials still in database (migration pending)
+        credentials = connection.credentials as any;
+        console.warn('Using legacy plaintext credentials - migration to vault recommended');
+      }
+    } catch (vaultError) {
+      console.error('Vault retrieval failed, falling back to database credentials:', vaultError);
+      credentials = connection.credentials as any;
+    }
+    
     let accessToken = credentials?.access_token;
 
     if (!accessToken) {
-      console.error('No access token found in connection');
+      console.error('No access token found');
       throw new Error('No access token available');
     }
 
@@ -193,7 +209,9 @@ async function refreshZoomToken(connection: any, supabase: any): Promise<string>
 
   const tokenData = await refreshResponse.json();
 
-  // Update the connection with new tokens
+  // SECURE: Update credentials in vault
+  const { updateCredentialsInVault } = await import('../_shared/vault-helpers.ts');
+  
   const updatedCredentials = {
     ...credentials,
     access_token: tokenData.access_token,
@@ -201,10 +219,16 @@ async function refreshZoomToken(connection: any, supabase: any): Promise<string>
     expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
   };
 
-  await supabase
-    .from('integration_connections')
-    .update({ credentials: updatedCredentials })
-    .eq('id', connection.id);
+  if (connection.vault_secret_id) {
+    // Update in vault
+    await updateCredentialsInVault(supabase, connection.vault_secret_id, updatedCredentials);
+  } else {
+    // Legacy: update database (migration pending)
+    await supabase
+      .from('integration_connections')
+      .update({ credentials: updatedCredentials })
+      .eq('id', connection.id);
+  }
 
   console.log('Token refreshed successfully');
   return tokenData.access_token;

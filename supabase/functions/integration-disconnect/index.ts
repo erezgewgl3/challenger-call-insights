@@ -79,13 +79,26 @@ serve(async (req) => {
       // Continue with local disconnection even if provider revocation fails
     }
 
+    // SECURE: Delete credentials from vault if present
+    if (connection.vault_secret_id) {
+      try {
+        const { deleteCredentialsFromVault } = await import('../_shared/vault-helpers.ts');
+        await deleteCredentialsFromVault(supabase, connection.vault_secret_id);
+        console.log('[DISCONNECT-INTEGRATION] Vault credentials deleted');
+      } catch (vaultError) {
+        console.warn('[DISCONNECT-INTEGRATION] Could not delete vault credentials:', vaultError);
+        // Continue with disconnection even if vault deletion fails
+      }
+    }
+    
     // Update connection status to inactive
     await supabase
       .from('integration_connections')
       .update({
         connection_status: 'inactive',
         last_sync_at: null,
-        credentials: {}, // Clear credentials
+        vault_secret_id: null, // Clear vault reference
+        credentials: {}, // Clear any legacy credentials
         updated_at: new Date().toISOString(),
       })
       .eq('id', connection_id)
