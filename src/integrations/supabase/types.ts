@@ -533,6 +533,7 @@ export type Database = {
           sync_frequency_minutes: number | null
           updated_at: string
           user_id: string
+          vault_secret_id: string | null
           webhook_url: string | null
         }
         Insert: {
@@ -549,6 +550,7 @@ export type Database = {
           sync_frequency_minutes?: number | null
           updated_at?: string
           user_id: string
+          vault_secret_id?: string | null
           webhook_url?: string | null
         }
         Update: {
@@ -565,6 +567,7 @@ export type Database = {
           sync_frequency_minutes?: number | null
           updated_at?: string
           user_id?: string
+          vault_secret_id?: string | null
           webhook_url?: string | null
         }
         Relationships: []
@@ -1481,6 +1484,47 @@ export type Database = {
           status?: Database["public"]["Enums"]["user_status"] | null
         }
         Relationships: []
+      }
+      vault_access_log: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          integration_type: string
+          operation: string
+          success: boolean
+          user_id: string
+          vault_secret_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          integration_type: string
+          operation: string
+          success?: boolean
+          user_id: string
+          vault_secret_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          integration_type?: string
+          operation?: string
+          success?: boolean
+          user_id?: string
+          vault_secret_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_access_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webhook_delivery_log: {
         Row: {

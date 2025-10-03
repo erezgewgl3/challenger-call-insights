@@ -30,19 +30,24 @@ export async function storeCredentialsInVault(
   console.log(`[VAULT] Storing credentials in vault: ${secretName}`);
   
   try {
-    // Store in vault using vault.create_secret RPC
-    const { data, error } = await supabase.rpc('vault_create_secret', {
-      secret_name: secretName,
-      secret_value: JSON.stringify(credentials)
-    });
+    // Store in vault using insert to vault.secrets table
+    const { data, error } = await supabase
+      .from('vault.secrets')
+      .insert({
+        name: secretName,
+        secret: JSON.stringify(credentials),
+        description: `OAuth credentials for ${secretName}`
+      })
+      .select('id')
+      .single();
 
     if (error) {
       console.error('[VAULT] Failed to store credentials:', error);
       throw new Error(`Vault storage failed: ${error.message}`);
     }
 
-    console.log(`[VAULT] Credentials stored successfully with ID: ${data}`);
-    return data;
+    console.log(`[VAULT] Credentials stored successfully with ID: ${data.id}`);
+    return data.id;
   } catch (error) {
     console.error('[VAULT] Error storing credentials:', error);
     throw error;
@@ -62,22 +67,26 @@ export async function getCredentialsFromVault(
   console.log(`[VAULT] Retrieving credentials from vault: ${vaultSecretId}`);
   
   try {
-    // Retrieve from vault using vault.read_secret RPC
-    const { data, error } = await supabase.rpc('vault_read_secret', {
-      secret_id: vaultSecretId
-    });
+    // Retrieve from vault using select from vault.decrypted_secrets
+    const { data, error } = await supabase
+      .from('vault.decrypted_secrets')
+      .select('decrypted_secret')
+      .eq('id', vaultSecretId)
+      .single();
 
     if (error) {
       console.error('[VAULT] Failed to retrieve credentials:', error);
       throw new Error(`Vault retrieval failed: ${error.message}`);
     }
 
-    if (!data) {
+    if (!data || !data.decrypted_secret) {
       throw new Error('No credentials found in vault');
     }
 
     // Parse the JSON string back to object
-    const credentials = typeof data === 'string' ? JSON.parse(data) : data;
+    const credentials = typeof data.decrypted_secret === 'string' 
+      ? JSON.parse(data.decrypted_secret) 
+      : data.decrypted_secret;
     console.log('[VAULT] Credentials retrieved successfully');
     return credentials;
   } catch (error) {
@@ -100,10 +109,13 @@ export async function updateCredentialsInVault(
   console.log(`[VAULT] Updating credentials in vault: ${vaultSecretId}`);
   
   try {
-    const { error } = await supabase.rpc('vault_update_secret', {
-      secret_id: vaultSecretId,
-      secret_value: JSON.stringify(credentials)
-    });
+    const { error } = await supabase
+      .from('vault.secrets')
+      .update({
+        secret: JSON.stringify(credentials),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', vaultSecretId);
 
     if (error) {
       console.error('[VAULT] Failed to update credentials:', error);
@@ -129,9 +141,10 @@ export async function deleteCredentialsFromVault(
   console.log(`[VAULT] Deleting credentials from vault: ${vaultSecretId}`);
   
   try {
-    const { error } = await supabase.rpc('vault_delete_secret', {
-      secret_id: vaultSecretId
-    });
+    const { error } = await supabase
+      .from('vault.secrets')
+      .delete()
+      .eq('id', vaultSecretId);
 
     if (error) {
       console.error('[VAULT] Failed to delete credentials:', error);

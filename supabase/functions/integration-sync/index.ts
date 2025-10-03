@@ -79,19 +79,19 @@ serve(async (req) => {
       // Perform integration-specific sync logic
       switch (connection.integration_type.toLowerCase()) {
         case 'github':
-          syncResult = await performGitHubSync(connection, operation_type);
+          syncResult = await performGitHubSync(connection, operation_type, supabase);
           break;
 
         case 'google':
-          syncResult = await performGoogleSync(connection, operation_type);
+          syncResult = await performGoogleSync(connection, operation_type, supabase);
           break;
 
         case 'slack':
-          syncResult = await performSlackSync(connection, operation_type);
+          syncResult = await performSlackSync(connection, operation_type, supabase);
           break;
 
         case 'salesforce':
-          syncResult = await performSalesforceSync(connection, operation_type);
+          syncResult = await performSalesforceSync(connection, operation_type, supabase);
           break;
 
         default:
@@ -184,10 +184,29 @@ serve(async (req) => {
 });
 
 // Integration-specific sync functions
-async function performGitHubSync(connection: any, operationType: string) {
+async function getCredentialsForConnection(connection: any, supabase: any) {
+  // SECURE: Retrieve credentials from vault
+  const { getCredentialsFromVault } = await import('../_shared/vault-helpers.ts');
+  
+  if (connection.vault_secret_id) {
+    try {
+      return await getCredentialsFromVault(supabase, connection.vault_secret_id);
+    } catch (vaultError) {
+      console.warn('[SYNC] Vault retrieval failed, falling back to database:', vaultError);
+      return connection.credentials;
+    }
+  }
+  
+  // Legacy fallback
+  console.warn('[SYNC] Using legacy plaintext credentials - migration to vault recommended');
+  return connection.credentials;
+}
+
+async function performGitHubSync(connection: any, operationType: string, supabase: any) {
   console.log(`[GITHUB-SYNC] Performing ${operationType} sync`);
   
-  const accessToken = connection.credentials.access_token;
+  const credentials = await getCredentialsForConnection(connection, supabase);
+  const accessToken = credentials.access_token;
   
   // Get user repositories
   const reposResponse = await fetch('https://api.github.com/user/repos', {
@@ -210,11 +229,12 @@ async function performGitHubSync(connection: any, operationType: string) {
   };
 }
 
-async function performGoogleSync(connection: any, operationType: string) {
+async function performGoogleSync(connection: any, operationType: string, supabase: any) {
   console.log(`[GOOGLE-SYNC] Performing ${operationType} sync`);
   
   // Example: Sync Google Drive files or Calendar events
-  const accessToken = connection.credentials.access_token;
+  const credentials = await getCredentialsForConnection(connection, supabase);
+  const accessToken = credentials.access_token;
   
   const driveResponse = await fetch('https://www.googleapis.com/drive/v3/files', {
     headers: {
@@ -234,10 +254,11 @@ async function performGoogleSync(connection: any, operationType: string) {
   };
 }
 
-async function performSlackSync(connection: any, operationType: string) {
+async function performSlackSync(connection: any, operationType: string, supabase: any) {
   console.log(`[SLACK-SYNC] Performing ${operationType} sync`);
   
-  const accessToken = connection.credentials.access_token;
+  const credentials = await getCredentialsForConnection(connection, supabase);
+  const accessToken = credentials.access_token;
   
   // Get channels list
   const channelsResponse = await fetch('https://slack.com/api/conversations.list', {
@@ -262,10 +283,11 @@ async function performSlackSync(connection: any, operationType: string) {
   };
 }
 
-async function performSalesforceSync(connection: any, operationType: string) {
+async function performSalesforceSync(connection: any, operationType: string, supabase: any) {
   console.log(`[SALESFORCE-SYNC] Performing ${operationType} sync`);
   
-  const accessToken = connection.credentials.access_token;
+  const credentials = await getCredentialsForConnection(connection, supabase);
+  const accessToken = credentials.access_token;
   const instanceUrl = connection.configuration.instance_url;
   
   // Get accounts from Salesforce
