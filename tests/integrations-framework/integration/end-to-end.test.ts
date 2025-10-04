@@ -201,7 +201,31 @@ describe('End-to-End Integration Framework', () => {
       expect(updateData.status).toBe('success');
       expect(updateData.data.sync_frequency_minutes).toBe(60);
 
-      console.log('✅ End-to-end integration workflow completed successfully!');
+      // Phase 10: Verify vault security
+      console.log('Phase 10: Verifying vault security...');
+      
+      // Verify credentials are stored in vault, not in database
+      const { data: connectionData } = await testSupabase
+        .from('integration_connections')
+        .select('vault_secret_id, credentials')
+        .eq('id', connectionId)
+        .single();
+
+      expect(connectionData.vault_secret_id).toBeDefined();
+      expect(connectionData.credentials).toEqual({});
+
+      // Verify vault access was logged
+      const { data: vaultLogs } = await testSupabase
+        .from('vault_access_log')
+        .select('*')
+        .eq('user_id', testUserId)
+        .order('created_at', { ascending: false });
+
+      expect(vaultLogs.length).toBeGreaterThan(0);
+      expect(vaultLogs.some(log => log.operation === 'store')).toBe(true);
+      expect(vaultLogs.some(log => log.operation === 'retrieve')).toBe(true);
+
+      console.log('✅ End-to-end integration workflow completed successfully with vault security!');
     });
 
     test('should handle integration error recovery', async () => {
