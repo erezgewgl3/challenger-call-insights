@@ -83,7 +83,12 @@ serve(async (req) => {
     if (connection.vault_secret_id) {
       try {
         const { deleteCredentialsFromVault } = await import('../_shared/vault-helpers.ts');
-        await deleteCredentialsFromVault(supabase, connection.vault_secret_id);
+        await deleteCredentialsFromVault(
+          supabase, 
+          connection.vault_secret_id, 
+          userData.user.id, 
+          connection.integration_type
+        );
         console.log('[DISCONNECT-INTEGRATION] Vault credentials deleted');
       } catch (vaultError) {
         console.warn('[DISCONNECT-INTEGRATION] Could not delete vault credentials:', vaultError);

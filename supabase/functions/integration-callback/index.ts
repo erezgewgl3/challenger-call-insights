@@ -444,7 +444,9 @@ serve(async (req) => {
         refresh_token: refreshToken,
         expires_at: Date.now() + (3600 * 1000), // 1 hour default
       },
-      secretName
+      secretName,
+      userId,
+      integrationId
     );
 
     console.log(`[CALLBACK-INTEGRATION] Credentials stored in vault: ${vaultSecretId}`);

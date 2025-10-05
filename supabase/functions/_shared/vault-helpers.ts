@@ -25,7 +25,9 @@ export interface VaultCredentials {
 export async function storeCredentialsInVault(
   supabase: SupabaseClient,
   credentials: VaultCredentials,
-  secretName: string
+  secretName: string,
+  userId: string,
+  integrationType: string
 ): Promise<string> {
   console.log(`[VAULT] Storing credentials in vault: ${secretName}`);
   
@@ -43,10 +45,18 @@ export async function storeCredentialsInVault(
 
     if (error) {
       console.error('[VAULT] Failed to store credentials:', error);
+      
+      // Log the failure
+      await logVaultAccess(supabase, userId, integrationType, 'store', null, false, error.message);
+      
       throw new Error(`Vault storage failed: ${error.message}`);
     }
 
     console.log(`[VAULT] Credentials stored successfully with ID: ${data.id}`);
+    
+    // Log the successful operation
+    await logVaultAccess(supabase, userId, integrationType, 'store', data.id, true);
+    
     return data.id;
   } catch (error) {
     console.error('[VAULT] Error storing credentials:', error);
@@ -62,7 +72,9 @@ export async function storeCredentialsInVault(
  */
 export async function getCredentialsFromVault(
   supabase: SupabaseClient,
-  vaultSecretId: string
+  vaultSecretId: string,
+  userId: string,
+  integrationType: string
 ): Promise<VaultCredentials> {
   console.log(`[VAULT] Retrieving credentials from vault: ${vaultSecretId}`);
   
@@ -76,18 +88,29 @@ export async function getCredentialsFromVault(
 
     if (error) {
       console.error('[VAULT] Failed to retrieve credentials:', error);
+      
+      // Log the failure
+      await logVaultAccess(supabase, userId, integrationType, 'retrieve', vaultSecretId, false, error.message);
+      
       throw new Error(`Vault retrieval failed: ${error.message}`);
     }
 
     if (!data || !data.decrypted_secret) {
-      throw new Error('No credentials found in vault');
+      const errorMsg = 'No credentials found in vault';
+      await logVaultAccess(supabase, userId, integrationType, 'retrieve', vaultSecretId, false, errorMsg);
+      throw new Error(errorMsg);
     }
 
     // Parse the JSON string back to object
     const credentials = typeof data.decrypted_secret === 'string' 
       ? JSON.parse(data.decrypted_secret) 
       : data.decrypted_secret;
+    
     console.log('[VAULT] Credentials retrieved successfully');
+    
+    // Log the successful operation
+    await logVaultAccess(supabase, userId, integrationType, 'retrieve', vaultSecretId, true);
+    
     return credentials;
   } catch (error) {
     console.error('[VAULT] Error retrieving credentials:', error);
@@ -104,7 +127,9 @@ export async function getCredentialsFromVault(
 export async function updateCredentialsInVault(
   supabase: SupabaseClient,
   vaultSecretId: string,
-  credentials: VaultCredentials
+  credentials: VaultCredentials,
+  userId: string,
+  integrationType: string
 ): Promise<void> {
   console.log(`[VAULT] Updating credentials in vault: ${vaultSecretId}`);
   
@@ -119,10 +144,17 @@ export async function updateCredentialsInVault(
 
     if (error) {
       console.error('[VAULT] Failed to update credentials:', error);
+      
+      // Log the failure
+      await logVaultAccess(supabase, userId, integrationType, 'update', vaultSecretId, false, error.message);
+      
       throw new Error(`Vault update failed: ${error.message}`);
     }
 
     console.log('[VAULT] Credentials updated successfully');
+    
+    // Log the successful operation
+    await logVaultAccess(supabase, userId, integrationType, 'update', vaultSecretId, true);
   } catch (error) {
     console.error('[VAULT] Error updating credentials:', error);
     throw error;
@@ -136,7 +168,9 @@ export async function updateCredentialsInVault(
  */
 export async function deleteCredentialsFromVault(
   supabase: SupabaseClient,
-  vaultSecretId: string
+  vaultSecretId: string,
+  userId: string,
+  integrationType: string
 ): Promise<void> {
   console.log(`[VAULT] Deleting credentials from vault: ${vaultSecretId}`);
   
@@ -148,13 +182,56 @@ export async function deleteCredentialsFromVault(
 
     if (error) {
       console.error('[VAULT] Failed to delete credentials:', error);
+      
+      // Log the failure
+      await logVaultAccess(supabase, userId, integrationType, 'delete', vaultSecretId, false, error.message);
+      
       throw new Error(`Vault deletion failed: ${error.message}`);
     }
 
     console.log('[VAULT] Credentials deleted successfully');
+    
+    // Log the successful operation
+    await logVaultAccess(supabase, userId, integrationType, 'delete', vaultSecretId, true);
   } catch (error) {
     console.error('[VAULT] Error deleting credentials:', error);
     throw error;
+  }
+}
+
+/**
+ * Log vault access for audit trail
+ * @param supabase Supabase client
+ * @param userId User ID performing the operation
+ * @param integrationType Integration type
+ * @param operation Type of operation (store, retrieve, update, delete)
+ * @param vaultSecretId Vault secret ID (if applicable)
+ * @param success Whether the operation succeeded
+ * @param errorMessage Error message if operation failed
+ */
+async function logVaultAccess(
+  supabase: SupabaseClient,
+  userId: string,
+  integrationType: string,
+  operation: string,
+  vaultSecretId: string | null,
+  success: boolean,
+  errorMessage?: string
+): Promise<void> {
+  try {
+    await supabase
+      .from('vault_access_log')
+      .insert({
+        user_id: userId,
+        integration_type: integrationType,
+        operation,
+        vault_secret_id: vaultSecretId,
+        success,
+        error_message: errorMessage || null,
+      });
+  } catch (error) {
+    // Don't throw on logging errors - just log to console
+    console.error('[VAULT] Failed to log vault access:', error);
   }
 }
 

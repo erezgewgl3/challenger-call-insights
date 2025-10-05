@@ -190,7 +190,12 @@ async function getCredentialsForConnection(connection: any, supabase: any) {
   
   if (connection.vault_secret_id) {
     try {
-      return await getCredentialsFromVault(supabase, connection.vault_secret_id);
+      return await getCredentialsFromVault(
+        supabase, 
+        connection.vault_secret_id,
+        connection.user_id,
+        connection.integration_type
+      );
     } catch (vaultError) {
       console.warn('[SYNC] Vault retrieval failed, falling back to database:', vaultError);
       return connection.credentials;
