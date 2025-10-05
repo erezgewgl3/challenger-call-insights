@@ -72,7 +72,7 @@ export function IntegrationCard({
           
           {/* Connection Details */}
           {connection && (
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground space-y-1">
               <div className="flex justify-between">
                 <span>Connection:</span>
                 <span className="font-medium">{connection.connectionName}</span>
@@ -81,6 +81,14 @@ export function IntegrationCard({
                 <div className="flex justify-between">
                   <span>Last Sync:</span>
                   <span>{new Date(connection.lastSyncAt).toLocaleDateString()}</span>
+                </div>
+              )}
+              {connection.vaultSecretId && (
+                <div className="flex justify-between items-center">
+                  <span>Security:</span>
+                  <Badge variant="outline" className="text-xs">
+                    <span className="text-green-600">Vault Encrypted</span>
+                  </Badge>
                 </div>
               )}
             </div>

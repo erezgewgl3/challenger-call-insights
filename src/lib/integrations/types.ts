@@ -38,6 +38,9 @@ export interface IntegrationConnection {
   credentials: Record<string, unknown>;
   configuration: Record<string, unknown>;
   
+  // Security
+  vaultSecretId?: string; // UUID reference to Supabase Vault encrypted credentials
+  
   // Sync information
   lastSyncAt?: Date;
   nextSyncAt?: Date;

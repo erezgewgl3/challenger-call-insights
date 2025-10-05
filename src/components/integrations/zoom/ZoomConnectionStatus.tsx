@@ -10,7 +10,8 @@ import {
   CheckCircle, 
   AlertCircle, 
   XCircle,
-  Activity
+  Activity,
+  Shield
 } from 'lucide-react';
 
 interface ZoomConnectionStatusProps {
@@ -95,6 +96,18 @@ export const ZoomConnectionStatus: React.FC<ZoomConnectionStatusProps> = ({
               </p>
             </div>
           </div>
+
+          {connection.vaultSecretId && (
+            <div className="p-3 bg-green-50 border border-green-200 rounded-md">
+              <div className="flex items-center gap-2">
+                <Shield className="h-4 w-4 text-green-600" />
+                <span className="text-sm font-medium text-green-700">Vault Secured</span>
+              </div>
+              <p className="text-sm text-green-600 mt-1">
+                Your Zoom credentials are encrypted and stored securely in Supabase Vault
+              </p>
+            </div>
+          )}
 
           {connection.lastError && (
             <div className="p-3 bg-red-50 border border-red-200 rounded-md">

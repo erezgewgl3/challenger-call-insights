@@ -1,7 +1,7 @@
 import React from "react";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { AlertCircle, CheckCircle, Clock, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Clock, XCircle, Shield } from "lucide-react";
 import { IntegrationConnection } from "@/lib/integrations/types";
 
 interface IntegrationStatusProps {
@@ -73,29 +73,49 @@ export function IntegrationStatus({
     </Badge>
   );
 
+  const isVaultSecured = !!connection.vaultSecretId;
+
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        {statusBadge}
-      </TooltipTrigger>
-      <TooltipContent>
-        <div className="max-w-xs">
-          <p className="font-medium">{statusConfig.label} Connection</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {statusConfig.description}
-          </p>
-          {connection.lastSyncAt && (
-            <p className="text-xs text-muted-foreground mt-2">
-              Last sync: {new Date(connection.lastSyncAt).toLocaleString()}
+    <div className="flex items-center gap-2">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          {statusBadge}
+        </TooltipTrigger>
+        <TooltipContent>
+          <div className="max-w-xs">
+            <p className="font-medium">{statusConfig.label} Connection</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              {statusConfig.description}
             </p>
-          )}
-          {connection.errorCount > 0 && (
-            <p className="text-xs text-destructive mt-1">
-              {connection.errorCount} error(s) recorded
+            {connection.lastSyncAt && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Last sync: {new Date(connection.lastSyncAt).toLocaleString()}
+              </p>
+            )}
+            {connection.errorCount > 0 && (
+              <p className="text-xs text-destructive mt-1">
+                {connection.errorCount} error(s) recorded
+              </p>
+            )}
+          </div>
+        </TooltipContent>
+      </Tooltip>
+      
+      {isVaultSecured && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Shield className="h-3 w-3 text-green-600" />
+              {showLabel && <span className="text-xs">Secured</span>}
+            </Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p className="text-sm">
+              Credentials are encrypted and stored securely in Supabase Vault
             </p>
-          )}
-        </div>
-      </TooltipContent>
-    </Tooltip>
+          </TooltipContent>
+        </Tooltip>
+      )}
+    </div>
   );
 }
