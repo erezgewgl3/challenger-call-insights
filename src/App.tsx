@@ -14,6 +14,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import PromptManagement from "./pages/PromptManagement";
 import UserManagement from "./pages/admin/UserManagement";
 import GDPRCompliance from "./pages/admin/GDPRCompliance";
+import VaultMonitoring from "./pages/admin/VaultMonitoring";
 import NotFound from "./pages/NotFound";
 import { ZapierStatusProvider } from "@/contexts/ZapierStatusContext";
 import TranscriptAnalysis from "./pages/TranscriptAnalysis";
@@ -105,6 +106,13 @@ function App() {
               <ZapierStatusProvider>
                 <AdminGuard>
                   <AdminIntegrationCallback />
+                </AdminGuard>
+              </ZapierStatusProvider>
+            } />
+            <Route path="/admin/vault-monitoring" element={
+              <ZapierStatusProvider>
+                <AdminGuard>
+                  <VaultMonitoring />
                 </AdminGuard>
               </ZapierStatusProvider>
             } />

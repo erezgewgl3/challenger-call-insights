@@ -11,7 +11,8 @@ import {
   Shield,
   LogOut,
   Zap,
-  ChevronDown
+  ChevronDown,
+  Lock
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -52,6 +53,13 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       description: 'Manage users and invites'
     },
     {
+      title: 'Vault Security',
+      href: '/admin/vault-monitoring',
+      icon: Lock,
+      description: 'Monitor credential security',
+      badge: 'New'
+    },
+    {
       title: 'Analytics',
       href: '/admin/analytics',
       icon: BarChart3,
@@ -81,6 +89,8 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         breadcrumbs.push({ label: 'AI Prompt Management', href: '/admin/prompts' });
       } else if (pathSegments[1] === 'users') {
         breadcrumbs.push({ label: 'User Management', href: '/admin/users' });
+      } else if (pathSegments[1] === 'vault-monitoring') {
+        breadcrumbs.push({ label: 'Vault Security', href: '/admin/vault-monitoring' });
       }
     }
     
