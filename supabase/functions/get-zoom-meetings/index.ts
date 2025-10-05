@@ -83,7 +83,12 @@ serve(async (req) => {
     try {
       if (connection.vault_secret_id) {
         // New secure method: get from vault
-        credentials = await getCredentialsFromVault(supabase, connection.vault_secret_id);
+        credentials = await getCredentialsFromVault(
+          supabase, 
+          connection.vault_secret_id,
+          userData.user.id,
+          'zoom'
+        );
       } else {
         // Legacy fallback: credentials still in database (migration pending)
         credentials = connection.credentials as any;
@@ -221,7 +226,13 @@ async function refreshZoomToken(connection: any, supabase: any): Promise<string>
 
   if (connection.vault_secret_id) {
     // Update in vault
-    await updateCredentialsInVault(supabase, connection.vault_secret_id, updatedCredentials);
+    await updateCredentialsInVault(
+      supabase, 
+      connection.vault_secret_id, 
+      updatedCredentials,
+      connection.user_id,
+      'zoom'
+    );
   } else {
     // Legacy: update database (migration pending)
     await supabase
