@@ -2186,15 +2186,7 @@ export type Database = {
         Returns: undefined
       }
       log_security_event: {
-        Args:
-          | {
-              p_details?: Json
-              p_event_type: string
-              p_ip_address?: string
-              p_user_agent?: string
-              p_user_id: string
-            }
-          | { p_details?: Json; p_event_type: string; p_user_id: string }
+        Args: { p_details?: Json; p_event_type: string; p_user_id: string }
         Returns: undefined
       }
       lookup_user_by_email: {
