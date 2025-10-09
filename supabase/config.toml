@@ -11,6 +11,7 @@ verify_jwt = true
 
 [functions.analyze-transcript]
 verify_jwt = true
+timeout = 300
 
 [functions.execute-ai-prompt]
 verify_jwt = true
