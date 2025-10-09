@@ -81,9 +81,12 @@ export function HeroSection({
           ) : (
             <span className="text-slate-400 italic">No client contacts identified</span>
           )}
-          {participants?.salesRep?.name && (
+          {participants?.sellerTeam && participants.sellerTeam.length > 0 && (
             <Badge variant="secondary" className="text-xs bg-blue-500/20 text-blue-200 border-blue-400/30">
-              Rep: {participants.salesRep.name}
+              {participants.sellerTeam.length === 1 
+                ? `Rep: ${participants.sellerTeam[0].name}`
+                : `Rep Team: ${participants.sellerTeam.slice(0, 2).map((p: any) => p.name).join(', ')}${participants.sellerTeam.length > 2 ? ` +${participants.sellerTeam.length - 2}` : ''}`
+              }
             </Badge>
           )}
         </div>

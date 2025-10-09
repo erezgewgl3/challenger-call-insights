@@ -373,8 +373,51 @@ export function NewAnalysisView({
   const decisionMaker = getDecisionMaker()
   const buyingSignals = getBuyingSignals()
   const timeline = getTimeline()
-  const participants = analysis.participants || {}
   const conversationIntel = getConversationIntelligence()
+
+  // 🚀 Build enhanced participants object with sellerTeam
+  const participantsRaw = analysis.participants || {}
+  const clients = (participantsRaw.clientContacts || []).map((c: any) => (c?.name || '').trim().toLowerCase())
+  const clientSet = new Set(clients)
+
+  const sellerTeam: Array<{name: string; company?: string}> = []
+  
+  // Add primary sales rep
+  if (participantsRaw.salesRep?.name) {
+    sellerTeam.push({ 
+      name: participantsRaw.salesRep.name, 
+      company: participantsRaw.salesRep.company || 'Actifile' 
+    })
+  }
+
+  // Merge any pre-existing seller team from AI
+  const preExisting = (participantsRaw.sellerTeam || participantsRaw.additionalReps || [])
+    .map((p: any) => ({ name: p.name, company: p.company || 'Actifile' }))
+    .filter((p: any) => p.name)
+
+  for (const p of preExisting) sellerTeam.push(p)
+
+  // Infer additional internal attendees from transcript.participants
+  for (const n of (transcript.participants || [])) {
+    const name = typeof n === 'string' ? n : (n as any)?.name
+    if (!name) continue
+    const lower = name.trim().toLowerCase()
+    const repNameLower = (participantsRaw.salesRep?.name || '').trim().toLowerCase()
+    if (!clientSet.has(lower) && lower !== repNameLower) {
+      sellerTeam.push({ name, company: 'Actifile' })
+    }
+  }
+
+  // Deduplicate by name
+  const seen = new Set<string>()
+  const sellerTeamDedup = sellerTeam.filter(p => {
+    const key = (p.name || '').trim().toLowerCase()
+    if (!key || seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+
+  const participantsEnhanced = { ...participantsRaw, sellerTeam: sellerTeamDedup }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
@@ -449,7 +492,7 @@ export function NewAnalysisView({
             decisionMaker={decisionMaker}
             buyingSignals={buyingSignals}
             timeline={timeline}
-            participants={participants}
+            participants={participantsEnhanced}
             getStakeholderDisplay={getStakeholderDisplay}
             getRoleIcon={getRoleIcon}
           />
