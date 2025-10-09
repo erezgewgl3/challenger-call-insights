@@ -6,6 +6,7 @@ import { Users, MessageSquare, Settings, Activity, BarChart3, TrendingUp, Shield
 import { Link } from 'react-router-dom'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { SystemMonitor } from '@/components/admin/SystemMonitor'
+import { SecurityDashboard } from '@/components/admin/security/SecurityDashboard'
 import { SystemMetricCard } from '@/components/admin/analytics/SystemMetricCard'
 import { UserGrowthChart } from '@/components/admin/analytics/UserGrowthChart'
 import { TranscriptVolumeChart } from '@/components/admin/analytics/TranscriptVolumeChart'
@@ -36,7 +37,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="overview" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
               <span>Overview</span>
@@ -45,12 +46,16 @@ export default function AdminDashboard() {
               <TrendingUp className="h-4 w-4" />
               <span>Analytics</span>
             </TabsTrigger>
+            <TabsTrigger value="security" className="flex items-center space-x-2">
+              <Shield className="h-4 w-4" />
+              <span>Security</span>
+            </TabsTrigger>
             <TabsTrigger value="integrations" className="flex items-center space-x-2">
               <Plug className="h-4 w-4" />
               <span>Integrations</span>
             </TabsTrigger>
             <TabsTrigger value="system-health" className="flex items-center space-x-2">
-              <Shield className="h-4 w-4" />
+              <Activity className="h-4 w-4" />
               <span>System Health</span>
             </TabsTrigger>
           </TabsList>
@@ -190,6 +195,23 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <SystemMonitor />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security">
+            <Card className="shadow-md hover:shadow-lg transition-all duration-200 bg-white">
+              <CardHeader>
+                <CardTitle className="text-xl text-slate-900 flex items-center space-x-2">
+                  <Shield className="h-5 w-5 text-blue-600" />
+                  <span>Security Monitoring</span>
+                </CardTitle>
+                <CardDescription className="text-slate-600">
+                  Monitor security events, threats, and system health in real-time
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SecurityDashboard />
               </CardContent>
             </Card>
           </TabsContent>
