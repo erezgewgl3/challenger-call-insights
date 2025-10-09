@@ -114,30 +114,43 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
   const theme = getThemeClasses()
 
   const getParticipantNames = (t: TranscriptSummary): string[] => {
-    // Priority 1: extracted_participants from database
-    if (t.extracted_participants && Array.isArray(t.extracted_participants) && t.extracted_participants.length > 0) {
-      return t.extracted_participants.map((p: any) => 
-        typeof p === 'string' ? p : (p.name || 'Unknown')
-      ).filter(Boolean);
+    const names: string[] = [];
+    
+    // Priority 1: extracted_participants from metadata extraction
+    if (Array.isArray(t.extracted_participants) && t.extracted_participants.length > 0) {
+      const extractedNames = t.extracted_participants
+        .map((p: any) => typeof p === 'string' ? p : p.name)
+        .filter(Boolean);
+      names.push(...extractedNames);
     }
     
-    // Priority 2: transcript.participants
-    if (t.participants && Array.isArray(t.participants) && t.participants.length > 0) {
-      return t.participants.map((p: any) => 
-        typeof p === 'string' ? p : (p.name || 'Unknown')
-      ).filter(Boolean);
+    // Priority 2: participants from transcript (simple array)
+    if (Array.isArray(t.participants) && t.participants.length > 0) {
+      const transcriptNames = t.participants
+        .map((p: any) => typeof p === 'string' ? p : (p.name || null))
+        .filter(Boolean);
+      names.push(...transcriptNames);
     }
     
-    // Priority 3: conversation_analysis participants
+    // Priority 3: conversation_analysis structured participants
     const analysis: any = t.conversation_analysis?.[0];
-    const participants = Array.isArray(analysis?.participants) ? analysis.participants : [];
-    if (participants.length > 0) {
-      return participants.map((p: any) => 
-        typeof p === 'string' ? p : (p.name || 'Unknown')
-      ).filter(Boolean);
+    if (analysis?.participants) {
+      // Extract client contacts
+      if (Array.isArray(analysis.participants.clientContacts)) {
+        const clientNames = analysis.participants.clientContacts
+          .map((c: any) => c.name)
+          .filter(Boolean);
+        names.push(...clientNames);
+      }
+      
+      // Extract sales rep(s)
+      if (analysis.participants.salesRep?.name) {
+        names.push(`${analysis.participants.salesRep.name} (${analysis.participants.salesRep.company || 'Rep'})`);
+      }
     }
     
-    return [];
+    // Remove duplicates and return
+    return [...new Set(names)];
   };
 
   const isGenericTitle = (title: string): boolean => {
@@ -310,16 +323,22 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                         {(() => {
                           const names = getParticipantNames(transcript);
                           if (names.length > 0) {
-                            const displayNames = names.slice(0, 3).join(', ');
-                            const remaining = names.length - 3;
-                            const fullNames = names.join(', ');
+                            // Separate client contacts from sales reps
+                            const clientContacts = names.filter(n => !n.includes('(Rep)') && !n.includes('(Actifile)'));
+                            const salesReps = names.filter(n => n.includes('(Rep)') || n.includes('(Actifile)'));
+                            
+                            const displayNames = clientContacts.slice(0, 2); // Show max 2 clients
+                            const remaining = clientContacts.length - 2;
+                            
                             return (
-                              <p 
-                                className="text-xs text-slate-600 mb-1 truncate" 
-                                title={fullNames}
-                                aria-label={`Participants: ${fullNames}`}
-                              >
-                                {displayNames}{remaining > 0 ? ` +${remaining} more` : ''}
+                              <p className="text-xs text-slate-600 mb-1 truncate">
+                                👤 {displayNames.join(', ')}
+                                {remaining > 0 ? ` +${remaining}` : ''}
+                                {salesReps.length > 0 && (
+                                  <span className="text-slate-500 ml-1">
+                                    • {salesReps[0]}
+                                  </span>
+                                )}
                               </p>
                             );
                           }

@@ -285,11 +285,57 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     return genericPatterns.some(pattern => pattern.test(title.trim()));
   };
 
+  const getParticipantNames = (item: UnifiedQueueItem): string[] => {
+    const names: string[] = [];
+    
+    // Priority 1: extracted_participants from metadata extraction
+    if (Array.isArray((item as any).extracted_participants) && (item as any).extracted_participants.length > 0) {
+      const extractedNames = (item as any).extracted_participants
+        .map((p: any) => typeof p === 'string' ? p : p.name)
+        .filter(Boolean);
+      names.push(...extractedNames);
+    }
+    
+    // Priority 2: participants from transcript (simple array)
+    if (Array.isArray((item as any).participants) && (item as any).participants.length > 0) {
+      const transcriptNames = (item as any).participants
+        .map((p: any) => typeof p === 'string' ? p : (p.name || null))
+        .filter(Boolean);
+      names.push(...transcriptNames);
+    }
+    
+    // Priority 3: conversation_analysis structured participants (for completed items)
+    const analysis: any = (item as any).conversation_analysis?.[0];
+    if (analysis?.participants) {
+      // Extract client contacts
+      if (Array.isArray(analysis.participants.clientContacts)) {
+        const clientNames = analysis.participants.clientContacts
+          .map((c: any) => c.name)
+          .filter(Boolean);
+        names.push(...clientNames);
+      }
+      
+      // Extract sales rep(s)
+      if (analysis.participants.salesRep?.name) {
+        names.push(`${analysis.participants.salesRep.name} (${analysis.participants.salesRep.company || 'Rep'})`);
+      }
+    }
+    
+    // Fallback to attendees for Zoom meetings
+    if (names.length === 0 && item.attendees?.length) {
+      names.push(...item.attendees);
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(names)];
+  };
+
   const buildSmartFallbackTitle = (item: UnifiedQueueItem): string => {
     const parts: string[] = [];
     
     // Get participant/contact name
-    const contactName = item.deal_context?.contact_name || item.attendees?.[0];
+    const names = getParticipantNames(item);
+    const contactName = item.deal_context?.contact_name || names[0];
     if (contactName) {
       const firstName = contactName.split(' ')[0];
       parts.push(firstName);

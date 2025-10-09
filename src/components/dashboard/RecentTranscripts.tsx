@@ -80,6 +80,46 @@ export function RecentTranscripts() {
     return score.toFixed(1)
   }
 
+  const getParticipantNames = (t: any): string[] => {
+    const names: string[] = [];
+    
+    // Priority 1: extracted_participants from metadata extraction
+    if (Array.isArray(t.extracted_participants) && t.extracted_participants.length > 0) {
+      const extractedNames = t.extracted_participants
+        .map((p: any) => typeof p === 'string' ? p : p.name)
+        .filter(Boolean);
+      names.push(...extractedNames);
+    }
+    
+    // Priority 2: participants from transcript (simple array)
+    if (Array.isArray(t.participants) && t.participants.length > 0) {
+      const transcriptNames = t.participants
+        .map((p: any) => typeof p === 'string' ? p : (p.name || null))
+        .filter(Boolean);
+      names.push(...transcriptNames);
+    }
+    
+    // Priority 3: conversation_analysis structured participants
+    const analysis: any = t.conversation_analysis?.[0];
+    if (analysis?.participants) {
+      // Extract client contacts
+      if (Array.isArray(analysis.participants.clientContacts)) {
+        const clientNames = analysis.participants.clientContacts
+          .map((c: any) => c.name)
+          .filter(Boolean);
+        names.push(...clientNames);
+      }
+      
+      // Extract sales rep(s)
+      if (analysis.participants.salesRep?.name) {
+        names.push(`${analysis.participants.salesRep.name} (${analysis.participants.salesRep.company || 'Rep'})`);
+      }
+    }
+    
+    // Remove duplicates and return
+    return [...new Set(names)];
+  }
+
   const isGenericTitle = (title: string): boolean => {
     const genericPatterns = [
       /^the (client|prospect|customer|company)$/i,
@@ -226,12 +266,30 @@ export function RecentTranscripts() {
                     </h4>
                     
                     {/* Secondary context - participants */}
-                    {transcript.participants && transcript.participants.length > 0 && (
-                      <p className="text-sm text-slate-600 mb-1 truncate">
-                        👤 {transcript.participants.slice(0, 3).join(', ')}
-                        {transcript.participants.length > 3 && ` +${transcript.participants.length - 3}`}
-                      </p>
-                    )}
+                    {(() => {
+                      const names = getParticipantNames(transcript);
+                      if (names.length > 0) {
+                        // Separate client contacts from sales reps
+                        const clientContacts = names.filter(n => !n.includes('(Rep)') && !n.includes('(Actifile)'));
+                        const salesReps = names.filter(n => n.includes('(Rep)') || n.includes('(Actifile)'));
+                        
+                        const displayNames = clientContacts.slice(0, 2); // Show max 2 clients
+                        const remaining = clientContacts.length - 2;
+                        
+                        return (
+                          <p className="text-sm text-slate-600 mb-1 truncate">
+                            👤 {displayNames.join(', ')}
+                            {remaining > 0 ? ` +${remaining}` : ''}
+                            {salesReps.length > 0 && (
+                              <span className="text-slate-500 ml-1">
+                                • {salesReps[0]}
+                              </span>
+                            )}
+                          </p>
+                        );
+                      }
+                      return null;
+                    })()}
                     
                     {/* Tertiary context - metadata */}
                     <div className="flex items-center space-x-2 text-xs text-slate-500">
