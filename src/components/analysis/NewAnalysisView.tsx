@@ -375,14 +375,13 @@ export function NewAnalysisView({
   const timeline = getTimeline()
   const conversationIntel = getConversationIntelligence()
 
-  // 🚀 Build enhanced participants object with sellerTeam
+  // Build enhanced participants object - trust AI's identification
   const participantsRaw = analysis.participants || {}
-  const clients = (participantsRaw.clientContacts || []).map((c: any) => (c?.name || '').trim().toLowerCase())
-  const clientSet = new Set(clients)
 
+  // Simple: just use what the AI returned
   const sellerTeam: Array<{name: string; company?: string}> = []
-  
-  // Add primary sales rep
+
+  // Add primary sales rep (always present)
   if (participantsRaw.salesRep?.name) {
     sellerTeam.push({ 
       name: participantsRaw.salesRep.name, 
@@ -390,25 +389,30 @@ export function NewAnalysisView({
     })
   }
 
-  // Merge any pre-existing seller team from AI
-  const preExisting = (participantsRaw.sellerTeam || participantsRaw.additionalReps || [])
-    .map((p: any) => ({ name: p.name, company: p.company || 'Actifile' }))
-    .filter((p: any) => p.name)
-
-  for (const p of preExisting) sellerTeam.push(p)
-
-  // Infer additional internal attendees from transcript.participants
-  for (const n of (transcript.participants || [])) {
-    const name = typeof n === 'string' ? n : (n as any)?.name
-    if (!name) continue
-    const lower = name.trim().toLowerCase()
-    const repNameLower = (participantsRaw.salesRep?.name || '').trim().toLowerCase()
-    if (!clientSet.has(lower) && lower !== repNameLower) {
-      sellerTeam.push({ name, company: 'Actifile' })
+  // Future-proof: if AI starts returning additionalReps or sellerTeam, use them
+  if (participantsRaw.additionalReps && Array.isArray(participantsRaw.additionalReps)) {
+    for (const rep of participantsRaw.additionalReps) {
+      if (rep.name) {
+        sellerTeam.push({ 
+          name: rep.name, 
+          company: rep.company || 'Actifile' 
+        })
+      }
     }
   }
 
-  // Deduplicate by name
+  if (participantsRaw.sellerTeam && Array.isArray(participantsRaw.sellerTeam)) {
+    for (const rep of participantsRaw.sellerTeam) {
+      if (rep.name) {
+        sellerTeam.push({ 
+          name: rep.name, 
+          company: rep.company || 'Actifile' 
+        })
+      }
+    }
+  }
+
+  // Deduplicate by name (in case AI returns duplicate entries)
   const seen = new Set<string>()
   const sellerTeamDedup = sellerTeam.filter(p => {
     const key = (p.name || '').trim().toLowerCase()
@@ -417,7 +421,10 @@ export function NewAnalysisView({
     return true
   })
 
-  const participantsEnhanced = { ...participantsRaw, sellerTeam: sellerTeamDedup }
+  const participantsEnhanced = { 
+    ...participantsRaw, 
+    sellerTeam: sellerTeamDedup 
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
