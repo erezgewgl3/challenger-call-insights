@@ -8,7 +8,7 @@ import { AlertCircle, Loader2, FileText, Trash2, ArrowRight } from 'lucide-react
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { SourceBadge } from '@/components/ui/SourceBadge';
-import { formatDistanceToNow, parseISO } from 'date-fns';
+import { formatDistanceToNow, parseISO, differenceInDays, format } from 'date-fns';
 import { TranscriptViewerDialog } from './TranscriptViewerDialog';
 
 interface PendingTranscriptsQueueProps {
@@ -273,13 +273,70 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     return null; // Don't show if queue is empty
   }
 
+  const isGenericTitle = (title: string): boolean => {
+    const genericPatterns = [
+      /^the (client|prospect|customer|company)$/i,
+      /^(call|meeting|conversation|discussion)$/i,
+      /^compliance risks?$/i,
+      /^transcript\.?(txt|docx|vtt)?$/i,
+      /^unnamed/i,
+      /^untitled/i
+    ];
+    return genericPatterns.some(pattern => pattern.test(title.trim()));
+  };
+
+  const buildSmartFallbackTitle = (item: UnifiedQueueItem): string => {
+    const parts: string[] = [];
+    
+    // Get participant/contact name
+    const contactName = item.deal_context?.contact_name || item.attendees?.[0];
+    if (contactName) {
+      const firstName = contactName.split(' ')[0];
+      parts.push(firstName);
+    }
+    
+    // Add date context
+    const date = item.created_at || item.meeting_date;
+    if (date) {
+      const callDate = new Date(date);
+      const daysAgo = differenceInDays(new Date(), callDate);
+      
+      if (daysAgo === 0) {
+        parts.push("(Today)");
+      } else if (daysAgo === 1) {
+        parts.push("(Yesterday)");
+      } else if (daysAgo <= 7) {
+        parts.push(`(${format(callDate, 'EEEE')})`);
+      } else {
+        parts.push(`(${format(callDate, 'MMM d')})`);
+      }
+    }
+    
+    if (parts.length === 0) {
+      return "Unknown Prospect";
+    }
+    
+    return parts.join(" ");
+  };
+
   // Helper to get smart display title from deal context
   const getDisplayTitle = (item: UnifiedQueueItem): string => {
-    return item.deal_context?.deal_name 
-      || (item.deal_context?.contact_name ? `Call with ${item.deal_context.contact_name}` : null)
-      || item.original_filename
-      || item.title
-      || 'Untitled Transcript';
+    // Priority 1: Company name from deal context
+    if (item.deal_context?.company_name) return item.deal_context.company_name;
+    
+    // Priority 2: Deal name (if substantive)
+    const dealName = item.deal_context?.deal_name || item.title;
+    if (dealName && !isGenericTitle(dealName)) {
+      return dealName;
+    }
+    
+    // Priority 3: Original filename (if not generic)
+    if (item.original_filename && !isGenericTitle(item.original_filename)) {
+      return item.original_filename;
+    }
+    
+    // Priority 4: Smart fallback
+    return buildSmartFallbackTitle(item);
   };
 
   return (

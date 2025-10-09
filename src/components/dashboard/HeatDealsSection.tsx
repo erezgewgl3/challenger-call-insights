@@ -6,7 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Clock, Users, ArrowRight, Archive, MoreVertical } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNow, differenceInHours, format } from 'date-fns'
+import { formatDistanceToNow, differenceInHours, differenceInDays, format } from 'date-fns'
 import { SourceBadge } from '@/components/ui/SourceBadge'
 import { useArchiveTranscript } from '@/hooks/useArchiveTranscript'
 import {
@@ -140,22 +140,73 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
     return [];
   };
 
+  const isGenericTitle = (title: string): boolean => {
+    const genericPatterns = [
+      /^the (client|prospect|customer|company)$/i,
+      /^(call|meeting|conversation|discussion)$/i,
+      /^compliance risks?$/i,
+      /^transcript\.?(txt|docx|vtt)?$/i,
+      /^unnamed/i,
+      /^untitled/i
+    ];
+    return genericPatterns.some(pattern => pattern.test(title.trim()));
+  };
+
+  const buildSmartFallbackTitle = (t: TranscriptSummary): string => {
+    const parts: string[] = [];
+    
+    // Get participant names
+    const names = getParticipantNames(t);
+    if (names.length > 0) {
+      // Use first participant's name (usually the prospect)
+      const firstName = names[0].split(' ')[0]; // Just first name for brevity
+      parts.push(firstName);
+    }
+    
+    // Add date context
+    const date = t.created_at || t.analysis_created_at;
+    if (date) {
+      const callDate = new Date(date);
+      const daysAgo = differenceInDays(new Date(), callDate);
+      
+      if (daysAgo === 0) {
+        parts.push("(Today)");
+      } else if (daysAgo === 1) {
+        parts.push("(Yesterday)");
+      } else if (daysAgo <= 7) {
+        parts.push(`(${format(callDate, 'EEEE')})`); // "Monday", "Tuesday", etc.
+      } else {
+        parts.push(`(${format(callDate, 'MMM d')})`); // "Jan 15"
+      }
+    }
+    
+    // If we have nothing, use a generic but descriptive fallback
+    if (parts.length === 0) {
+      return "Unknown Prospect";
+    }
+    
+    return parts.join(" ");
+  };
+
   const getDisplayTitle = (t: TranscriptSummary) => {
-    // Priority 1: Use extracted prospect company name
+    // Priority 1: Extracted company name
     if (t.extracted_company_name) return t.extracted_company_name;
     
-    // Priority 2: Existing fallback chain
+    // Priority 2: AI-generated title (if it looks substantive)
     const analysis: any = t.conversation_analysis?.[0];
     const cs = analysis?.call_summary as Record<string, any> | undefined;
+    const aiTitle = cs?.title || cs?.meeting_title || cs?.deal_name;
     
-    return cs?.title ||
-           cs?.meeting_title ||
-           cs?.account?.name ||
-           cs?.company_name ||
-           cs?.deal_name ||
-           cs?.contact_name ||
-           t.account_name ||
-           t.title;
+    // Check if AI title is substantive (not generic)
+    if (aiTitle && !isGenericTitle(aiTitle)) {
+      return aiTitle;
+    }
+    
+    // Priority 3: Account name from linked account
+    if (t.account_name) return t.account_name;
+    
+    // Priority 4: Smart fallback - construct from participants + date
+    return buildSmartFallbackTitle(t);
   };
 
   const formatDuration = (minutes: number | null | undefined) => {

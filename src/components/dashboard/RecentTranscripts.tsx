@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Clock, Users, ArrowRight, Upload } from 'lucide-react'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useNavigate } from 'react-router-dom'
-import { formatDistanceToNow, differenceInHours, format } from 'date-fns'
+import { formatDistanceToNow, differenceInHours, differenceInDays, format } from 'date-fns'
 
 export function RecentTranscripts() {
   const { transcripts, isLoading } = useTranscriptData()
@@ -79,6 +79,71 @@ export function RecentTranscripts() {
     if (score === null || score === undefined) return 'N/A'
     return score.toFixed(1)
   }
+
+  const isGenericTitle = (title: string): boolean => {
+    const genericPatterns = [
+      /^the (client|prospect|customer|company)$/i,
+      /^(call|meeting|conversation|discussion)$/i,
+      /^compliance risks?$/i,
+      /^transcript\.?(txt|docx|vtt)?$/i,
+      /^unnamed/i,
+      /^untitled/i
+    ];
+    return genericPatterns.some(pattern => pattern.test(title.trim()));
+  };
+
+  const buildSmartFallbackTitle = (transcript: any): string => {
+    const parts: string[] = [];
+    
+    // Get participant names
+    if (transcript.participants && transcript.participants.length > 0) {
+      const firstName = transcript.participants[0].split(' ')[0];
+      parts.push(firstName);
+    }
+    
+    // Add date context
+    const date = transcript.created_at;
+    if (date) {
+      const callDate = new Date(date);
+      const daysAgo = differenceInDays(new Date(), callDate);
+      
+      if (daysAgo === 0) {
+        parts.push("(Today)");
+      } else if (daysAgo === 1) {
+        parts.push("(Yesterday)");
+      } else if (daysAgo <= 7) {
+        parts.push(`(${format(callDate, 'EEEE')})`);
+      } else {
+        parts.push(`(${format(callDate, 'MMM d')})`);
+      }
+    }
+    
+    if (parts.length === 0) {
+      return "Unknown Prospect";
+    }
+    
+    return parts.join(" ");
+  };
+
+  const getDisplayTitle = (transcript: any) => {
+    // Priority 1: Extracted company name
+    if (transcript.extracted_company_name) return transcript.extracted_company_name;
+    
+    // Priority 2: AI-generated title (if substantive)
+    const analysis = transcript.conversation_analysis?.[0];
+    const cs = analysis?.call_summary;
+    const aiTitle = cs?.title || cs?.meeting_title || cs?.deal_name;
+    
+    if (aiTitle && !isGenericTitle(aiTitle)) {
+      return aiTitle;
+    }
+    
+    // Priority 3: Account name
+    if (transcript.account_name) return transcript.account_name;
+    
+    // Priority 4: Smart fallback
+    return buildSmartFallbackTitle(transcript);
+  };
 
   const formatAnalysisDate = (dateString: string | undefined) => {
     if (!dateString) return null
@@ -156,29 +221,31 @@ export function RecentTranscripts() {
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-3 mb-1">
-                      <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {transcript.title}
-                      </h4>
-                    </div>
-                    <div className="flex items-center space-x-3 text-sm text-slate-500">
-                      <span className="flex items-center">
-                        <Users className="h-4 w-4 mr-1" />
-                        {transcript.participants.length} participants
-                      </span>
-                      <span className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {formatDuration(transcript.duration_minutes)}
-                      </span>
+                    <h4 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors mb-1">
+                      {getDisplayTitle(transcript)}
+                    </h4>
+                    
+                    {/* Secondary context - participants */}
+                    {transcript.participants && transcript.participants.length > 0 && (
+                      <p className="text-sm text-slate-600 mb-1 truncate">
+                        👤 {transcript.participants.slice(0, 3).join(', ')}
+                        {transcript.participants.length > 3 && ` +${transcript.participants.length - 3}`}
+                      </p>
+                    )}
+                    
+                    {/* Tertiary context - metadata */}
+                    <div className="flex items-center space-x-2 text-xs text-slate-500">
                       {transcript.analysis_created_at && (
-                        <span className="flex items-center">
-                          📅 Analyzed {formatAnalysisDate(transcript.analysis_created_at)}
-                        </span>
+                        <span>📅 {formatAnalysisDate(transcript.analysis_created_at)}</span>
                       )}
-                      {transcript.account_name && (
-                        <span className="text-blue-600 font-medium">
-                          {transcript.account_name}
-                        </span>
+                      {transcript.duration_minutes && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {formatDuration(transcript.duration_minutes)}
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
