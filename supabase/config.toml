@@ -21,6 +21,12 @@ verify_jwt = true
 [functions.send-email]
 verify_jwt = true
 
+[functions.send-security-alert]
+verify_jwt = false
+
+[functions.detect-ip-anomalies]
+verify_jwt = false
+
 [functions.monitor-registration-failures]
 verify_jwt = false
 
