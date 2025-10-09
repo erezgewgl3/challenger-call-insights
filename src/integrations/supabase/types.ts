@@ -96,6 +96,39 @@ export type Database = {
           },
         ]
       }
+      auth_rate_limits: {
+        Row: {
+          attempt_type: string
+          attempted_at: string
+          created_at: string | null
+          id: string
+          identifier: string
+          ip_address: string | null
+          success: boolean
+          user_agent: string | null
+        }
+        Insert: {
+          attempt_type: string
+          attempted_at?: string
+          created_at?: string | null
+          id?: string
+          identifier: string
+          ip_address?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Update: {
+          attempt_type?: string
+          attempted_at?: string
+          created_at?: string | null
+          id?: string
+          identifier?: string
+          ip_address?: string | null
+          success?: boolean
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       conversation_analysis: {
         Row: {
           action_plan: Json | null
@@ -1924,6 +1957,18 @@ export type Database = {
         }
         Returns: Json
       }
+      check_invite_rate_limit: {
+        Args: { p_admin_id: string }
+        Returns: Json
+      }
+      check_login_rate_limit: {
+        Args: { p_identifier: string; p_ip_address?: string }
+        Returns: Json
+      }
+      check_password_reset_rate_limit: {
+        Args: { p_email: string; p_ip_address?: string }
+        Returns: Json
+      }
       check_prompt_access_rate_limit: {
         Args: { p_user_id?: string }
         Returns: boolean
@@ -1933,6 +1978,10 @@ export type Database = {
         Returns: Json
       }
       cleanup_old_audit_logs: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      cleanup_old_rate_limits: {
         Args: Record<PropertyKey, never>
         Returns: number
       }
@@ -2137,13 +2186,15 @@ export type Database = {
         Returns: undefined
       }
       log_security_event: {
-        Args: {
-          p_details?: Json
-          p_event_type: string
-          p_ip_address?: string
-          p_user_agent?: string
-          p_user_id: string
-        }
+        Args:
+          | {
+              p_details?: Json
+              p_event_type: string
+              p_ip_address?: string
+              p_user_agent?: string
+              p_user_id: string
+            }
+          | { p_details?: Json; p_event_type: string; p_user_id: string }
         Returns: undefined
       }
       lookup_user_by_email: {
@@ -2164,6 +2215,10 @@ export type Database = {
       }
       mark_users_pending_deletion: {
         Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      record_successful_login: {
+        Args: { p_identifier: string; p_ip_address?: string }
         Returns: undefined
       }
       scan_file_content_security: {
@@ -2198,6 +2253,10 @@ export type Database = {
           p_token: string
           p_user_agent?: string
         }
+        Returns: Json
+      }
+      validate_password_strength: {
+        Args: { password: string }
         Returns: Json
       }
     }

@@ -48,6 +48,27 @@ export function LoginForm() {
     try {
       await supabase.auth.signOut()
       
+      // Check rate limit before attempting login
+      const { data: rateLimitCheck, error: rateLimitError } = await supabase
+        .rpc('check_login_rate_limit', {
+          p_identifier: email.trim(),
+          p_ip_address: null
+        }) as { data: { allowed: boolean; attempts: number; lockout_until?: string } | null; error: any };
+
+      if (rateLimitError) {
+        console.error('Rate limit check error:', rateLimitError);
+      }
+
+      if (rateLimitCheck && !rateLimitCheck.allowed) {
+        const lockoutUntil = rateLimitCheck.lockout_until ? new Date(rateLimitCheck.lockout_until) : new Date(Date.now() + 900000);
+        const minutesRemaining = Math.ceil((lockoutUntil.getTime() - Date.now()) / 60000);
+        const errorMsg = `Too many failed login attempts. Please try again in ${minutesRemaining} minute${minutesRemaining > 1 ? 's' : ''}.`;
+        setError(errorMsg);
+        toast.error(errorMsg);
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password
@@ -61,6 +82,16 @@ export function LoginForm() {
         }
         toast.error('Login failed: ' + error.message)
       } else if (data.user) {
+        // Record successful login
+        try {
+          await supabase.rpc('record_successful_login', {
+            p_identifier: email.trim(),
+            p_ip_address: null
+          });
+        } catch (err) {
+          console.error('Failed to record successful login:', err);
+        }
+
         toast.success('Welcome back!')
         
         // Get user role and redirect appropriately
@@ -105,6 +136,25 @@ export function LoginForm() {
     
     try {
       console.log('Initiating password reset for:', trimmedEmail)
+      
+      // Check rate limit before sending password reset
+      const { data: rateLimitCheck, error: rateLimitError } = await supabase
+        .rpc('check_password_reset_rate_limit', {
+          p_email: trimmedEmail,
+          p_ip_address: null
+        }) as { data: { allowed: boolean; attempts: number; lockout_until?: string } | null; error: any };
+
+      if (rateLimitError) {
+        console.error('Rate limit check error:', rateLimitError);
+      }
+
+      if (rateLimitCheck && !rateLimitCheck.allowed) {
+        const lockoutUntil = rateLimitCheck.lockout_until ? new Date(rateLimitCheck.lockout_until) : new Date(Date.now() + 3600000);
+        const minutesRemaining = Math.ceil((lockoutUntil.getTime() - Date.now()) / 60000);
+        toast.error(`Too many password reset requests. Please try again in ${minutesRemaining} minute${minutesRemaining > 1 ? 's' : ''}.`);
+        setResetLoading(false);
+        return;
+      }
       
       // Use custom password reset function for consistent branding
       const result = await resetPasswordForUser(trimmedEmail)

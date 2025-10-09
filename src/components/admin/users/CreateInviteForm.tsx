@@ -102,6 +102,24 @@ export function CreateInviteForm() {
 
   const createInviteMutation = useMutation({
     mutationFn: async (data: CreateInviteForm) => {
+      if (!user?.id) throw new Error('User not authenticated');
+
+      // Check rate limit for invite generation (50 per day)
+      const { data: rateLimitCheck, error: rateLimitError } = await supabase
+        .rpc('check_invite_rate_limit', {
+          p_admin_id: user.id
+        }) as { data: { allowed: boolean; attempts: number; daily_limit: number } | null; error: any };
+
+      if (rateLimitError) {
+        console.error('Rate limit check error:', rateLimitError);
+      }
+
+      if (rateLimitCheck && !rateLimitCheck.allowed) {
+        throw new Error(
+          `Daily invite limit reached (${rateLimitCheck.attempts}/${rateLimitCheck.daily_limit}). Please try again tomorrow.`
+        );
+      }
+
       // Delete any existing pending invites for this email
       await supabase
         .from('invites')

@@ -111,6 +111,36 @@ export function RegisterForm() {
     }
 
     try {
+      // Validate password strength before signup
+      const { data: passwordValidation, error: validationError } = await supabase
+        .rpc('validate_password_strength', { password }) as { 
+          data: { 
+            valid: boolean; 
+            requirements: Record<string, { met: boolean; message: string }> 
+          } | null; 
+          error: any 
+        };
+
+      if (validationError) {
+        console.error('Password validation error:', validationError);
+        setError('Failed to validate password strength');
+        toast.error('Failed to validate password strength');
+        setLoading(false);
+        return;
+      }
+
+      if (!passwordValidation?.valid) {
+        const unmetRequirements = Object.entries(passwordValidation?.requirements || {})
+          .filter(([_, req]) => !req.met)
+          .map(([_, req]) => req.message);
+        
+        const errorMsg = `Password requirements not met:\n${unmetRequirements.join('\n')}`;
+        setError(errorMsg);
+        toast.error('Password does not meet security requirements');
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password
