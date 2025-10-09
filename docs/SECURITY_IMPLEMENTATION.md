@@ -380,19 +380,77 @@ All tables have:
 
 ---
 
-## Known Security Findings
+## Known Security Findings & False Positives
 
-### 1. Integration Connections Safe View (Expected)
+### 1. FALSE POSITIVE: "Customer Email Addresses Could Be Stolen" ❌
+**Scanner Warning:** Claims `users` table is publicly readable  
+**Actual Status:** ✅ SECURE - False positive
+
+**Why This Is a False Positive:**
+```sql
+-- Actual RLS policy in place (migration 20251009164131):
+CREATE POLICY "users_select_own_or_admin"
+ON public.users
+FOR SELECT
+TO authenticated  -- NOT PUBLIC - requires authentication
+USING (
+  (auth.uid() = id) OR           -- Users see only themselves
+  public.has_role(auth.uid(), 'admin')  -- Admins see all
+);
+```
+
+**Verification:**
+- ✅ RLS enabled with `FORCE ROW LEVEL SECURITY`
+- ✅ Policy requires `authenticated` role (not public)
+- ✅ Users can only SELECT their own row
+- ✅ Email addresses NOT publicly accessible
+- ✅ Supabase linter confirms no RLS issues
+
+**Why Scanner Is Wrong:**
+- Scanner may not recognize `public.has_role()` function
+- Scanner may not understand `TO authenticated` restriction
+- Scanner does simplistic pattern matching without full RLS context
+
+### 2. FALSE POSITIVE: "Third-Party API Credentials Could Be Stolen" ❌
+**Scanner Warning:** Claims `integration_connections.credentials` is exposed  
+**Actual Status:** ✅ SECURE - False positive
+
+**Why This Is a False Positive:**
+```sql
+-- Actual RLS policy in place (migration 20251009174013):
+CREATE POLICY "integration_connections_select_own_or_admin"
+ON public.integration_connections
+FOR SELECT
+TO authenticated  -- NOT PUBLIC - requires authentication
+USING (
+  (auth.uid() = user_id) OR      -- Owner access only
+  public.has_role(auth.uid(), 'admin')  -- Admin access
+);
+```
+
+**Additional Security Measures:**
+- ✅ `credentials` field marked as DEPRECATED in schema
+- ✅ `integration_connections_safe` view excludes credentials entirely
+- ✅ New connections use `vault_secret_id` (AES-256 encrypted in Supabase Vault)
+- ✅ Vault access fully audited in `vault_access_log`
+- ✅ Only owner or admin can access connections via RLS
+
+**Migration Status:**
+- New connections: Store in Vault ✅
+- Legacy connections: Fallback with warnings ⚠️
+- See `docs/VAULT_SECURITY_IMPLEMENTATION.md` for migration details
+
+### 3. Integration Connections Safe View (Expected) ℹ️
 **Status:** ℹ️ INTENTIONAL
 
-**Description:** The `integration_connections_safe` view may be flagged by security scanners as "having no RLS policies."
+**Description:** The `integration_connections_safe` view may be flagged as "having no RLS policies."
 
 **Why This Is Secure:**
-- Views with `security_invoker = true` inherit RLS from the underlying table
-- The view executes with the calling user's permissions
-- It respects all RLS policies on `integration_connections` table
-- Explicitly excludes the `credentials` field entirely
-- Only shows `vault_secret_id` to admin users
+- Views with `security_invoker = true` inherit RLS from underlying table
+- Executes with calling user's permissions
+- Respects all RLS policies on `integration_connections`
+- Explicitly excludes `credentials` field
+- Only shows `vault_secret_id` to admins
 
 **Technical Details:**
 ```sql
@@ -401,24 +459,21 @@ WITH (security_invoker = true, security_barrier = true)
 AS SELECT ... FROM public.integration_connections;
 ```
 
-**Verification:**
-1. Non-admin users can only see their own connections through this view
-2. `credentials` field is completely excluded from the view
-3. `vault_secret_id` returns NULL for non-admin users
-4. All access is logged in audit trail
-
-**Note:** Security scanners may not recognize this pattern as views don't have explicit RLS policies of their own.
-
-### 2. Leaked Password Protection Disabled
+### 4. Leaked Password Protection Disabled ⚠️
 **Status:** ⚠️ REQUIRES MANUAL ACTION
 
 **Action Required:**
-1. Navigate to Supabase Dashboard
-2. Go to Authentication → Providers → Email
-3. Enable "Password Strength" 
-4. Enable "Leaked Password Protection"
+1. Navigate to Supabase Dashboard → Authentication → Providers → Email
+2. Enable "Password Strength" option
+3. Enable "Leaked Password Protection" option
 
 **Note:** This is a Supabase configuration setting that cannot be automated via migrations.
+
+**Current Mitigations:**
+- ✅ Server-side password validation function (`validate_password_strength`)
+- ✅ 12-character minimum with complexity requirements
+- ✅ Common password blocklist (10 most common passwords)
+- ✅ Client-side validation in registration form
 
 ---
 
