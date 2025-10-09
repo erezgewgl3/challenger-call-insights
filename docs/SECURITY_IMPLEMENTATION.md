@@ -1,7 +1,49 @@
 # Security Implementation Guide
 
-## Overview
-This document tracks all security measures implemented in the Sales Whisperer application.
+## Security Implementation Progress
+
+### ✅ Phase 1: Database RLS Policy Hardening - COMPLETED (2025-10-09)
+- 22 tables secured with restrictive RLS policies
+- All tables have FORCE ROW LEVEL SECURITY enabled
+- Critical data (emails, API keys, credentials) protected
+- Secure views created for safe data access
+
+### ✅ Phase 2: Authentication Hardening - COMPLETED (2025-10-09)
+- Password strength validation (12 char minimum, complexity requirements)
+- Rate limiting on login (5 attempts per 15 min)
+- Rate limiting on password reset (3 attempts per hour)
+- Rate limiting on invites (50 per day per admin)
+- Security event logging for all auth operations
+
+### ✅ Phase 3: Edge Function Security Audit - COMPLETED (2025-10-09)
+- All edge functions validated for authentication
+- SSRF protection in webhook endpoints
+- Comprehensive input validation
+- Rate limiting at function level
+- Error message sanitization
+- See detailed findings in Phase 3 section below
+
+### ✅ Phase 4: Sensitive Data Handling - MOSTLY COMPLETED (2025-10-03, reviewed 2025-10-09)
+- OAuth tokens stored in Supabase Vault (AES-256 encryption)
+- Vault operations fully audited
+- Legacy connection fallback in place
+- Remaining: Migration tool, CSP headers (optional enhancements)
+
+### 🔄 Phase 5: Logging and Monitoring - PENDING
+- Create security dashboard for admins
+- Log RLS policy violations
+- Implement automated alerts
+- Add IP-based anomaly detection
+
+### 🔄 Phase 6: Documentation and Testing - PENDING  
+- Document all RLS policies
+- Create security testing checklist
+- Test policies with different user roles
+
+### 🔄 Phase 7: Compliance and Best Practices - PENDING
+- Verify GDPR compliance features
+- Add security headers (HSTS, X-Frame-Options)
+- Run npm audit and fix vulnerabilities
 
 ## Phase 1: Database RLS Policy Hardening ✅ COMPLETED
 
@@ -264,15 +306,50 @@ All tables have:
 - ✅ Confirm function-level rate limiting
 - [ ] Add Zod schema validation (optional enhancement)
 
-### Phase 4: Sensitive Data Handling
-**Status:** 🔄 PENDING
+### Phase 4: Sensitive Data Handling ✅ MOSTLY COMPLETED
+**Status:** ✅ MOSTLY COMPLETED  
+**Completion Date:** 2025-10-03 (initial), 2025-10-09 (audit)
 
-**Tasks:**
-- [ ] Audit all OAuth tokens use Vault (not database columns)
-- [ ] Migrate any legacy plaintext credentials to Vault
-- [ ] Add encryption for sensitive JSONB fields
-- [ ] Implement data masking for admin dashboards
-- [ ] Add Content-Security-Policy headers to all edge functions
+#### Vault Implementation Status
+
+**✅ Completed:**
+1. **OAuth Token Vault Storage**
+   - All new integration connections store credentials in Supabase Vault
+   - `vault_secret_id` references used instead of plaintext `credentials` column
+   - Comprehensive vault helpers library (`vault-helpers.ts`) implemented
+   - AES-256 encryption at rest
+
+2. **Vault Operations**
+   - `storeCredentialsInVault()` - Encrypts and stores credentials
+   - `getCredentialsFromVault()` - Retrieves and decrypts credentials  
+   - `updateCredentialsInVault()` - Updates existing credentials
+   - `deleteCredentialsFromVault()` - Removes credentials securely
+
+3. **Audit Logging**
+   - `vault_access_log` table tracks all vault operations
+   - Logs operation type, user, success/failure, timestamps
+   - RLS policies: users see own logs, admins see all
+
+4. **Legacy Connection Handling**
+   - Graceful fallback for old connections without `vault_secret_id`
+   - Warning logged when fallback is used
+   - See `docs/VAULT_SECURITY_IMPLEMENTATION.md` for migration queries
+
+5. **Integration Connection Security**
+   - `credentials` column marked as DEPRECATED in schema
+   - `integration_connections_safe` view excludes credentials field
+   - `vault_secret_id` only visible to admins in safe view
+
+**📋 Remaining Tasks:**
+- [ ] Create automated migration tool for legacy credentials
+- [ ] Add CSP headers to all edge functions (security enhancement)
+- [ ] Implement admin dashboard for vault monitoring (optional)
+- [ ] Add data masking in admin UI for sensitive JSONB fields (optional)
+
+**Documentation:**
+- Complete implementation guide: `docs/VAULT_SECURITY_IMPLEMENTATION.md`
+- Testing checklist included
+- Admin monitoring queries provided
 
 ### Phase 5: Logging and Monitoring
 **Status:** 🔄 PENDING
@@ -305,12 +382,32 @@ All tables have:
 
 ## Known Security Findings
 
-### 1. Security Definer View (Expected)
+### 1. Integration Connections Safe View (Expected)
 **Status:** ℹ️ INTENTIONAL
 
-**Description:** The `integration_connections_safe` view uses SECURITY DEFINER to safely hide credentials from users while allowing access to connection metadata.
+**Description:** The `integration_connections_safe` view may be flagged by security scanners as "having no RLS policies."
 
-**Justification:** This is a security FEATURE, not a vulnerability. The view explicitly excludes the `credentials` field and only shows `vault_secret_id` to admins.
+**Why This Is Secure:**
+- Views with `security_invoker = true` inherit RLS from the underlying table
+- The view executes with the calling user's permissions
+- It respects all RLS policies on `integration_connections` table
+- Explicitly excludes the `credentials` field entirely
+- Only shows `vault_secret_id` to admin users
+
+**Technical Details:**
+```sql
+CREATE OR REPLACE VIEW public.integration_connections_safe
+WITH (security_invoker = true, security_barrier = true)
+AS SELECT ... FROM public.integration_connections;
+```
+
+**Verification:**
+1. Non-admin users can only see their own connections through this view
+2. `credentials` field is completely excluded from the view
+3. `vault_secret_id` returns NULL for non-admin users
+4. All access is logged in audit trail
+
+**Note:** Security scanners may not recognize this pattern as views don't have explicit RLS policies of their own.
 
 ### 2. Leaked Password Protection Disabled
 **Status:** ⚠️ REQUIRES MANUAL ACTION
