@@ -570,7 +570,10 @@ function prepareTranscriptData(
     source_metadata: {
       external_source: normalizedSource,
       webhook_payload: payload,
-      ingestion_timestamp: new Date().toISOString()
+      ingestion_timestamp: new Date().toISOString(),
+      // Phase 1: Store callback_webhook and zoho_deal_id for easy access during analysis
+      callback_webhook: payload.callback_webhook,
+      zoho_deal_id: payload.zoho_deal_id || payload.zoho_meeting_id
     }
   };
 }

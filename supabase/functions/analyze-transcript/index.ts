@@ -463,6 +463,12 @@ serve(async (req) => {
         console.error('🔍 [WEBHOOK] Webhook delivery failed (non-blocking):', error);
       });
 
+    // Phase 2: Deliver to Zoho callback webhook if present (non-blocking)
+    deliverToZohoCallback(transcriptId, analysisData, parsedResult)
+      .catch(error => {
+        console.error('🔍 [ZOHO-WEBHOOK] Zoho callback delivery failed (non-blocking):', error);
+      });
+
     // Update transcript status to completed (triggers real-time update)
     console.log('🔍 [DB] Updating transcript status to completed');
     const { error: completeError } = await supabase
@@ -505,6 +511,242 @@ serve(async (req) => {
     });
   }
 });
+
+// Phase 3: Build comprehensive Zoho-formatted webhook payload
+async function buildZohoWebhookPayload(
+  transcriptData: any,
+  analysisData: any,
+  parsedResult: ParsedAnalysis
+): Promise<any> {
+  const callSummary = parsedResult.callSummary || {};
+  const heatLevel = analysisData.heat_level || 'LOW';
+  const challengerScores = parsedResult.challengerScores || {};
+  const guidance = parsedResult.guidance || {};
+  const actionPlan = parsedResult.actionPlan || {};
+  const participants = parsedResult.participants || {};
+
+  // Map heat level to Zoho deal stage
+  const stageMapping: Record<string, string> = {
+    'HIGH': 'Proposal Made',
+    'MEDIUM': 'Needs Analysis',
+    'LOW': 'Qualification'
+  };
+
+  // Calculate estimated deal size based on heat and engagement
+  const estimateDealSize = (): number | null => {
+    if (heatLevel === 'HIGH' && (challengerScores.teaching >= 4 || challengerScores.control >= 4)) {
+      return 50000;
+    }
+    if (heatLevel === 'MEDIUM') {
+      return 25000;
+    }
+    return null;
+  };
+
+  // Extract competitive threats
+  const competitiveThreats = callSummary.competitiveIntelligence?.vendorsKnown || [];
+
+  // Extract decision makers from participants
+  const decisionMakers = participants.clientContacts?.filter((c: any) => 
+    c.role?.toLowerCase().includes('ceo') || 
+    c.role?.toLowerCase().includes('cto') ||
+    c.role?.toLowerCase().includes('director') ||
+    c.role?.toLowerCase().includes('vp')
+  ).map((c: any) => c.name) || [];
+
+  // Build tasks from action plan
+  const tasks = (actionPlan.nextSteps || []).slice(0, 3).map((step: any, index: number) => {
+    const dueDate = new Date();
+    dueDate.setDate(dueDate.getDate() + (index === 0 ? 2 : index === 1 ? 7 : 14));
+    
+    return {
+      Subject: step.action || step.title || `Follow-up action ${index + 1}`,
+      Description: step.rationale || step.description || step.details || '',
+      Due_Date: dueDate.toISOString().split('T')[0],
+      Priority: step.priority || (index === 0 ? 'High' : 'Normal'),
+      Status: 'Not Started'
+    };
+  });
+
+  // Build notes
+  const callSummaryNote = {
+    Note_Title: `AI Call Analysis - ${new Date(transcriptData.meeting_date).toLocaleDateString()}`,
+    Note_Content: `
+**Call Overview**
+${callSummary.overview || 'No overview available'}
+
+**Client Situation**
+${callSummary.clientSituation || 'No client situation details'}
+
+**Pain Severity**
+Level: ${callSummary.painSeverity?.level?.toUpperCase() || 'UNKNOWN'}
+${callSummary.painSeverity?.indicators?.map((i: string) => `- ${i}`).join('\n') || ''}
+
+**Key Takeaways**
+${(parsedResult.keyTakeaways || []).map((t: any, i: number) => 
+  `${i + 1}. ${typeof t === 'string' ? t : t.takeaway || t.insight || ''}`
+).join('\n')}
+
+**AI Recommendation**
+${guidance.recommendation || 'Continue engagement'}
+${guidance.next_steps?.map((s: string) => `- ${s}`).join('\n') || ''}
+    `.trim()
+  };
+
+  const competitiveNote = competitiveThreats.length > 0 ? {
+    Note_Title: 'Competitive Intelligence',
+    Note_Content: `
+**Competitors Mentioned**
+${competitiveThreats.map((v: string) => `- ${v}`).join('\n')}
+
+**Evaluation Stage**
+${callSummary.competitiveIntelligence?.evaluationStage || 'Unknown'}
+
+**Decision Criteria**
+${(callSummary.competitiveIntelligence?.decisionCriteria || []).map((c: string) => `- ${c}`).join('\n')}
+
+**Our Competitive Advantage**
+${callSummary.competitiveIntelligence?.competitiveAdvantage || 'Not identified'}
+    `.trim()
+  } : null;
+
+  const notes = [callSummaryNote, competitiveNote].filter(Boolean);
+
+  // Main Zoho payload structure
+  return {
+    analysis_id: analysisData.id,
+    transcript_id: transcriptData.id,
+    timestamp: new Date().toISOString(),
+    zoho_deal_id: transcriptData.zoho_deal_id,
+    
+    // Deal Updates (what Zoho should update in the deal record)
+    deal_updates: {
+      Stage: stageMapping[heatLevel],
+      Amount: estimateDealSize(),
+      Closing_Date: guidance.timeline || null,
+      Description: callSummary.overview || null,
+      // Custom fields for AI insights
+      cf_ai_heat_level: heatLevel,
+      cf_deal_momentum: guidance.momentum || 'steady',
+      cf_challenger_teaching: challengerScores.teaching || 0,
+      cf_challenger_tailoring: challengerScores.tailoring || 0,
+      cf_challenger_control: challengerScores.control || 0,
+      cf_pain_level: callSummary.painSeverity?.level || 'low',
+      cf_urgency_level: callSummary.urgencyDrivers?.primary ? 'high' : 'medium',
+      cf_buying_signals_quality: callSummary.buyingSignalsAnalysis?.overallQuality || 'weak',
+      cf_competitive_threats: competitiveThreats.join(', '),
+      cf_decision_makers: decisionMakers.join(', '),
+      cf_call_duration: transcriptData.duration_minutes,
+      cf_last_analysis_date: new Date().toISOString().split('T')[0]
+    },
+    
+    // Tasks to create in Zoho
+    tasks_to_create: tasks,
+    
+    // Notes to add in Zoho
+    notes_to_add: notes,
+    
+    // Participant/Contact matching (for future CRM sync)
+    participant_matches: (participants.clientContacts || []).map((contact: any) => ({
+      name: contact.name,
+      role: contact.role || contact.title,
+      company: transcriptData.extracted_company_name || transcriptData.deal_context?.company_name,
+      match_status: 'pending_review'
+    })),
+    
+    // Raw analysis data (optional - for Zoho to decide what to use)
+    raw_analysis: {
+      heat_level: heatLevel,
+      challenger_scores: challengerScores,
+      call_summary: callSummary,
+      key_takeaways: parsedResult.keyTakeaways,
+      recommendations: parsedResult.recommendations,
+      guidance: guidance,
+      action_plan: actionPlan,
+      participants: participants
+    }
+  };
+}
+
+// Phase 2: Deliver analysis to Zoho callback webhook
+async function deliverToZohoCallback(
+  transcriptId: string,
+  analysisData: any,
+  parsedResult: ParsedAnalysis
+) {
+  try {
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch transcript to get callback_webhook and zoho_deal_id
+    const { data: transcript, error: transcriptError } = await supabase
+      .from('transcripts')
+      .select('*, source_metadata, deal_context')
+      .eq('id', transcriptId)
+      .single();
+
+    if (transcriptError || !transcript) {
+      console.log('[ZOHO-WEBHOOK] No transcript found for callback delivery');
+      return;
+    }
+
+    // Extract callback webhook from source_metadata
+    const callbackWebhook = transcript.source_metadata?.callback_webhook;
+    const zohoDealId = transcript.source_metadata?.zoho_deal_id || transcript.zoho_deal_id;
+
+    if (!callbackWebhook) {
+      console.log('[ZOHO-WEBHOOK] No callback_webhook configured for this transcript');
+      return;
+    }
+
+    if (!zohoDealId) {
+      console.log('[ZOHO-WEBHOOK] No zoho_deal_id found, skipping callback delivery');
+      return;
+    }
+
+    console.log('[ZOHO-WEBHOOK] Building Zoho payload for callback:', callbackWebhook);
+
+    // Build comprehensive Zoho-formatted payload
+    const zohoPayload = await buildZohoWebhookPayload(transcript, analysisData, parsedResult);
+
+    console.log('[ZOHO-WEBHOOK] Delivering to Zoho callback URL:', callbackWebhook);
+
+    // Deliver to Zoho callback
+    const response = await fetch(callbackWebhook, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'SalesWhisperer-ZohoCallback/1.0',
+        'X-SalesWhisperer-Event': 'analysis_complete',
+        'X-Zoho-Deal-ID': zohoDealId
+      },
+      body: JSON.stringify(zohoPayload)
+    });
+
+    // Log delivery result
+    await supabase.from('webhook_delivery_log').insert({
+      transcript_id: transcriptId,
+      webhook_url: callbackWebhook,
+      payload_size: JSON.stringify(zohoPayload).length,
+      success: response.ok,
+      response_status: response.status,
+      error_message: response.ok ? null : await response.text(),
+      delivered_at: new Date().toISOString()
+    });
+
+    if (response.ok) {
+      console.log('[ZOHO-WEBHOOK] Successfully delivered to Zoho:', response.status);
+    } else {
+      console.error('[ZOHO-WEBHOOK] Failed to deliver to Zoho:', response.status, await response.text());
+    }
+
+  } catch (error) {
+    console.error('[ZOHO-WEBHOOK] Fatal error in Zoho callback delivery:', error);
+    throw error;
+  }
+}
 
 // Direct webhook delivery function (eliminates need for separate zapier-trigger function)
 async function deliverWebhooksDirectly(userId: string, analysisId: string, webhookPayload: any) {
