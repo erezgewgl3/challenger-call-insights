@@ -291,30 +291,34 @@ export function NewAnalysisView({
     const engagementSignals = signalsAnalysis.engagementSignals || []
     const interestSignals = signalsAnalysis.interestSignals || []
     
+    // Weighted scoring: commitment=3, engagement=2, interest=1
     const commitmentScore = commitmentSignals.length * 3
     const engagementScore = engagementSignals.length * 2
     const interestScore = interestSignals.length * 1
     
-    const totalScore = commitmentScore + engagementScore + interestScore
-    const totalSignals = commitmentSignals.length + engagementSignals.length + interestSignals.length
+    const weightedScore = commitmentScore + engagementScore + interestScore
+    const totalSignalCount = commitmentSignals.length + engagementSignals.length + interestSignals.length
+    
+    // Max possible score: if all signals were commitment-level
+    const maxPossibleScore = Math.max(totalSignalCount * 3, 12)
     
     let strength = 'Weak'
     let color = 'red'
     
-    if (commitmentSignals.length >= 2 || totalScore >= 8) {
+    if (commitmentSignals.length >= 2 || weightedScore >= 8) {
       strength = 'Strong'
       color = 'green'
-    } else if (commitmentSignals.length >= 1 || totalScore >= 4) {
+    } else if (commitmentSignals.length >= 1 || weightedScore >= 4) {
       strength = 'Good'
       color = 'yellow'
     }
     
     return {
-      count: totalSignals,
-      total: Math.max(totalSignals, 3),
+      count: weightedScore,
+      total: maxPossibleScore,
       strength: `${strength} momentum`,
       commitmentCount: commitmentSignals.length,
-      qualityScore: totalScore,
+      qualityScore: weightedScore,
       color
     }
   }
