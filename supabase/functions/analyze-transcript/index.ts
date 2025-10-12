@@ -7,6 +7,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// AI Model Configuration - Single source of truth for model versions
+const AI_MODELS = {
+  openai: 'gpt-4o-mini',
+  claude: 'claude-3-5-sonnet-20241022'
+} as const;
+
 interface AnalysisRequest {
   transcriptId: string;
   userId: string;
@@ -396,10 +402,20 @@ serve(async (req) => {
       // Use AI to extract company name if regex didn't find it
       if (!extracted.companyName) {
         console.log('🔍 [AI-EXTRACT] No company found by regex, using AI extraction');
-        const aiCompanyName = await extractCompanyNameWithAI(
+        
+        // Build richer context for extraction including participants
+        const extractionContext = [
           parsedResult.callSummary?.overview,
           parsedResult.callSummary?.clientSituation,
-          usedProvider
+          parsedResult.participants ? 
+            `Participants: ${JSON.stringify(parsedResult.participants)}` : null
+        ].filter(Boolean).join('\n\n');
+        
+        const aiCompanyName = await extractCompanyNameWithAI(
+          extractionContext,
+          undefined,
+          usedProvider,
+          usedProvider === 'openai' ? AI_MODELS.openai : AI_MODELS.claude  // Pass exact model
         );
         if (aiCompanyName) {
           extracted.companyName = aiCompanyName;
@@ -622,7 +638,7 @@ async function callOpenAI(prompt: string): Promise<string> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'gpt-4o-mini',
+      model: AI_MODELS.openai,
       messages: [
         { 
           role: 'system', 
@@ -663,7 +679,7 @@ async function callClaude(prompt: string): Promise<string> {
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
+      model: AI_MODELS.claude,
       max_tokens: 4000,
       messages: [
         { 
@@ -691,19 +707,27 @@ async function callClaude(prompt: string): Promise<string> {
 async function extractCompanyNameWithAI(
   overview?: string, 
   clientSituation?: string,
-  provider: 'openai' | 'claude' = 'openai'
+  provider: 'openai' | 'claude' = 'openai',
+  modelOverride?: string  // Exact model to use (matches main analysis)
 ): Promise<string | null> {
   if (!overview && !clientSituation) {
     return null;
   }
 
   const contextText = [overview, clientSituation].filter(Boolean).join('\n\n');
-  const extractionPrompt = `Based on the following text from a sales conversation, identify ONLY the prospect/client company name (not the seller's company). Reply with ONLY the company name or the word "NULL" if no prospect company is mentioned.
+  const extractionPrompt = `Extract the prospect/client company name from this sales conversation summary.
+
+RULES:
+- Return ONLY the company name (no extra words, no explanations)
+- If multiple companies are mentioned, return the PROSPECT company (not the seller)
+- Return "NULL" if no clear company name exists
+- DO NOT return generic phrases like "The meeting", "The call", "The conversation", "The company", etc.
+- DO NOT return job titles, person names, or department names
 
 Text:
 ${contextText}
 
-Company name:`;
+Prospect company name (one word or short phrase only):`;
 
   try {
     let response: string;
@@ -722,7 +746,7 @@ Company name:`;
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: modelOverride || AI_MODELS.openai,
           messages: [
             { role: 'user', content: extractionPrompt }
           ],
@@ -753,7 +777,7 @@ Company name:`;
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
+          model: modelOverride || AI_MODELS.claude,
           max_tokens: 50,
           messages: [
             { role: 'user', content: extractionPrompt }
@@ -773,6 +797,19 @@ Company name:`;
 
     // Clean up response
     if (!response || response.toUpperCase() === 'NULL' || response.length < 2) {
+      return null;
+    }
+
+    // Validation blocklist - Reject generic/invalid company names
+    const invalidNames = [
+      'the meeting', 'the call', 'the conversation', 'the company', 
+      'the client', 'the prospect', 'meeting', 'call', 'conversation',
+      'discussion', 'the discussion', 'session', 'the session',
+      'sales call', 'discovery call', 'demo'
+    ];
+
+    if (invalidNames.includes(response.toLowerCase())) {
+      console.log('🔍 [AI-EXTRACT] Rejected generic company name:', response);
       return null;
     }
 
