@@ -404,30 +404,6 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                       </DropdownMenu>
                     </div>
 
-                    {transcript.challenger_scores && (
-                      <div className="flex items-center justify-between pt-2 border-t">
-                        <div className="flex items-center space-x-3 text-xs">
-                          <div className="text-center">
-                            <div className="font-medium text-yellow-600">
-                              {getScoreDisplay(transcript.challenger_scores.teaching)}
-                            </div>
-                            <div className="text-xs text-slate-500">T</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-medium text-blue-600">
-                              {getScoreDisplay(transcript.challenger_scores.tailoring)}
-                            </div>
-                            <div className="text-xs text-slate-500">T</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="font-medium text-green-600">
-                              {getScoreDisplay(transcript.challenger_scores.control)}
-                            </div>
-                            <div className="text-xs text-slate-500">C</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>

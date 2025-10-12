@@ -314,42 +314,6 @@ export function RecentTranscripts() {
                   </div>
                 </div>
 
-                {transcript.challenger_scores && transcript.status === 'completed' && (
-                  <div className="flex items-center justify-between pt-3 border-t">
-                    <div className="flex items-center space-x-4 text-sm">
-                      <div className="text-center">
-                        <div className="font-semibold text-yellow-600">
-                          {getScoreDisplay(transcript.challenger_scores.teaching)}
-                        </div>
-                        <div className="text-xs text-slate-500">Teaching</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold text-blue-600">
-                          {getScoreDisplay(transcript.challenger_scores.tailoring)}
-                        </div>
-                        <div className="text-xs text-slate-500">Tailoring</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="font-semibold text-green-600">
-                          {getScoreDisplay(transcript.challenger_scores.control)}
-                        </div>
-                        <div className="text-xs text-slate-500">Control</div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        handleViewTranscript(transcript.id)
-                      }}
-                    >
-                      View Details
-                      <ArrowRight className="h-4 w-4 ml-1" />
-                    </Button>
-                  </div>
-                )}
 
                 {transcript.status === 'processing' && (
                   <div className="flex items-center justify-between pt-3 border-t">

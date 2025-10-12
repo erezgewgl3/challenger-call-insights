@@ -628,9 +628,9 @@ ${callSummary.competitiveIntelligence?.competitiveAdvantage || 'Not identified'}
       // Custom fields for AI insights
       cf_ai_heat_level: heatLevel,
       cf_deal_momentum: guidance.momentum || 'steady',
-      cf_challenger_teaching: challengerScores.teaching || 0,
-      cf_challenger_tailoring: challengerScores.tailoring || 0,
-      cf_challenger_control: challengerScores.control || 0,
+      cf_challenger_teaching: null,
+      cf_challenger_tailoring: null,
+      cf_challenger_control: null,
       cf_pain_level: callSummary.painSeverity?.level || 'low',
       cf_urgency_level: callSummary.urgencyDrivers?.primary ? 'high' : 'medium',
       cf_buying_signals_quality: callSummary.buyingSignalsAnalysis?.overallQuality || 'weak',

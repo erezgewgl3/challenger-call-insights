@@ -141,12 +141,9 @@ function transformToCRMFormat(analysis: any): CRMFormattedAnalysis {
   const internalParticipants = participants.filter((p: any) => p.internal === true)
   const externalParticipants = participants.filter((p: any) => p.internal !== true)
 
-  // Calculate deal intelligence
-  const challengerAvg = analysis.challenger_scores ? 
-    (analysis.challenger_scores.teaching + analysis.challenger_scores.tailoring + analysis.challenger_scores.control) / 3 : 2.5
-
-  const heatLevel = challengerAvg >= 4 ? 'hot' : challengerAvg >= 3 ? 'warm' : 'cold'
-  const priorityScore = Math.round(challengerAvg * 20) // Convert to 0-100 scale
+  // Calculate deal intelligence using actual heat_level from database
+  const heatLevel = analysis.heat_level?.toLowerCase() || 'warm'
+  const priorityScore = analysis.priority_score || 50 // Use explicit priority if available
 
   return {
     analysis_id: analysis.id,
@@ -589,8 +586,8 @@ function extractDealHeat(analysis: any): string {
   const guidance = analysis.guidance || {};
   const challengerScores = analysis.challenger_scores || {};
   
-  const values = (Object.values(challengerScores) as any[]).map((v) => Number(v) || 0);
-  const avgScore = values.length > 0 ? values.reduce((a: number, b: number) => a + b, 0) / values.length : 2.5;
+  const values = Object.values(challengerScores).filter(v => typeof v === 'number' && v > 0);
+  const avgScore = values.length > 0 ? values.reduce((a: number, b: number) => a + b, 0) / values.length : null;
   
   if (avgScore >= 4 || guidance.recommendation === 'Push') return 'Hot';
   if (avgScore >= 3 || guidance.recommendation === 'Continue') return 'Warm';
@@ -605,9 +602,9 @@ function extractMomentum(analysis: any): string {
   return 'Unknown';
 }
 
-function extractChallengerScore(analysis: any): number {
+function extractChallengerScore(analysis: any): number | null {
   const challengerScores = analysis.challenger_scores || {};
-  return challengerScores.teaching || challengerScores.Teaching || 3;
+  return challengerScores.teaching || challengerScores.Teaching || null;
 }
 
 function extractCompetitivePosition(analysis: any): string {
@@ -656,10 +653,7 @@ function createNotesFromAnalysis(analysis: any, dealContext: any) {
 Deal Heat: ${extractDealHeat(analysis)}
 Momentum: ${extractMomentum(analysis)}
 
-Challenger Scores:
-- Teaching: ${challengerScores.teaching || challengerScores.Teaching || 'N/A'}
-- Tailoring: ${challengerScores.tailoring || challengerScores.Tailoring || 'N/A'}
-- Taking Control: ${challengerScores.control || challengerScores.Control || 'N/A'}
+Challenger Scores: Not Scored
 
 Key Insights:
 ${guidance.key_insights?.join('\n- ') || 'None captured'}
