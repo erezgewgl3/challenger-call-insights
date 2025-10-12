@@ -439,17 +439,31 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                 
                 <div className="flex items-center gap-2 flex-shrink-0">
                 {isProcessing ? (
-                  <div className="flex flex-col items-end gap-1 px-4">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span className="text-sm">Processing...</span>
+                  <>
+                    <div className="flex flex-col items-end gap-1 px-4">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span className="text-sm">Processing...</span>
+                      </div>
+                      {item.duration_minutes && (
+                        <span className="text-xs text-muted-foreground">
+                          {item.duration_minutes} min meeting
+                        </span>
+                      )}
                     </div>
-                    {item.duration_minutes && (
-                      <span className="text-xs text-muted-foreground">
-                        {item.duration_minutes} min meeting
-                      </span>
+                    
+                    {item.source !== 'zoom' && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => handleDelete(item)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        title="Delete transcript"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     )}
-                  </div>
+                  </>
                 ) : (
                     <>
                       <Button
