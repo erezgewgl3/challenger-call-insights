@@ -120,7 +120,7 @@ function calculateDealHeat(analysis: any): string {
   });
   
   if (
-    painLevel === 'high' ||
+    (painLevel === 'high' && dealScore >= 1) ||
     criticalFactors.length >= 1 ||
     dealScore >= 8 ||
     (commitmentSignals.length >= 2 && dealScore >= 6) ||
