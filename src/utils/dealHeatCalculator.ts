@@ -99,9 +99,10 @@ export function calculateDealHeat(analysis: any): DealHeatResult {
     emoji = '🔥'
     description = 'Immediate attention needed'
   } else if (
-    painLevel === 'medium' || 
-    (businessFactors || []).length >= 1 ||
-    dealScore >= 3
+    // MEDIUM heat requires meaningful buying intent, not just pain
+    (painLevel === 'medium' && dealScore >= 2) ||  // Medium pain + some positive signals
+    (businessFactors || []).length >= 1 ||          // Business urgency factors exist
+    dealScore >= 4                                  // Strong buying signals independently
   ) {
     heatLevel = 'MEDIUM'
     emoji = '🌡️'
