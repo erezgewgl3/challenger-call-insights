@@ -38,6 +38,17 @@ export function AnalysisProgress({
   isAssignedTranscript = false,
   onComplete
 }: AnalysisProgressProps) {
+  const [showReassurance, setShowReassurance] = React.useState(false)
+
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      if (progress < 100) {
+        setShowReassurance(true)
+      }
+    }, 60000) // 60 seconds
+    
+    return () => clearTimeout(timer)
+  }, [progress])
 
   const getStrategyInfo = () => {
     switch (strategy) {
@@ -229,6 +240,23 @@ export function AnalysisProgress({
               <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                 <Loader className="h-4 w-4 animate-spin" />
                 <span className="font-medium">{message || currentStage.label}</span>
+              </div>
+            )}
+
+            {/* 60-Second Reassurance Banner */}
+            {showReassurance && progress < 100 && (
+              <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg animate-fade-in">
+                <Brain className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-blue-900">
+                    Deep analysis in progress
+                  </p>
+                  <p className="text-xs text-blue-700">
+                    {fileDuration && fileDuration > 60 
+                      ? `Your ${fileDuration}-minute meeting requires comprehensive analysis. This ensures we capture every insight.`
+                      : 'Longer transcripts require more thorough processing. Everything is working as expected.'}
+                  </p>
+                </div>
               </div>
             )}
 
