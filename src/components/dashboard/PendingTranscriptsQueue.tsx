@@ -243,7 +243,7 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
 
     try {
       const { error } = await supabase.functions.invoke('delete-transcript', {
-        body: { transcriptId: item.id }
+        body: { transcript_id: item.id }
       });
 
       if (error) throw error;
