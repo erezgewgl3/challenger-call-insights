@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { TranscriptNameDialog } from './TranscriptNameDialog'
 import { useTranscriptUpload } from '@/hooks/useTranscriptUpload'
 import { useAuth } from '@/hooks/useAuth'
-import { Upload, Plus, FileText, Info, Eye, MessageSquare, ArrowRight } from 'lucide-react'
+import { Upload, Plus, FileText, Info, Eye, MessageSquare, ArrowRight, AlertCircle, RefreshCw } from 'lucide-react'
 
 interface CompactTranscriptUploadProps {
   onAnalysisComplete?: (transcriptId: string) => void
@@ -27,9 +27,11 @@ export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscrip
     setHasError(true)
   }
 
-  const { uploadFiles, processFiles, isUploading } = uploadHook || {
+  const { uploadFiles, processFiles, removeFile, retryFile, isUploading } = uploadHook || {
     uploadFiles: [],
     processFiles: () => Promise.resolve(),
+    removeFile: () => {},
+    retryFile: () => {},
     isUploading: false
   }
 
@@ -103,16 +105,61 @@ export function CompactTranscriptUpload({ onAnalysisComplete }: CompactTranscrip
     )
   }
 
-  // Show upload progress if files are being processed
+  // Show upload progress or error if files are being processed
   if (uploadFiles.length > 0) {
     const file = uploadFiles[0]
+    
+    // Show error state with retry option
+    if (file.status === 'error') {
+      return (
+        <Card className="h-full border-red-200 bg-red-50/30">
+          <CardContent className="p-4 flex items-center justify-center h-full">
+            <div className="text-center max-w-md">
+              <AlertCircle className="h-10 w-10 text-red-500 mx-auto mb-3" />
+              <p className="text-sm font-semibold text-red-900 mb-1">Upload Failed</p>
+              <p className="text-xs text-red-700 mb-4 px-4">{file.error}</p>
+              <div className="flex gap-2 justify-center">
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="border-red-300 hover:bg-red-100"
+                  onClick={() => retryFile(file.id)}
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Try Again
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  onClick={() => removeFile(file.id)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
+    
+    // Show processing state
     return (
       <Card className="h-full">
         <CardContent className="p-4 flex items-center justify-center h-full">
           <div className="text-center">
             <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-            <p className="text-sm text-muted-foreground">Processing...</p>
+            <p className="text-sm text-muted-foreground">
+              {file.status === 'validating' ? 'Validating...' : file.status === 'uploading' ? 'Uploading...' : 'Processing...'}
+            </p>
             <p className="text-xs text-muted-foreground">{file.file.name}</p>
+            {file.progress > 0 && (
+              <div className="w-full max-w-xs mx-auto mt-2 bg-gray-200 rounded-full h-1">
+                <div 
+                  className="bg-primary h-1 rounded-full transition-all duration-300" 
+                  style={{ width: `${file.progress}%` }}
+                />
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>

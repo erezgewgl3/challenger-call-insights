@@ -38,23 +38,101 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
       // Handle Word documents using mammoth
       try {
         const arrayBuffer = await file.arrayBuffer()
+        
+        // Verify arrayBuffer isn't truncated or empty
+        if (arrayBuffer.byteLength === 0) {
+          throw new Error('File appears to be empty or corrupted')
+        }
+        
+        if (arrayBuffer.byteLength < file.size * 0.5) {
+          throw new Error('File upload was incomplete - please try again')
+        }
+        
         const result = await mammoth.extractRawText({ arrayBuffer })
+        
+        if (!result.value || result.value.length === 0) {
+          throw new Error('No text content found in document')
+        }
+        
         return result.value
       } catch (error) {
-        throw new Error('Failed to extract text from Word document')
+        throw new Error(`Failed to extract text from Word document: ${error instanceof Error ? error.message : 'Unknown error'}`)
       }
     } else {
-      // Handle text files (.txt, .vtt) using FileReader
+      // Handle text files (.txt, .vtt) using FileReader with timeout
       return new Promise((resolve, reject) => {
         const reader = new FileReader()
+        
+        // Add timeout for file reading
+        const timeoutId = setTimeout(() => {
+          reader.abort()
+          reject(new Error('File read timed out - please try again'))
+        }, 30000) // 30 second timeout
+        
         reader.onload = (e) => {
+          clearTimeout(timeoutId)
           const content = e.target?.result as string
+          
+          // Validate content wasn't truncated or empty
+          if (!content || content.length === 0) {
+            reject(new Error('File appears to be empty'))
+            return
+          }
+          
+          // VTT files should have specific headers
+          if (fileName.endsWith('.vtt') && !content.includes('WEBVTT')) {
+            reject(new Error('Invalid VTT file format - missing WEBVTT header'))
+            return
+          }
+          
           resolve(content)
         }
-        reader.onerror = () => reject(new Error('Failed to read file'))
+        
+        reader.onerror = () => {
+          clearTimeout(timeoutId)
+          reject(new Error('Failed to read file - please try again'))
+        }
+        
+        reader.onabort = () => {
+          clearTimeout(timeoutId)
+          reject(new Error('File read was cancelled'))
+        }
+        
         reader.readAsText(file)
       })
     }
+  }
+
+  const validateTranscriptContent = (text: string, fileName: string): { valid: boolean; error?: string } => {
+    // Minimum viable transcript length
+    if (text.length < 100) {
+      return { 
+        valid: false, 
+        error: 'Transcript is too short - file may be corrupted or incomplete' 
+      }
+    }
+    
+    // Check for common corruption indicators
+    if (text.includes('\0') || text.includes('�')) {
+      return { 
+        valid: false, 
+        error: 'File contains invalid characters - may be corrupted' 
+      }
+    }
+    
+    // VTT-specific validation
+    if (fileName.endsWith('.vtt')) {
+      // VTT should have timestamp patterns
+      const hasTimestamps = /\d{2}:\d{2}:\d{2}\.\d{3}\s*-->\s*\d{2}:\d{2}:\d{2}\.\d{3}/.test(text)
+      if (!hasTimestamps) {
+        return { 
+          valid: false, 
+          error: 'Invalid VTT file - missing or malformed timestamps' 
+        }
+      }
+    }
+    
+    return { valid: true }
   }
 
   const extractMetadataFromText = (text: string, fileName: string, customTitle?: string) => {
@@ -116,7 +194,9 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
     return { valid: true }
   }
 
-  const processFiles = useCallback(async (files: File[], customName?: string) => {
+  const processFiles = useCallback(async (files: File[], customName?: string, retryCount = 0) => {
+    const MAX_RETRIES = 2
+    
     const newFiles: UploadFile[] = files.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
       file,
@@ -232,8 +312,14 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
         let textContent: string
         try {
           textContent = await extractTextFromFile(uploadFile.file)
+          
+          // Validate transcript content integrity
+          const contentValidation = validateTranscriptContent(textContent, uploadFile.file.name)
+          if (!contentValidation.valid) {
+            throw new Error(contentValidation.error)
+          }
         } catch (extractError) {
-          throw new Error('Failed to extract text from file')
+          throw new Error(extractError instanceof Error ? extractError.message : 'Failed to extract text from file')
         }
         
         // Extract metadata with custom name
@@ -328,11 +414,37 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
 
       } catch (error) {
         console.error('Upload failed:', error)
-        updateFileStatus(uploadFile.id, {
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Upload failed'
-        })
-        toast.error(`Upload failed: ${uploadFile.file.name}`)
+        
+        const errorMessage = error instanceof Error ? error.message : 'Upload failed'
+        
+        // Check if error is retryable
+        const isRetryable = errorMessage.includes('incomplete') || 
+                           errorMessage.includes('timed out') ||
+                           errorMessage.includes('read') ||
+                           errorMessage.includes('network')
+        
+        if (isRetryable && retryCount < MAX_RETRIES) {
+          // Wait before retry (exponential backoff)
+          const delay = Math.pow(2, retryCount) * 1000
+          
+          updateFileStatus(uploadFile.id, {
+            status: 'error',
+            error: `Upload failed - retrying in ${delay/1000}s... (attempt ${retryCount + 1}/${MAX_RETRIES})`
+          })
+          
+          setTimeout(() => {
+            // Retry with same file
+            removeFile(uploadFile.id)
+            processFiles([uploadFile.file], customName, retryCount + 1)
+          }, delay)
+        } else {
+          // Final failure
+          updateFileStatus(uploadFile.id, {
+            status: 'error',
+            error: errorMessage
+          })
+          toast.error(`Upload failed: ${uploadFile.file.name}`)
+        }
       }
     }
   }, [updateFileStatus, onAnalysisComplete])
