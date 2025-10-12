@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { formatDistanceToNow, differenceInHours, differenceInDays, format } from 'date-fns'
 import { SourceBadge } from '@/components/ui/SourceBadge'
 import { useArchiveTranscript } from '@/hooks/useArchiveTranscript'
+import { EditableTitle } from './EditableTitle'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -317,9 +318,11 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex-1">
-                        <h4 className="font-medium text-slate-900 group-hover:text-blue-600 transition-colors text-sm mb-1">
-                          {getDisplayTitle(transcript)}
-                        </h4>
+                        <EditableTitle
+                          transcriptId={transcript.id}
+                          currentTitle={getDisplayTitle(transcript)}
+                          className="mb-1"
+                        />
                         {(() => {
                           const names = getParticipantNames(transcript);
                           if (names.length > 0) {
