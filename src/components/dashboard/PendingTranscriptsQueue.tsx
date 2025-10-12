@@ -438,12 +438,19 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
                 </div>
                 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  {isProcessing ? (
-                    <div className="flex items-center gap-2 text-muted-foreground px-4">
+                {isProcessing ? (
+                  <div className="flex flex-col items-end gap-1 px-4">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span className="text-sm">Processing...</span>
                     </div>
-                  ) : (
+                    {item.duration_minutes && (
+                      <span className="text-xs text-muted-foreground">
+                        {item.duration_minutes} min meeting
+                      </span>
+                    )}
+                  </div>
+                ) : (
                     <>
                       <Button
                         onClick={() => handleAnalyze(item)}
