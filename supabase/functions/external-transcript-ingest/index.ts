@@ -493,6 +493,16 @@ async function downloadTranscriptFile(fileUrl: string): Promise<string> {
   return text;
 }
 
+/**
+ * Calculate meeting duration from word count using standard speaking rate
+ * @param wordCount - Number of words in transcript
+ * @returns Estimated duration in minutes (rounded)
+ */
+function calculateDurationFromWordCount(wordCount: number): number {
+  // Standard speaking rate: 140 words per minute (middle of 125-150 range)
+  return Math.round(wordCount / 140);
+}
+
 function prepareTranscriptData(
   payload: ExternalTranscriptPayload,
   userId: string,
@@ -521,7 +531,18 @@ function prepareTranscriptData(
     title: metadata.title || `External Transcript - ${new Date().toISOString().split('T')[0]}`,
     participants: participants,
     meeting_date: metadata.meeting_date || new Date().toISOString(),
-    duration_minutes: metadata.duration_minutes || null,
+    duration_minutes: (() => {
+      // Use provided duration first, otherwise calculate from word count
+      if (metadata.duration_minutes) {
+        return metadata.duration_minutes;
+      }
+      if (metadata.word_count) {
+        const calculated = calculateDurationFromWordCount(metadata.word_count);
+        console.log(`📊 [DURATION] Calculated ${calculated} minutes from ${metadata.word_count} words`);
+        return calculated;
+      }
+      return null;
+    })(),
     raw_text: transcriptText,
     processing_status: 'pending',
     external_source: normalizedSource,
