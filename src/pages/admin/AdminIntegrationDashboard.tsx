@@ -32,6 +32,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { ZapierZohoSetupGuide } from "@/components/integrations-framework/ZapierZohoSetupGuide";
 
 interface IntegrationMetrics {
   totalActiveIntegrations: number;
@@ -307,6 +308,9 @@ export default function AdminIntegrationDashboard() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
+          {/* Documentation Resources */}
+          <ZapierZohoSetupGuide />
+          
           {/* Real-time Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
