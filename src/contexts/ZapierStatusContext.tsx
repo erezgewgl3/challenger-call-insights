@@ -115,8 +115,8 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
     onError: (error: Error) => {
       console.error('Connection verification failed:', error);
       
-      // Only show toast if user is authenticated
-      if (user) {
+      // Only show toast for MANUAL tests (not background tests)
+      if (user && !backgroundTestInProgress.current) {
         toast({
           title: "Verification Failed",
           description: error.message,

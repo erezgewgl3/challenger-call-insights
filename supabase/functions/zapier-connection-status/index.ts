@@ -186,10 +186,10 @@ async function handleVerifyConnection(supabaseClient: any, userId: string, req: 
       .select('*')
       .eq('id', apiKeyId)
       .eq('user_id', userId)
-      .single();
+      .maybeSingle();
 
     if (apiKeyError || !apiKey) {
-      console.error('API key not found:', apiKeyError);
+      console.log('API key not found or inaccessible:', apiKeyError?.message || 'No key with this ID');
       return new Response(JSON.stringify({ 
         success: false, 
         error: 'API key not found' 
