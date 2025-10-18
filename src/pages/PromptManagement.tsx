@@ -15,7 +15,7 @@ import { PromptMetricsCards } from '@/components/prompts/PromptMetricsCards'
 import { PromptControlsSection } from '@/components/prompts/PromptControlsSection'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { usePromptManagement } from '@/hooks/usePromptManagement'
-import { OptimizedPromptWithScores } from '@/components/prompts/OptimizedPromptWithScores'
+
 
 export default function PromptManagement() {
   const {
@@ -123,8 +123,6 @@ export default function PromptManagement() {
             onCreatePrompt={() => setIsCreating(true)}
           />
 
-          {/* Optimized Prompt with Challenger Scores */}
-          <OptimizedPromptWithScores />
 
           {/* Active prompt section */}
           {activePrompt ? (
