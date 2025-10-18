@@ -54,11 +54,27 @@ export function IntegrationManagement() {
 
       if (error) throw error;
       
-      // Transform data to flatten user email
-      const transformedData = data?.map((integration: any) => ({
-        ...integration,
-        user_email: integration.users?.email || 'Unknown User'
-      })) || [];
+      // Transform data with defensive validation and type safety
+      const transformedData = data?.map((integration: any) => {
+        let userEmail = 'Unknown User';
+        
+        // Defensive check: ensure users object exists and has valid email
+        if (integration.users && 
+            typeof integration.users === 'object' && 
+            'email' in integration.users &&
+            typeof integration.users.email === 'string' &&
+            integration.users.email.trim() !== '') {
+          userEmail = integration.users.email;
+        } else if (!integration.users) {
+          // Log warning for debugging without breaking functionality
+          console.warn(`Integration ${integration.id} (${integration.connection_name}) has no associated user data`);
+        }
+        
+        return {
+          ...integration,
+          user_email: userEmail
+        };
+      }) || [];
       
       setIntegrations(transformedData);
     } catch (error) {
