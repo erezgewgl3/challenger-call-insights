@@ -261,6 +261,7 @@ const summaryItem = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 6px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const messageBox = {
@@ -283,6 +284,7 @@ const errorMessage = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 16px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const detailsBox = {
@@ -329,6 +331,7 @@ const impactItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const actionsBox = {
@@ -351,6 +354,7 @@ const actionItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const ctaSection = {
@@ -386,6 +390,7 @@ const footerText = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 24px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const brandText = {

@@ -186,6 +186,7 @@ const summaryItem = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 6px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const errorText = {
@@ -227,6 +228,7 @@ const solutionItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const actionsSection = {
@@ -286,6 +288,7 @@ const nextStepItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const hr = {
@@ -303,6 +306,7 @@ const footerText = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 16px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const supportSection = {

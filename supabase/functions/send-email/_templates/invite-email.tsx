@@ -166,6 +166,7 @@ const text = {
   fontSize: '16px',
   lineHeight: '1.6',
   margin: '0 0 16px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const features = {
@@ -188,6 +189,7 @@ const feature = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const ctaSection = {
@@ -245,6 +247,7 @@ const footerText = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 16px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const helpText = {
@@ -252,6 +255,7 @@ const helpText = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 24px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const brandText = {

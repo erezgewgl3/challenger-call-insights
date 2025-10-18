@@ -171,6 +171,7 @@ const summaryItem = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 6px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const successText = {
@@ -178,6 +179,7 @@ const successText = {
   fontSize: '16px',
   fontWeight: '500',
   margin: '16px 0 0 0',
+  wordWrap: 'break-word' as const,
 }
 
 const featuresBox = {
@@ -200,6 +202,7 @@ const featureItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const ctaSection = {
@@ -240,6 +243,7 @@ const tipItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const hr = {
@@ -257,6 +261,7 @@ const footerText = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 24px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const brandText = {

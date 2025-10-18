@@ -200,6 +200,7 @@ const introText = {
   fontSize: '16px',
   lineHeight: '1.6',
   margin: '0',
+  wordWrap: 'break-word' as const,
 }
 
 const tipBox = {
@@ -231,6 +232,7 @@ const tipDescription = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 16px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const tipActionSection = {
@@ -264,6 +266,7 @@ const bonusItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const ctaSection = {
@@ -323,6 +326,7 @@ const statItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const hr = {
@@ -340,6 +344,7 @@ const footerText = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 16px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const unsubscribeText = {

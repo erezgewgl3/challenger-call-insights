@@ -171,6 +171,7 @@ const summaryItem = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const h2 = {
@@ -202,6 +203,7 @@ const failureDetail = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0 0 6px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const failureDetailCode = {
@@ -233,6 +235,7 @@ const actionItem = {
   fontSize: '14px',
   lineHeight: '1.6',
   margin: '0 0 8px 0',
+  wordWrap: 'break-word' as const,
 }
 
 const ctaSection = {
@@ -273,6 +276,7 @@ const technicalText = {
   fontSize: '14px',
   lineHeight: '1.5',
   margin: '0',
+  wordWrap: 'break-word' as const,
 }
 
 const hr = {
@@ -290,4 +294,5 @@ const footerText = {
   fontSize: '12px',
   lineHeight: '1.4',
   margin: '0',
+  wordWrap: 'break-word' as const,
 }
