@@ -306,9 +306,11 @@ function extractCompetitivePositioning(analysis: any) {
   const concerns = resistanceAnalysis?.signals || []
 
   return {
-    buyingSignals: Array.isArray(buyingSignals?.commitmentSignals) && buyingSignals.commitmentSignals.length > 0
-      ? buyingSignals.commitmentSignals 
-      : [],
+    buyingSignals: [
+      ...(buyingSignals.commitmentSignals || []),
+      ...(buyingSignals.engagementSignals || []),
+      ...(buyingSignals.interestSignals || [])
+    ],
     painIndicators: Array.isArray(painSeverity?.indicators) && painSeverity.indicators.length > 0
       ? painSeverity.indicators 
       : [],
