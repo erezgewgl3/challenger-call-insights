@@ -41,6 +41,7 @@ interface AnalysisData {
   recommendations?: any
   reasoning?: any
   action_plan?: any
+  heat_level?: string
 }
 
 interface SalesIntelligenceViewProps {
@@ -107,7 +108,8 @@ export function SalesIntelligenceView({
           key_takeaways: Array.isArray(rawAnalysis.key_takeaways) ? rawAnalysis.key_takeaways as string[] : [],
           recommendations: rawAnalysis.recommendations,
           reasoning: rawAnalysis.reasoning,
-          action_plan: rawAnalysis.action_plan
+          action_plan: rawAnalysis.action_plan,
+          heat_level: rawAnalysis.heat_level
         })
       }
 
