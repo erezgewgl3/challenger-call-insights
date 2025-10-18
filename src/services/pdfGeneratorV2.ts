@@ -299,7 +299,7 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
     textY += 4.2 // Tighter line spacing
   })
   
-  return currentY + boxHeight + 2 // Minimal spacing after box
+  return currentY + boxHeight + 8 // Proper spacing after box to prevent overlap
 }
 
 /**
