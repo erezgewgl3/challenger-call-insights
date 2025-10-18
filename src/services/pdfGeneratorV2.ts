@@ -149,7 +149,7 @@ function renderHeader(pdf: jsPDF, header: any): number {
   // Date and duration on same line (matching screen format)
   const dateText = sanitizePDF(header.date)
   const durationText = header.duration ? ` • Duration: ${sanitizePDF(header.duration)}` : ''
-  pdf.text(`${dateText}${durationText}`, PDF_CONFIG.page.margin, 40)
+  pdf.text(`Analyzed ${dateText}${durationText}`, PDF_CONFIG.page.margin, 40)
   
   // Separator line
   pdf.setDrawColor(...PDF_CONFIG.colors.gray)
