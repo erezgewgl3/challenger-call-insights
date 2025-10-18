@@ -40,75 +40,19 @@ interface ZoomConnection {
 export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnectionChange }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isConnected, isLoading, error } = useZoomConnection();
-  const [connection, setConnection] = useState<ZoomConnection | null>(null);
+  const { isConnected, isLoading, error, connection: hookConnection } = useZoomConnection();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  // Load detailed connection data when connected
+  // Use connection data from hook
+  const connection = hookConnection;
+
+  // Notify parent of connection changes
   React.useEffect(() => {
-    if (isConnected && user?.id) {
-      loadConnectionDetails();
-      onConnectionChange?.(true);
-    } else {
-      setConnection(null);
-      onConnectionChange?.(false);
-    }
-  }, [isConnected, user?.id, onConnectionChange]);
+    onConnectionChange?.(isConnected);
+  }, [isConnected, onConnectionChange]);
 
-  const loadConnectionDetails = async () => {
-    if (!user?.id) return;
-
-    try {
-      console.log('[ZoomUserConnection] Loading connection details for user:', user.id);
-      
-      const { data, error } = await supabase.rpc('integration_framework_get_connection', {
-        user_uuid: user.id,
-        integration_type_param: 'zoom'
-      });
-
-      if (error) throw error;
-
-      console.log('[ZoomUserConnection] RPC response:', JSON.stringify(data, null, 2));
-
-      if (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data && data.data) {
-        const raw = data.data as Partial<ZoomConnection>;
-        console.log('[ZoomUserConnection] Raw connection data:', raw);
-        
-        // Validate required fields
-        if (!raw.id) {
-          console.warn('[ZoomUserConnection] Connection missing ID field');
-          setConnection(null);
-          setErrorMessage('Invalid connection data - reconnection required');
-          return;
-        }
-
-        const safeConnection: ZoomConnection = {
-          ...(raw as ZoomConnection),
-          configuration: (raw?.configuration && typeof raw.configuration === 'object') ? raw.configuration : {}
-        };
-        
-        console.log('[ZoomUserConnection] Normalized connection:', safeConnection);
-        setConnection(safeConnection);
-        setErrorMessage(null);
-      } else {
-        console.warn('Unexpected RPC response shape or no connection data:', data);
-        setConnection(null);
-        setErrorMessage('Unable to load Zoom connection details. Please reconnect.');
-      }
-    } catch (error) {
-      console.error('Error loading connection details:', error);
-      const message = error instanceof Error ? error.message : 'Failed to load connection details';
-      setErrorMessage(message);
-      setConnection(null);
-      toast({
-        title: "Connection Error",
-        description: message,
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -169,7 +113,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
 
       if (error) throw error;
 
-      setConnection(null);
+      // Hook will automatically update when connection is removed
       onConnectionChange?.(false);
       
       toast({
@@ -205,7 +149,8 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
 
       if (error) throw error;
 
-      setConnection(prev => prev ? { ...prev, configuration: newConfig } : null);
+      // Trigger refetch from hook to get updated data
+      // Note: The local state is managed by the hook now
       
       toast({
         title: "Setting Updated",
@@ -242,13 +187,9 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => {
-                setErrorMessage(null);
-                loadConnectionDetails();
-              }}
+              onClick={() => setErrorMessage(null)}
             >
-              <RefreshCw className="h-3 w-3 mr-1" />
-              Retry
+              Dismiss
             </Button>
           </AlertDescription>
         </Alert>

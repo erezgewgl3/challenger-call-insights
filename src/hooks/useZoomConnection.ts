@@ -3,12 +3,28 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
+interface ZoomConnection {
+  id: string;
+  connection_name: string;
+  connection_status: 'active' | 'inactive' | 'error';
+  credentials: any;
+  configuration?: {
+    auto_process?: boolean;
+    notifications?: boolean;
+    meeting_types?: string[];
+    user_info?: any;
+  };
+  last_sync_at?: string;
+  created_at: string;
+}
+
 interface ZoomConnectionStatus {
   isConnected: boolean;
   isLoading: boolean;
   error: Error | null;
   refetch: () => void;
   connectionStatus: 'active' | 'error' | 'inactive' | 'not_found';
+  connection: ZoomConnection | null;
 }
 
 export const useZoomConnection = (): ZoomConnectionStatus => {
@@ -56,7 +72,8 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
 
         return { 
           connected: isActive,
-          connectionStatus: connectionStatus as 'active' | 'error' | 'inactive' | 'not_found'
+          connectionStatus: connectionStatus as 'active' | 'error' | 'inactive' | 'not_found',
+          connection: hasConnection && connectionRecord ? connectionRecord as ZoomConnection : null
         };
       } catch (err) {
         console.error('Unexpected error in useZoomConnection (caught):', err);
@@ -77,6 +94,7 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
     error: error as Error | null,
     refetch,
     connectionStatus: data?.connectionStatus || 'not_found',
+    connection: data?.connection || null,
   };
 };
 
