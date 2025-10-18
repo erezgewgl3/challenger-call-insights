@@ -27,7 +27,7 @@ interface ZoomConnection {
     email?: string;
     account_id?: string;
   };
-  configuration: {
+  configuration?: {
     auto_process?: boolean;
     notifications?: boolean;
     meeting_types?: string[];
@@ -69,7 +69,12 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
       if (error) throw error;
 
       if (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data && data.data) {
-        setConnection(data.data as unknown as ZoomConnection);
+        const raw = data.data as Partial<ZoomConnection>;
+        const safeConnection: ZoomConnection = {
+          ...(raw as ZoomConnection),
+          configuration: (raw?.configuration && typeof raw.configuration === 'object') ? raw.configuration : {}
+        };
+        setConnection(safeConnection);
         setErrorMessage(null);
       } else {
         console.warn('Unexpected RPC response shape or no connection data:', data);
@@ -159,7 +164,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
     if (!connection) return;
 
     try {
-      const newConfig = { ...connection.configuration, [setting]: value };
+      const newConfig = { ...(connection?.configuration ?? {}), [setting]: value };
       
       const { error } = await supabase.rpc('integration_framework_update_connection', {
         connection_id: connection.id,
@@ -193,6 +198,9 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
       </div>
     );
   }
+
+  // Safe config access
+  const safeConfig = connection?.configuration ?? {};
 
   return (
     <div className="h-full flex flex-col space-y-4">
@@ -250,7 +258,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
             <div className="space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Account:</span>
-                <span className="font-medium">{connection.configuration.user_info?.email || connection.connection_name || 'Connected'}</span>
+                <span className="font-medium">{safeConfig.user_info?.email || connection.connection_name || 'Connected'}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Connected:</span>
@@ -283,7 +291,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
                   </Label>
                   <Switch
                     id="auto-process"
-                    checked={connection.configuration.auto_process ?? true}
+                    checked={safeConfig.auto_process ?? true}
                     onCheckedChange={(checked) => updateUserSetting('auto_process', checked)}
                   />
                 </div>
@@ -297,7 +305,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
                   </Label>
                   <Switch
                     id="notifications"
-                    checked={connection.configuration.notifications ?? false}
+                    checked={safeConfig.notifications ?? false}
                     onCheckedChange={(checked) => updateUserSetting('notifications', checked)}
                   />
                 </div>
