@@ -9,21 +9,22 @@ import autoTable from 'jspdf-autotable'
 import type { PDFContentData } from '@/types/pdfExport'
 
 /**
- * Sanitize text to handle special characters and encoding issues
+ * Sanitize text to handle special characters while preserving important symbols
  */
 function sanitizeText(text: string): string {
   if (!text) return ''
   return text
-    .replace(/[\u2018\u2019]/g, "'")  // Smart single quotes to straight
-    .replace(/[\u201C\u201D]/g, '"')  // Smart double quotes to straight
-    .replace(/\u2026/g, '...')        // Ellipsis
-    .replace(/[\u2013\u2014]/g, '-')  // En/em dashes to hyphen
-    .replace(/[\u00A0]/g, ' ')        // Non-breaking space to regular space
-    .replace(/[^\x00-\x7F]/g, (char) => {
-      // Keep common accented characters, remove other non-ASCII
-      const code = char.charCodeAt(0)
-      return (code >= 0x00C0 && code <= 0x00FF) ? char : ''
-    })
+    // Remove control characters and zero-width spaces
+    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '')
+    // Normalize quotes (but keep apostrophes in contractions)
+    .replace(/[\u2018\u2019]/g, "'")
+    .replace(/[\u201C\u201D]/g, '"')
+    // Normalize dashes
+    .replace(/[\u2013\u2014]/g, '-')
+    .replace(/\u2026/g, '...')
+    // Non-breaking space to regular space
+    .replace(/[\u00A0]/g, ' ')
+    // Keep everything else (currency symbols, numbers, punctuation, accented chars)
 }
 
 // PDF Configuration Constants
@@ -172,10 +173,16 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
   pdf.setFont('helvetica', 'bold')
   pdf.text('Deal Command Center', PDF_CONFIG.page.margin, startY)
   
+  // Add underline to header
+  const headerWidth = pdf.getTextWidth('Deal Command Center')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, startY + 1, PDF_CONFIG.page.margin + headerWidth, startY + 1)
+  
   const tableData = [
     ['Deal Heat', 'Power Center', 'Momentum', 'Competitive Edge'],
     [
-      `${data.dealHeat.emoji} ${data.dealHeat.level}\n${data.dealHeat.description}`,
+      `${data.dealHeat.emoji} ${data.dealHeat.description}`,
       `${data.powerCenter.name}\n${data.powerCenter.title}\n${data.powerCenter.influence}`,
       `${data.momentum.score}\n${data.momentum.strength}`,
       `${data.competitiveEdge.strategy}\n${data.competitiveEdge.driver}`
@@ -222,6 +229,13 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
   pdf.text('Call Summary', PDF_CONFIG.page.margin, currentY)
+  
+  // Add underline to header
+  const headerWidth = pdf.getTextWidth('Call Summary')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
+  
   currentY += 8
   
   // Overview
@@ -281,6 +295,13 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
   pdf.text('Strategic Intelligence & Approach', PDF_CONFIG.page.margin, currentY)
+  
+  // Add underline to header
+  const headerWidth = pdf.getTextWidth('Strategic Intelligence & Approach')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
+  
   currentY += 10
   
   // Define grid: 2 columns with dynamic row heights
@@ -380,6 +401,13 @@ function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): numbe
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
   pdf.text('Strategic Assessment', PDF_CONFIG.page.margin, currentY)
+  
+  // Add underline to header
+  const headerWidth = pdf.getTextWidth('Strategic Assessment')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
+  
   currentY += 8
   
   const strategies = [
@@ -416,6 +444,13 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
   pdf.text('Why These Actions?', PDF_CONFIG.page.margin, currentY)
+  
+  // Add underline to header
+  const headerWidth = pdf.getTextWidth('Why These Actions?')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
+  
   currentY += 8
   
   pdf.setFontSize(PDF_CONFIG.fonts.body.size)
@@ -455,6 +490,13 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
   pdf.text('Battle Plan Execution Timeline', PDF_CONFIG.page.margin, currentY)
+  
+  // Add underline to header
+  const headerWidth = pdf.getTextWidth('Battle Plan Execution Timeline')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
+  
   currentY += 10
   
   actions.forEach((action, index) => {
@@ -486,27 +528,48 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     currentY += 6
     
     // Email template if present
-    if (action.emailTemplate) {
-      // Estimate email template space and ensure it doesn't split across pages
-      const emailBodyLines = pdf.splitTextToSize(sanitizeText(action.emailTemplate.body), PDF_CONFIG.page.contentWidth - 10)
-      const emailSpace = 15 + (emailBodyLines.length * 5)
+    if (action.emailTemplate && action.emailTemplate.body) {
+      // Calculate email template space with extra buffer
+      const emailBodyLines = pdf.splitTextToSize(
+        sanitizeText(action.emailTemplate.body), 
+        PDF_CONFIG.page.contentWidth - 15
+      )
+      const emailSpace = 25 + (emailBodyLines.length * 5)
       currentY = checkPageBreak(pdf, currentY, emailSpace, 'Email Template')
       
+      // Add visual separator box
+      pdf.setDrawColor(...PDF_CONFIG.colors.gray)
+      pdf.setLineWidth(0.3)
+      pdf.setFillColor(250, 251, 255) // Very light blue background
+      const boxHeight = 20 + (emailBodyLines.length * 5)
+      pdf.rect(
+        PDF_CONFIG.page.margin + 3, 
+        currentY - 2, 
+        PDF_CONFIG.page.contentWidth - 6, 
+        boxHeight,
+        'FD'
+      )
+      
+      currentY += 2
+      
+      // Email Template header with emoji
       pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
       pdf.setTextColor(...PDF_CONFIG.colors.blue)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('Email Template:', PDF_CONFIG.page.margin + 5, currentY)
-      currentY += 6
+      pdf.text('📧 Email Template:', PDF_CONFIG.page.margin + 6, currentY)
+      currentY += 7
       
+      // Subject line
       pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
       pdf.setFont('helvetica', 'bold')
-      pdf.text(sanitizeText(`Subject: ${action.emailTemplate.subject}`), PDF_CONFIG.page.margin + 5, currentY)
-      currentY += 5
+      pdf.text(sanitizeText(`Subject: ${action.emailTemplate.subject}`), PDF_CONFIG.page.margin + 6, currentY)
+      currentY += 6
       
+      // Email body
       pdf.setFont('helvetica', 'normal')
-      pdf.text(emailBodyLines, PDF_CONFIG.page.margin + 5, currentY)
-      currentY += emailBodyLines.length * 5 + 3
+      pdf.text(emailBodyLines, PDF_CONFIG.page.margin + 6, currentY)
+      currentY += emailBodyLines.length * 5 + 5
     }
     
     currentY += 5 // Space between actions
@@ -525,6 +588,13 @@ function renderDealInsights(pdf: jsPDF, insights: string[], startY: number): num
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
   pdf.text('Deal Acceleration Insights', PDF_CONFIG.page.margin, currentY)
+  
+  // Add underline to header
+  const headerWidth = pdf.getTextWidth('Deal Acceleration Insights')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
+  
   currentY += 8
   
   pdf.setFontSize(PDF_CONFIG.fonts.body.size)
@@ -552,6 +622,13 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
   pdf.text('Competitive Positioning Arsenal', PDF_CONFIG.page.margin, currentY)
+  
+  // Add underline to header
+  const headerWidth = pdf.getTextWidth('Competitive Positioning Arsenal')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
+  
   currentY += 10
   
   const sections = [
@@ -562,22 +639,31 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
   ]
   
   sections.forEach(section => {
-    currentY = checkPageBreak(pdf, currentY, 20, section.title)
+    // Pre-calculate space needed for entire section
+    let sectionHeight = 10 // Header + padding
+    section.items.forEach((item: string) => {
+      const itemLines = pdf.splitTextToSize(sanitizeText(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
+      sectionHeight += itemLines.length * 5 + 2
+    })
     
+    // Check if we need a page break for the entire section
+    currentY = checkPageBreak(pdf, currentY, sectionHeight, section.title)
+    
+    // Render section header with count
     pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...section.color)
     pdf.setFont('helvetica', 'bold')
-    pdf.text(section.title, PDF_CONFIG.page.margin, currentY)
+    pdf.text(`${section.title} (${section.items.length})`, PDF_CONFIG.page.margin, currentY)
     currentY += 6
     
+    // Render all items
     pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     pdf.setFont('helvetica', 'normal')
     section.items.forEach((item: string) => {
-      currentY = checkPageBreak(pdf, currentY, 10, section.title)
       const itemLines = pdf.splitTextToSize(sanitizeText(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
       pdf.text(itemLines, PDF_CONFIG.page.margin + 5, currentY)
-      currentY += itemLines.length * 5
+      currentY += itemLines.length * 5 + 2
     })
     currentY += 5
   })

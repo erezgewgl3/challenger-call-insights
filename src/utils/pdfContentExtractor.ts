@@ -61,7 +61,7 @@ function extractDealCommandCenter(analysis: any) {
     dealHeat: {
       level: heatLevel,
       emoji: heatEmojis[heatLevel] || '🌡️',
-      description: `${heatLevel} heat deal`
+      description: `${heatLevel.toLowerCase()} heat deal`
     },
     powerCenter: {
       name: decisionMaker?.name || 'Decision maker to be identified',
