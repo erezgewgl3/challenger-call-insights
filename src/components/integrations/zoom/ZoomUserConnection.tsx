@@ -15,6 +15,21 @@ import { useZoomConnection, invalidateZoomConnection } from '@/hooks/useZoomConn
 import { PersonalZoomSetup } from './PersonalZoomSetup';
 import { useQueryClient } from '@tanstack/react-query';
 
+// Helper functions for deep object access
+const deepGet = (obj: any, path: string): any => {
+  return path.split('.').reduce((current, key) => current?.[key], obj);
+};
+
+const deepSet = (obj: any, path: string, value: any): void => {
+  const keys = path.split('.');
+  const lastKey = keys.pop()!;
+  const target = keys.reduce((current, key) => {
+    if (!current[key]) current[key] = {};
+    return current[key];
+  }, obj);
+  target[lastKey] = value;
+};
+
 interface ZoomUserConnectionProps {
   onConnectionChange?: (connected: boolean) => void;
 }
@@ -31,6 +46,10 @@ interface ZoomConnection {
   configuration?: {
     auto_process?: boolean;
     notifications?: boolean;
+    auto_transcript_processing?: boolean;
+    notification_preferences?: {
+      email?: boolean;
+    };
     meeting_types?: string[];
     user_info?: any;
   };
@@ -47,6 +66,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [optimisticDisconnected, setOptimisticDisconnected] = useState(false);
+  const [optimisticConfig, setOptimisticConfig] = useState<Record<string, any>>({});
 
   // Use connection data from hook
   const connection = hookConnection;
@@ -153,12 +173,33 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
     }
   };
 
-  const updateUserSetting = async (setting: string, value: any) => {
-    if (!connection) return;
+  const updateUserSetting = async (settingType: 'notifications' | 'auto_process', value: boolean) => {
+    if (!connection?.id || !user) return;
 
     try {
-      const newConfig = { ...(connection?.configuration ?? {}), [setting]: value };
+      // Create updated configuration with both nested and legacy keys
+      const newConfig = { ...connection.configuration };
       
+      if (settingType === 'notifications') {
+        // Update both nested and legacy keys
+        deepSet(newConfig, 'notification_preferences.email', value);
+        newConfig.notifications = value; // Legacy key for backward compatibility
+      } else {
+        deepSet(newConfig, 'auto_transcript_processing', value);
+        newConfig.auto_process = value; // Legacy key for backward compatibility
+      }
+
+      // Set optimistic state for immediate UI feedback
+      const optimisticUpdate: Record<string, any> = {};
+      if (settingType === 'notifications') {
+        deepSet(optimisticUpdate, 'notification_preferences.email', value);
+        optimisticUpdate.notifications = value;
+      } else {
+        deepSet(optimisticUpdate, 'auto_transcript_processing', value);
+        optimisticUpdate.auto_process = value;
+      }
+      setOptimisticConfig(optimisticUpdate);
+
       const { error } = await supabase.rpc('integration_framework_update_connection', {
         connection_id: connection.id,
         updates: {
@@ -172,12 +213,17 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
       invalidateZoomConnection(queryClient, user?.id);
       await refetchConnection();
       
+      // Clear optimistic state after successful update
+      setOptimisticConfig({});
+      
       toast({
         title: "Setting Updated",
-        description: "Your Zoom preferences have been saved.",
+        description: `Your preference has been saved.`,
       });
     } catch (error) {
-      console.error('Error updating Zoom setting:', error);
+      console.error('Error updating setting:', error);
+      // Revert optimistic state on error
+      setOptimisticConfig({});
       toast({
         title: "Error",
         description: "Failed to update setting. Please try again.",
@@ -194,7 +240,22 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
     );
   }
 
-  // Safe config access
+  // Merge actual config with optimistic updates
+  const baseConfig = connection?.configuration || {};
+  const effectiveConfig: any = { 
+    ...baseConfig, 
+    ...optimisticConfig,
+    notification_preferences: {
+      ...(baseConfig as any)?.notification_preferences || {},
+      ...(optimisticConfig as any)?.notification_preferences || {}
+    }
+  };
+  
+  // Normalize reading values - check both nested and legacy keys
+  const emailNotifications = deepGet(effectiveConfig, 'notification_preferences.email') ?? effectiveConfig.notifications ?? false;
+  const autoProcess = deepGet(effectiveConfig, 'auto_transcript_processing') ?? effectiveConfig.auto_process ?? true;
+  
+  // Safe config access for display purposes
   const safeConfig = connection?.configuration ?? {};
 
   return (
@@ -286,7 +347,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
                   </Label>
                   <Switch
                     id="auto-process"
-                    checked={safeConfig.auto_process ?? true}
+                    checked={autoProcess}
                     onCheckedChange={(checked) => updateUserSetting('auto_process', checked)}
                   />
                 </div>
@@ -300,7 +361,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
                   </Label>
                   <Switch
                     id="notifications"
-                    checked={safeConfig.notifications ?? false}
+                    checked={emailNotifications}
                     onCheckedChange={(checked) => updateUserSetting('notifications', checked)}
                   />
                 </div>
