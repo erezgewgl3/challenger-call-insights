@@ -390,7 +390,7 @@ export function BattlePlanSection({
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Subject Line</span>
                           </div>
-                          <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono">
+                          <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono break-words">
                             {action.copyPasteContent.subject}
                           </div>
                         </div>
@@ -400,7 +400,7 @@ export function BattlePlanSection({
                           <div className="flex items-center justify-between mb-2">
                             <span className="text-xs font-semibold text-blue-800 uppercase tracking-wider">Email Content</span>
                           </div>
-                          <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono whitespace-pre-wrap max-h-32 overflow-y-auto">
+                          <div className="bg-white p-3 rounded border border-blue-200 text-sm font-mono whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
                             {action.copyPasteContent.body}
                           </div>
                         </div>
