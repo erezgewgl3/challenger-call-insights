@@ -509,12 +509,12 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(254, 242, 242) // red-50
     pdf.setDrawColor(254, 202, 202) // red-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(leftX, currentY, columnWidth, 40, 2, 2, 'FD')
+    pdf.roundedRect(leftX, currentY, columnWidth, 60, 2, 2, 'FD')
     
     pdf.setTextColor(153, 27, 27) // red-900
     pdf.setFontSize(9)
     pdf.setFont('helvetica', 'bold')
-    pdf.text('Economic Buyers', leftX + 3, currentY + 5)
+    pdf.text('🏛️ Economic Buyers', leftX + 3, currentY + 5)
     
     pdf.setTextColor(55, 65, 81) // gray-700
     pdf.setFontSize(8)
@@ -523,18 +523,29 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     let buyerY = currentY + 10
     data.economicBuyers.slice(0, 2).forEach((buyer: any) => {
       if (buyer.name) {
+        // Name with title in parentheses
         pdf.setFont('helvetica', 'bold')
-        pdf.text(sanitizeText(buyer.name.substring(0, 25)), leftX + 3, buyerY)
-        buyerY += 4
+        const nameWithTitle = buyer.title ? `${buyer.name} (${buyer.title})` : buyer.name
+        const nameLines = pdf.splitTextToSize(sanitizeText(nameWithTitle), columnWidth - 6)
+        pdf.text(nameLines.slice(0, 2), leftX + 3, buyerY)
+        buyerY += 4 * Math.min(nameLines.length, 2)
         
-        if (buyer.title) {
+        // Evidence quote
+        if (buyer.evidence) {
           pdf.setFont('helvetica', 'normal')
           pdf.setFontSize(7)
           pdf.setTextColor(107, 114, 128) // gray-500
-          const titleLines = pdf.splitTextToSize(sanitizeText(buyer.title), columnWidth - 6)
-          pdf.text(titleLines.slice(0, 1), leftX + 3, buyerY)
-          buyerY += 5
+          const evidenceLines = pdf.splitTextToSize(sanitizeText(buyer.evidence), columnWidth - 6)
+          pdf.text(evidenceLines.slice(0, 2), leftX + 3, buyerY)
+          buyerY += 3 * Math.min(evidenceLines.length, 2)
         }
+        
+        // Primary Contact badge
+        pdf.setFontSize(6)
+        pdf.setFont('helvetica', 'normal')
+        pdf.setTextColor(107, 114, 128) // gray-500
+        pdf.text('Primary Contact', leftX + 3, buyerY)
+        buyerY += 5
       }
     })
   }
@@ -544,12 +555,12 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(254, 252, 232) // yellow-50
     pdf.setDrawColor(254, 240, 138) // yellow-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(middleX, currentY, columnWidth, 40, 2, 2, 'FD')
+    pdf.roundedRect(middleX, currentY, columnWidth, 60, 2, 2, 'FD')
     
     pdf.setTextColor(120, 53, 15) // yellow-900
     pdf.setFontSize(9)
     pdf.setFont('helvetica', 'bold')
-    pdf.text('Key Influencers', middleX + 3, currentY + 5)
+    pdf.text('📊 Key Influencers', middleX + 3, currentY + 5)
     
     pdf.setTextColor(55, 65, 81) // gray-700
     pdf.setFontSize(8)
@@ -558,18 +569,24 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     let influencerY = currentY + 10
     data.keyInfluencers.slice(0, 2).forEach((influencer: any) => {
       if (influencer.name) {
+        // Name with title in parentheses
         pdf.setFont('helvetica', 'bold')
-        pdf.text(sanitizeText(influencer.name.substring(0, 25)), middleX + 3, influencerY)
-        influencerY += 4
+        const nameWithTitle = influencer.title ? `${influencer.name} (${influencer.title})` : influencer.name
+        const nameLines = pdf.splitTextToSize(sanitizeText(nameWithTitle), columnWidth - 6)
+        pdf.text(nameLines.slice(0, 2), middleX + 3, influencerY)
+        influencerY += 4 * Math.min(nameLines.length, 2)
         
-        if (influencer.title) {
+        // Evidence quote
+        if (influencer.evidence) {
           pdf.setFont('helvetica', 'normal')
           pdf.setFontSize(7)
           pdf.setTextColor(107, 114, 128) // gray-500
-          const titleLines = pdf.splitTextToSize(sanitizeText(influencer.title), columnWidth - 6)
-          pdf.text(titleLines.slice(0, 1), middleX + 3, influencerY)
-          influencerY += 5
+          const evidenceLines = pdf.splitTextToSize(sanitizeText(influencer.evidence), columnWidth - 6)
+          pdf.text(evidenceLines.slice(0, 2), middleX + 3, influencerY)
+          influencerY += 3 * Math.min(evidenceLines.length, 2)
         }
+        
+        influencerY += 3
       }
     })
   }
@@ -579,19 +596,43 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(239, 246, 255) // blue-50
     pdf.setDrawColor(191, 219, 254) // blue-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(rightX, currentY, columnWidth, 40, 2, 2, 'FD')
+    pdf.roundedRect(rightX, currentY, columnWidth, 60, 2, 2, 'FD')
     
     pdf.setTextColor(30, 58, 138) // blue-900
     pdf.setFontSize(9)
     pdf.setFont('helvetica', 'bold')
-    pdf.text('Navigation Strategy', rightX + 3, currentY + 5)
+    pdf.text('🎯 Navigation Strategy', rightX + 3, currentY + 5)
     
-    pdf.setTextColor(55, 65, 81) // gray-700
+    pdf.setTextColor(30, 58, 138) // blue-900
     pdf.setFontSize(8)
-    pdf.setFont('helvetica', 'normal')
+    pdf.setFont('helvetica', 'bold')
     
     const strategyLines = pdf.splitTextToSize(sanitizeText(data.navigationStrategy), columnWidth - 6)
-    pdf.text(strategyLines.slice(0, 5), rightX + 3, currentY + 10)
+    pdf.text(strategyLines.slice(0, 3), rightX + 3, currentY + 10)
+    
+    let bulletY = currentY + 10 + (3.5 * Math.min(strategyLines.length, 3)) + 2
+    
+    // Bullet points
+    pdf.setFontSize(7)
+    pdf.setFont('helvetica', 'normal')
+    pdf.setTextColor(55, 65, 81) // gray-700
+    
+    // Red bullet
+    pdf.setFillColor(239, 68, 68) // red-500
+    pdf.circle(rightX + 4, bulletY - 1, 0.8, 'F')
+    pdf.text('Lead with economic buyers', rightX + 7, bulletY)
+    bulletY += 3.5
+    
+    // Yellow bullet
+    pdf.setFillColor(234, 179, 8) // yellow-500
+    pdf.circle(rightX + 4, bulletY - 1, 0.8, 'F')
+    pdf.text('Coordinate with influencers', rightX + 7, bulletY)
+    bulletY += 3.5
+    
+    // Blue bullet
+    pdf.setFillColor(59, 130, 246) // blue-500
+    pdf.circle(rightX + 4, bulletY - 1, 0.8, 'F')
+    pdf.text('Validate with end users', rightX + 7, bulletY)
   }
   
   currentY += 50
