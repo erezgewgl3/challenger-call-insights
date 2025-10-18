@@ -910,13 +910,21 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     if (action.emailTemplate && action.emailTemplate.body) {
       // Calculate exact dimensions
       const textWidth = PDF_CONFIG.page.contentWidth - 12
+      const wrapWidth = textWidth - 0.5
+
+      // Ensure measurement font matches rendering
+      pdf.setFont('helvetica', 'bold')
+      pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       const subjectLines = pdf.splitTextToSize(
         sanitizePDF(`Subject: ${action.emailTemplate.subject || ''}`),
-        textWidth
+        wrapWidth
       )
+
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       const bodyLines = pdf.splitTextToSize(
         sanitizePDF(action.emailTemplate.body || ''),
-        textWidth
+        wrapWidth
       )
       
       // Precise spacing
