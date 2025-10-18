@@ -145,7 +145,11 @@ function renderHeader(pdf: jsPDF, header: any): number {
   pdf.setTextColor(...PDF_CONFIG.colors.gray)
   pdf.setFont('helvetica', 'normal')
   pdf.text('Sales Intelligence Report', PDF_CONFIG.page.margin, 32)
-  pdf.text(`Generated on ${sanitizePDF(header.date)}`, PDF_CONFIG.page.margin, 40)
+  
+  // Date and duration on same line (matching screen format)
+  const dateText = sanitizePDF(header.date)
+  const durationText = header.duration ? ` • Duration: ${sanitizePDF(header.duration)}` : ''
+  pdf.text(`${dateText}${durationText}`, PDF_CONFIG.page.margin, 40)
   
   // Separator line
   pdf.setDrawColor(...PDF_CONFIG.colors.gray)

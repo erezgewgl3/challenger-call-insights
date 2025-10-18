@@ -31,13 +31,23 @@ function extractHeaderData(transcript: any, analysis: any) {
       ? [participants] 
       : []
 
+  // Match screen logic: prioritize extracted_company_name over title
+  const displayTitle = transcript?.extracted_company_name || 
+                      transcript?.deal_context?.company_name || 
+                      transcript?.title || ''
+
+  // Match screen date format: "Saturday, October 18, 2025"
+  const meetingDate = transcript?.meeting_date || transcript?.created_at
+  const formattedDate = meetingDate ? new Date(meetingDate).toLocaleDateString('en-US', { 
+    weekday: 'long',
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  }) : ''
+
   return {
-    title: transcript?.title || '',
-    date: transcript?.created_at ? new Date(transcript.created_at).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    }) : '',
+    title: displayTitle,
+    date: formattedDate,
     duration: transcript?.duration_minutes ? `${transcript.duration_minutes} min` : '',
     participants: participantNames,
     dealStatus: analysis?.heat_level || ''
@@ -103,11 +113,18 @@ function extractDealCommandCenter(analysis: any) {
     }
   }
 
+  // Match screen display format for deal heat
+  const heatDescriptions: Record<string, string> = {
+    HIGH: 'Immediate attention needed',
+    MEDIUM: 'Active opportunity',
+    LOW: 'Long-term opportunity'
+  }
+
   return {
     dealHeat: {
-      level: heatLevel,
+      level: heatLevel.toUpperCase(), // Ensure uppercase
       emoji: heatEmojis[heatLevel] || '',
-      description: heatLevel ? `${heatLevel.toLowerCase()} heat deal` : ''
+      description: heatDescriptions[heatLevel] || heatDescriptions['MEDIUM']
     },
     powerCenter: decisionMaker,
     momentum: {
