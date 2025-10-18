@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AlertCircle, CheckCircle, Clock, Plug, Settings, Activity, Plus } from 'lucide-react';
+import { AlertCircle, CheckCircle, Clock, Plug, Settings, Activity, Plus, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { IntegrationSettings } from './IntegrationSettings';
 import { IntegrationActivity } from './IntegrationActivity';
@@ -18,6 +18,7 @@ interface Integration {
   last_sync_at: string | null;
   created_at: string;
   user_id: string;
+  user_email?: string;
 }
 
 interface IntegrationStats {
@@ -43,11 +44,23 @@ export function IntegrationManagement() {
     try {
       const { data, error } = await supabase
         .from('integration_connections')
-        .select('*')
+        .select(`
+          *,
+          users!integration_connections_user_id_fkey (
+            email
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setIntegrations(data || []);
+      
+      // Transform data to flatten user email
+      const transformedData = data?.map((integration: any) => ({
+        ...integration,
+        user_email: integration.users?.email || 'Unknown User'
+      })) || [];
+      
+      setIntegrations(transformedData);
     } catch (error) {
       console.error('Error loading integrations:', error);
     }
@@ -212,6 +225,10 @@ export function IntegrationManagement() {
                         <div>
                           <h3 className="font-medium">{integration.connection_name}</h3>
                           <p className="text-sm text-gray-600">{integration.integration_type}</p>
+                          <div className="flex items-center gap-1 mt-1">
+                            <Users className="h-3 w-3 text-gray-500" />
+                            <p className="text-xs text-gray-500">{integration.user_email}</p>
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center space-x-4">
