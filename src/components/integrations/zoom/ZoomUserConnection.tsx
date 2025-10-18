@@ -168,8 +168,9 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
 
       if (error) throw error;
 
-      // Trigger refetch from hook to get updated data
-      // Note: The local state is managed by the hook now
+      // Force immediate cache refresh to update UI
+      invalidateZoomConnection(queryClient, user?.id);
+      await refetchConnection();
       
       toast({
         title: "Setting Updated",

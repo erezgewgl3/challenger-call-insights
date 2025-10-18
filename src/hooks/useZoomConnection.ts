@@ -82,12 +82,13 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
     },
     enabled: !!user?.id,
     staleTime: 0, // No staleness - always fetch fresh data
+    gcTime: 5000, // Keep cache for 5 seconds to prevent flashing during navigation
     refetchOnWindowFocus: true,
     refetchOnMount: true,
     refetchInterval: (query) => {
-      // Poll every 3 seconds when not connected to quickly detect new connections
+      // Only poll when explicitly inactive (not on 'not_found' which can be a transition state)
       const status = query.state.data?.connectionStatus;
-      return (status === 'not_found' || status === 'inactive') ? 3000 : false;
+      return (status === 'inactive') ? 3000 : false;
     },
     retry: 1,
     retryDelay: 1000,
