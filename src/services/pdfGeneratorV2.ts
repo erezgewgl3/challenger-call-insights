@@ -906,21 +906,25 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     pdf.text(sanitizePDF(`Timeline: ${action.timeline} | Channels: ${action.channels.join(', ')}`), PDF_CONFIG.page.margin, currentY)
     currentY += 6
     
-    // Email template if present
-    if (action.emailTemplate && action.emailTemplate.body) {
-      // Calculate email template space with extra buffer
-      const emailBodyLines = pdf.splitTextToSize(
-        sanitizePDF(action.emailTemplate.body), 
-        PDF_CONFIG.page.contentWidth - 18
-      )
-      const emailSpace = 25 + (emailBodyLines.length * 5)
-      currentY = checkPageBreak(pdf, currentY, emailSpace, 'Email Template')
+      // Email template if present
+      if (action.emailTemplate && action.emailTemplate.body) {
+        // Calculate email template space with extra buffer
+        const subjectLines = pdf.splitTextToSize(
+          sanitizePDF(`Subject: ${action.emailTemplate.subject}`),
+          PDF_CONFIG.page.contentWidth - 12
+        )
+        const emailBodyLines = pdf.splitTextToSize(
+          sanitizePDF(action.emailTemplate.body), 
+          PDF_CONFIG.page.contentWidth - 12
+        )
+        const emailSpace = 25 + (subjectLines.length * 5) + (emailBodyLines.length * 5)
+        currentY = checkPageBreak(pdf, currentY, emailSpace, 'Email Template')
       
       // Add visual separator box
       pdf.setDrawColor(...PDF_CONFIG.colors.gray)
       pdf.setLineWidth(0.3)
       pdf.setFillColor(250, 251, 255) // Very light blue background
-      const boxHeight = 20 + (emailBodyLines.length * 5)
+      const boxHeight = 20 + (subjectLines.length * 5) + (emailBodyLines.length * 5)
       pdf.rect(
         PDF_CONFIG.page.margin + 3, 
         currentY - 2, 
@@ -942,8 +946,8 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
       pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
       pdf.setFont('helvetica', 'bold')
-      pdf.text(sanitizePDF(`Subject: ${action.emailTemplate.subject}`), PDF_CONFIG.page.margin + 6, currentY)
-      currentY += 6
+      pdf.text(subjectLines, PDF_CONFIG.page.margin + 6, currentY)
+      currentY += subjectLines.length * 5 + 1
       
       // Email body
       pdf.setFont('helvetica', 'normal')
