@@ -96,6 +96,44 @@ export type Database = {
           },
         ]
       }
+      analysis_quality_flags: {
+        Row: {
+          analysis_id: string | null
+          details: Json | null
+          flag_type: string
+          flagged_at: string | null
+          id: string
+          resolved_at: string | null
+          resolved_by: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          details?: Json | null
+          flag_type: string
+          flagged_at?: string | null
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          details?: Json | null
+          flag_type?: string
+          flagged_at?: string | null
+          id?: string
+          resolved_at?: string | null
+          resolved_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_quality_flags_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "conversation_analysis"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       auth_rate_limits: {
         Row: {
           attempt_type: string
@@ -134,6 +172,7 @@ export type Database = {
           action_plan: Json | null
           call_summary: Json | null
           challenger_scores: Json | null
+          coaching_insights: Json | null
           created_at: string | null
           email_followup: Json | null
           guidance: Json | null
@@ -149,6 +188,7 @@ export type Database = {
           action_plan?: Json | null
           call_summary?: Json | null
           challenger_scores?: Json | null
+          coaching_insights?: Json | null
           created_at?: string | null
           email_followup?: Json | null
           guidance?: Json | null
@@ -164,6 +204,7 @@ export type Database = {
           action_plan?: Json | null
           call_summary?: Json | null
           challenger_scores?: Json | null
+          coaching_insights?: Json | null
           created_at?: string | null
           email_followup?: Json | null
           guidance?: Json | null
