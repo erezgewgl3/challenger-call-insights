@@ -16,30 +16,23 @@ export default function UserIntegrations() {
   const location = useLocation();
   const queryClient = useQueryClient();
 
-  // Force page refresh when returning from OAuth
+  // Handle OAuth return by invalidating cache
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
     const fromOAuth = searchParams.get('from_oauth');
     const refreshData = searchParams.get('refresh');
-    const isFromZoom = document.referrer.includes('zoom.us');
     
-    if (fromOAuth === 'true' || refreshData === 'true' || isFromZoom) {
+    if (fromOAuth === 'true' || refreshData === 'true') {
       console.log('Detected return from OAuth, invalidating cache...');
       
-      // Immediately invalidate Zoom connection cache
+      // Invalidate Zoom connection cache to trigger fresh data fetch
       if (user?.id) {
         invalidateZoomConnection(queryClient, user.id);
       }
       
-      // Clean up URL parameters immediately
+      // Clean up URL parameters
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
-      
-      // Shorter wait then force page reload
-      setTimeout(() => {
-        console.log('Forcing page refresh to get fresh data...');
-        window.location.reload();
-      }, 1000);
     }
   }, [location.search, user?.id, queryClient]);
 

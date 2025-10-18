@@ -72,11 +72,11 @@ export function OAuthCallback() {
           connectionName: result?.connection_name || "Integration",
         });
 
-        // Auto-redirect based on user role after 3 seconds
-        const redirectPath = user?.role === 'admin' ? '/admin' : '/integrations?refresh=true';
+        // Auto-redirect based on user role after 2 seconds
+        const redirectPath = user?.role === 'admin' ? '/admin' : '/integrations';
         setTimeout(() => {
-          navigate(redirectPath);
-        }, 3000);
+          navigate(redirectPath, { replace: true });
+        }, 2000);
 
       } catch (err) {
         console.error("OAuth callback processing error:", err);
