@@ -29,7 +29,19 @@ serve(async (req) => {
       throw new Error('Invalid authentication token');
     }
 
-    const { connection_id } = await req.json();
+    // Parse and validate request body
+    let body;
+    try {
+      const bodyText = await req.text();
+      console.log('[DISCONNECT-INTEGRATION] Raw request body:', bodyText);
+      body = JSON.parse(bodyText);
+    } catch (parseError) {
+      console.error('[DISCONNECT-INTEGRATION] Failed to parse request body:', parseError);
+      throw new Error('Invalid request body - must be valid JSON');
+    }
+
+    const { connection_id } = body;
+    console.log('[DISCONNECT-INTEGRATION] Parsed connection_id:', connection_id);
 
     if (!connection_id) {
       throw new Error('Missing connection_id parameter');

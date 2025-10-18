@@ -61,6 +61,8 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
     if (!user?.id) return;
 
     try {
+      console.log('[ZoomUserConnection] Loading connection details for user:', user.id);
+      
       const { data, error } = await supabase.rpc('integration_framework_get_connection', {
         user_uuid: user.id,
         integration_type_param: 'zoom'
@@ -68,12 +70,26 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
 
       if (error) throw error;
 
+      console.log('[ZoomUserConnection] RPC response:', JSON.stringify(data, null, 2));
+
       if (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data && data.data) {
         const raw = data.data as Partial<ZoomConnection>;
+        console.log('[ZoomUserConnection] Raw connection data:', raw);
+        
+        // Validate required fields
+        if (!raw.id) {
+          console.warn('[ZoomUserConnection] Connection missing ID field');
+          setConnection(null);
+          setErrorMessage('Invalid connection data - reconnection required');
+          return;
+        }
+
         const safeConnection: ZoomConnection = {
           ...(raw as ZoomConnection),
           configuration: (raw?.configuration && typeof raw.configuration === 'object') ? raw.configuration : {}
         };
+        
+        console.log('[ZoomUserConnection] Normalized connection:', safeConnection);
         setConnection(safeConnection);
         setErrorMessage(null);
       } else {
@@ -127,15 +143,29 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
   };
 
   const handleDisconnect = async () => {
-    if (!connection) return;
+    if (!connection) {
+      console.warn('[ZoomUserConnection] Cannot disconnect - no connection object');
+      return;
+    }
+
+    if (!connection.id) {
+      console.error('[ZoomUserConnection] Cannot disconnect - connection missing ID');
+      setErrorMessage('Invalid connection data - cannot disconnect');
+      return;
+    }
 
     setIsDisconnecting(true);
     try {
+      console.log('[ZoomUserConnection] Disconnecting connection:', connection.id);
+      
+      const payload = { connection_id: connection.id };
+      console.log('[ZoomUserConnection] Disconnect payload:', payload);
+
       const { data, error } = await supabase.functions.invoke('integration-disconnect', {
-        body: {
-          connection_id: connection.id
-        }
+        body: payload
       });
+
+      console.log('[ZoomUserConnection] Disconnect response:', { data, error });
 
       if (error) throw error;
 
@@ -147,7 +177,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
         description: "Your Zoom account has been disconnected successfully.",
       });
     } catch (error) {
-      console.error('Error disconnecting from Zoom:', error);
+      console.error('[ZoomUserConnection] Error disconnecting from Zoom:', error);
       const message = error instanceof Error ? error.message : 'Failed to disconnect from Zoom';
       setErrorMessage(message);
       toast({
@@ -262,7 +292,11 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Connected:</span>
-                <span>{new Date(connection.created_at).toLocaleDateString()}</span>
+                <span className="font-medium">
+                  {connection.created_at && !isNaN(new Date(connection.created_at).getTime())
+                    ? new Date(connection.created_at).toLocaleDateString()
+                    : 'Unknown'}
+                </span>
               </div>
               {connection.last_sync_at && (
                 <div className="flex justify-between text-sm">
