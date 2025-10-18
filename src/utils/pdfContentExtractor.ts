@@ -54,9 +54,54 @@ function extractDealCommandCenter(analysis: any) {
 
   const recommendations = analysis?.recommendations || {}
   const callSummary = analysis?.call_summary || {}
-  const decisionMaker = callSummary?.decisionMaker || {}
   const buyingSignals = callSummary?.buyingSignalsAnalysis || {}
   const timeline = callSummary?.timelineAnalysis || {}
+  
+  // Extract decision maker from clientContacts (matching UI logic)
+  const contacts = analysis?.participants?.clientContacts || []
+  let decisionMaker = { name: '', title: '', influence: '' }
+  
+  if (contacts.length > 0) {
+    const scoredContacts = contacts.map((contact: any) => {
+      const evidence = contact.decisionEvidence || []
+      const decisionLevel = contact.decisionLevel || 'low'
+      
+      let authorityScore = 0
+      
+      evidence.forEach((ev: string) => {
+        const evidence_lower = ev.toLowerCase()
+        if (evidence_lower.includes('budget') || evidence_lower.includes('approval')) {
+          authorityScore += 4
+        } else if (evidence_lower.includes('timeline') || evidence_lower.includes('decision')) {
+          authorityScore += 3
+        } else if (evidence_lower.includes('deferred') || evidence_lower.includes('strategic')) {
+          authorityScore += 2
+        } else {
+          authorityScore += 1
+        }
+      })
+      
+      if (decisionLevel === 'high') authorityScore += 3
+      else if (decisionLevel === 'medium') authorityScore += 1
+      
+      const confidence = authorityScore >= 6 ? 'High' : 
+                       authorityScore >= 3 ? 'Medium' : 'Low'
+      
+      return {
+        ...contact,
+        authorityScore,
+        confidence
+      }
+    })
+    
+    const topContact = scoredContacts.sort((a, b) => b.authorityScore - a.authorityScore)[0]
+    
+    decisionMaker = {
+      name: topContact.name || '',
+      title: topContact.title || '',
+      influence: topContact.confidence ? `${topContact.confidence} Influence` : ''
+    }
+  }
 
   return {
     dealHeat: {
@@ -64,11 +109,7 @@ function extractDealCommandCenter(analysis: any) {
       emoji: heatEmojis[heatLevel] || '',
       description: heatLevel ? `${heatLevel.toLowerCase()} heat deal` : ''
     },
-    powerCenter: {
-      name: decisionMaker?.name || '',
-      title: decisionMaker?.title || '',
-      influence: decisionMaker?.influence || ''
-    },
+    powerCenter: decisionMaker,
     momentum: {
       score: (() => {
         const commitmentSignals = buyingSignals?.commitmentSignals || []

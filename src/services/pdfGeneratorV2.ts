@@ -253,8 +253,8 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   
   if (!winStrategy) return startY
   
-  // Add spacing before Win Strategy box
-  let currentY = startY + 10
+  // Reduced spacing before Win Strategy box
+  let currentY = startY + 6
   
   // Calculate text dimensions for dynamic box height
   pdf.setFontSize(9)
@@ -263,34 +263,34 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   const textHeight = strategyLines.length * 4.5 // Line height of 4.5
   const boxHeight = Math.max(22, textHeight + 14) // Min 22, or text height + padding
   
-  // Draw emerald gradient box
-  pdf.setFillColor(16, 185, 129) // emerald-500
-  pdf.setDrawColor(52, 211, 153) // emerald-400
+  // Draw more subtle emerald box - lighter colors
+  pdf.setFillColor(209, 250, 229) // emerald-100
+  pdf.setDrawColor(167, 243, 208) // emerald-200
   pdf.setLineWidth(0.5)
   pdf.roundedRect(PDF_CONFIG.page.margin, currentY, PDF_CONFIG.page.contentWidth, boxHeight, 3, 3, 'FD')
   
-  // "Win Strategy" label
+  // "Win Strategy" label - darker text for better contrast on light background
   pdf.setFontSize(11)
-  pdf.setTextColor(255, 255, 255)
+  pdf.setTextColor(5, 150, 105) // emerald-700
   pdf.setFont('helvetica', 'bold')
   pdf.text('Win Strategy', PDF_CONFIG.page.margin + 5, currentY + 7)
   
-  // "Competitive Advantage" badge
+  // "Competitive Advantage" badge - emerald on emerald
   pdf.setFontSize(7)
   pdf.setFont('helvetica', 'bold')
   const badgeText = 'COMPETITIVE ADVANTAGE'
   const badgeWidth = pdf.getTextWidth(badgeText) + 4
   const badgeX = PDF_CONFIG.page.contentWidth + PDF_CONFIG.page.margin - badgeWidth - 5
   
-  pdf.setFillColor(5, 150, 105) // emerald-600
+  pdf.setFillColor(16, 185, 129) // emerald-500
   pdf.roundedRect(badgeX, currentY + 4, badgeWidth, 5, 1, 1, 'F')
   pdf.setTextColor(255, 255, 255)
   pdf.text(badgeText, badgeX + 2, currentY + 7.5)
   
-  // Strategy text with proper line spacing
+  // Strategy text with proper line spacing - darker text
   pdf.setFontSize(9)
   pdf.setFont('helvetica', 'normal')
-  pdf.setTextColor(255, 255, 255)
+  pdf.setTextColor(31, 41, 55) // gray-800
   
   // Render each line with custom spacing
   let textY = currentY + 13
@@ -299,7 +299,7 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
     textY += 4.5 // Line spacing
   })
   
-  return currentY + boxHeight + 6 // Add spacing after box
+  return currentY + boxHeight + 4 // Reduced spacing after box
 }
 
 /**
