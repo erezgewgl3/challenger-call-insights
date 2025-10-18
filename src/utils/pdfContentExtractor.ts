@@ -70,15 +70,44 @@ function extractDealCommandCenter(analysis: any) {
       influence: decisionMaker?.influence || ''
     },
     momentum: {
-      score: buyingSignals?.commitmentSignals?.length 
-        ? `${buyingSignals.commitmentSignals.length}/12` 
-        : '',
-      strength: buyingSignals?.strength || ''
+      score: (() => {
+        const commitmentSignals = buyingSignals?.commitmentSignals || []
+        const engagementSignals = buyingSignals?.engagementSignals || []
+        const interestSignals = buyingSignals?.interestSignals || []
+        
+        const commitmentScore = commitmentSignals.length * 3
+        const engagementScore = engagementSignals.length * 2
+        const interestScore = interestSignals.length * 1
+        
+        const weightedScore = commitmentScore + engagementScore + interestScore
+        const totalSignalCount = commitmentSignals.length + engagementSignals.length + interestSignals.length
+        const maxPossibleScore = Math.max(totalSignalCount * 3, 12)
+        
+        return `${weightedScore}/${maxPossibleScore}`
+      })(),
+      strength: (() => {
+        const commitmentSignals = buyingSignals?.commitmentSignals || []
+        const engagementSignals = buyingSignals?.engagementSignals || []
+        const interestSignals = buyingSignals?.interestSignals || []
+        
+        const commitmentScore = commitmentSignals.length * 3
+        const engagementScore = engagementSignals.length * 2
+        const interestScore = interestSignals.length * 1
+        const weightedScore = commitmentScore + engagementScore + interestScore
+        
+        if (commitmentSignals.length >= 2 || weightedScore >= 8) {
+          return 'Strong momentum'
+        } else if (commitmentSignals.length >= 1 || weightedScore >= 4) {
+          return 'Good momentum'
+        }
+        return 'Weak momentum'
+      })()
     },
     competitiveEdge: {
-      strategy: recommendations?.competitiveStrategy || '',
-      driver: timeline?.driver || ''
-    }
+      strategy: recommendations?.competitiveStrategy ? "Strategic Advantage" : "Integration Focus",
+      driver: timeline?.businessDriver || timeline?.driver || "Positioning opportunity identified"
+    },
+    winStrategy: recommendations?.primaryStrategy || "Position as the solution that uniquely addresses their specific business challenges and competitive requirements"
   }
 }
 

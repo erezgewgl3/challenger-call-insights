@@ -43,6 +43,7 @@ export interface DealCommandCenterData {
     strategy: string
     driver: string
   }
+  winStrategy: string
 }
 
 export interface CallSummaryData {

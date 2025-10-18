@@ -91,6 +91,7 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   // Page 1: Header and Deal Command Center
   currentY = renderHeader(pdf, contentData.header)
   currentY = renderDealCommandCenter(pdf, contentData.dealCommandCenter, currentY)
+  currentY = renderWinStrategy(pdf, contentData.dealCommandCenter, currentY)
   
   // Call Summary
   currentY = checkPageBreak(pdf, currentY, 70, contentData.header.title)
@@ -242,6 +243,50 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
   })
   
   return (pdf as any).lastAutoTable.finalY + PDF_CONFIG.spacing.sectionGap
+}
+
+/**
+ * Render Win Strategy section (emerald box below Deal Command Center)
+ */
+function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
+  const winStrategy = data.winStrategy
+  
+  if (!winStrategy) return startY
+  
+  let currentY = startY + 4
+  
+  // Draw emerald gradient box
+  pdf.setFillColor(16, 185, 129) // emerald-500
+  pdf.setDrawColor(52, 211, 153) // emerald-400
+  pdf.setLineWidth(0.5)
+  pdf.roundedRect(PDF_CONFIG.page.margin, currentY, PDF_CONFIG.page.contentWidth, 20, 3, 3, 'FD')
+  
+  // "Win Strategy" label
+  pdf.setFontSize(11)
+  pdf.setTextColor(255, 255, 255)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('Win Strategy', PDF_CONFIG.page.margin + 4, currentY + 6)
+  
+  // "Competitive Advantage" badge
+  pdf.setFontSize(7)
+  pdf.setFont('helvetica', 'bold')
+  const badgeText = 'COMPETITIVE ADVANTAGE'
+  const badgeWidth = pdf.getTextWidth(badgeText) + 4
+  const badgeX = PDF_CONFIG.page.contentWidth + PDF_CONFIG.page.margin - badgeWidth - 2
+  
+  pdf.setFillColor(5, 150, 105) // emerald-600
+  pdf.roundedRect(badgeX, currentY + 3, badgeWidth, 5, 1, 1, 'F')
+  pdf.setTextColor(255, 255, 255)
+  pdf.text(badgeText, badgeX + 2, currentY + 6.5)
+  
+  // Strategy text
+  pdf.setFontSize(9)
+  pdf.setFont('helvetica', 'normal')
+  pdf.setTextColor(255, 255, 255)
+  const strategyLines = pdf.splitTextToSize(sanitizePDF(winStrategy), PDF_CONFIG.page.contentWidth - 8)
+  pdf.text(strategyLines, PDF_CONFIG.page.margin + 4, currentY + 12)
+  
+  return currentY + 24
 }
 
 /**
