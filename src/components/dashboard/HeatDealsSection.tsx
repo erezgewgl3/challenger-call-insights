@@ -71,14 +71,20 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
   }
 
   // Filter transcripts by heat level using database-first approach
-  const filteredTranscripts = transcripts.filter(transcript => {
-    if (transcript.status !== 'completed' || !transcript.conversation_analysis?.length) {
-      return false
-    }
-    
-    const transcriptHeat = getHeatLevel(transcript.conversation_analysis[0])
-    return transcriptHeat === heatLevel
-  })
+  const filteredTranscripts = transcripts
+    .filter(transcript => {
+      if (transcript.status !== 'completed' || !transcript.conversation_analysis?.length) {
+        return false
+      }
+      
+      const transcriptHeat = getHeatLevel(transcript.conversation_analysis[0])
+      return transcriptHeat === heatLevel
+    })
+    .sort((a, b) => {
+      const dateA = new Date(a.analysis_created_at || 0).getTime()
+      const dateB = new Date(b.analysis_created_at || 0).getTime()
+      return dateB - dateA // Newest analysis first
+    })
 
   const getThemeClasses = () => {
     switch (heatLevel) {

@@ -42,9 +42,7 @@ export default function ActiveDashboard() {
         `)
         .eq('user_id', user?.id)
         .eq('status', 'completed')
-        .eq('is_archived', false)
-        .order('created_at', { ascending: false })
-        .limit(10);
+        .eq('is_archived', false);
       
       return data?.map(transcript => {
         const analysis = transcript.conversation_analysis?.[0] as any | undefined;
