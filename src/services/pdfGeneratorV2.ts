@@ -94,6 +94,10 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
   currentY = renderStrategicAssessment(pdf, contentData.strategicAssessment, currentY)
   
+  // Stakeholder Navigation Map
+  currentY = checkPageBreak(pdf, currentY, 50, contentData.header.title)
+  currentY = renderStakeholderNavigation(pdf, contentData.stakeholderNavigation, currentY)
+  
   // Why These Actions
   currentY = checkPageBreak(pdf, currentY, 50, contentData.header.title)
   currentY = renderWhyTheseActions(pdf, contentData.whyTheseActions, currentY)

@@ -175,7 +175,7 @@ function extractWhyTheseActions(analysis: any) {
   const reasoning = analysis?.reasoning || {}
 
   return {
-    rationale: actionPlan?.rationale || reasoning?.dealViabilityRationale || reasoning?.strategicRationale || '',
+    rationale: reasoning?.whyTheseRecommendations || reasoning?.dealViabilityRationale || reasoning?.strategicRationale || '',
     supportingEvidence: Array.isArray(reasoning?.supportingEvidence) && reasoning.supportingEvidence.length > 0
       ? reasoning.supportingEvidence 
       : []
@@ -197,7 +197,7 @@ function extractActionItems(analysis: any) {
     timeline: action?.timeline || '',
     channels: action?.method ? [action.method] : (Array.isArray(action?.channels) && action.channels.length > 0 ? action.channels : []),
     emailTemplate: action?.copyPasteContent ? {
-      subject: action.copyPasteContent.subject || '',
+      subject: (action.copyPasteContent.subject || '').replace(/^[🎯📧✉️💬]\s*(VERBATIM:|EXACT COPY:)?\s*/i, '').trim(),
       body: action.copyPasteContent.body || '',
       tone: action.copyPasteContent.tone || ''
     } : null
@@ -219,7 +219,8 @@ function extractCompetitivePositioning(analysis: any) {
   const buyingSignals = callSummary?.buyingSignalsAnalysis || {}
   const painSeverity = callSummary?.painSeverity || {}
   const competitiveIntel = callSummary?.competitiveIntelligence || {}
-  const concerns = callSummary?.concernsRaised || []
+  const resistanceAnalysis = callSummary?.resistanceAnalysis || {}
+  const concerns = resistanceAnalysis?.signals || []
 
   return {
     buyingSignals: Array.isArray(buyingSignals?.commitmentSignals) && buyingSignals.commitmentSignals.length > 0
