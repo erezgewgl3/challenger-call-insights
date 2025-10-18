@@ -68,7 +68,12 @@ export function addMultiPageContentWithSmartBreaks(
   const subsequentPageAvailableHeightMM = pdfHeight - 30
   
   // Convert break points (MM) to pixel positions in canvas
-  const breakPixels = breakPoints.map(breakMM => Math.round((breakMM / scaledHeight) * canvas.height))
+  // Formula: MM → screen pixels (÷0.264583) → canvas pixels (×3 for html2canvas scale)
+  const breakPixels = breakPoints.map(breakMM => {
+    const screenPixels = breakMM / 0.264583 // MM to screen pixels at 96 DPI
+    const canvasPixels = screenPixels * 3 // Account for 3x canvas scale
+    return Math.round(canvasPixels)
+  })
   
   // Add implicit break at start and end
   const allBreakPixels = [0, ...breakPixels, canvas.height].sort((a, b) => a - b)
@@ -76,9 +81,11 @@ export function addMultiPageContentWithSmartBreaks(
   
   console.log('Smart Multi-page PDF with content-aware breaks:', {
     canvasHeight: canvas.height,
+    canvasScale: 3,
     scaledHeight,
     breakPointsMM: breakPoints,
     breakPixels,
+    conversionFormula: 'MM → screen px (÷0.264583) → canvas px (×3)',
     totalPagesNeeded
   })
   
@@ -106,9 +113,17 @@ export function addMultiPageContentWithSmartBreaks(
       pdf.addPage()
       
       // Determine section name for continuation marker
-      const startMM = (startPixel / canvas.height) * scaledHeight
+      // Convert canvas pixels back to MM (accounting for 3x scale)
+      const startMM = (startPixel / 3) * 0.264583
       const currentSection = identifySectionAtPosition(sections, startMM)
       const sectionName = currentSection ? formatSectionName(currentSection.type) : undefined
+      
+      console.log(`Page ${pageIndex + 1} continuation marker:`, {
+        startPixel,
+        startMM: startMM.toFixed(2),
+        currentSection: currentSection?.type,
+        sectionName
+      })
       
       // Add continuation header
       const contentY = createPDFHeader(pdf, title, pageIndex + 1, sectionName)
