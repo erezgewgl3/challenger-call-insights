@@ -253,40 +253,53 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   
   if (!winStrategy) return startY
   
-  let currentY = startY + 4
+  // Add spacing before Win Strategy box
+  let currentY = startY + 10
+  
+  // Calculate text dimensions for dynamic box height
+  pdf.setFontSize(9)
+  pdf.setFont('helvetica', 'normal')
+  const strategyLines = pdf.splitTextToSize(sanitizePDF(winStrategy), PDF_CONFIG.page.contentWidth - 16)
+  const textHeight = strategyLines.length * 4.5 // Line height of 4.5
+  const boxHeight = Math.max(22, textHeight + 14) // Min 22, or text height + padding
   
   // Draw emerald gradient box
   pdf.setFillColor(16, 185, 129) // emerald-500
   pdf.setDrawColor(52, 211, 153) // emerald-400
   pdf.setLineWidth(0.5)
-  pdf.roundedRect(PDF_CONFIG.page.margin, currentY, PDF_CONFIG.page.contentWidth, 20, 3, 3, 'FD')
+  pdf.roundedRect(PDF_CONFIG.page.margin, currentY, PDF_CONFIG.page.contentWidth, boxHeight, 3, 3, 'FD')
   
   // "Win Strategy" label
   pdf.setFontSize(11)
   pdf.setTextColor(255, 255, 255)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('Win Strategy', PDF_CONFIG.page.margin + 4, currentY + 6)
+  pdf.text('Win Strategy', PDF_CONFIG.page.margin + 5, currentY + 7)
   
   // "Competitive Advantage" badge
   pdf.setFontSize(7)
   pdf.setFont('helvetica', 'bold')
   const badgeText = 'COMPETITIVE ADVANTAGE'
   const badgeWidth = pdf.getTextWidth(badgeText) + 4
-  const badgeX = PDF_CONFIG.page.contentWidth + PDF_CONFIG.page.margin - badgeWidth - 2
+  const badgeX = PDF_CONFIG.page.contentWidth + PDF_CONFIG.page.margin - badgeWidth - 5
   
   pdf.setFillColor(5, 150, 105) // emerald-600
-  pdf.roundedRect(badgeX, currentY + 3, badgeWidth, 5, 1, 1, 'F')
+  pdf.roundedRect(badgeX, currentY + 4, badgeWidth, 5, 1, 1, 'F')
   pdf.setTextColor(255, 255, 255)
-  pdf.text(badgeText, badgeX + 2, currentY + 6.5)
+  pdf.text(badgeText, badgeX + 2, currentY + 7.5)
   
-  // Strategy text
+  // Strategy text with proper line spacing
   pdf.setFontSize(9)
   pdf.setFont('helvetica', 'normal')
   pdf.setTextColor(255, 255, 255)
-  const strategyLines = pdf.splitTextToSize(sanitizePDF(winStrategy), PDF_CONFIG.page.contentWidth - 8)
-  pdf.text(strategyLines, PDF_CONFIG.page.margin + 4, currentY + 12)
   
-  return currentY + 24
+  // Render each line with custom spacing
+  let textY = currentY + 13
+  strategyLines.forEach((line: string) => {
+    pdf.text(line, PDF_CONFIG.page.margin + 5, textY)
+    textY += 4.5 // Line spacing
+  })
+  
+  return currentY + boxHeight + 6 // Add spacing after box
 }
 
 /**
