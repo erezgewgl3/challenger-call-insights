@@ -155,15 +155,12 @@ export function NewAnalysisView({
     setIsExporting(true)
     try {
       const cleanTitle = displayTitle.trim()
-      // 🚀 NEW: Pass React state control to PDF export
-      await exportToPDF('analysis-content', cleanTitle, {
-        sectionsOpen,
-        toggleSection
-      })
+      // Pass transcript and analysis objects directly for text-based PDF generation
+      await exportToPDF(transcript, analysis, cleanTitle)
     } finally {
       setIsExporting(false)
     }
-  }, [exportToPDF, displayTitle, sectionsOpen, toggleSection])
+  }, [exportToPDF, transcript, analysis, displayTitle])
   
   const copyToClipboard = async (text: string, type: string) => {
     try {
