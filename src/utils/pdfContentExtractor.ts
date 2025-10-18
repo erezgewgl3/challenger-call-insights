@@ -90,7 +90,7 @@ function extractCallSummary(analysis: any) {
     overview: callSummary?.overview || 'Valuable insights discussed during the conversation',
     clientSituation: callSummary?.clientSituation || 'Client context and needs shared',
     mainTopics: Array.isArray(mainTopics) && mainTopics.length > 0 
-      ? mainTopics.slice(0, 3) 
+      ? mainTopics 
       : ['Business needs discussed', 'Solutions explored', 'Next steps outlined'],
     clientPriority: callSummary?.urgencyDrivers?.primary || 'Strategic priority',
     urgencyDriver: timeline?.driver || 'Business pressure identified'
@@ -106,17 +106,17 @@ function extractStrategicIntelligence(analysis: any) {
 
   return {
     criticalPain: Array.isArray(painSeverity?.indicators) 
-      ? painSeverity.indicators.slice(0, 2) 
+      ? painSeverity.indicators 
       : ['Pain points identified'],
     decisionCriteria: Array.isArray(competitiveIntel?.decisionCriteria) 
-      ? competitiveIntel.decisionCriteria.slice(0, 2) 
+      ? competitiveIntel.decisionCriteria 
       : ['Decision criteria discussed'],
     timelineDriver: timeline?.statedTimeline || 'Timeline to be confirmed',
     buyingSignals: Array.isArray(buyingSignals?.commitmentSignals) 
-      ? buyingSignals.commitmentSignals.slice(0, 2) 
+      ? buyingSignals.commitmentSignals 
       : ['Buying signals detected'],
     competitiveLandscape: Array.isArray(competitiveIntel?.vendorsKnown) 
-      ? competitiveIntel.vendorsKnown.slice(0, 2) 
+      ? competitiveIntel.vendorsKnown 
       : ['Competitive landscape assessed']
   }
 }
