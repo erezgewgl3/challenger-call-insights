@@ -253,15 +253,15 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   
   if (!winStrategy) return startY
   
-  // Reduced spacing before Win Strategy box
-  let currentY = startY + 6
+  // Minimal spacing before Win Strategy box
+  let currentY = startY + 3
   
   // Calculate text dimensions for dynamic box height
   pdf.setFontSize(9)
   pdf.setFont('helvetica', 'normal')
   const strategyLines = pdf.splitTextToSize(sanitizePDF(winStrategy), PDF_CONFIG.page.contentWidth - 16)
-  const textHeight = strategyLines.length * 4.5 // Line height of 4.5
-  const boxHeight = Math.max(22, textHeight + 14) // Min 22, or text height + padding
+  const textHeight = strategyLines.length * 4.2 // Tighter line height
+  const boxHeight = Math.max(20, textHeight + 12) // Reduced padding
   
   // Draw more subtle emerald box - lighter colors
   pdf.setFillColor(209, 250, 229) // emerald-100
@@ -273,7 +273,7 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   pdf.setFontSize(11)
   pdf.setTextColor(5, 150, 105) // emerald-700
   pdf.setFont('helvetica', 'bold')
-  pdf.text('Win Strategy', PDF_CONFIG.page.margin + 5, currentY + 7)
+  pdf.text('Win Strategy', PDF_CONFIG.page.margin + 5, currentY + 6)
   
   // "Competitive Advantage" badge - emerald on emerald
   pdf.setFontSize(7)
@@ -283,23 +283,23 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   const badgeX = PDF_CONFIG.page.contentWidth + PDF_CONFIG.page.margin - badgeWidth - 5
   
   pdf.setFillColor(16, 185, 129) // emerald-500
-  pdf.roundedRect(badgeX, currentY + 4, badgeWidth, 5, 1, 1, 'F')
+  pdf.roundedRect(badgeX, currentY + 3.5, badgeWidth, 5, 1, 1, 'F')
   pdf.setTextColor(255, 255, 255)
-  pdf.text(badgeText, badgeX + 2, currentY + 7.5)
+  pdf.text(badgeText, badgeX + 2, currentY + 6.8)
   
-  // Strategy text with proper line spacing - darker text
+  // Strategy text with tighter line spacing - darker text
   pdf.setFontSize(9)
   pdf.setFont('helvetica', 'normal')
   pdf.setTextColor(31, 41, 55) // gray-800
   
   // Render each line with custom spacing
-  let textY = currentY + 13
+  let textY = currentY + 12
   strategyLines.forEach((line: string) => {
     pdf.text(line, PDF_CONFIG.page.margin + 5, textY)
-    textY += 4.5 // Line spacing
+    textY += 4.2 // Tighter line spacing
   })
   
-  return currentY + boxHeight + 4 // Reduced spacing after box
+  return currentY + boxHeight + 2 // Minimal spacing after box
 }
 
 /**
