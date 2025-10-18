@@ -32,16 +32,12 @@ export async function storeCredentialsInVault(
   console.log(`[VAULT] Storing credentials in vault: ${secretName}`);
   
   try {
-    // Store in vault using insert to vault.secrets table
-    const { data, error } = await supabase
-      .from('vault.secrets')
-      .insert({
-        name: secretName,
-        secret: JSON.stringify(credentials),
-        description: `OAuth credentials for ${secretName}`
-      })
-      .select('id')
-      .single();
+    // Use Vault RPC to create secret
+    const { data, error } = await supabase.rpc('vault.create_secret', {
+      new_secret: JSON.stringify(credentials),
+      new_name: secretName,
+      new_description: `OAuth credentials for ${integrationType}`
+    });
 
     if (error) {
       console.error('[VAULT] Failed to store credentials:', error);
@@ -52,12 +48,12 @@ export async function storeCredentialsInVault(
       throw new Error(`Vault storage failed: ${error.message}`);
     }
 
-    console.log(`[VAULT] Credentials stored successfully with ID: ${data.id}`);
+    console.log(`[VAULT] Credentials stored successfully with ID: ${data}`);
     
     // Log the successful operation
-    await logVaultAccess(supabase, userId, integrationType, 'store', data.id, true);
+    await logVaultAccess(supabase, userId, integrationType, 'store', data, true);
     
-    return data.id;
+    return data;
   } catch (error) {
     console.error('[VAULT] Error storing credentials:', error);
     throw error;
@@ -79,9 +75,10 @@ export async function getCredentialsFromVault(
   console.log(`[VAULT] Retrieving credentials from vault: ${vaultSecretId}`);
   
   try {
-    // Retrieve from vault using select from vault.decrypted_secrets
+    // Query vault schema directly for decrypted secrets
     const { data, error } = await supabase
-      .from('vault.decrypted_secrets')
+      .schema('vault')
+      .from('decrypted_secrets')
       .select('decrypted_secret')
       .eq('id', vaultSecretId)
       .single();
@@ -134,13 +131,11 @@ export async function updateCredentialsInVault(
   console.log(`[VAULT] Updating credentials in vault: ${vaultSecretId}`);
   
   try {
-    const { error } = await supabase
-      .from('vault.secrets')
-      .update({
-        secret: JSON.stringify(credentials),
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', vaultSecretId);
+    // Use Vault RPC to update secret
+    const { error } = await supabase.rpc('vault.update_secret', {
+      secret_id: vaultSecretId,
+      new_secret: JSON.stringify(credentials)
+    });
 
     if (error) {
       console.error('[VAULT] Failed to update credentials:', error);
@@ -175,8 +170,10 @@ export async function deleteCredentialsFromVault(
   console.log(`[VAULT] Deleting credentials from vault: ${vaultSecretId}`);
   
   try {
+    // Query vault schema directly for deletion
     const { error } = await supabase
-      .from('vault.secrets')
+      .schema('vault')
+      .from('secrets')
       .delete()
       .eq('id', vaultSecretId);
 

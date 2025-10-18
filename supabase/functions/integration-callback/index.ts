@@ -436,20 +436,33 @@ serve(async (req) => {
     // SECURE: Store credentials in Vault instead of plaintext
     const { storeCredentialsInVault, generateSecretName } = await import('../_shared/vault-helpers.ts');
     
-    const secretName = generateSecretName(integrationId, userId);
-    const vaultSecretId = await storeCredentialsInVault(
-      supabase,
-      {
-        access_token: accessToken,
-        refresh_token: refreshToken,
-        expires_at: Date.now() + (3600 * 1000), // 1 hour default
-      },
-      secretName,
-      userId,
-      integrationId
-    );
-
-    console.log(`[CALLBACK-INTEGRATION] Credentials stored in vault: ${vaultSecretId}`);
+    let vaultSecretId: string;
+    try {
+      const secretName = generateSecretName(integrationId, userId);
+      vaultSecretId = await storeCredentialsInVault(
+        supabase,
+        {
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          expires_at: Date.now() + (3600 * 1000), // 1 hour default
+        },
+        secretName,
+        userId,
+        integrationId
+      );
+      console.log(`[CALLBACK-INTEGRATION] Credentials stored in vault: ${vaultSecretId}`);
+    } catch (vaultError) {
+      console.error(`[CALLBACK-INTEGRATION] Vault storage failed:`, vaultError);
+      const errorMsg = `Failed to securely store credentials: ${vaultError.message}`;
+      if (isApiCall) {
+        return new Response(JSON.stringify({ success: false, error: errorMsg }), {
+          headers: { 'Content-Type': 'application/json', ...corsHeaders },
+          status: 500,
+        });
+      } else {
+        throw new Error(errorMsg);
+      }
+    }
     
     // Get a properly formatted account name based on the user info
     const formattedAccountName = getFormattedAccountName(integrationId, userInfo);
