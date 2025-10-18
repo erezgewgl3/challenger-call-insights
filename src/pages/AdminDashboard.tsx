@@ -19,12 +19,14 @@ import { SystemHealthActions } from '@/components/admin/system/SystemHealthActio
 import { IntegrationManagement } from '@/components/integrations-framework/admin/IntegrationManagement'
 import { useSystemMetrics } from '@/hooks/useSystemMetrics'
 import { useUserGrowthData, useTranscriptVolumeData, useAnalysisPerformanceData } from '@/hooks/useChartData'
+import { useSystemHealth } from '@/hooks/useSystemHealth'
 
 export default function AdminDashboard() {
   const { data: systemMetrics, isLoading } = useSystemMetrics();
   const { data: userGrowthData, isLoading: userGrowthLoading } = useUserGrowthData(6);
   const { data: transcriptVolumeData, isLoading: transcriptVolumeLoading } = useTranscriptVolumeData(6);
   const { data: analysisPerformanceData, isLoading: analysisPerformanceLoading } = useAnalysisPerformanceData(24);
+  const { data: healthStatus, isLoading: healthLoading } = useSystemHealth();
 
   return (
     <AdminLayout>
@@ -159,28 +161,30 @@ export default function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
-                    <div className="text-3xl font-bold text-green-600 mb-2">✓</div>
-                    <p className="text-sm font-semibold text-green-800 mb-1">Database</p>
-                    <p className="text-xs text-green-600">Connected</p>
+                {healthLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {[1, 2, 3, 4].map(i => (
+                      <div key={i} className="text-center p-6 bg-slate-50 rounded-xl border border-slate-200 animate-pulse">
+                        <div className="h-8 w-8 bg-slate-200 rounded-full mx-auto mb-2" />
+                        <div className="h-4 bg-slate-200 rounded w-24 mx-auto mb-1" />
+                        <div className="h-3 bg-slate-200 rounded w-16 mx-auto" />
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
-                    <div className="text-3xl font-bold text-green-600 mb-2">✓</div>
-                    <p className="text-sm font-semibold text-green-800 mb-1">Authentication</p>
-                    <p className="text-xs text-green-600">Active</p>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    {healthStatus?.services.map((service) => (
+                      <div 
+                        key={service.name}
+                        className={`text-center p-6 rounded-xl ${service.colorClass}`}
+                      >
+                        <div className="text-3xl font-bold mb-2">{service.icon}</div>
+                        <p className="text-sm font-semibold mb-1">{service.name}</p>
+                        <p className="text-xs">{service.statusText}</p>
+                      </div>
+                    ))}
                   </div>
-                  <div className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-100">
-                    <div className="text-3xl font-bold text-green-600 mb-2">✓</div>
-                    <p className="text-sm font-semibold text-green-800 mb-1">Prompt System</p>
-                    <p className="text-xs text-green-600">Active</p>
-                  </div>
-                  <div className="text-center p-6 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl border border-indigo-100">
-                    <div className="text-3xl font-bold text-indigo-600 mb-2">i</div>
-                    <p className="text-sm font-semibold text-indigo-800 mb-1">AI Services</p>
-                    <p className="text-xs text-indigo-600">Ready for setup</p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

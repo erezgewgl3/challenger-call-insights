@@ -57,3 +57,6 @@ verify_jwt = false
 
 [functions.trigger-crm-webhook]
 verify_jwt = true
+
+[functions.system-health-check]
+verify_jwt = true

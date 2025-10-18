@@ -5,25 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { Activity, Zap, Database, Clock } from 'lucide-react'
-import { useState, useEffect } from 'react'
-
-// Mock data for analytics - in real implementation, this would come from API
-const usageData = [
-  { date: '2025-06-21', prompts: 12, analyses: 45, users: 8 },
-  { date: '2025-06-22', prompts: 15, analyses: 52, users: 12 },
-  { date: '2025-06-23', prompts: 18, analyses: 38, users: 10 },
-  { date: '2025-06-24', prompts: 22, analyses: 61, users: 15 },
-  { date: '2025-06-25', prompts: 19, analyses: 47, users: 11 },
-  { date: '2025-06-26', prompts: 25, analyses: 73, users: 18 },
-  { date: '2025-06-27', prompts: 28, analyses: 89, users: 22 }
-]
-
-const performanceData = [
-  { metric: 'API Response Time', value: '245ms', status: 'good' },
-  { metric: 'AI Processing Time', value: '1.2s', status: 'good' },
-  { metric: 'Database Query Time', value: '85ms', status: 'excellent' },
-  { metric: 'Error Rate', value: '0.02%', status: 'excellent' }
-]
+import { useRealUsageData, useRealUsageSummary } from '@/hooks/useRealUsageData'
 
 const chartConfig = {
   prompts: {
@@ -41,26 +23,8 @@ const chartConfig = {
 }
 
 export function SystemMonitor() {
-  const [realTimeStats, setRealTimeStats] = useState({
-    activeUsers: 12,
-    runningAnalyses: 3,
-    queuedJobs: 0,
-    systemLoad: 67
-  })
-
-  useEffect(() => {
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      setRealTimeStats(prev => ({
-        activeUsers: prev.activeUsers + Math.floor(Math.random() * 3) - 1,
-        runningAnalyses: Math.max(0, prev.runningAnalyses + Math.floor(Math.random() * 3) - 1),
-        queuedJobs: Math.max(0, prev.queuedJobs + Math.floor(Math.random() * 2) - 1),
-        systemLoad: Math.min(100, Math.max(0, prev.systemLoad + Math.floor(Math.random() * 10) - 5))
-      }))
-    }, 5000)
-
-    return () => clearInterval(interval)
-  }, [])
+  const { data: usageData = [], isLoading: usageLoading } = useRealUsageData(7)
+  const { data: usageSummary, isLoading: summaryLoading } = useRealUsageSummary()
 
   return (
     <div className="space-y-6">
@@ -79,8 +43,19 @@ export function SystemMonitor() {
                 <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">147</div>
-                <p className="text-xs text-muted-foreground">+12% from last week</p>
+                {summaryLoading ? (
+                  <div className="animate-pulse">
+                    <div className="h-8 bg-slate-200 rounded w-20 mb-2" />
+                    <div className="h-3 bg-slate-200 rounded w-32" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{usageSummary?.totalPrompts || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +{usageSummary?.promptGrowth || 0}% from last week
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -89,8 +64,19 @@ export function SystemMonitor() {
                 <Zap className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">2,891</div>
-                <p className="text-xs text-muted-foreground">+18% from last week</p>
+                {summaryLoading ? (
+                  <div className="animate-pulse">
+                    <div className="h-8 bg-slate-200 rounded w-20 mb-2" />
+                    <div className="h-3 bg-slate-200 rounded w-32" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{usageSummary?.totalAnalyses || 0}</div>
+                    <p className="text-xs text-muted-foreground">
+                      +{usageSummary?.analysisGrowth || 0}% from last week
+                    </p>
+                  </>
+                )}
               </CardContent>
             </Card>
             <Card>
@@ -99,8 +85,17 @@ export function SystemMonitor() {
                 <Activity className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">64</div>
-                <p className="text-xs text-muted-foreground">+5% from last week</p>
+                {summaryLoading ? (
+                  <div className="animate-pulse">
+                    <div className="h-8 bg-slate-200 rounded w-20 mb-2" />
+                    <div className="h-3 bg-slate-200 rounded w-32" />
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">{usageSummary?.activeUsers || 0}</div>
+                    <p className="text-xs text-muted-foreground">This week</p>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -111,85 +106,51 @@ export function SystemMonitor() {
               <CardDescription>Weekly activity overview</CardDescription>
             </CardHeader>
             <CardContent>
-              <ChartContainer config={chartConfig} className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={usageData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <ChartTooltip content={<ChartTooltipContent />} />
-                    <Line type="monotone" dataKey="prompts" stroke="var(--color-prompts)" strokeWidth={2} />
-                    <Line type="monotone" dataKey="analyses" stroke="var(--color-analyses)" strokeWidth={2} />
-                    <Line type="monotone" dataKey="users" stroke="var(--color-users)" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              {usageLoading ? (
+                <div className="h-[300px] flex items-center justify-center">
+                  <div className="animate-pulse text-slate-400">Loading usage data...</div>
+                </div>
+              ) : (
+                <ChartContainer config={chartConfig} className="h-[300px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={usageData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <ChartTooltip content={<ChartTooltipContent />} />
+                      <Line type="monotone" dataKey="prompts" stroke="var(--color-prompts)" strokeWidth={2} />
+                      <Line type="monotone" dataKey="analyses" stroke="var(--color-analyses)" strokeWidth={2} />
+                      <Line type="monotone" dataKey="users" stroke="var(--color-users)" strokeWidth={2} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
 
         <TabsContent value="performance" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {performanceData.map((item) => (
-              <Card key={`perf-${item.metric}`}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{item.metric}</CardTitle>
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{item.value}</div>
-                  <Badge variant={item.status === 'excellent' ? 'default' : 'secondary'} className="mt-2">
-                    {item.status === 'excellent' ? 'Excellent' : 'Good'}
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <Card className="p-6">
+            <div className="text-center text-slate-500">
+              <Clock className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-lg font-semibold mb-2">Performance Metrics Coming Soon</h3>
+              <p className="text-sm">
+                Detailed performance metrics will be available in a future update.
+              </p>
+            </div>
+          </Card>
         </TabsContent>
 
         <TabsContent value="realtime" className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-                <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{realTimeStats.activeUsers}</div>
-                <p className="text-xs text-muted-foreground">Currently online</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Running Analyses</CardTitle>
-                <Database className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{realTimeStats.runningAnalyses}</div>
-                <p className="text-xs text-muted-foreground">Processing now</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Queued Jobs</CardTitle>
-                <Clock className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{realTimeStats.queuedJobs}</div>
-                <p className="text-xs text-muted-foreground">Waiting to process</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">System Load</CardTitle>
-                <Activity className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{realTimeStats.systemLoad}%</div>
-                <p className="text-xs text-muted-foreground">Current utilization</p>
-              </CardContent>
-            </Card>
-          </div>
+          <Card className="p-6">
+            <div className="text-center text-slate-500">
+              <Activity className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+              <h3 className="text-lg font-semibold mb-2">Real-time Monitoring Coming Soon</h3>
+              <p className="text-sm">
+                Live system monitoring will be available in a future update.
+              </p>
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
