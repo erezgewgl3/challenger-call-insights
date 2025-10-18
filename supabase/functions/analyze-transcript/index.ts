@@ -52,13 +52,45 @@ function calculateDealHeat(analysis: any): string {
   const commitmentSignals = buyingSignals.commitmentSignals || []
   const engagementSignals = buyingSignals.engagementSignals || []
   
+  // NEW: Distinguish true commitment from exploration
+  const trueCommitmentSignals = commitmentSignals.filter((signal: string) => {
+    const lower = signal.toLowerCase()
+    return (
+      lower.includes('budget approved') ||
+      lower.includes('let\'s get the contract') ||
+      lower.includes('when can we start') ||
+      lower.includes('can we sign') ||
+      lower.includes('need this in front of') ||
+      lower.includes('ready to move forward') ||
+      lower.includes('schedule implementation') ||
+      lower.includes('get the paperwork')
+    )
+  })
+
+  const exploratorySignals = commitmentSignals.filter((signal: string) => {
+    const lower = signal.toLowerCase()
+    return (
+      lower.includes('how long') ||
+      lower.includes('what if') ||
+      lower.includes('can you send') ||
+      lower.includes('proposal') ||
+      lower.includes('what about') ||
+      lower.includes('give us some examples')
+    )
+  })
+
+  const trueCommitmentCount = trueCommitmentSignals.length
+  const exploratoryCount = exploratorySignals.length
+  
   const timelineAnalysis = analysis.call_summary?.timelineAnalysis || {}
   const statedTimeline = timelineAnalysis.statedTimeline || ''
   const businessDriver = timelineAnalysis.businessDriver || ''
   
   let dealScore = urgencyScore
   
-  dealScore += commitmentSignals.length * 2
+  // NEW: Different scoring for true commitment vs exploratory
+  dealScore += trueCommitmentCount * 3  // True commitment worth more
+  dealScore += exploratoryCount * 1      // Exploratory questions worth less
   dealScore += engagementSignals.length * 1
   
   const timelineText = (statedTimeline + ' ' + businessDriver).toLowerCase()
@@ -97,9 +129,43 @@ function calculateDealHeat(analysis: any): string {
     resistancePenalty += 2
   }
   
-  if (allResistanceText.includes('satisfied with current') || 
-      allResistanceText.includes('current solution works')) {
-    resistancePenalty += 2
+  // NEW: Detect budget shock
+  const hasBudgetShock = allResistanceText.includes('double') ||
+                         allResistanceText.includes('triple') ||
+                         allResistanceText.includes('doubling') ||
+                         allResistanceText.includes('tripling') ||
+                         allResistanceText.includes('2x') ||
+                         allResistanceText.includes('3x') ||
+                         allResistanceText.includes('substantially more') ||
+                         allResistanceText.includes('much higher than') ||
+                         allResistanceText.includes('more than expected') ||
+                         allResistanceText.includes('over budget')
+
+  if (hasBudgetShock) {
+    resistancePenalty += 3
+    console.log('💰 [HEAT] Budget shock detected: +3 penalty')
+  }
+  
+  // NEW: Increased need skepticism penalty
+  const hasNeedSkepticism = allResistanceText.includes('managed fine') ||
+                            allResistanceText.includes('doing okay without') ||
+                            allResistanceText.includes('gotten along without') ||
+                            allResistanceText.includes('satisfied with current') ||
+                            allResistanceText.includes('current solution works') ||
+                            allResistanceText.includes('never had an issue')
+
+  if (hasNeedSkepticism) {
+    resistancePenalty += 5  // Increased from 2
+    console.log('⚠️ [HEAT] Need skepticism detected: +5 penalty')
+    
+    // Extra penalty if influential stakeholder or repeated
+    const isInfluential = allResistanceText.includes('i have to ask') || 
+                          allResistanceText.includes('honestly') ||
+                          allResistanceText.includes('to be frank')
+    if (isInfluential) {
+      resistancePenalty += 2
+      console.log('⚠️ [HEAT] Need skepticism from influential stakeholder: +2 additional')
+    }
   }
   
   if (allResistanceText.includes('timing concerns') || 
@@ -113,33 +179,65 @@ function calculateDealHeat(analysis: any): string {
     painLevel,
     criticalFactors: criticalFactors.length,
     businessFactors: businessFactors.length,
-    commitmentSignals: commitmentSignals.length,
+    trueCommitmentCount,
+    exploratoryCount,
     urgencyScore,
     dealScore,
-    resistancePenalty
+    resistancePenalty,
+    hasBudgetShock,
+    hasNeedSkepticism
   });
+  
+  // Determine initial heat level
+  let heatLevel: string
   
   if (
     (painLevel === 'high' && dealScore >= 1) ||
     criticalFactors.length >= 1 ||
     dealScore >= 8 ||
-    (commitmentSignals.length >= 2 && dealScore >= 6) ||
-    (painLevel === 'medium' && commitmentSignals.length >= 2 && dealScore >= 5)
+    (trueCommitmentCount >= 2 && dealScore >= 6) ||
+    (painLevel === 'medium' && trueCommitmentCount >= 2 && dealScore >= 5)
   ) {
-    console.log('🔍 [HEAT] Result: HIGH');
-    return 'HIGH'
+    heatLevel = 'HIGH'
   } else if (
-    // MEDIUM heat requires meaningful buying intent, not just pain
-    (painLevel === 'medium' && dealScore >= 2) ||  // Medium pain + some positive signals
-    (businessFactors.length >= 1 && dealScore >= 1) ||  // Business urgency + at least 1 signal
-    dealScore >= 4                                  // Strong buying signals independently
+    (painLevel === 'medium' && dealScore >= 2) ||
+    (businessFactors.length >= 1 && dealScore >= 1) ||
+    dealScore >= 4
   ) {
-    console.log('🔍 [HEAT] Result: MEDIUM');
-    return 'MEDIUM'
+    heatLevel = 'MEDIUM'
+  } else {
+    heatLevel = 'LOW'
   }
   
-  console.log('🔍 [HEAT] Result: LOW');
-  return 'LOW'
+  // NEW: Forced downgrade rules
+  if (heatLevel === 'HIGH') {
+    // Rule 1: Need skepticism + Budget shock = MEDIUM maximum
+    if (hasNeedSkepticism && hasBudgetShock) {
+      console.log('🔍 [HEAT] DOWNGRADE: Need skepticism + budget shock → MEDIUM')
+      heatLevel = 'MEDIUM'
+    }
+    
+    // Rule 2: No true commitment + high resistance = MEDIUM maximum
+    else if (trueCommitmentCount === 0 && resistanceLevel === 'high') {
+      console.log('🔍 [HEAT] DOWNGRADE: No commitment + high resistance → MEDIUM')
+      heatLevel = 'MEDIUM'
+    }
+    
+    // Rule 3: Exploratory stage only = MEDIUM maximum
+    else if (trueCommitmentCount === 0 && exploratoryCount > 0 && commitmentSignals.length === exploratoryCount) {
+      console.log('🔍 [HEAT] DOWNGRADE: Exploratory stage only → MEDIUM')
+      heatLevel = 'MEDIUM'
+    }
+    
+    // Rule 4: Pain level high but dealScore near zero or negative
+    else if (painLevel === 'high' && dealScore <= 2) {
+      console.log('🔍 [HEAT] DOWNGRADE: High pain but low buying intent → MEDIUM')
+      heatLevel = 'MEDIUM'
+    }
+  }
+  
+  console.log('🔍 [HEAT] Result:', heatLevel);
+  return heatLevel
 }
 
 // Extract prospect company name and participants from AI analysis for better display
