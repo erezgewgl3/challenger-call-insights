@@ -86,7 +86,7 @@ serve(async (req) => {
         credentials = await getCredentialsFromVault(
           supabase, 
           connection.vault_secret_id,
-          userData.user.id,
+          user.id,
           'zoom'
         );
       } else {
