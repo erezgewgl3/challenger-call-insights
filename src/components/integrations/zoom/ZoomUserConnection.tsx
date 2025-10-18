@@ -195,7 +195,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
         </Alert>
       )}
       
-      {isConnected && connection ? (
+      {isConnected ? (
         <Card className="flex-1 flex flex-col transition-all duration-200 hover:shadow-md">
           <CardHeader className="pb-4">
             <div className="flex items-start justify-between">
