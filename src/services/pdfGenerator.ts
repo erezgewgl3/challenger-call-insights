@@ -1,6 +1,8 @@
 
 import jsPDF from 'jspdf'
 import { calculatePDFDimensions, createPDFHeader } from '@/utils/pdfUtils'
+import { identifySectionAtPosition, type ContentSection } from '@/utils/pdfContentAnalyzer'
+import { formatSectionName } from '@/utils/pdfSectionMarkers'
 
 /**
  * Creates and initializes a new PDF document with standard configuration
@@ -40,114 +42,105 @@ export function addCanvasToPDF(pdf: jsPDF, canvas: HTMLCanvasElement, title: str
 }
 
 /**
- * SIMPLIFIED Multi-page PDF with direct pixel calculations - NO MM/PIXEL MIXING
+ * Smart multi-page PDF with content-aware page breaks
+ * Uses semantic analysis to avoid breaking sections awkwardly
  */
-export function addMultiPageContent(pdf: jsPDF, canvas: HTMLCanvasElement, title: string): void {
+export function addMultiPageContentWithSmartBreaks(
+  pdf: jsPDF, 
+  canvas: HTMLCanvasElement, 
+  title: string,
+  breakPoints: number[], // MM positions where pages should break
+  sections: ContentSection[] = [] // Optional: for continuation markers
+): void {
   const { scale, scaledHeight, contentWidth, pdfWidth, pdfHeight } = calculatePDFDimensions(canvas)
+  
+  // If no break points provided, treat as single page
+  if (breakPoints.length === 0) {
+    console.log('No break points - generating single page PDF')
+    const contentStartY = createPDFHeader(pdf, title)
+    pdf.addImage(canvas.toDataURL('image/png', 1.0), 'PNG', 10, contentStartY, contentWidth, scaledHeight, '', 'SLOW')
+    return
+  }
   
   // Create header for first page
   const contentStartY = createPDFHeader(pdf, title)
-  
-  // SIMPLIFIED: Calculate available heights in MM (for PDF layout)
   const firstPageAvailableHeightMM = pdfHeight - contentStartY - 10
   const subsequentPageAvailableHeightMM = pdfHeight - 30
   
-  // SIMPLIFIED: Calculate total pages needed with direct division
-  let totalPagesNeeded = 1
-  let remainingContentMM = Math.max(0, scaledHeight - firstPageAvailableHeightMM)
+  // Convert break points (MM) to pixel positions in canvas
+  const breakPixels = breakPoints.map(breakMM => Math.round((breakMM / scaledHeight) * canvas.height))
   
-  if (remainingContentMM > 0) {
-    totalPagesNeeded += Math.ceil(remainingContentMM / subsequentPageAvailableHeightMM)
-  }
+  // Add implicit break at start and end
+  const allBreakPixels = [0, ...breakPixels, canvas.height].sort((a, b) => a - b)
+  const totalPagesNeeded = allBreakPixels.length - 1
   
-  // SIMPLIFIED: Calculate pixels per page directly from canvas
-  const firstPagePixels = Math.round((firstPageAvailableHeightMM / scaledHeight) * canvas.height)
-  const subsequentPagePixels = Math.round((subsequentPageAvailableHeightMM / scaledHeight) * canvas.height)
-  
-  console.log('SIMPLIFIED Multi-page PDF - Direct Pixel Division:', {
+  console.log('Smart Multi-page PDF with content-aware breaks:', {
     canvasHeight: canvas.height,
-    totalPagesNeeded,
-    firstPagePixels,
-    subsequentPagePixels,
     scaledHeight,
-    firstPageAvailableHeightMM,
-    subsequentPageAvailableHeightMM
+    breakPointsMM: breakPoints,
+    breakPixels,
+    totalPagesNeeded
   })
   
-  // SIMPLIFIED: Process each page with direct pixel coordinates
-  let pixelsProcessed = 0
-  
+  // Process each page based on break points
   for (let pageIndex = 0; pageIndex < totalPagesNeeded; pageIndex++) {
     const isFirstPage = pageIndex === 0
-    const availableHeightMM = isFirstPage ? firstPageAvailableHeightMM : subsequentPageAvailableHeightMM
-    const pagePixelHeight = isFirstPage ? firstPagePixels : subsequentPagePixels
-    const contentY = isFirstPage ? contentStartY : 25
+    const startPixel = allBreakPixels[pageIndex]
+    const endPixel = allBreakPixels[pageIndex + 1]
+    const pagePixels = endPixel - startPixel
     
-    // SIMPLIFIED: Stop if we've processed all pixels
-    if (pixelsProcessed >= canvas.height) {
-      console.log(`SIMPLIFIED: All content processed, stopping at page ${pageIndex}`)
-      break
-    }
-    
-    // SIMPLIFIED: Calculate actual pixels to process for this page
-    const remainingPixels = canvas.height - pixelsProcessed
-    const actualPagePixels = Math.min(pagePixelHeight, remainingPixels)
-    
-    console.log(`SIMPLIFIED: Page ${pageIndex + 1}/${totalPagesNeeded}:`, {
-      pixelsProcessed,
-      remainingPixels,
-      pagePixelHeight,
-      actualPagePixels
+    console.log(`Smart page ${pageIndex + 1}/${totalPagesNeeded}:`, {
+      startPixel,
+      endPixel,
+      pagePixels
     })
     
-    // Skip if no content left
-    if (actualPagePixels <= 0) {
-      console.log(`SIMPLIFIED: No content left for page ${pageIndex + 1}, skipping`)
-      break
+    // Skip empty pages
+    if (pagePixels <= 0) {
+      console.log(`Skipping empty page ${pageIndex + 1}`)
+      continue
     }
     
-    // Add new page (except for first page)
+    // Add new page (except for first)
     if (pageIndex > 0) {
       pdf.addPage()
       
-      // Add simple header for subsequent pages
-      pdf.setFontSize(14)
-      pdf.setTextColor(100, 116, 139)
-      const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-      pdf.text(`${cleanTitle} - Page ${pageIndex + 1}`, 10, 15)
-      pdf.setDrawColor(203, 213, 225)
-      pdf.line(10, 20, pdfWidth - 10, 20)
+      // Determine section name for continuation marker
+      const startMM = (startPixel / canvas.height) * scaledHeight
+      const currentSection = identifySectionAtPosition(sections, startMM)
+      const sectionName = currentSection ? formatSectionName(currentSection.type) : undefined
+      
+      // Add continuation header
+      const contentY = createPDFHeader(pdf, title, pageIndex + 1, sectionName)
     }
     
-    // SIMPLIFIED: Create page canvas with direct pixel calculations
-    const pageCanvas = createSimplifiedPageCanvas(canvas, pixelsProcessed, actualPagePixels)
+    const contentY = isFirstPage ? contentStartY : 28
+    
+    // Create page canvas slice
+    const pageCanvas = createPageCanvas(canvas, startPixel, pagePixels)
     
     if (pageCanvas && pageCanvas.width > 1 && pageCanvas.height > 1) {
-      const pageImgData = pageCanvas.toDataURL('image/png', 1.0) // Maximum quality PNG
+      const pageImgData = pageCanvas.toDataURL('image/png', 1.0)
+      const pageHeightMM = (pagePixels / canvas.height) * scaledHeight
       
-      // Calculate MM height for this page slice
-      const pageHeightMM = (actualPagePixels / canvas.height) * scaledHeight
-      
-      console.log(`SIMPLIFIED: Adding page ${pageIndex + 1} content:`, {
-        startPixel: pixelsProcessed,
-        actualPagePixels,
+      console.log(`Adding page ${pageIndex + 1} content:`, {
+        startPixel,
+        pagePixels,
         pageHeightMM,
         contentY
       })
       
-      pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, pageHeightMM, '', 'SLOW') // SLOW compression for better text
+      pdf.addImage(pageImgData, 'PNG', 10, contentY, contentWidth, pageHeightMM, '', 'SLOW')
     }
-    
-    pixelsProcessed += actualPagePixels
   }
   
-  console.log(`SIMPLIFIED: Multi-page PDF complete - processed ${pixelsProcessed}/${canvas.height} pixels`)
+  console.log(`Smart multi-page PDF complete - ${totalPagesNeeded} pages generated`)
 }
 
 /**
- * SIMPLIFIED canvas slicing - Direct pixel coordinates only
+ * Creates a canvas slice for a single PDF page
  */
-function createSimplifiedPageCanvas(
+function createPageCanvas(
   sourceCanvas: HTMLCanvasElement,
   startPixel: number,
   heightPixels: number
@@ -160,32 +153,31 @@ function createSimplifiedPageCanvas(
     return null
   }
   
-  // SIMPLIFIED: Bounds checking with direct pixel coordinates
+  // Bounds checking
   if (startPixel >= sourceCanvas.height || heightPixels <= 0) {
-    console.log('SIMPLIFIED: No valid content to slice, skipping page')
+    console.log('No valid content to slice, skipping page')
     return null
   }
   
-  // SIMPLIFIED: Calculate actual slice dimensions in pixels
+  // Calculate actual slice dimensions
   const actualHeightPixels = Math.min(heightPixels, sourceCanvas.height - startPixel)
   
-  console.log(`SIMPLIFIED Canvas Slice:`, {
+  console.log(`Canvas Slice:`, {
     startPixel,
     requestedHeight: heightPixels,
     actualHeightPixels,
-    sourceCanvasHeight: sourceCanvas.height,
-    sourceCanvasWidth: sourceCanvas.width
+    sourceCanvasHeight: sourceCanvas.height
   })
   
-  // SIMPLIFIED: Set canvas size to actual pixel dimensions
+  // Set canvas size
   pageCanvas.width = sourceCanvas.width
   pageCanvas.height = actualHeightPixels
   
-  // SIMPLIFIED: Draw the slice using direct pixel coordinates
+  // Draw the slice
   pageCtx.drawImage(
     sourceCanvas,
-    0, startPixel, sourceCanvas.width, actualHeightPixels,  // Source rectangle (pixels)
-    0, 0, sourceCanvas.width, actualHeightPixels             // Destination rectangle (pixels)
+    0, startPixel, sourceCanvas.width, actualHeightPixels,
+    0, 0, sourceCanvas.width, actualHeightPixels
   )
   
   return pageCanvas

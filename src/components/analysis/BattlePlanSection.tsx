@@ -40,7 +40,7 @@ export function BattlePlanSection({
   openInEmailClient
 }: BattlePlanSectionProps) {
   return (
-    <div className="bg-white rounded-xl p-4 lg:p-6 border-l-4 border-red-500 shadow-lg mb-6 lg:mb-8">
+    <div className="pdf-section-boundary bg-white rounded-xl p-4 lg:p-6 border-l-4 border-red-500 shadow-lg mb-6 lg:mb-8">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-3 lg:gap-4">
           <div className={`p-2 lg:p-3 rounded-lg ${
@@ -330,7 +330,7 @@ export function BattlePlanSection({
                   </div>
                   
                   {/* Action Card */}
-                  <div className="ml-16 bg-red-50 rounded-lg border border-red-200 shadow-sm">
+                  <div className="pdf-keep-together ml-16 bg-red-50 rounded-lg border border-red-200 shadow-sm">
                     {/* Action Header */}
                     <div className="p-4 border-b border-red-100">
                       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-3">

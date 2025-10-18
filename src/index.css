@@ -347,3 +347,31 @@
   vertical-align: middle;
   flex-shrink: 0;
 }
+
+/* ===== PDF SMART PAGE BREAK CONTROL ===== */
+/* Prevent awkward content splits during PDF export */
+@media print, screen {
+  .pdf-export-mode .pdf-section-boundary {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+  
+  .pdf-export-mode .pdf-keep-together {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block !important;
+    overflow: visible !important;
+  }
+  
+  .pdf-export-mode .pdf-page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+  
+  .pdf-export-mode .pdf-prefer-together {
+    page-break-inside: avoid !important;
+    break-inside: avoid-page !important;
+  }
+}

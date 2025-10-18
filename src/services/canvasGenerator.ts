@@ -34,14 +34,13 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
 
   try {
     const canvas = await html2canvas(element, {
-      scale: 3, // Increased from 2 to 3 for crisper text rendering
+      scale: 3, // 3x scale for ultra-sharp text rendering
       useCORS: true,
-      allowTaint: false, // Changed to false for better text quality
-      backgroundColor: '#ffffff', // Changed to white for better contrast
+      allowTaint: false,
+      backgroundColor: '#ffffff',
       foreignObjectRendering: true,
       imageTimeout: 15000,
       logging: false,
-      // PRODUCTION FIX: Force scroll positions to zero for consistent positioning
       scrollX: 0,
       scrollY: 0,
       x: 0,
@@ -50,7 +49,6 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
       height: actualHeight,
       windowHeight: actualHeight,
       windowWidth: actualWidth,
-      // PRODUCTION FIX: Enhanced element filtering
       ignoreElements: (element) => {
         if (!(element instanceof HTMLElement)) {
           return false
@@ -59,8 +57,18 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
                element.style.visibility === 'hidden' ||
                element.classList.contains('pdf-ignore')
       },
-      // Enhanced options for crisp text rendering
-      removeContainer: true // Changed to true for better quality
+      removeContainer: true,
+      // Enhanced font smoothing through onclone
+      onclone: (clonedDoc) => {
+        const clonedElement = clonedDoc.getElementById(element.id)
+        if (clonedElement) {
+          // Force crisp text rendering using style properties
+          const style = clonedElement.style as any
+          style.webkitFontSmoothing = 'antialiased'
+          style.mozOsxFontSmoothing = 'grayscale'
+          style.textRendering = 'optimizeLegibility'
+        }
+      }
     })
 
     console.log('Enhanced canvas generated with production fixes:', {

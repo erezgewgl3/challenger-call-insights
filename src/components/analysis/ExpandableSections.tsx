@@ -41,7 +41,7 @@ export function ExpandableSections({
     <div className="space-y-4 lg:space-y-6">
       {/* 💡 Deal Acceleration Insights - High Priority Deals Auto-Open */}
       {analysis.key_takeaways && analysis.key_takeaways.length > 0 && (
-        <Card className={`border-l-4 border-l-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 transition-all ${
+        <Card className={`pdf-section-boundary border-l-4 border-l-yellow-400 bg-gradient-to-r from-yellow-50 to-orange-50 transition-all ${
           sectionsOpen.insights ? 'shadow-lg' : 'hover:shadow-md'
         }`}>
           <Collapsible open={sectionsOpen.insights} onOpenChange={() => toggleSection('insights')}>
@@ -88,7 +88,7 @@ export function ExpandableSections({
       )}
 
       {/* 👁️ Competitive Positioning Arsenal - Progressive Disclosure */}
-      <Card className={`border-l-4 border-l-green-400 bg-gradient-to-r from-green-50 to-emerald-50 transition-all ${
+      <Card className={`pdf-section-boundary border-l-4 border-l-green-400 bg-gradient-to-r from-green-50 to-emerald-50 transition-all ${
         sectionsOpen.competitive ? 'shadow-lg' : 'hover:shadow-md'
       }`}>
         <Collapsible open={sectionsOpen.competitive} onOpenChange={() => toggleSection('competitive')}>

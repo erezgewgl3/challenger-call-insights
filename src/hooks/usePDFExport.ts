@@ -5,7 +5,8 @@ import { generateCleanFilename } from '@/utils/pdfUtils'
 import { storeElementStyles, restoreElementStyles, optimizeElementForPDF, enablePDFExportMode, disablePDFExportMode } from '@/utils/elementStyleUtils'
 import { expandCollapsedSections, expandScrollableContent, restoreElementStates, ElementState } from '@/utils/sectionExpansion'
 import { generateCanvas } from '@/services/canvasGenerator'
-import { createPDFDocument, addCanvasToPDF, addMultiPageContent } from '@/services/pdfGenerator'
+import { createPDFDocument, addCanvasToPDF, addMultiPageContentWithSmartBreaks } from '@/services/pdfGenerator'
+import { analyzeContentForPDF, calculateOptimalPageBreaks } from '@/utils/pdfContentAnalyzer'
 
 interface UsePDFExportProps {
   filename?: string
@@ -139,21 +140,37 @@ export function usePDFExport({ filename = 'sales-analysis' }: UsePDFExportProps 
       // CRITICAL: Extended delay to ensure all CSS changes are fully applied
       await new Promise(resolve => setTimeout(resolve, 2000))
       
-      // Phase 7: Generate canvas
+      // Phase 7: Analyze content for smart page breaks
+      toast.info('Analyzing content structure...', { duration: 2000 })
+      const contentSections = analyzeContentForPDF(element)
+      const optimalBreakPoints = calculateOptimalPageBreaks(
+        contentSections,
+        297, // A4 height in MM
+        52   // Header height for first page
+      )
+      
+      console.log('Content analysis complete:', {
+        totalSections: contentSections.length,
+        breakPoints: optimalBreakPoints.length
+      })
+      
+      // Phase 8: Generate canvas
       toast.info('Generating high-quality canvas...', { duration: 3000 })
       const canvas = await generateCanvas(element)
 
-      // Phase 8: Create PDF
+      // Phase 9: Create PDF with smart breaks
       const pdf = createPDFDocument()
       const contentHeightMM = canvas.height * 0.264583 * (190 / (canvas.width * 0.264583))
-      const availableHeightFirstPage = 297 - 45 - 10
+      const availableHeightFirstPage = 297 - 52 - 10
 
       toast.info('Creating PDF document...', { duration: 2000 })
 
       if (contentHeightMM <= availableHeightFirstPage) {
+        // Single page - no breaks needed
         addCanvasToPDF(pdf, canvas, title)
       } else {
-        addMultiPageContent(pdf, canvas, title)
+        // Multi-page with smart content-aware breaks
+        addMultiPageContentWithSmartBreaks(pdf, canvas, title, optimalBreakPoints, contentSections)
       }
       
       const pdfFilename = generateCleanFilename(title)

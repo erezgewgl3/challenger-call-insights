@@ -52,9 +52,9 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
   const pdfWidth = 210
   const pdfHeight = 297
   
-  // Account for html2canvas 2x scale factor
-  const actualCanvasWidth = canvas.width / 2
-  const actualCanvasHeight = canvas.height / 2
+  // Account for html2canvas 3x scale factor (updated from 2x)
+  const actualCanvasWidth = canvas.width / 3
+  const actualCanvasHeight = canvas.height / 3
   
   console.log('Enhanced PDF dimension calculation with improved scaling:', {
     originalCanvasWidth: canvas.width,
@@ -100,45 +100,67 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
 /**
  * Creates a professional PDF header with enhanced typography
  * 
- * ENHANCED: Improved font sizes and spacing for better visual hierarchy
- * Adds formatted header section containing:
- * - Document title (larger and more prominent)
- * - Document type indicator
- * - Generation timestamp
- * - Professional separator line
- * 
  * @param pdf - jsPDF instance to add header to
  * @param title - Document title to display in header
- * @returns Y-coordinate where main content should start (below header)
- * 
- * @example
- * ```typescript
- * const pdf = createPDFDocument();
- * const contentStartY = createPDFHeader(pdf, 'sales_analysis_report');
- * // Add main content starting at contentStartY...
- * ```
+ * @param pageNumber - Optional page number for continuation pages
+ * @param sectionName - Optional section name for continuation indicator
+ * @returns Y-coordinate where main content should start
  */
-export function createPDFHeader(pdf: jsPDF, title: string): number {
-  // Enhanced professional header with better typography
-  pdf.setFontSize(24) // Increased from 20 for better prominence
+export function createPDFHeader(
+  pdf: jsPDF, 
+  title: string,
+  pageNumber?: number,
+  sectionName?: string
+): number {
+  const pageWidth = pdf.internal.pageSize.getWidth()
+  
+  // First page gets full header, continuation pages get compact version
+  if (pageNumber && pageNumber > 1) {
+    // Compact header for continuation pages
+    pdf.setFontSize(12)
+    pdf.setTextColor(71, 85, 105)
+    const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+    pdf.text(`${cleanTitle} - Page ${pageNumber}`, 10, 12)
+    
+    // Page number on right
+    pdf.setFontSize(10)
+    pdf.setTextColor(148, 163, 184)
+    pdf.text(`Page ${pageNumber}`, pageWidth - 10, 12, { align: 'right' })
+    
+    // Section continuation indicator
+    if (sectionName) {
+      pdf.setFontSize(9)
+      pdf.setTextColor(100, 116, 139)
+      pdf.text(`↓ ${sectionName}`, 10, 18)
+    }
+    
+    // Separator line
+    pdf.setDrawColor(203, 213, 225)
+    pdf.setLineWidth(0.5)
+    pdf.line(10, 22, pageWidth - 10, 22)
+    
+    return 28 // Content starts lower on continuation pages
+  }
+  
+  // Full header for first page
+  pdf.setFontSize(24)
   pdf.setTextColor(30, 41, 59)
   const cleanTitle = title.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-  pdf.text(cleanTitle, 10, 22) // Slightly lower position for better spacing
+  pdf.text(cleanTitle, 10, 22)
   
-  pdf.setFontSize(13) // Increased from 11 for better readability
+  pdf.setFontSize(13)
   pdf.setTextColor(100, 116, 139)
-  pdf.text('Sales Intelligence Report', 10, 32) // Adjusted spacing
+  pdf.text('Sales Intelligence Report', 10, 32)
   pdf.text(`Generated on ${new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'long', 
     day: 'numeric' 
-  })}`, 10, 40) // Adjusted spacing
+  })}`, 10, 40)
   
   // Enhanced separator line
-  const pageWidth = pdf.internal.pageSize.getWidth()
   pdf.setDrawColor(203, 213, 225)
-  pdf.setLineWidth(0.75) // Slightly thicker line for better visibility
-  pdf.line(10, 46, pageWidth - 10, 46) // Adjusted position
+  pdf.setLineWidth(0.75)
+  pdf.line(10, 46, pageWidth - 10, 46)
   
-  return 52 // Increased spacing before content starts
+  return 52
 }

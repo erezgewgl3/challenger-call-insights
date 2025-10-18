@@ -28,7 +28,7 @@ export function StakeholderNavigation({ analysis }: StakeholderNavigationProps) 
         if (!hasAnyStakeholderData) return null
         
         return (
-          <div className="bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-200 mb-6 lg:mb-8">
+          <div className="pdf-section-boundary bg-white rounded-xl p-4 lg:p-6 shadow-sm border border-gray-200 mb-6 lg:mb-8">
             <div className="flex flex-wrap items-center gap-3 mb-4 lg:mb-6">
               <Users className="h-5 w-5 lg:h-6 lg:w-6 text-blue-600" />
               <h3 className="text-base lg:text-lg font-semibold">Stakeholder Navigation Map</h3>
