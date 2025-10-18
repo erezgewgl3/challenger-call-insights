@@ -2251,6 +2251,22 @@ export type Database = {
         Args: { password: string }
         Returns: Json
       }
+      vault_delete_secret: {
+        Args: { secret_id: string }
+        Returns: undefined
+      }
+      vault_get_secret: {
+        Args: { secret_id: string }
+        Returns: Json
+      }
+      vault_store_secret: {
+        Args: { new_description: string; new_name: string; secret_json: Json }
+        Returns: string
+      }
+      vault_update_secret: {
+        Args: { secret_id: string; secret_json: Json }
+        Returns: undefined
+      }
     }
     Enums: {
       processing_status: "uploaded" | "processing" | "completed" | "error"
