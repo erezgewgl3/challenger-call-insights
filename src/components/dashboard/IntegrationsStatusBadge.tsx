@@ -36,8 +36,13 @@ export const IntegrationsStatusBadge: React.FC = () => {
       name: 'Zapier',
       connected: zapierStatus.status === 'connected',
       loading: zapierLoading,
-      error: zapierStatus.status === 'error' ? 'Connection error' : undefined,
-      isDefined: zapierStatus.status !== 'setup' // Some configuration exists
+      // Only treat as error if it's "Verification Needed" or "Delivery Issues"
+      // "Connected (Issues)" is a warning, not an error
+      error: (zapierStatus.status === 'error' && 
+             (zapierStatus.text === 'Verification Needed' || zapierStatus.text === 'Delivery Issues')) 
+             ? zapierStatus.text 
+             : undefined,
+      isDefined: zapierStatus.isSetupComplete
     }
   ];
 

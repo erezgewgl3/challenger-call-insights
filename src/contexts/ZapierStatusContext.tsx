@@ -95,8 +95,9 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
       // Invalidate and refetch status to get updated data
       queryClient.invalidateQueries({ queryKey: ['zapier-status'] });
       
-      // Only show toast if user is authenticated
-      if (user) {
+      // Only show toast for MANUAL verification (not background tests)
+      // Background tests are silent to avoid spamming the user
+      if (user && !backgroundTestInProgress.current) {
         if (data.success) {
           toast({
             title: "Connection Verified",
@@ -155,12 +156,27 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
     refetch();
   }, [queryClient, refetch]);
 
-  // Run background test on mount if setup is complete but status is not connected - only when authenticated
+  // Run background test on mount if verification needed - only when authenticated
+  const backgroundTestInProgress = React.useRef(false);
+  
   React.useEffect(() => {
-    if (user && status && status.isSetupComplete && status.status !== 'connected' && status.activeApiKeys > 0) {
-      console.log('Running background connection test...');
+    // Don't run if test already in progress
+    if (backgroundTestInProgress.current) {
+      console.log('Background test already in progress, skipping...');
+      return;
+    }
+
+    // Only run for 'error' status with "Verification Needed" text
+    // Don't run for "Delivery Issues" (that's not a connection problem)
+    if (user && status && 
+        status.isSetupComplete && 
+        status.status === 'error' && 
+        status.text === 'Verification Needed' &&
+        status.activeApiKeys > 0) {
       
-      // Get the first active API key for background test
+      console.log('Running one-time background connection test...');
+      backgroundTestInProgress.current = true;
+      
       const backgroundTest = async () => {
         try {
           const { data: apiKeys } = await supabase
@@ -176,15 +192,19 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
           }
         } catch (error) {
           console.log('Background test failed:', error);
-          // Silent failure for background test
+        } finally {
+          // Reset flag after test completes
+          backgroundTestInProgress.current = false;
         }
       };
       
-      // Run background test after a short delay
       const timeoutId = setTimeout(backgroundTest, 1000);
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        backgroundTestInProgress.current = false;
+      };
     }
-  }, [user, status, verifyConnectionMutation]);
+  }, [user, status?.status, status?.text, status?.isSetupComplete, status?.activeApiKeys, verifyConnectionMutation]);
 
   const contextValue: ZapierStatusContextType = {
     status: status || null,
