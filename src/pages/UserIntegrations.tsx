@@ -24,19 +24,24 @@ export default function UserIntegrations() {
     const isFromZoom = document.referrer.includes('zoom.us');
     
     if (fromOAuth === 'true' || refreshData === 'true' || isFromZoom) {
-      console.log('Detected return from OAuth, waiting for DB commit...');
+      console.log('Detected return from OAuth, invalidating cache...');
+      
+      // Immediately invalidate Zoom connection cache
+      if (user?.id) {
+        invalidateZoomConnection(queryClient, user.id);
+      }
       
       // Clean up URL parameters immediately
       const cleanUrl = window.location.pathname;
       window.history.replaceState({}, document.title, cleanUrl);
       
-      // Wait 2 seconds for database transaction to commit, then force page reload
+      // Shorter wait then force page reload
       setTimeout(() => {
         console.log('Forcing page refresh to get fresh data...');
         window.location.reload();
-      }, 2000);
+      }, 1000);
     }
-  }, [location.search]);
+  }, [location.search, user?.id, queryClient]);
 
   // Handle back button click - invalidate cache before navigation
   const handleBackClick = () => {

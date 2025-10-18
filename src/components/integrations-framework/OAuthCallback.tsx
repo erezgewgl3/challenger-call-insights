@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { OAuthLoading } from "./OAuthLoading";
 import { OAuthSuccess } from "./OAuthSuccess";
 import { OAuthError } from "./OAuthError";
@@ -16,6 +17,7 @@ interface CallbackData {
 export function OAuthCallback() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [state, setState] = useState<CallbackState>("loading");
   const [data, setData] = useState<CallbackData>({});
 
@@ -70,9 +72,10 @@ export function OAuthCallback() {
           connectionName: result?.connection_name || "Integration",
         });
 
-        // Auto-redirect to admin dashboard after 3 seconds
+        // Auto-redirect based on user role after 3 seconds
+        const redirectPath = user?.role === 'admin' ? '/admin' : '/integrations?refresh=true';
         setTimeout(() => {
-          navigate("/admin");
+          navigate(redirectPath);
         }, 3000);
 
       } catch (err) {

@@ -116,8 +116,9 @@ export default function IntegrationCallback() {
       if (result?.success) {
         console.log('Connection created successfully:', result.connection_id);
         
-        // NOW navigate after database write is complete
-        window.location.replace(window.location.origin + '/integrations');
+        // Redirect based on user role after database write is complete
+        const redirectPath = user?.role === 'admin' ? '/admin/integrations' : '/integrations?refresh=true';
+        window.location.replace(window.location.origin + redirectPath);
       } else {
         console.error('Edge Function returned failure:', result);
         setStatus('error');
