@@ -41,7 +41,7 @@ export default function IntegrationCallback() {
     // If we don't have required params or already processed, redirect
     if (!code || !state || isProcessed) {
       console.log('Missing params or already processed, redirecting...');
-      window.location.replace('/integrations?refresh=true');
+      window.location.replace('/integrations');
       return;
     }
 
@@ -124,7 +124,7 @@ export default function IntegrationCallback() {
         console.log('Connection created successfully:', result.connection_id);
         
         // Redirect based on user role after database write is complete
-        const redirectPath = user?.role === 'admin' ? '/admin/integrations' : '/integrations?refresh=true';
+        const redirectPath = user?.role === 'admin' ? '/admin/integrations' : '/integrations';
         window.location.replace(window.location.origin + redirectPath);
       } else {
         console.error('Edge Function returned failure:', result);
@@ -155,7 +155,7 @@ export default function IntegrationCallback() {
         <CardContent className="text-center">
           <p className="text-gray-600 mb-4">{message}</p>
           {status === 'error' && (
-            <Button onClick={() => window.location.replace('/integrations?refresh=true')}>
+            <Button onClick={() => window.location.replace('/integrations')}>
               Return to Integrations
             </Button>
           )}

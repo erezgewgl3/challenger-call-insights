@@ -10,13 +10,15 @@ interface AuthGuardProps {
 }
 
 export function AuthGuard({ children, redirectTo = '/login' }: AuthGuardProps) {
-  const { user, loading } = useAuth()
+  const { user, session, loading } = useAuth()
 
-  if (loading) {
-    return <AuthLoading message={AUTH_MESSAGES.LOADING_DASHBOARD} />
+  // Wait if still loading or if session exists but user data hasn't loaded yet
+  if (loading || (session && !user)) {
+    return <AuthLoading message="Securing your session..." />
   }
 
-  if (!user) {
+  // Only redirect to login if we're done loading and there's no session
+  if (!session) {
     return <Navigate to={redirectTo} replace />
   }
 
