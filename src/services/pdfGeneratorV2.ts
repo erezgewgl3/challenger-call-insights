@@ -13,18 +13,17 @@ import type { PDFContentData } from '@/types/pdfExport'
  */
 function sanitizeText(text: string): string {
   if (!text) return ''
+  
   return text
-    // Remove control characters and zero-width spaces
-    .replace(/[\u0000-\u001F\u007F-\u009F\u200B-\u200D\uFEFF]/g, '')
-    // Normalize quotes (but keep apostrophes in contractions)
+    // Only remove control characters and zero-width spaces
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
+    .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    // Normalize smart quotes to straight quotes
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201C\u201D]/g, '"')
-    // Normalize dashes
+    // Normalize em/en dashes to hyphens
     .replace(/[\u2013\u2014]/g, '-')
-    .replace(/\u2026/g, '...')
-    // Non-breaking space to regular space
-    .replace(/[\u00A0]/g, ' ')
-    // Keep everything else (currency symbols, numbers, punctuation, accented chars)
+    // Keep everything else (emojis, currency, letters, numbers)
 }
 
 // PDF Configuration Constants
@@ -168,6 +167,13 @@ function addPageHeader(pdf: jsPDF, title: string, pageNum: number): number {
  * Render Deal Command Center as table
  */
 function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number {
+  // Check if all data is empty
+  const hasAnyData = data.dealHeat.description || data.powerCenter.name || data.momentum.score || data.competitiveEdge.strategy
+  
+  if (!hasAnyData) {
+    return startY // Skip entire section if no data
+  }
+  
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
@@ -179,13 +185,19 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, startY + 1, PDF_CONFIG.page.margin + headerWidth, startY + 1)
   
+  // Build table data, filtering out empty cells
+  const dealHeatText = data.dealHeat.description ? `[${data.dealHeat.level}] ${data.dealHeat.description}` : ''
+  const powerCenterText = [data.powerCenter.name, data.powerCenter.title, data.powerCenter.influence].filter(Boolean).join('\n')
+  const momentumText = [data.momentum.score, data.momentum.strength].filter(Boolean).join('\n')
+  const competitiveEdgeText = [data.competitiveEdge.strategy, data.competitiveEdge.driver].filter(Boolean).join('\n')
+  
   const tableData = [
     ['Deal Heat', 'Power Center', 'Momentum', 'Competitive Edge'],
     [
-      `${data.dealHeat.emoji} ${data.dealHeat.description}`,
-      `${data.powerCenter.name}\n${data.powerCenter.title}\n${data.powerCenter.influence}`,
-      `${data.momentum.score}\n${data.momentum.strength}`,
-      `${data.competitiveEdge.strategy}\n${data.competitiveEdge.driver}`
+      dealHeatText,
+      powerCenterText,
+      momentumText,
+      competitiveEdgeText
     ]
   ]
   
@@ -224,6 +236,11 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
 function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
   let currentY = startY
   
+  // Check if we have any data to render
+  if (!data.overview && !data.clientSituation && data.mainTopics.length === 0 && !data.clientPriority && !data.urgencyDriver) {
+    return currentY // Skip entire section if no data
+  }
+  
   // Section heading
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
@@ -238,48 +255,66 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
   
   currentY += 8
   
-  // Overview
-  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
-  pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'normal')
-  const overviewLines = pdf.splitTextToSize(sanitizeText(data.overview), PDF_CONFIG.page.contentWidth)
-  pdf.text(overviewLines, PDF_CONFIG.page.margin, currentY)
-  currentY += overviewLines.length * 5 + 6
+  // Overview (only if exists)
+  if (data.overview) {
+    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
+    pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+    pdf.setFont('helvetica', 'normal')
+    const overviewLines = pdf.splitTextToSize(sanitizeText(data.overview), PDF_CONFIG.page.contentWidth)
+    pdf.text(overviewLines, PDF_CONFIG.page.margin, currentY)
+    currentY += overviewLines.length * 5 + 6
+  }
   
-  // Two-column grid
-  const colWidth = (PDF_CONFIG.page.contentWidth - 5) / 2
-  
-  // Client Situation (left column)
-  pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
-  pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Client Situation', PDF_CONFIG.page.margin, currentY)
-  currentY += 6
-  
-  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
-  pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'normal')
-  const situationLines = pdf.splitTextToSize(sanitizeText(data.clientSituation), colWidth)
-  pdf.text(situationLines, PDF_CONFIG.page.margin, currentY)
-  
-  // Main Topics (right column)
-  const rightColX = PDF_CONFIG.page.margin + colWidth + 5
-  pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
-  pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Main Topics', rightColX, currentY - 6)
-  
-  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
-  pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'normal')
-  let topicY = currentY
-  data.mainTopics.forEach((topic: string) => {
-    const topicLines = pdf.splitTextToSize(sanitizeText(`• ${topic}`), colWidth - 5)
-    pdf.text(topicLines, rightColX, topicY)
-    topicY += topicLines.length * 5
-  })
-  
-  currentY = Math.max(currentY + situationLines.length * 5, topicY) + PDF_CONFIG.spacing.sectionGap
+  // Two-column grid (only if we have client situation or main topics)
+  if (data.clientSituation || data.mainTopics.length > 0) {
+    const colWidth = (PDF_CONFIG.page.contentWidth - 5) / 2
+    
+    // Client Situation (left column, only if exists)
+    if (data.clientSituation) {
+      pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
+      pdf.setTextColor(...PDF_CONFIG.colors.primary)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Client Situation', PDF_CONFIG.page.margin, currentY)
+      currentY += 6
+      
+      pdf.setFontSize(PDF_CONFIG.fonts.body.size)
+      pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+      pdf.setFont('helvetica', 'normal')
+      const situationLines = pdf.splitTextToSize(sanitizeText(data.clientSituation), colWidth)
+      pdf.text(situationLines, PDF_CONFIG.page.margin, currentY)
+    }
+    
+    // Main Topics (right column, only if exists)
+    if (data.mainTopics.length > 0) {
+      const rightColX = PDF_CONFIG.page.margin + colWidth + 5
+      pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
+      pdf.setTextColor(...PDF_CONFIG.colors.primary)
+      pdf.setFont('helvetica', 'bold')
+      pdf.text('Main Topics', rightColX, currentY - (data.clientSituation ? 6 : 0))
+      
+      pdf.setFontSize(PDF_CONFIG.fonts.body.size)
+      pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+      pdf.setFont('helvetica', 'normal')
+      let topicY = currentY
+      data.mainTopics.forEach((topic: string) => {
+        const topicLines = pdf.splitTextToSize(sanitizeText(`• ${topic}`), colWidth - 5)
+        pdf.text(topicLines, rightColX, topicY)
+        topicY += topicLines.length * 5
+      })
+      
+      if (data.clientSituation) {
+        const situationLines = pdf.splitTextToSize(sanitizeText(data.clientSituation), colWidth)
+        currentY = Math.max(currentY + situationLines.length * 5, topicY)
+      } else {
+        currentY = topicY
+      }
+    } else if (data.clientSituation) {
+      const situationLines = pdf.splitTextToSize(sanitizeText(data.clientSituation), colWidth)
+      currentY += situationLines.length * 5
+    }
+    
+    currentY += PDF_CONFIG.spacing.sectionGap
+  }
   
   return currentY
 }
@@ -440,6 +475,11 @@ function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): numbe
 function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
   let currentY = startY
   
+  // Skip section if no rationale and no supporting evidence
+  if (!data.rationale && data.supportingEvidence.length === 0) {
+    return currentY
+  }
+  
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
@@ -453,13 +493,17 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
   
   currentY += 8
   
-  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
-  pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'normal')
-  const rationaleLines = pdf.splitTextToSize(sanitizeText(data.rationale), PDF_CONFIG.page.contentWidth)
-  pdf.text(rationaleLines, PDF_CONFIG.page.margin, currentY)
-  currentY += rationaleLines.length * 5 + 6
+  // Rationale (only if exists)
+  if (data.rationale) {
+    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
+    pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+    pdf.setFont('helvetica', 'normal')
+    const rationaleLines = pdf.splitTextToSize(sanitizeText(data.rationale), PDF_CONFIG.page.contentWidth)
+    pdf.text(rationaleLines, PDF_CONFIG.page.margin, currentY)
+    currentY += rationaleLines.length * 5 + 6
+  }
   
+  // Supporting evidence (only if exists)
   if (data.supportingEvidence.length > 0) {
     pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...PDF_CONFIG.colors.gray)
@@ -486,6 +530,11 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
 function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
   let currentY = startY
   
+  // Skip entire section if no actions
+  if (!actions || actions.length === 0) {
+    return currentY
+  }
+  
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
@@ -500,6 +549,8 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
   currentY += 10
   
   actions.forEach((action, index) => {
+    // Skip action if empty
+    if (!action.action) return
     // Calculate required space for this action (including email template)
     const estimatedSpace = action.emailTemplate ? 60 : 35
     currentY = checkPageBreak(pdf, currentY, estimatedSpace, 'Battle Plan')
@@ -584,6 +635,11 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
 function renderDealInsights(pdf: jsPDF, insights: string[], startY: number): number {
   let currentY = startY
   
+  // Skip section if no insights
+  if (!insights || insights.length === 0) {
+    return currentY
+  }
+  
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
@@ -618,6 +674,19 @@ function renderDealInsights(pdf: jsPDF, insights: string[], startY: number): num
 function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): number {
   let currentY = startY
   
+  // Build sections array, filtering empty categories
+  const sections = [
+    data.buyingSignals.length > 0 && { title: 'Buying Signals Detected', items: data.buyingSignals, color: PDF_CONFIG.colors.green },
+    data.painIndicators.length > 0 && { title: 'Pain Indicators', items: data.painIndicators, color: PDF_CONFIG.colors.red },
+    data.concerns.length > 0 && { title: 'Concerns to Address', items: data.concerns, color: PDF_CONFIG.colors.orange },
+    data.competitiveIntel.length > 0 && { title: 'Competitive Intelligence', items: data.competitiveIntel, color: PDF_CONFIG.colors.purple }
+  ].filter((section): section is { title: string; items: string[]; color: [number, number, number] } => Boolean(section))
+  
+  // Skip entire section if no data in any category
+  if (sections.length === 0) {
+    return currentY
+  }
+  
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
@@ -631,14 +700,7 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
   
   currentY += 10
   
-  const sections = [
-    { title: 'Buying Signals Detected', items: data.buyingSignals, color: PDF_CONFIG.colors.green },
-    { title: 'Pain Indicators', items: data.painIndicators, color: PDF_CONFIG.colors.red },
-    { title: 'Concerns to Address', items: data.concerns, color: PDF_CONFIG.colors.orange },
-    { title: 'Competitive Intelligence', items: data.competitiveIntel, color: PDF_CONFIG.colors.purple }
-  ]
-  
-  sections.forEach(section => {
+  sections.forEach((section) => {
     // Pre-calculate space needed for entire section
     let sectionHeight = 10 // Header + padding
     section.items.forEach((item: string) => {

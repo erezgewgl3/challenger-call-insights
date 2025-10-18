@@ -31,15 +31,15 @@ function extractHeaderData(transcript: any, analysis: any) {
       : []
 
   return {
-    title: transcript?.title || 'Sales Analysis',
+    title: transcript?.title || '',
     date: transcript?.created_at ? new Date(transcript.created_at).toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
-    }) : 'N/A',
-    duration: transcript?.duration_minutes ? `${transcript.duration_minutes} min` : 'N/A',
+    }) : '',
+    duration: transcript?.duration_minutes ? `${transcript.duration_minutes} min` : '',
     participants: participantNames,
-    dealStatus: analysis?.heat_level || 'MEDIUM'
+    dealStatus: analysis?.heat_level || ''
   }
 }
 
@@ -60,23 +60,23 @@ function extractDealCommandCenter(analysis: any) {
   return {
     dealHeat: {
       level: heatLevel,
-      emoji: heatEmojis[heatLevel] || '🌡️',
-      description: `${heatLevel.toLowerCase()} heat deal`
+      emoji: heatEmojis[heatLevel] || '',
+      description: heatLevel ? `${heatLevel.toLowerCase()} heat deal` : ''
     },
     powerCenter: {
-      name: decisionMaker?.name || 'Decision maker to be identified',
-      title: decisionMaker?.title || 'Unknown',
-      influence: decisionMaker?.influence || 'To be assessed'
+      name: decisionMaker?.name || '',
+      title: decisionMaker?.title || '',
+      influence: decisionMaker?.influence || ''
     },
     momentum: {
       score: buyingSignals?.commitmentSignals?.length 
         ? `${buyingSignals.commitmentSignals.length}/12` 
-        : '0/12',
-      strength: buyingSignals?.strength || 'Neutral momentum'
+        : '',
+      strength: buyingSignals?.strength || ''
     },
     competitiveEdge: {
-      strategy: recommendations?.competitiveStrategy || 'Strategic positioning',
-      driver: timeline?.driver || 'Opportunity identified'
+      strategy: recommendations?.competitiveStrategy || '',
+      driver: timeline?.driver || ''
     }
   }
 }
@@ -87,13 +87,13 @@ function extractCallSummary(analysis: any) {
   const mainTopics = callSummary?.mainTopics || []
 
   return {
-    overview: callSummary?.overview || 'Valuable insights discussed during the conversation',
-    clientSituation: callSummary?.clientSituation || 'Client context and needs shared',
+    overview: callSummary?.overview || '',
+    clientSituation: callSummary?.clientSituation || '',
     mainTopics: Array.isArray(mainTopics) && mainTopics.length > 0 
       ? mainTopics 
-      : ['Business needs discussed', 'Solutions explored', 'Next steps outlined'],
-    clientPriority: callSummary?.urgencyDrivers?.primary || 'Strategic priority',
-    urgencyDriver: timeline?.driver || 'Business pressure identified'
+      : [],
+    clientPriority: callSummary?.urgencyDrivers?.primary || '',
+    urgencyDriver: timeline?.driver || ''
   }
 }
 
@@ -105,19 +105,19 @@ function extractStrategicIntelligence(analysis: any) {
   const buyingSignals = callSummary?.buyingSignalsAnalysis || {}
 
   return {
-    criticalPain: Array.isArray(painSeverity?.indicators) 
+    criticalPain: Array.isArray(painSeverity?.indicators) && painSeverity.indicators.length > 0
       ? painSeverity.indicators 
-      : ['Pain points identified'],
-    decisionCriteria: Array.isArray(competitiveIntel?.decisionCriteria) 
+      : [],
+    decisionCriteria: Array.isArray(competitiveIntel?.decisionCriteria) && competitiveIntel.decisionCriteria.length > 0
       ? competitiveIntel.decisionCriteria 
-      : ['Decision criteria discussed'],
-    timelineDriver: timeline?.statedTimeline || 'Timeline to be confirmed',
-    buyingSignals: Array.isArray(buyingSignals?.commitmentSignals) 
+      : [],
+    timelineDriver: timeline?.statedTimeline || '',
+    buyingSignals: Array.isArray(buyingSignals?.commitmentSignals) && buyingSignals.commitmentSignals.length > 0
       ? buyingSignals.commitmentSignals 
-      : ['Buying signals detected'],
-    competitiveLandscape: Array.isArray(competitiveIntel?.vendorsKnown) 
+      : [],
+    competitiveLandscape: Array.isArray(competitiveIntel?.vendorsKnown) && competitiveIntel.vendorsKnown.length > 0
       ? competitiveIntel.vendorsKnown 
-      : ['Competitive landscape assessed']
+      : []
   }
 }
 
@@ -125,9 +125,9 @@ function extractStrategicAssessment(analysis: any) {
   const recommendations = analysis?.recommendations || {}
 
   return {
-    primaryStrategy: recommendations?.primaryStrategy || 'Strategic approach to be defined',
-    competitiveStrategy: recommendations?.competitiveStrategy || 'Competitive positioning to be established',
-    stakeholderPlan: recommendations?.stakeholderPlan || 'Stakeholder engagement plan to be developed'
+    primaryStrategy: recommendations?.primaryStrategy || '',
+    competitiveStrategy: recommendations?.competitiveStrategy || '',
+    stakeholderPlan: recommendations?.stakeholderPlan || ''
   }
 }
 
@@ -136,10 +136,10 @@ function extractWhyTheseActions(analysis: any) {
   const reasoning = analysis?.reasoning || {}
 
   return {
-    rationale: actionPlan?.rationale || reasoning?.dealViabilityRationale || reasoning?.strategicRationale || 'Actions designed to move the deal forward strategically',
-    supportingEvidence: Array.isArray(reasoning?.supportingEvidence) 
+    rationale: actionPlan?.rationale || reasoning?.dealViabilityRationale || reasoning?.strategicRationale || '',
+    supportingEvidence: Array.isArray(reasoning?.supportingEvidence) && reasoning.supportingEvidence.length > 0
       ? reasoning.supportingEvidence 
-      : ['Based on conversation analysis', 'Aligned with buyer journey', 'Optimized for deal momentum']
+      : []
   }
 }
 
@@ -147,25 +147,20 @@ function extractActionItems(analysis: any) {
   const actionPlan = analysis?.action_plan || {}
   const actions = actionPlan?.actions || []
 
+  // Return empty array if no actions exist (no default fallback action)
   if (!Array.isArray(actions) || actions.length === 0) {
-    return [{
-      action: 'Follow up on discussion points',
-      rationale: 'Continue engagement based on conversation insights',
-      timeline: 'Within 48 hours',
-      channels: ['Email'],
-      emailTemplate: null
-    }]
+    return []
   }
 
   return actions.map((action: any) => ({
-    action: action?.action || 'Action item',
-    rationale: action?.objective || action?.rationale || 'Strategic follow-up',
-    timeline: action?.timeline || 'TBD',
-    channels: action?.method ? [action.method] : (Array.isArray(action?.channels) ? action.channels : ['Email']),
+    action: action?.action || '',
+    rationale: action?.objective || action?.rationale || '',
+    timeline: action?.timeline || '',
+    channels: action?.method ? [action.method] : (Array.isArray(action?.channels) && action.channels.length > 0 ? action.channels : []),
     emailTemplate: action?.copyPasteContent ? {
-      subject: action.copyPasteContent.subject || 'Follow-up',
-      body: action.copyPasteContent.body || 'Email content',
-      tone: action.copyPasteContent.tone || 'Professional'
+      subject: action.copyPasteContent.subject || '',
+      body: action.copyPasteContent.body || '',
+      tone: action.copyPasteContent.tone || ''
     } : null
   }))
 }
@@ -177,7 +172,7 @@ function extractDealInsights(analysis: any) {
     return keyTakeaways
   }
 
-  return ['Deal insights generated from conversation analysis']
+  return []
 }
 
 function extractCompetitivePositioning(analysis: any) {
@@ -188,17 +183,17 @@ function extractCompetitivePositioning(analysis: any) {
   const concerns = callSummary?.concerns || []
 
   return {
-    buyingSignals: Array.isArray(buyingSignals?.commitmentSignals) 
+    buyingSignals: Array.isArray(buyingSignals?.commitmentSignals) && buyingSignals.commitmentSignals.length > 0
       ? buyingSignals.commitmentSignals 
-      : ['Buying signals identified'],
-    painIndicators: Array.isArray(painSeverity?.indicators) 
+      : [],
+    painIndicators: Array.isArray(painSeverity?.indicators) && painSeverity.indicators.length > 0
       ? painSeverity.indicators 
-      : ['Pain indicators detected'],
+      : [],
     concerns: Array.isArray(concerns) && concerns.length > 0 
       ? concerns 
-      : ['Concerns to be addressed'],
-    competitiveIntel: Array.isArray(competitiveIntel?.vendorsKnown) 
+      : [],
+    competitiveIntel: Array.isArray(competitiveIntel?.vendorsKnown) && competitiveIntel.vendorsKnown.length > 0
       ? competitiveIntel.vendorsKnown 
-      : ['Competitive intelligence gathered']
+      : []
   }
 }
