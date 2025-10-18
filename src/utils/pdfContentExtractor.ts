@@ -4,6 +4,7 @@
  */
 
 import type { PDFContentData } from '@/types/pdfExport'
+import { calculateDealHeat } from './dealHeatCalculator'
 
 /**
  * Main extraction function - converts analysis data into PDF-ready structure
@@ -57,13 +58,9 @@ function extractHeaderData(transcript: any, analysis: any) {
 }
 
 function extractDealCommandCenter(analysis: any) {
-  const heatLevel = analysis?.heat_level || 'MEDIUM'
-  const heatEmojis: Record<string, string> = {
-    HIGH: '🔥',
-    MEDIUM: '🌡️',
-    LOW: '❄️'
-  }
-
+  // Use frontend calculator for consistency with UI
+  const dealHeatResult = calculateDealHeat(analysis)
+  
   const recommendations = analysis?.recommendations || {}
   const callSummary = analysis?.call_summary || {}
   const buyingSignals = callSummary?.buyingSignalsAnalysis || {}
@@ -115,18 +112,11 @@ function extractDealCommandCenter(analysis: any) {
     }
   }
 
-  // Match screen display format for deal heat
-  const heatDescriptions: Record<string, string> = {
-    HIGH: 'Immediate attention needed',
-    MEDIUM: 'Active opportunity',
-    LOW: 'Long-term opportunity'
-  }
-
   return {
     dealHeat: {
-      level: heatLevel.toUpperCase(), // Ensure uppercase
-      emoji: heatEmojis[heatLevel] || '',
-      description: heatDescriptions[heatLevel] || heatDescriptions['MEDIUM']
+      level: dealHeatResult.level,
+      emoji: dealHeatResult.emoji,
+      description: dealHeatResult.description
     },
     powerCenter: decisionMaker,
     momentum: {
