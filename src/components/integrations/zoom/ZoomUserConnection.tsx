@@ -68,9 +68,13 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
 
       if (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data && data.data) {
         setConnection(data.data as unknown as ZoomConnection);
+      } else {
+        console.warn('Unexpected RPC response shape or no connection data:', data);
+        setConnection(null);
       }
     } catch (error) {
       console.error('Error loading connection details:', error);
+      setConnection(null);
     }
   };
 

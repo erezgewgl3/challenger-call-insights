@@ -6,6 +6,7 @@ import { Zap, ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ZoomUserConnection } from '@/components/integrations/zoom/ZoomUserConnection';
 import { ZapierIntegrationManager } from '@/components/integrations-framework/ZapierIntegrationManager';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 
 export default function UserIntegrations() {
   const navigate = useNavigate();
@@ -41,10 +42,14 @@ export default function UserIntegrations() {
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <div className="h-full">
-              <ZoomUserConnection />
+              <ErrorBoundary>
+                <ZoomUserConnection />
+              </ErrorBoundary>
             </div>
             <div className="h-full">
-              <ZapierIntegrationManager />
+              <ErrorBoundary>
+                <ZapierIntegrationManager />
+              </ErrorBoundary>
             </div>
           </div>
         </CardContent>

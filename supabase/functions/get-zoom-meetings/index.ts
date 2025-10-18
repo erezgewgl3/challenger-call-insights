@@ -135,6 +135,29 @@ serve(async (req) => {
       const errorText = await meetingsResponse.text();
       console.error(`Zoom API error: ${meetingsResponse.status} - ${errorText}`);
       
+      // Handle missing scopes gracefully (code 4711)
+      if (meetingsResponse.status === 400) {
+        try {
+          const errorData = JSON.parse(errorText);
+          if (errorData.code === 4711) {
+            console.warn('Zoom token missing required scopes - returning empty list');
+            return new Response(JSON.stringify({
+              meetings: [],
+              totalMeetings: 0,
+              unprocessedMeetings: 0,
+              eligibleMeetings: 0,
+              warning: 'missing_scopes',
+              message: 'Please reconnect Zoom to grant required permissions'
+            }), {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+            });
+          }
+        } catch (parseError) {
+          console.error('Failed to parse error response:', parseError);
+        }
+      }
+      
       // If unauthorized, try to refresh token once
       if (meetingsResponse.status === 401 && credentials.refresh_token) {
         console.log('Token unauthorized, attempting refresh');
