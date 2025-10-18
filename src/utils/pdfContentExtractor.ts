@@ -135,32 +135,28 @@ function extractStrategicAssessment(analysis: any) {
 function extractStakeholderNavigation(analysis: any) {
   const participants = analysis?.participants?.clientContacts || []
   
-  // Extract Economic Buyers
+  // Extract Economic Buyers - MATCH UI LOGIC EXACTLY
   const economicBuyers = participants
     .filter((contact: any) => 
       contact.challengerRole === 'Economic Buyer' || 
-      contact.decisionLevel === 'Final Decision Maker'
+      contact.decisionLevel === 'high'
     )
     .map((contact: any) => ({
       name: contact.name || '',
-      title: contact.title || contact.role || '',
-      evidence: Array.isArray(contact.evidence) && contact.evidence.length > 0 
-        ? contact.evidence[0] 
-        : contact.reasonForClassification || ''
+      title: contact.title || '',
+      evidence: contact.decisionEvidence?.[0] || contact.roleEvidence?.[0] || ''
     }))
   
-  // Extract Key Influencers
+  // Extract Key Influencers - MATCH UI LOGIC EXACTLY
   const keyInfluencers = participants
     .filter((contact: any) => 
       contact.challengerRole === 'Influencer' || 
-      (contact.decisionLevel && contact.decisionLevel.includes('Influencer'))
+      contact.decisionLevel === 'medium'
     )
     .map((contact: any) => ({
       name: contact.name || '',
-      title: contact.title || contact.role || '',
-      evidence: Array.isArray(contact.evidence) && contact.evidence.length > 0 
-        ? contact.evidence[0] 
-        : contact.reasonForClassification || ''
+      title: contact.title || '',
+      evidence: contact.roleEvidence?.[0] || ''
     }))
   
   return {
