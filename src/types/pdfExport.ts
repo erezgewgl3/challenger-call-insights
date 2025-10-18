@@ -3,6 +3,17 @@
  * Defines the structure of data extracted from analysis for PDF generation
  */
 
+export interface CoachingInsightsData {
+  whatWorkedWell: string[]
+  missedOpportunities: string[] | string
+  focusArea: string
+}
+
+export interface DealBlockersData {
+  blockers: string | null
+  hasBlockers: boolean
+}
+
 export interface PDFContentData {
   header: PDFHeaderData
   dealCommandCenter: DealCommandCenterData
@@ -14,6 +25,8 @@ export interface PDFContentData {
   actionItems: ActionItemData[]
   dealInsights: string[]
   competitivePositioning: CompetitivePositioningData
+  coachingInsights: CoachingInsightsData
+  dealBlockers: DealBlockersData
 }
 
 export interface PDFHeaderData {

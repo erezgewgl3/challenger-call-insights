@@ -46,6 +46,9 @@ import { StakeholderNavigation } from './StakeholderNavigation'
 import { ExpandableSections } from './ExpandableSections'
 import { usePDFExport } from '@/hooks/usePDFExport'
 import { calculateDealHeat, type DealHeatResult } from '@/utils/dealHeatCalculator'
+import { CoachingInsightsCard } from './CoachingInsightsCard'
+import { DealBlockersCard } from './DealBlockersCard'
+import { QualityIndicatorBadge } from './QualityIndicatorBadge'
 
 interface AnalysisData {
   id: string
@@ -56,6 +59,11 @@ interface AnalysisData {
   reasoning?: any
   action_plan?: any
   heat_level?: string
+  coaching_insights?: {
+    whatWorkedWell: string[]
+    missedOpportunities: string[] | string
+    focusArea: string
+  }
 }
 
 interface TranscriptData {
@@ -504,6 +512,25 @@ export function NewAnalysisView({
             getStakeholderDisplay={getStakeholderDisplay}
             getRoleIcon={getRoleIcon}
           />
+
+          {/* 🎓 QUALITY INDICATOR - Show if analysis has quality flags */}
+          <QualityIndicatorBadge analysisId={analysis.id} />
+
+          {/* 🎓 COACHING INSIGHTS - Critical for rep improvement */}
+          {analysis.coaching_insights && (
+            <CoachingInsightsCard 
+              coachingInsights={analysis.coaching_insights}
+              dealHeat={dealHeat}
+            />
+          )}
+
+          {/* 🚧 DEAL BLOCKERS - Show critical obstacles */}
+          {analysis.recommendations?.dealBlockers && (
+            <DealBlockersCard 
+              dealBlockers={analysis.recommendations.dealBlockers}
+              analysis={analysis}
+            />
+          )}
 
           {/* 🚀 BATTLE PLAN SECTION */}
           <BattlePlanSection

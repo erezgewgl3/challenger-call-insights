@@ -97,6 +97,10 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   currentY = checkPageBreak(pdf, currentY, 70, contentData.header.title)
   currentY = renderCallSummary(pdf, contentData.callSummary, currentY)
   
+  // Coaching Insights (NEW)
+  currentY = checkPageBreak(pdf, currentY, 80, contentData.header.title)
+  currentY = renderCoachingInsights(pdf, contentData.coachingInsights, currentY)
+  
   // Strategic Intelligence
   currentY = checkPageBreak(pdf, currentY, 90, contentData.header.title)
   currentY = renderStrategicIntelligence(pdf, contentData.strategicIntelligence, currentY)
@@ -104,6 +108,10 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   // Strategic Assessment
   currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
   currentY = renderStrategicAssessment(pdf, contentData.strategicAssessment, currentY)
+  
+  // Deal Blockers (NEW)
+  currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
+  currentY = renderDealBlockers(pdf, contentData.dealBlockers, currentY)
   
   // Stakeholder Navigation Map
   currentY = checkPageBreak(pdf, currentY, 50, contentData.header.title)
@@ -393,6 +401,104 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
   }
   
   return currentY
+}
+
+/**
+ * Render Coaching Insights section
+ */
+function renderCoachingInsights(pdf: jsPDF, data: any, startY: number): number {
+  let currentY = startY
+  
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
+  pdf.setTextColor(...PDF_CONFIG.colors.primary)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('Coaching Insights', PDF_CONFIG.page.margin, currentY)
+  currentY += 8
+  
+  // What Worked Well
+  if (data.whatWorkedWell.length > 0) {
+    pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
+    pdf.setTextColor(...PDF_CONFIG.colors.green)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('What You Did Well', PDF_CONFIG.page.margin, currentY)
+    currentY += 6
+    
+    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
+    pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+    pdf.setFont('helvetica', 'normal')
+    
+    data.whatWorkedWell.forEach((item: string) => {
+      const lines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
+      pdf.text(lines, PDF_CONFIG.page.margin + 3, currentY)
+      currentY += lines.length * 5
+    })
+    currentY += 4
+  }
+  
+  // Opportunities
+  pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
+  pdf.setTextColor(...PDF_CONFIG.colors.orange)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('Opportunities for Improvement', PDF_CONFIG.page.margin, currentY)
+  currentY += 6
+  
+  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
+  pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+  pdf.setFont('helvetica', 'normal')
+  
+  if (Array.isArray(data.missedOpportunities)) {
+    data.missedOpportunities.forEach((item: string) => {
+      const lines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
+      pdf.text(lines, PDF_CONFIG.page.margin + 3, currentY)
+      currentY += lines.length * 5
+    })
+  } else {
+    const lines = pdf.splitTextToSize(sanitizePDF(data.missedOpportunities), PDF_CONFIG.page.contentWidth)
+    pdf.text(lines, PDF_CONFIG.page.margin, currentY)
+    currentY += lines.length * 5
+  }
+  currentY += 4
+  
+  // Focus Area
+  pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
+  pdf.setTextColor(...PDF_CONFIG.colors.blue)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('Focus Area for Next Call', PDF_CONFIG.page.margin, currentY)
+  currentY += 6
+  
+  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
+  pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+  pdf.setFont('helvetica', 'normal')
+  const focusLines = pdf.splitTextToSize(sanitizePDF(data.focusArea), PDF_CONFIG.page.contentWidth)
+  pdf.text(focusLines, PDF_CONFIG.page.margin, currentY)
+  currentY += focusLines.length * 5
+  
+  return currentY + PDF_CONFIG.spacing.sectionGap
+}
+
+/**
+ * Render Deal Blockers section
+ */
+function renderDealBlockers(pdf: jsPDF, data: any, startY: number): number {
+  if (!data.hasBlockers) return startY
+  
+  let currentY = startY
+  
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
+  pdf.setTextColor(...PDF_CONFIG.colors.red)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('Deal Blockers', PDF_CONFIG.page.margin, currentY)
+  currentY += 8
+  
+  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
+  pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+  pdf.setFont('helvetica', 'normal')
+  
+  const lines = pdf.splitTextToSize(sanitizePDF(data.blockers!), PDF_CONFIG.page.contentWidth)
+  pdf.text(lines, PDF_CONFIG.page.margin, currentY)
+  currentY += lines.length * 5
+  
+  return currentY + PDF_CONFIG.spacing.sectionGap
 }
 
 /**

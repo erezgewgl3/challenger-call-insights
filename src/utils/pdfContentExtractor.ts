@@ -19,7 +19,9 @@ export function extractPDFData(transcript: any, analysis: any): PDFContentData {
     whyTheseActions: extractWhyTheseActions(analysis),
     actionItems: extractActionItems(analysis),
     dealInsights: extractDealInsights(analysis),
-    competitivePositioning: extractCompetitivePositioning(analysis)
+    competitivePositioning: extractCompetitivePositioning(analysis),
+    coachingInsights: extractCoachingInsights(analysis),
+    dealBlockers: extractDealBlockers(analysis)
   }
 }
 
@@ -320,5 +322,33 @@ function extractCompetitivePositioning(analysis: any) {
     competitiveIntel: Array.isArray(competitiveIntel?.vendorsKnown) && competitiveIntel.vendorsKnown.length > 0
       ? competitiveIntel.vendorsKnown 
       : []
+  }
+}
+
+function extractCoachingInsights(analysis: any) {
+  const insights = analysis?.coaching_insights || {}
+  
+  return {
+    whatWorkedWell: Array.isArray(insights.whatWorkedWell) 
+      ? insights.whatWorkedWell 
+      : [],
+    missedOpportunities: insights.missedOpportunities || 
+      "No critical missed opportunities identified",
+    focusArea: insights.focusArea || 
+      "Continue building on current strengths"
+  }
+}
+
+function extractDealBlockers(analysis: any) {
+  const blockers = analysis?.recommendations?.dealBlockers
+  
+  const isRealBlocker = blockers && 
+                        blockers !== null && 
+                        !blockers.includes('Analysis incomplete') &&
+                        !blockers.includes('not provided')
+  
+  return {
+    blockers: blockers,
+    hasBlockers: isRealBlocker
   }
 }
