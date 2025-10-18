@@ -906,59 +906,81 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     pdf.text(sanitizePDF(`Timeline: ${action.timeline} | Channels: ${action.channels.join(', ')}`), PDF_CONFIG.page.margin, currentY)
     currentY += 6
     
-      // Email template if present
-      if (action.emailTemplate && action.emailTemplate.body) {
-        // Calculate email template space with extra buffer
-        const subjectLines = pdf.splitTextToSize(
-          sanitizePDF(`Subject: ${action.emailTemplate.subject}`),
-          PDF_CONFIG.page.contentWidth - 12
-        )
-        const emailBodyLines = pdf.splitTextToSize(
-          sanitizePDF(action.emailTemplate.body), 
-          PDF_CONFIG.page.contentWidth - 12
-        )
-        const emailSpace = 25 + (subjectLines.length * 5) + (emailBodyLines.length * 5)
-        currentY = checkPageBreak(pdf, currentY, emailSpace, 'Email Template')
-      
-      // Add visual separator box
-      pdf.setDrawColor(...PDF_CONFIG.colors.gray)
-      pdf.setLineWidth(0.3)
-      pdf.setFillColor(250, 251, 255) // Very light blue background
-      const boxHeight = 20 + (subjectLines.length * 5) + (emailBodyLines.length * 5)
-      pdf.rect(
-        PDF_CONFIG.page.margin + 3, 
-        currentY - 2, 
-        PDF_CONFIG.page.contentWidth - 6, 
-        boxHeight,
-        'FD'
+    // Email template if present
+    if (action.emailTemplate && action.emailTemplate.body) {
+      // Calculate exact dimensions
+      const textWidth = PDF_CONFIG.page.contentWidth - 12
+      const subjectLines = pdf.splitTextToSize(
+        sanitizePDF(`Subject: ${action.emailTemplate.subject || ''}`),
+        textWidth
+      )
+      const bodyLines = pdf.splitTextToSize(
+        sanitizePDF(action.emailTemplate.body || ''),
+        textWidth
       )
       
-      currentY += 2
+      // Precise spacing
+      const lhBody = lineHeightMM(pdf, PDF_CONFIG.fonts.body.size)
+      const lhSub = lineHeightMM(pdf, PDF_CONFIG.fonts.subheading.size)
+      const paddingTop = 4
+      const labelGap = 2.5
+      const subjectGap = 2
+      const paddingBottom = 6
       
-      // Email Template header
+      // Calculate exact box height
+      const boxHeight = paddingTop + lhSub + labelGap + 
+                       (subjectLines.length * lhBody) + subjectGap + 
+                       (bodyLines.length * lhBody) + paddingBottom
+      
+      // Check page break with precise height
+      currentY = checkPageBreak(pdf, currentY, boxHeight + 4, 'Email Template')
+      
+      // Draw box
+      const boxX = PDF_CONFIG.page.margin + 3
+      const boxY = currentY - paddingTop
+      const boxW = PDF_CONFIG.page.contentWidth - 6
+      pdf.setDrawColor(...PDF_CONFIG.colors.gray)
+      pdf.setLineWidth(0.3)
+      pdf.setFillColor(250, 251, 255)
+      pdf.rect(boxX, boxY, boxW, boxHeight, 'FD')
+      
+      // Render text with precise spacing
+      let y = currentY
+      
+      // Label
       pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
       pdf.setTextColor(...PDF_CONFIG.colors.blue)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('Email Template:', PDF_CONFIG.page.margin + 6, currentY)
-      currentY += 7
+      pdf.text('Email Template:', PDF_CONFIG.page.margin + 6, y)
+      y += lhSub + labelGap
       
-      // Subject line
+      // Subject
       pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
       pdf.setFont('helvetica', 'bold')
-      pdf.text(subjectLines, PDF_CONFIG.page.margin + 6, currentY)
-      currentY += subjectLines.length * 5 + 1
+      pdf.text(subjectLines, PDF_CONFIG.page.margin + 6, y)
+      y += subjectLines.length * lhBody + subjectGap
       
-      // Email body
+      // Body
       pdf.setFont('helvetica', 'normal')
-      pdf.text(emailBodyLines, PDF_CONFIG.page.margin + 6, currentY)
-      currentY += emailBodyLines.length * 5 + 5
+      pdf.text(bodyLines, PDF_CONFIG.page.margin + 6, y)
+      y += bodyLines.length * lhBody
+      
+      // Move to after box
+      currentY = boxY + boxHeight + 5
     }
     
     currentY += 5 // Space between actions
   })
   
   return currentY + PDF_CONFIG.spacing.sectionGap
+}
+
+/**
+ * Calculate precise line height in millimeters
+ */
+function lineHeightMM(pdf: jsPDF, fontSize: number): number {
+  return (fontSize / (pdf as any).internal.scaleFactor) * pdf.getLineHeightFactor()
 }
 
 /**
