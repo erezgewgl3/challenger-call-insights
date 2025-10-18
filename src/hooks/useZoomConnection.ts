@@ -81,9 +81,14 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
       }
     },
     enabled: !!user?.id,
-    staleTime: 30 * 1000, // 30 seconds - shorter for faster updates after OAuth
+    staleTime: 0, // No staleness - always fetch fresh data
     refetchOnWindowFocus: true,
-    refetchOnMount: true, // Always refetch when component mounts
+    refetchOnMount: true,
+    refetchInterval: (query) => {
+      // Poll every 3 seconds when not connected to quickly detect new connections
+      const status = query.state.data?.connectionStatus;
+      return (status === 'not_found' || status === 'inactive') ? 3000 : false;
+    },
     retry: 1,
     retryDelay: 1000,
   });

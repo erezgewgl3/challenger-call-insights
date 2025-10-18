@@ -11,8 +11,9 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
-import { useZoomConnection } from '@/hooks/useZoomConnection';
+import { useZoomConnection, invalidateZoomConnection } from '@/hooks/useZoomConnection';
 import { PersonalZoomSetup } from './PersonalZoomSetup';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ZoomUserConnectionProps {
   onConnectionChange?: (connected: boolean) => void;
@@ -40,10 +41,12 @@ interface ZoomConnection {
 export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnectionChange }) => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { isConnected, isLoading, error, connection: hookConnection } = useZoomConnection();
+  const queryClient = useQueryClient();
+  const { isConnected, isLoading, error, connection: hookConnection, refetch: refetchConnection } = useZoomConnection();
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [optimisticDisconnected, setOptimisticDisconnected] = useState(false);
 
   // Use connection data from hook
   const connection = hookConnection;
@@ -52,6 +55,13 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
   React.useEffect(() => {
     onConnectionChange?.(isConnected);
   }, [isConnected, onConnectionChange]);
+
+  // Reset optimistic flag when server confirms disconnected state
+  React.useEffect(() => {
+    if (!isConnected && optimisticDisconnected) {
+      setOptimisticDisconnected(false);
+    }
+  }, [isConnected, optimisticDisconnected]);
 
 
   const handleConnect = async () => {
@@ -113,13 +123,22 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
 
       if (error) throw error;
 
-      // Hook will automatically update when connection is removed
+      // Optimistic UI update
+      setOptimisticDisconnected(true);
+      
+      // Force immediate cache refresh
+      invalidateZoomConnection(queryClient, user?.id);
+      await refetchConnection();
+      
+      // Notify parent
       onConnectionChange?.(false);
       
       toast({
         title: "Disconnected",
         description: "Your Zoom account has been disconnected successfully.",
       });
+      
+      console.log('Zoom disconnected, cache invalidated and refetched');
     } catch (error) {
       console.error('[ZoomUserConnection] Error disconnecting from Zoom:', error);
       const message = error instanceof Error ? error.message : 'Failed to disconnect from Zoom';
@@ -195,7 +214,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
         </Alert>
       )}
       
-      {isConnected ? (
+      {(isConnected && !optimisticDisconnected) ? (
         <Card className="flex-1 flex flex-col transition-all duration-200 hover:shadow-md">
           <CardHeader className="pb-4">
             <div className="flex items-start justify-between">

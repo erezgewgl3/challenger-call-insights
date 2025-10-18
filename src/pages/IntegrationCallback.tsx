@@ -123,6 +123,9 @@ export default function IntegrationCallback() {
       if (result?.success) {
         console.log('Connection created successfully:', result.connection_id);
         
+        // Invalidate Zoom connection cache to ensure all components update immediately
+        invalidateZoomConnection(queryClient, user?.id);
+        
         // Redirect based on user role after database write is complete
         const redirectPath = user?.role === 'admin' ? '/admin/integrations' : '/integrations';
         window.location.replace(window.location.origin + redirectPath);
