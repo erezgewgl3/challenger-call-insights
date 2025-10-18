@@ -32,8 +32,8 @@ export function analyzeContentForPDF(element: HTMLElement): ContentSection[] {
     if (classList.includes('pdf-keep-together') || classList.includes('pdf-section-boundary')) {
       sections.push({
         element: el,
-        startY: relativeY,
-        height: rect.height,
+        startY: pixelsToMM(relativeY, 1), // No scale factor for DOM measurements
+        height: pixelsToMM(rect.height, 1),
         priority: 'must-keep-together',
         type: detectSectionType(el),
         id: el.id || `section-${sections.length}`
@@ -50,8 +50,8 @@ export function analyzeContentForPDF(element: HTMLElement): ContentSection[] {
       const priority = determinePriority(el)
       sections.push({
         element: el,
-        startY: relativeY,
-        height: rect.height,
+        startY: pixelsToMM(relativeY, 1), // No scale factor for DOM measurements
+        height: pixelsToMM(rect.height, 1),
         priority,
         type: detectSectionType(el),
         id: el.id || `auto-section-${sections.length}`
@@ -162,8 +162,9 @@ export function calculateOptimalPageBreaks(
   
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i]
-    const sectionHeightMM = pixelsToMM(section.height)
-    const sectionStartMM = pixelsToMM(section.startY)
+    // Section dimensions are already in MM from DOM scanning
+    const sectionHeightMM = section.height
+    const sectionStartMM = section.startY
     const relativeStartMM = sectionStartMM - currentPageStart
     const sectionEndMM = relativeStartMM + sectionHeightMM
     
@@ -225,11 +226,12 @@ export function calculateOptimalPageBreaks(
 }
 
 /**
- * Convert pixels to millimeters for PDF layout
- * Assumes 96 DPI standard screen resolution
+ * Converts pixels to millimeters accounting for canvas scale factor
+ * @param pixels - Pixel value from canvas
+ * @param scale - Canvas scale factor (default 3 for html2canvas)
  */
-function pixelsToMM(pixels: number): number {
-  return pixels * 0.264583 // 1px = 0.264583mm at 96 DPI
+function pixelsToMM(pixels: number, scale: number = 3): number {
+  return (pixels / scale) * 0.264583
 }
 
 /**

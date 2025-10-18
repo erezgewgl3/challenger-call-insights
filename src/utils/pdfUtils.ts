@@ -52,43 +52,39 @@ export function calculatePDFDimensions(canvas: HTMLCanvasElement) {
   const pdfWidth = 210
   const pdfHeight = 297
   
-  // Account for html2canvas 3x scale factor (updated from 2x)
+  // Account for html2canvas 3x scale factor
   const actualCanvasWidth = canvas.width / 3
   const actualCanvasHeight = canvas.height / 3
   
-  console.log('Enhanced PDF dimension calculation with improved scaling:', {
+  console.log('PDF dimension calculation with 3x canvas scale:', {
     originalCanvasWidth: canvas.width,
     originalCanvasHeight: canvas.height,
     actualCanvasWidth,
     actualCanvasHeight,
-    scaleFactorAccountedFor: 2
+    scaleFactorAccountedFor: 3
   })
   
-  // ENHANCED: Less aggressive scaling with more generous content width for better readability
-  const contentWidth = pdfWidth - 15 // Reduced margins: 7.5mm on each side instead of 10mm
+  // Standard margins: 10mm on each side
+  const contentWidth = pdfWidth - 20
   const pixelsToMM = actualCanvasWidth * 0.264583 // Pixels to mm conversion
   
-  // ENHANCED: Improved scaling calculation for larger content
-  const baseScale = contentWidth / pixelsToMM
-  const enhancedScale = baseScale * 1.15 // 15% larger for better readability
+  // Direct scaling without enhancement factor to maintain aspect ratio
+  const scale = contentWidth / pixelsToMM
+  const scaledHeight = (actualCanvasHeight * 0.264583) * scale
   
-  const scaledHeight = (actualCanvasHeight * 0.264583) * enhancedScale
-  
-  console.log('Enhanced PDF scaling calculations:', {
+  console.log('PDF scaling calculations:', {
     contentWidth,
     pixelsToMM,
-    baseScale,
-    enhancedScale,
-    scaledHeight,
-    improvementFactor: 1.15
+    scale,
+    scaledHeight
   })
   
   return {
-    /** Enhanced scaling factor for better readability */
-    scale: enhancedScale,
+    /** Scaling factor for proper aspect ratio */
+    scale,
     /** Height of scaled content in mm */
     scaledHeight,
-    /** Available content width in mm (with reduced margins) */
+    /** Available content width in mm (standard 10mm margins) */
     contentWidth,
     /** Full PDF page width in mm */
     pdfWidth,
