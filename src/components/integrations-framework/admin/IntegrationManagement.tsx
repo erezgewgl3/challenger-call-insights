@@ -42,43 +42,46 @@ export function IntegrationManagement() {
 
   const loadIntegrations = async () => {
     try {
-      const { data, error } = await supabase
+      // Step 1: Fetch integration connections without FK embedding
+      const { data: connections, error: connErr } = await supabase
         .from('integration_connections')
-        .select(`
-          *,
-          users!integration_connections_user_id_fkey (
-            email
-          )
-        `)
+        .select('id, connection_name, integration_type, connection_status, user_id, last_sync_at, created_at')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      
-      // Transform data with defensive validation and type safety
-      const transformedData = data?.map((integration: any) => {
-        let userEmail = 'Unknown User';
-        
-        // Defensive check: ensure users object exists and has valid email
-        if (integration.users && 
-            typeof integration.users === 'object' && 
-            'email' in integration.users &&
-            typeof integration.users.email === 'string' &&
-            integration.users.email.trim() !== '') {
-          userEmail = integration.users.email;
-        } else if (!integration.users) {
-          // Log warning for debugging without breaking functionality
-          console.warn(`Integration ${integration.id} (${integration.connection_name}) has no associated user data`);
+      if (connErr) throw connErr;
+
+      // Step 2: Fetch user emails separately
+      const userIds = Array.from(new Set((connections ?? []).map(c => c.user_id).filter(Boolean)));
+      let userMap = new Map<string, string>();
+
+      if (userIds.length > 0) {
+        const { data: usersData, error: usersErr } = await supabase
+          .from('users')
+          .select('id, email')
+          .in('id', userIds);
+
+        if (usersErr) {
+          console.warn('Failed to fetch user emails for integrations:', usersErr);
+        } else if (usersData) {
+          userMap = new Map(usersData.map(u => [u.id, u.email]));
         }
-        
+      }
+
+      // Step 3: Merge connections with user emails
+      const transformedData = (connections ?? []).map((conn: any) => {
+        const userEmail = userMap.get(conn.user_id);
         return {
-          ...integration,
-          user_email: userEmail
+          ...conn,
+          user_email: typeof userEmail === 'string' && userEmail.trim() !== ''
+            ? userEmail
+            : 'Unknown User'
         };
-      }) || [];
-      
+      });
+
       setIntegrations(transformedData);
     } catch (error) {
       console.error('Error loading integrations:', error);
+      setIntegrations([]);
     }
   };
 
