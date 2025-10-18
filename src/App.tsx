@@ -55,9 +55,7 @@ function App() {
             <Route path="/integrations" element={
               <AuthGuard>
                 <ZapierStatusProvider>
-                  <ErrorBoundary>
-                    <UserIntegrations />
-                  </ErrorBoundary>
+                  <UserIntegrations />
                 </ZapierStatusProvider>
               </AuthGuard>
             } />

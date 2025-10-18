@@ -42,12 +42,12 @@ export default function UserIntegrations() {
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
             <div className="h-full">
-              <ErrorBoundary>
+              <ErrorBoundary variant="inline" showDetailsInProd>
                 <ZoomUserConnection />
               </ErrorBoundary>
             </div>
             <div className="h-full">
-              <ErrorBoundary>
+              <ErrorBoundary variant="inline" showDetailsInProd>
                 <ZapierIntegrationManager />
               </ErrorBoundary>
             </div>

@@ -6,7 +6,8 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Video, CheckCircle, AlertCircle, Settings, Unlink } from 'lucide-react';
+import { Video, CheckCircle, AlertCircle, Settings, Unlink, RefreshCw } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
@@ -43,6 +44,7 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
   const [connection, setConnection] = useState<ZoomConnection | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Load detailed connection data when connected
   React.useEffect(() => {
@@ -68,13 +70,22 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
 
       if (data && typeof data === 'object' && 'status' in data && data.status === 'success' && 'data' in data && data.data) {
         setConnection(data.data as unknown as ZoomConnection);
+        setErrorMessage(null);
       } else {
         console.warn('Unexpected RPC response shape or no connection data:', data);
         setConnection(null);
+        setErrorMessage('Unable to load Zoom connection details. Please reconnect.');
       }
     } catch (error) {
       console.error('Error loading connection details:', error);
+      const message = error instanceof Error ? error.message : 'Failed to load connection details';
+      setErrorMessage(message);
       setConnection(null);
+      toast({
+        title: "Connection Error",
+        description: message,
+        variant: "destructive",
+      });
     }
   };
 
@@ -98,9 +109,11 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
       }
     } catch (error) {
       console.error('Error connecting to Zoom:', error);
+      const message = error instanceof Error ? error.message : 'Failed to initiate Zoom connection';
+      setErrorMessage(message);
       toast({
         title: "Connection Error",
-        description: "Failed to initiate Zoom connection. Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -130,9 +143,11 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
       });
     } catch (error) {
       console.error('Error disconnecting from Zoom:', error);
+      const message = error instanceof Error ? error.message : 'Failed to disconnect from Zoom';
+      setErrorMessage(message);
       toast({
         title: "Error",
-        description: "Failed to disconnect from Zoom. Please try again.",
+        description: message,
         variant: "destructive",
       });
     } finally {
@@ -180,7 +195,27 @@ export const ZoomUserConnection: React.FC<ZoomUserConnectionProps> = ({ onConnec
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col space-y-4">
+      {errorMessage && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription className="flex items-center justify-between">
+            <span>{errorMessage}</span>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                setErrorMessage(null);
+                loadConnectionDetails();
+              }}
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {isConnected && connection ? (
         <Card className="flex-1 flex flex-col transition-all duration-200 hover:shadow-md">
           <CardHeader className="pb-4">

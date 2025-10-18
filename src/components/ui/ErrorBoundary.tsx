@@ -6,6 +6,8 @@ import { useNavigate } from 'react-router-dom';
 
 interface Props {
   children: ReactNode;
+  variant?: 'fullscreen' | 'inline';
+  showDetailsInProd?: boolean;
 }
 
 interface State {
@@ -29,20 +31,38 @@ class ErrorBoundaryClass extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return <ErrorFallback error={this.state.error} onRetry={() => this.setState({ hasError: false })} />;
+      return (
+        <ErrorFallback 
+          error={this.state.error} 
+          onRetry={() => this.setState({ hasError: false })}
+          variant={this.props.variant}
+          showDetailsInProd={this.props.showDetailsInProd}
+        />
+      );
     }
 
     return this.props.children;
   }
 }
 
-function ErrorFallback({ error, onRetry }: { error?: Error; onRetry: () => void }) {
+function ErrorFallback({ 
+  error, 
+  onRetry, 
+  variant = 'fullscreen', 
+  showDetailsInProd = false 
+}: { 
+  error?: Error; 
+  onRetry: () => void;
+  variant?: 'fullscreen' | 'inline';
+  showDetailsInProd?: boolean;
+}) {
   const navigate = useNavigate();
   const [showDetails, setShowDetails] = useState(false);
   const isDev = import.meta.env.DEV;
+  const showErrorDetails = isDev || showDetailsInProd;
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className={variant === 'fullscreen' ? 'min-h-screen flex items-center justify-center p-4' : 'flex items-center justify-center p-2'}>
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-destructive">
@@ -52,10 +72,12 @@ function ErrorFallback({ error, onRetry }: { error?: Error; onRetry: () => void 
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-muted-foreground">
-            We encountered an error while loading this section. Please try again or return to the dashboard.
+            {variant === 'inline' 
+              ? 'This section encountered an error. Please try again.' 
+              : 'We encountered an error while loading this section. Please try again or return to the dashboard.'}
           </p>
           
-          {isDev && error && (
+          {showErrorDetails && error && (
             <div className="space-y-2">
               <Button
                 variant="ghost"
@@ -63,14 +85,14 @@ function ErrorFallback({ error, onRetry }: { error?: Error; onRetry: () => void 
                 onClick={() => setShowDetails(!showDetails)}
                 className="w-full justify-between"
               >
-                <span className="text-xs font-mono">Show error details</span>
+                <span className="text-xs font-mono">Show details</span>
                 {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
               
               {showDetails && (
                 <div className="p-3 bg-muted rounded-md text-xs font-mono overflow-auto max-h-48">
                   <div className="text-destructive mb-2">{error.message}</div>
-                  {error.stack && (
+                  {isDev && error.stack && (
                     <div className="text-muted-foreground whitespace-pre-wrap">
                       {error.stack.split('\n').slice(0, 5).join('\n')}
                     </div>
@@ -84,9 +106,11 @@ function ErrorFallback({ error, onRetry }: { error?: Error; onRetry: () => void 
             <Button onClick={onRetry} variant="outline" className="flex-1">
               Retry
             </Button>
-            <Button onClick={() => navigate('/dashboard')} className="flex-1">
-              Back to Dashboard
-            </Button>
+            {variant === 'fullscreen' && (
+              <Button onClick={() => navigate('/dashboard')} className="flex-1">
+                Back to Dashboard
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -94,6 +118,10 @@ function ErrorFallback({ error, onRetry }: { error?: Error; onRetry: () => void 
   );
 }
 
-export function ErrorBoundary({ children }: Props) {
-  return <ErrorBoundaryClass>{children}</ErrorBoundaryClass>;
+export function ErrorBoundary({ children, variant, showDetailsInProd }: Props) {
+  return (
+    <ErrorBoundaryClass variant={variant} showDetailsInProd={showDetailsInProd}>
+      {children}
+    </ErrorBoundaryClass>
+  );
 }

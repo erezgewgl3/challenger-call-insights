@@ -19,43 +19,49 @@ export const useZoomConnection = (): ZoomConnectionStatus => {
     queryKey: ['zoom-connection-status', user?.id],
     queryFn: async () => {
       if (!user?.id) {
-        throw new Error('User not authenticated');
+        console.warn('useZoomConnection: User not authenticated');
+        return { connected: false, connectionStatus: 'not_found' as const };
       }
 
       console.log('Fetching Zoom connection status for user:', user.id);
 
-      const { data, error } = await supabase.rpc('integration_framework_get_connection', {
-        user_uuid: user.id,
-        integration_type_param: 'zoom'
-      });
+      try {
+        const { data, error } = await supabase.rpc('integration_framework_get_connection', {
+          user_uuid: user.id,
+          integration_type_param: 'zoom'
+        });
 
-      if (error) {
-        console.error('Error fetching Zoom connection:', error);
-        throw error;
+        if (error) {
+          console.error('Error fetching Zoom connection (graceful):', error);
+          return { connected: false, connectionStatus: 'not_found' as const };
+        }
+
+        // Check if we have a valid connection
+        const hasConnection = data && 
+          typeof data === 'object' && 
+          'status' in data && 
+          data.status === 'success' && 
+          'data' in data && 
+          data.data;
+
+        // Extract connection status from database
+        const connectionRecord = hasConnection && typeof data.data === 'object' && data.data !== null ? 
+          data.data as { connection_status?: string } : null;
+        
+        const connectionStatus = connectionRecord?.connection_status || 'not_found';
+        
+        const isActive = connectionStatus === 'active';
+
+        console.log('Zoom connection status result:', { hasConnection, connectionStatus, isActive, data });
+
+        return { 
+          connected: isActive,
+          connectionStatus: connectionStatus as 'active' | 'error' | 'inactive' | 'not_found'
+        };
+      } catch (err) {
+        console.error('Unexpected error in useZoomConnection (caught):', err);
+        return { connected: false, connectionStatus: 'not_found' as const };
       }
-
-      // Check if we have a valid connection
-      const hasConnection = data && 
-        typeof data === 'object' && 
-        'status' in data && 
-        data.status === 'success' && 
-        'data' in data && 
-        data.data;
-
-      // Extract connection status from database
-      const connectionRecord = hasConnection && typeof data.data === 'object' && data.data !== null ? 
-        data.data as { connection_status?: string } : null;
-      
-      const connectionStatus = connectionRecord?.connection_status || 'not_found';
-      
-      const isActive = connectionStatus === 'active';
-
-      console.log('Zoom connection status result:', { hasConnection, connectionStatus, isActive, data });
-
-      return { 
-        connected: isActive,
-        connectionStatus: connectionStatus as 'active' | 'error' | 'inactive' | 'not_found'
-      };
     },
     enabled: !!user?.id,
     staleTime: 30 * 1000, // 30 seconds - shorter for faster updates after OAuth
