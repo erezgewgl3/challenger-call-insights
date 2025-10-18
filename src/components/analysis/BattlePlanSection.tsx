@@ -273,13 +273,9 @@ export function BattlePlanSection({
         <div className="bg-white rounded-lg p-3 border border-emerald-100">
           <p className="text-gray-700 text-sm leading-relaxed">
             {analysis.reasoning?.whyTheseRecommendations || 
-             `Based on the stakeholder dynamics and pain points revealed, these actions are designed to ${
-               analysis.call_summary?.painSeverity?.level === 'high' ? 'address urgent business needs while' : 
-               analysis.call_summary?.painSeverity?.level === 'medium' ? 'solve operational challenges while' : 'position for future value while'
-             } positioning against competitive alternatives through ${
-               analysis.call_summary?.competitiveIntelligence?.decisionCriteria?.length > 0 ? 'their stated decision criteria' : 'strategic differentiation'
-             }.`
-            }
+             analysis.reasoning?.dealViabilityRationale || 
+             analysis.reasoning?.strategicRationale || 
+             ''}
           </p>
           
           {/* Key Strategic Signals - OPTIMIZED */}

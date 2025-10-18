@@ -15,6 +15,7 @@ export function extractPDFData(transcript: any, analysis: any): PDFContentData {
     callSummary: extractCallSummary(analysis),
     strategicIntelligence: extractStrategicIntelligence(analysis),
     strategicAssessment: extractStrategicAssessment(analysis),
+    stakeholderNavigation: extractStakeholderNavigation(analysis),
     whyTheseActions: extractWhyTheseActions(analysis),
     actionItems: extractActionItems(analysis),
     dealInsights: extractDealInsights(analysis),
@@ -131,6 +132,44 @@ function extractStrategicAssessment(analysis: any) {
   }
 }
 
+function extractStakeholderNavigation(analysis: any) {
+  const participants = analysis?.participants?.clientContacts || []
+  
+  // Extract Economic Buyers
+  const economicBuyers = participants
+    .filter((contact: any) => 
+      contact.challengerRole === 'Economic Buyer' || 
+      contact.decisionLevel === 'Final Decision Maker'
+    )
+    .map((contact: any) => ({
+      name: contact.name || '',
+      title: contact.title || contact.role || '',
+      evidence: Array.isArray(contact.evidence) && contact.evidence.length > 0 
+        ? contact.evidence[0] 
+        : contact.reasonForClassification || ''
+    }))
+  
+  // Extract Key Influencers
+  const keyInfluencers = participants
+    .filter((contact: any) => 
+      contact.challengerRole === 'Influencer' || 
+      (contact.decisionLevel && contact.decisionLevel.includes('Influencer'))
+    )
+    .map((contact: any) => ({
+      name: contact.name || '',
+      title: contact.title || contact.role || '',
+      evidence: Array.isArray(contact.evidence) && contact.evidence.length > 0 
+        ? contact.evidence[0] 
+        : contact.reasonForClassification || ''
+    }))
+  
+  return {
+    economicBuyers,
+    keyInfluencers,
+    navigationStrategy: analysis?.recommendations?.stakeholderPlan || ''
+  }
+}
+
 function extractWhyTheseActions(analysis: any) {
   const actionPlan = analysis?.action_plan || {}
   const reasoning = analysis?.reasoning || {}
@@ -180,7 +219,7 @@ function extractCompetitivePositioning(analysis: any) {
   const buyingSignals = callSummary?.buyingSignalsAnalysis || {}
   const painSeverity = callSummary?.painSeverity || {}
   const competitiveIntel = callSummary?.competitiveIntelligence || {}
-  const concerns = callSummary?.concerns || []
+  const concerns = callSummary?.concernsRaised || []
 
   return {
     buyingSignals: Array.isArray(buyingSignals?.commitmentSignals) && buyingSignals.commitmentSignals.length > 0

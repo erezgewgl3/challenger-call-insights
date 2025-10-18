@@ -470,6 +470,132 @@ function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): numbe
 }
 
 /**
+ * Render Stakeholder Navigation Map section
+ */
+function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): number {
+  // Skip if no stakeholder data
+  if ((!data.economicBuyers || data.economicBuyers.length === 0) && 
+      (!data.keyInfluencers || data.keyInfluencers.length === 0) && 
+      !data.navigationStrategy) {
+    return startY
+  }
+  
+  let currentY = checkPageBreak(pdf, startY, 70, 'Stakeholder Navigation Map')
+  
+  // Section Title
+  pdf.setFillColor(241, 245, 249) // slate-100
+  pdf.rect(PDF_CONFIG.page.margin, currentY, PDF_CONFIG.page.contentWidth, 12, 'F')
+  
+  pdf.setTextColor(30, 41, 59) // slate-800
+  pdf.setFontSize(PDF_CONFIG.fonts.subtitle.size)
+  pdf.setFont('helvetica', 'bold')
+  pdf.text('🎯 Stakeholder Navigation Map', PDF_CONFIG.page.margin + 5, currentY + 8)
+  
+  currentY += 18
+  
+  // Calculate column widths (3 columns with gaps)
+  const gapWidth = 5
+  const columnWidth = (PDF_CONFIG.page.contentWidth - (2 * gapWidth)) / 3
+  const leftX = PDF_CONFIG.page.margin
+  const middleX = leftX + columnWidth + gapWidth
+  const rightX = middleX + columnWidth + gapWidth
+  
+  // Economic Buyers (Left Column - Red theme)
+  if (data.economicBuyers && data.economicBuyers.length > 0) {
+    pdf.setFillColor(254, 242, 242) // red-50
+    pdf.setDrawColor(254, 202, 202) // red-200
+    pdf.setLineWidth(0.5)
+    pdf.roundedRect(leftX, currentY, columnWidth, 40, 2, 2, 'FD')
+    
+    pdf.setTextColor(153, 27, 27) // red-900
+    pdf.setFontSize(9)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Economic Buyers', leftX + 3, currentY + 5)
+    
+    pdf.setTextColor(55, 65, 81) // gray-700
+    pdf.setFontSize(8)
+    pdf.setFont('helvetica', 'normal')
+    
+    let buyerY = currentY + 10
+    data.economicBuyers.slice(0, 2).forEach((buyer: any) => {
+      if (buyer.name) {
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(sanitizeText(buyer.name.substring(0, 25)), leftX + 3, buyerY)
+        buyerY += 4
+        
+        if (buyer.title) {
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(7)
+          pdf.setTextColor(107, 114, 128) // gray-500
+          const titleLines = pdf.splitTextToSize(sanitizeText(buyer.title), columnWidth - 6)
+          pdf.text(titleLines.slice(0, 1), leftX + 3, buyerY)
+          buyerY += 5
+        }
+      }
+    })
+  }
+  
+  // Key Influencers (Middle Column - Yellow theme)
+  if (data.keyInfluencers && data.keyInfluencers.length > 0) {
+    pdf.setFillColor(254, 252, 232) // yellow-50
+    pdf.setDrawColor(254, 240, 138) // yellow-200
+    pdf.setLineWidth(0.5)
+    pdf.roundedRect(middleX, currentY, columnWidth, 40, 2, 2, 'FD')
+    
+    pdf.setTextColor(120, 53, 15) // yellow-900
+    pdf.setFontSize(9)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Key Influencers', middleX + 3, currentY + 5)
+    
+    pdf.setTextColor(55, 65, 81) // gray-700
+    pdf.setFontSize(8)
+    pdf.setFont('helvetica', 'normal')
+    
+    let influencerY = currentY + 10
+    data.keyInfluencers.slice(0, 2).forEach((influencer: any) => {
+      if (influencer.name) {
+        pdf.setFont('helvetica', 'bold')
+        pdf.text(sanitizeText(influencer.name.substring(0, 25)), middleX + 3, influencerY)
+        influencerY += 4
+        
+        if (influencer.title) {
+          pdf.setFont('helvetica', 'normal')
+          pdf.setFontSize(7)
+          pdf.setTextColor(107, 114, 128) // gray-500
+          const titleLines = pdf.splitTextToSize(sanitizeText(influencer.title), columnWidth - 6)
+          pdf.text(titleLines.slice(0, 1), middleX + 3, influencerY)
+          influencerY += 5
+        }
+      }
+    })
+  }
+  
+  // Navigation Strategy (Right Column - Blue theme)
+  if (data.navigationStrategy) {
+    pdf.setFillColor(239, 246, 255) // blue-50
+    pdf.setDrawColor(191, 219, 254) // blue-200
+    pdf.setLineWidth(0.5)
+    pdf.roundedRect(rightX, currentY, columnWidth, 40, 2, 2, 'FD')
+    
+    pdf.setTextColor(30, 58, 138) // blue-900
+    pdf.setFontSize(9)
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Navigation Strategy', rightX + 3, currentY + 5)
+    
+    pdf.setTextColor(55, 65, 81) // gray-700
+    pdf.setFontSize(8)
+    pdf.setFont('helvetica', 'normal')
+    
+    const strategyLines = pdf.splitTextToSize(sanitizeText(data.navigationStrategy), columnWidth - 6)
+    pdf.text(strategyLines.slice(0, 5), rightX + 3, currentY + 10)
+  }
+  
+  currentY += 50
+  
+  return currentY
+}
+
+/**
  * Render Why These Actions section
  */
 function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {

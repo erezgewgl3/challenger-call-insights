@@ -9,6 +9,7 @@ export interface PDFContentData {
   callSummary: CallSummaryData
   strategicIntelligence: StrategicIntelligenceData
   strategicAssessment: StrategicAssessmentData
+  stakeholderNavigation: StakeholderNavigationData
   whyTheseActions: WhyTheseActionsData
   actionItems: ActionItemData[]
   dealInsights: string[]
@@ -64,6 +65,18 @@ export interface StrategicAssessmentData {
   primaryStrategy: string
   competitiveStrategy: string
   stakeholderPlan: string
+}
+
+export interface StakeholderContact {
+  name: string
+  title: string
+  evidence: string
+}
+
+export interface StakeholderNavigationData {
+  economicBuyers: StakeholderContact[]
+  keyInfluencers: StakeholderContact[]
+  navigationStrategy: string
 }
 
 export interface WhyTheseActionsData {
