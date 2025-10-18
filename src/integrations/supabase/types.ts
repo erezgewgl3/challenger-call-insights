@@ -1892,57 +1892,7 @@ export type Database = {
       }
     }
     Views: {
-      integration_connections_safe: {
-        Row: {
-          configuration: Json | null
-          connection_name: string | null
-          connection_status: string | null
-          created_at: string | null
-          error_count: number | null
-          id: string | null
-          integration_type: string | null
-          last_error: string | null
-          last_sync_at: string | null
-          sync_frequency_minutes: number | null
-          updated_at: string | null
-          user_id: string | null
-          vault_secret_id: string | null
-          webhook_url: string | null
-        }
-        Insert: {
-          configuration?: Json | null
-          connection_name?: string | null
-          connection_status?: string | null
-          created_at?: string | null
-          error_count?: number | null
-          id?: string | null
-          integration_type?: string | null
-          last_error?: string | null
-          last_sync_at?: string | null
-          sync_frequency_minutes?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-          vault_secret_id?: never
-          webhook_url?: string | null
-        }
-        Update: {
-          configuration?: Json | null
-          connection_name?: string | null
-          connection_status?: string | null
-          created_at?: string | null
-          error_count?: number | null
-          id?: string | null
-          integration_type?: string | null
-          last_error?: string | null
-          last_sync_at?: string | null
-          sync_frequency_minutes?: number | null
-          updated_at?: string | null
-          user_id?: string | null
-          vault_secret_id?: never
-          webhook_url?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       activate_single_prompt: {

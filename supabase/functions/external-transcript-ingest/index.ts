@@ -1,11 +1,40 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Zod schemas for input validation
+const MeetingMetadataSchema = z.object({
+  title: z.string().max(500).optional(),
+  meeting_host: z.string().max(200).optional(),
+  participants: z.union([z.array(z.string().max(200)), z.string().max(1000)]).optional(),
+  meeting_date: z.string().max(100).optional(),
+  duration_minutes: z.number().int().min(0).max(600).optional(),
+  company_name: z.string().max(500).optional(),
+  contact_name: z.string().max(200).optional(),
+  deal_name: z.string().max(500).optional(),
+}).optional();
+
+const ExternalTranscriptPayloadSchema = z.object({
+  transcript_text: z.string().max(1_000_000).optional(),
+  transcript_file_url: z.string().url().max(2000).optional(),
+  transcript_filename: z.string().max(500).optional(),
+  zoho_deal_id: z.string().max(100).optional(),
+  zoho_meeting_id: z.string().max(100).optional(),
+  assigned_user_email: z.string().email().max(255),
+  meeting_metadata: MeetingMetadataSchema,
+  priority: z.enum(['urgent', 'high', 'normal', 'low']).optional(),
+  source: z.enum(['zapier', 'zoho', 'api', 'zoho_meeting']).optional(),
+  callback_webhook: z.string().url().max(2000).optional(),
+}).refine(
+  (data) => data.transcript_text || data.transcript_file_url,
+  { message: "Either transcript_text or transcript_file_url is required" }
+);
 
 interface ExternalTranscriptPayload {
   transcript_text?: string;
@@ -27,6 +56,15 @@ interface ExternalTranscriptPayload {
   priority?: 'urgent' | 'high' | 'normal' | 'low';
   source?: 'zapier' | 'zoho' | 'api' | 'zoho_meeting';
   callback_webhook?: string;
+}
+
+function sanitizeTextField(text: string | undefined): string | undefined {
+  if (!text) return text;
+  return text
+    .replace(/<script[^>]*>.*?<\/script>/gi, '')
+    .replace(/<iframe[^>]*>.*?<\/iframe>/gi, '')
+    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
+    .trim();
 }
 
 interface ProcessingResponse {
@@ -61,7 +99,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Parse and validate request body
+    // Parse and validate request body with Zod
     console.log('🔍 [DEBUG] Request method:', req.method);
     console.log('🔍 [DEBUG] Content-Type header:', req.headers.get('content-type'));
     console.log('🔍 [DEBUG] Authorization header present:', !!req.headers.get('authorization'));
@@ -72,8 +110,28 @@ serve(async (req) => {
       console.log('🔍 [DEBUG] Raw request body length:', rawBody.length);
       console.log('🔍 [DEBUG] Raw request body preview:', rawBody.substring(0, 500));
       
-      payload = JSON.parse(rawBody);
+      const rawPayload = JSON.parse(rawBody);
       console.log('🔍 [DEBUG] JSON parsing successful');
+      
+      // Validate with Zod schema
+      const validationResult = ExternalTranscriptPayloadSchema.safeParse(rawPayload);
+      
+      if (!validationResult.success) {
+        console.error('❌ [VALIDATION] Schema validation failed:', validationResult.error);
+        return new Response(JSON.stringify({
+          success: false,
+          error: 'Invalid payload structure',
+          details: validationResult.error.errors.map(e => ({
+            path: e.path.join('.'),
+            message: e.message
+          }))
+        }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+      
+      payload = validationResult.data;
     } catch (parseError) {
       console.error('❌ [ERROR] JSON parsing failed:', parseError);
       return new Response(JSON.stringify({
@@ -462,35 +520,119 @@ function isValidEmail(email: string): boolean {
   return emailRegex.test(email);
 }
 
-async function downloadTranscriptFile(fileUrl: string): Promise<string> {
-  const response = await fetch(fileUrl);
-  
-  if (!response.ok) {
-    throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
-  }
-  
-  const contentType = response.headers.get('content-type') || '';
-  const text = await response.text();
-  
-  // Handle JSON responses that might contain transcript data
-  if (contentType.includes('application/json')) {
-    try {
-      const jsonData = JSON.parse(text);
-      // Try to extract transcript from common JSON structures
-      if (jsonData.transcript) return jsonData.transcript;
-      if (jsonData.text) return jsonData.text;
-      if (jsonData.content) return jsonData.content;
-      // If it's a direct string, return as-is
-      if (typeof jsonData === 'string') return jsonData;
-      // Otherwise return the JSON as formatted text
-      return JSON.stringify(jsonData, null, 2);
-    } catch {
-      // If JSON parsing fails, return raw text
-      return text;
+function validateTranscriptUrl(url: string): void {
+  try {
+    const parsed = new URL(url);
+    
+    // Only HTTPS allowed (except localhost for development)
+    if (parsed.protocol !== 'https:' && !parsed.hostname.includes('localhost')) {
+      throw new Error('Only HTTPS URLs are allowed');
     }
+    
+    const hostname = parsed.hostname.toLowerCase();
+    
+    // Block private IP ranges and cloud metadata endpoints
+    const privatePatterns = [
+      /^127\./,                    // Loopback
+      /^10\./,                     // Private Class A
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./, // Private Class B
+      /^192\.168\./,               // Private Class C
+      /^169\.254\./,               // Link-local
+      /^::1$/,                     // IPv6 loopback
+      /^fc00:/,                    // IPv6 unique local
+      /^fe80:/,                    // IPv6 link-local
+      /localhost/,                 // Localhost
+      /\.local$/,                  // mDNS
+    ];
+    
+    if (privatePatterns.some(pattern => pattern.test(hostname))) {
+      throw new Error('Private IP addresses and internal domains are not allowed');
+    }
+    
+    // Allowlist of trusted domains
+    const allowedDomains = [
+      'zoom.us',
+      'zoho.com',
+      'zohoapis.com',
+      'googleapis.com',
+      'microsoft.com',
+      's3.amazonaws.com',
+      'supabase.co',
+    ];
+    
+    const isAllowed = allowedDomains.some(domain => 
+      hostname === domain || hostname.endsWith('.' + domain)
+    );
+    
+    if (!isAllowed) {
+      throw new Error(`Domain ${hostname} is not in the allowlist of trusted domains`);
+    }
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error('Invalid URL format');
+    }
+    throw error;
   }
+}
+
+async function downloadTranscriptFile(fileUrl: string): Promise<string> {
+  // SSRF Protection: Validate URL before fetching
+  validateTranscriptUrl(fileUrl);
   
-  return text;
+  // Add timeout to prevent hanging requests
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  
+  try {
+    const response = await fetch(fileUrl, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'SalesWhisperer/1.0'
+      }
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to download file: ${response.status} ${response.statusText}`);
+    }
+    
+    // Validate content type
+    const contentType = response.headers.get('content-type') || '';
+    const allowedTypes = ['text/plain', 'text/vtt', 'application/json'];
+    
+    if (!allowedTypes.some(type => contentType.includes(type))) {
+      throw new Error(`Invalid content type: ${contentType}. Expected text/plain, text/vtt, or application/json`);
+    }
+    
+    const text = await response.text();
+    
+    // Handle JSON responses that might contain transcript data
+    if (contentType.includes('application/json')) {
+      try {
+        const jsonData = JSON.parse(text);
+        // Try to extract transcript from common JSON structures
+        if (jsonData.transcript) return jsonData.transcript;
+        if (jsonData.text) return jsonData.text;
+        if (jsonData.content) return jsonData.content;
+        // If it's a direct string, return as-is
+        if (typeof jsonData === 'string') return jsonData;
+        // Otherwise return the JSON as formatted text
+        return JSON.stringify(jsonData, null, 2);
+      } catch {
+        // If JSON parsing fails, return raw text
+        return text;
+      }
+    }
+    
+    return text;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Download request timed out after 10 seconds');
+    }
+    throw error;
+  }
 }
 
 /**
