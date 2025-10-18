@@ -25,21 +25,28 @@ export default function IntegrationCallback() {
     const searchParams = new URLSearchParams(location.search);
     const code = searchParams.get('code');
     const state = searchParams.get('state');
+    const error = searchParams.get('error');
     console.log('Code:', code);
     console.log('State:', state);
+    console.log('Error:', error);
     
-    // Check if this is a fresh redirect from Zoom OAuth
-    const isFromZoom = document.referrer.includes('zoom.us');
+    // Handle explicit OAuth error first
+    if (error) {
+      console.log('OAuth error detected:', error);
+      setStatus('error');
+      setMessage(`Connection failed: ${error}`);
+      return;
+    }
     
-    // If not from Zoom (back navigation, direct access, etc.), just redirect
-    if (!isFromZoom || !code || !state || isProcessed) {
-      console.log('Not a fresh OAuth redirect, redirecting to integrations...');
+    // If we don't have required params or already processed, redirect
+    if (!code || !state || isProcessed) {
+      console.log('Missing params or already processed, redirecting...');
       window.location.replace('/integrations?refresh=true');
       return;
     }
 
-    // Only process if it's a fresh redirect from Zoom
-    console.log('Fresh OAuth redirect detected, processing...');
+    // Process the valid OAuth callback
+    console.log('Valid OAuth callback detected, processing...');
     setIsProcessed(true);
     processCallback();
   }, [location, isProcessed]);
