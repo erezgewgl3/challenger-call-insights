@@ -848,8 +848,8 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     if (action.emailTemplate && action.emailTemplate.body) {
       // Calculate email template space with extra buffer
       const emailBodyLines = pdf.splitTextToSize(
-        sanitizeText(action.emailTemplate.body), 
-        PDF_CONFIG.page.contentWidth - 15
+        sanitizePDF(action.emailTemplate.body), 
+        PDF_CONFIG.page.contentWidth - 18
       )
       const emailSpace = 25 + (emailBodyLines.length * 5)
       currentY = checkPageBreak(pdf, currentY, emailSpace, 'Email Template')
