@@ -26,6 +26,16 @@ function sanitizeText(text: string): string {
     // Keep everything else (emojis, currency, letters, numbers)
 }
 
+/**
+ * PDF-safe text that removes emojis and unsupported characters
+ */
+function sanitizePDF(text: string): string {
+  if (!text) return ''
+  return sanitizeText(text)
+    .replace(/\p{Extended_Pictographic}/gu, '') // Remove emojis
+    .replace(/[\uD800-\uDFFF]/g, '') // Remove surrogate pairs
+}
+
 // PDF Configuration Constants
 const PDF_CONFIG = {
   page: {
@@ -127,14 +137,14 @@ function renderHeader(pdf: jsPDF, header: any): number {
   pdf.setFontSize(PDF_CONFIG.fonts.title.size)
   pdf.setTextColor(...PDF_CONFIG.colors.darkText)
   pdf.setFont('helvetica', 'bold')
-  pdf.text(sanitizeText(header.title), PDF_CONFIG.page.margin, 22)
+  pdf.text(sanitizePDF(header.title), PDF_CONFIG.page.margin, 22)
   
   // Subtitle
   pdf.setFontSize(13)
   pdf.setTextColor(...PDF_CONFIG.colors.gray)
   pdf.setFont('helvetica', 'normal')
   pdf.text('Sales Intelligence Report', PDF_CONFIG.page.margin, 32)
-  pdf.text(`Generated on ${header.date}`, PDF_CONFIG.page.margin, 40)
+  pdf.text(`Generated on ${sanitizePDF(header.date)}`, PDF_CONFIG.page.margin, 40)
   
   // Separator line
   pdf.setDrawColor(...PDF_CONFIG.colors.gray)
@@ -153,7 +163,7 @@ function addPageHeader(pdf: jsPDF, title: string, pageNum: number): number {
   pdf.setFontSize(12)
   pdf.setTextColor(...PDF_CONFIG.colors.gray)
   pdf.setFont('helvetica', 'normal')
-  pdf.text(`${title} - Page ${pageNum}`, PDF_CONFIG.page.margin, 12)
+  pdf.text(`${sanitizePDF(title)} - Page ${pageNum}`, PDF_CONFIG.page.margin, 12)
   
   // Page number on right
   pdf.setFontSize(10)
@@ -264,7 +274,7 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
     pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     pdf.setFont('helvetica', 'normal')
-    const overviewLines = pdf.splitTextToSize(sanitizeText(data.overview), PDF_CONFIG.page.contentWidth)
+    const overviewLines = pdf.splitTextToSize(sanitizePDF(data.overview), PDF_CONFIG.page.contentWidth)
     pdf.text(overviewLines, PDF_CONFIG.page.margin, currentY)
     currentY += overviewLines.length * 5 + 6
   }
@@ -284,7 +294,7 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
       pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
       pdf.setFont('helvetica', 'normal')
-      const situationLines = pdf.splitTextToSize(sanitizeText(data.clientSituation), colWidth)
+      const situationLines = pdf.splitTextToSize(sanitizePDF(data.clientSituation), colWidth)
       pdf.text(situationLines, PDF_CONFIG.page.margin, currentY)
     }
     
@@ -301,19 +311,19 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
       pdf.setFont('helvetica', 'normal')
       let topicY = currentY
       data.mainTopics.forEach((topic: string) => {
-        const topicLines = pdf.splitTextToSize(sanitizeText(`• ${topic}`), colWidth - 5)
+        const topicLines = pdf.splitTextToSize(sanitizePDF(`• ${topic}`), colWidth - 5)
         pdf.text(topicLines, rightColX, topicY)
         topicY += topicLines.length * 5
       })
       
       if (data.clientSituation) {
-        const situationLines = pdf.splitTextToSize(sanitizeText(data.clientSituation), colWidth)
+        const situationLines = pdf.splitTextToSize(sanitizePDF(data.clientSituation), colWidth)
         currentY = Math.max(currentY + situationLines.length * 5, topicY)
       } else {
         currentY = topicY
       }
     } else if (data.clientSituation) {
-      const situationLines = pdf.splitTextToSize(sanitizeText(data.clientSituation), colWidth)
+      const situationLines = pdf.splitTextToSize(sanitizePDF(data.clientSituation), colWidth)
       currentY += situationLines.length * 5
     }
     
@@ -359,7 +369,7 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
   const boxHeights = boxes.map(box => {
     let contentHeight = 10 // Title + padding
     box.items.forEach((item: string) => {
-      const itemLines = pdf.splitTextToSize(sanitizeText(`• ${item}`), colWidth - 4)
+      const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), colWidth - 4)
       contentHeight += itemLines.length * 4
     })
     return Math.max(minBoxHeight, contentHeight + 2)
@@ -395,7 +405,7 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
     pdf.setFont('helvetica', 'normal')
     let itemY = rowY + 10
     leftBox.items.forEach((item: string) => {
-      const itemLines = pdf.splitTextToSize(sanitizeText(`• ${item}`), colWidth - 4)
+      const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), colWidth - 4)
       pdf.text(itemLines, leftX + 2, itemY)
       itemY += itemLines.length * 4
     })
@@ -416,7 +426,7 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
       pdf.setFont('helvetica', 'normal')
       let rightItemY = rowY + 10
       rightBox.items.forEach((item: string) => {
-        const itemLines = pdf.splitTextToSize(sanitizeText(`• ${item}`), colWidth - 4)
+        const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), colWidth - 4)
         pdf.text(itemLines, rightX + 2, rightItemY)
         rightItemY += itemLines.length * 4
       })
@@ -465,7 +475,7 @@ function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): numbe
     pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     pdf.setFont('helvetica', 'normal')
-    const lines = pdf.splitTextToSize(sanitizeText(strategy.value), PDF_CONFIG.page.contentWidth)
+    const lines = pdf.splitTextToSize(sanitizePDF(strategy.value), PDF_CONFIG.page.contentWidth)
     pdf.text(lines, PDF_CONFIG.page.margin, currentY)
     currentY += lines.length * 5 + 4
   })
@@ -493,7 +503,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   pdf.setTextColor(30, 41, 59) // slate-800
   pdf.setFontSize(PDF_CONFIG.fonts.subtitle.size)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('🎯 Stakeholder Navigation Map', PDF_CONFIG.page.margin + 5, currentY + 8)
+  pdf.text('Stakeholder Navigation Map', PDF_CONFIG.page.margin + 5, currentY + 8)
   
   currentY += 18
   
@@ -504,17 +514,70 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   const middleX = leftX + columnWidth + gapWidth
   const rightX = middleX + columnWidth + gapWidth
   
+  // Calculate dynamic heights for each column based on content
+  let economicBuyersHeight = 10 // Base padding
+  if (data.economicBuyers && data.economicBuyers.length > 0) {
+    data.economicBuyers.slice(0, 2).forEach((buyer: any) => {
+      economicBuyersHeight += 4 // Name
+      if (buyer.title) {
+        const titleLines = pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 6)
+        economicBuyersHeight += titleLines.length * 3
+      }
+      if (buyer.evidence) {
+        const evidenceText = `VERBATIM: "${sanitizePDF(buyer.evidence)}"`
+        const evidenceLines = pdf.splitTextToSize(evidenceText, columnWidth - 6)
+        economicBuyersHeight += Math.min(evidenceLines.length, 2) * 2.5
+      }
+      if (buyer.isPrimaryContact) {
+        economicBuyersHeight += 5
+      }
+      economicBuyersHeight += 2 // Spacing
+    })
+  }
+  economicBuyersHeight += 10 // Bottom padding
+
+  let keyInfluencersHeight = 10 // Base padding
+  if (data.keyInfluencers && data.keyInfluencers.length > 0) {
+    data.keyInfluencers.slice(0, 2).forEach((influencer: any) => {
+      keyInfluencersHeight += 4 // Name
+      if (influencer.title) {
+        const titleLines = pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 6)
+        keyInfluencersHeight += titleLines.length * 3
+      }
+      if (influencer.evidence) {
+        const evidenceText = `VERBATIM: "${sanitizePDF(influencer.evidence)}"`
+        const evidenceLines = pdf.splitTextToSize(evidenceText, columnWidth - 6)
+        keyInfluencersHeight += Math.min(evidenceLines.length, 2) * 2.5
+      }
+      keyInfluencersHeight += 2 // Spacing
+    })
+  }
+  keyInfluencersHeight += 10 // Bottom padding
+
+  let navigationStrategyHeight = 10 // Base padding
+  if (data.navigationStrategy) {
+    const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
+    navigationStrategyHeight += strategyLines.length * 3.5
+    navigationStrategyHeight += 12 // Bullets
+  }
+  navigationStrategyHeight += 6 // Bottom padding
+
+  const maxHeight = Math.max(economicBuyersHeight, keyInfluencersHeight, navigationStrategyHeight, 40)
+
+  // Update page break check with actual calculated height
+  currentY = checkPageBreak(pdf, currentY - 18, maxHeight + 30, 'Stakeholder Navigation Map') + 18
+
   // Economic Buyers (Left Column - Red theme)
   if (data.economicBuyers && data.economicBuyers.length > 0) {
     pdf.setFillColor(254, 242, 242) // red-50
     pdf.setDrawColor(254, 202, 202) // red-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(leftX, currentY, columnWidth, 60, 2, 2, 'FD')
+    pdf.roundedRect(leftX, currentY, columnWidth, economicBuyersHeight, 2, 2, 'FD')
     
     pdf.setTextColor(153, 27, 27) // red-900
     pdf.setFontSize(9)
     pdf.setFont('helvetica', 'bold')
-    pdf.text('🏛️ Economic Buyers', leftX + 3, currentY + 5)
+    pdf.text('Economic Buyers', leftX + 3, currentY + 5)
     
     pdf.setTextColor(55, 65, 81) // gray-700
     pdf.setFontSize(8)
@@ -523,29 +586,45 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     let buyerY = currentY + 10
     data.economicBuyers.slice(0, 2).forEach((buyer: any) => {
       if (buyer.name) {
-        // Name with title in parentheses
+        // Name (bold)
         pdf.setFont('helvetica', 'bold')
-        const nameWithTitle = buyer.title ? `${buyer.name} (${buyer.title})` : buyer.name
-        const nameLines = pdf.splitTextToSize(sanitizeText(nameWithTitle), columnWidth - 6)
-        pdf.text(nameLines.slice(0, 2), leftX + 3, buyerY)
-        buyerY += 4 * Math.min(nameLines.length, 2)
+        pdf.text(sanitizePDF(buyer.name), leftX + 3, buyerY)
+        buyerY += 4
         
-        // Evidence quote
+        // Title
+        if (buyer.title) {
+          pdf.setFont('helvetica', 'normal')
+          pdf.setTextColor(107, 114, 128) // gray-500
+          const titleLines = pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 6)
+          titleLines.forEach((line: string) => {
+            pdf.text(line, leftX + 3, buyerY)
+            buyerY += 3
+          })
+        }
+        
+        // Evidence quote - VERBATIM
         if (buyer.evidence) {
           pdf.setFont('helvetica', 'normal')
           pdf.setFontSize(7)
           pdf.setTextColor(107, 114, 128) // gray-500
-          const evidenceLines = pdf.splitTextToSize(sanitizeText(buyer.evidence), columnWidth - 6)
-          pdf.text(evidenceLines.slice(0, 2), leftX + 3, buyerY)
-          buyerY += 3 * Math.min(evidenceLines.length, 2)
+          const evidenceText = `VERBATIM: "${sanitizePDF(buyer.evidence)}"`
+          const evidenceLines = pdf.splitTextToSize(evidenceText, columnWidth - 6)
+          evidenceLines.slice(0, 2).forEach((line: string) => {
+            pdf.text(line, leftX + 3, buyerY)
+            buyerY += 2.5
+          })
         }
         
         // Primary Contact badge
-        pdf.setFontSize(6)
-        pdf.setFont('helvetica', 'normal')
-        pdf.setTextColor(107, 114, 128) // gray-500
-        pdf.text('Primary Contact', leftX + 3, buyerY)
-        buyerY += 5
+        if (buyer.isPrimaryContact) {
+          pdf.setFontSize(6)
+          pdf.setFont('helvetica', 'normal')
+          pdf.setTextColor(107, 114, 128) // gray-500
+          pdf.text('Primary Contact', leftX + 3, buyerY)
+          buyerY += 4
+        }
+        
+        buyerY += 2
       }
     })
   }
@@ -555,12 +634,12 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(254, 252, 232) // yellow-50
     pdf.setDrawColor(254, 240, 138) // yellow-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(middleX, currentY, columnWidth, 60, 2, 2, 'FD')
+    pdf.roundedRect(middleX, currentY, columnWidth, keyInfluencersHeight, 2, 2, 'FD')
     
     pdf.setTextColor(120, 53, 15) // yellow-900
     pdf.setFontSize(9)
     pdf.setFont('helvetica', 'bold')
-    pdf.text('📊 Key Influencers', middleX + 3, currentY + 5)
+    pdf.text('Key Influencers', middleX + 3, currentY + 5)
     
     pdf.setTextColor(55, 65, 81) // gray-700
     pdf.setFontSize(8)
@@ -569,24 +648,36 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     let influencerY = currentY + 10
     data.keyInfluencers.slice(0, 2).forEach((influencer: any) => {
       if (influencer.name) {
-        // Name with title in parentheses
+        // Name (bold)
         pdf.setFont('helvetica', 'bold')
-        const nameWithTitle = influencer.title ? `${influencer.name} (${influencer.title})` : influencer.name
-        const nameLines = pdf.splitTextToSize(sanitizeText(nameWithTitle), columnWidth - 6)
-        pdf.text(nameLines.slice(0, 2), middleX + 3, influencerY)
-        influencerY += 4 * Math.min(nameLines.length, 2)
+        pdf.text(sanitizePDF(influencer.name), middleX + 3, influencerY)
+        influencerY += 4
         
-        // Evidence quote
+        // Title
+        if (influencer.title) {
+          pdf.setFont('helvetica', 'normal')
+          pdf.setTextColor(107, 114, 128) // gray-500
+          const titleLines = pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 6)
+          titleLines.forEach((line: string) => {
+            pdf.text(line, middleX + 3, influencerY)
+            influencerY += 3
+          })
+        }
+        
+        // Evidence quote - VERBATIM
         if (influencer.evidence) {
           pdf.setFont('helvetica', 'normal')
           pdf.setFontSize(7)
           pdf.setTextColor(107, 114, 128) // gray-500
-          const evidenceLines = pdf.splitTextToSize(sanitizeText(influencer.evidence), columnWidth - 6)
-          pdf.text(evidenceLines.slice(0, 2), middleX + 3, influencerY)
-          influencerY += 3 * Math.min(evidenceLines.length, 2)
+          const evidenceText = `VERBATIM: "${sanitizePDF(influencer.evidence)}"`
+          const evidenceLines = pdf.splitTextToSize(evidenceText, columnWidth - 6)
+          evidenceLines.slice(0, 2).forEach((line: string) => {
+            pdf.text(line, middleX + 3, influencerY)
+            influencerY += 2.5
+          })
         }
         
-        influencerY += 3
+        influencerY += 2
       }
     })
   }
@@ -596,21 +687,25 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(239, 246, 255) // blue-50
     pdf.setDrawColor(191, 219, 254) // blue-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(rightX, currentY, columnWidth, 60, 2, 2, 'FD')
+    pdf.roundedRect(rightX, currentY, columnWidth, navigationStrategyHeight, 2, 2, 'FD')
     
     pdf.setTextColor(30, 58, 138) // blue-900
     pdf.setFontSize(9)
     pdf.setFont('helvetica', 'bold')
-    pdf.text('🎯 Navigation Strategy', rightX + 3, currentY + 5)
+    pdf.text('Navigation Strategy', rightX + 3, currentY + 5)
     
     pdf.setTextColor(30, 58, 138) // blue-900
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'bold')
     
-    const strategyLines = pdf.splitTextToSize(sanitizeText(data.navigationStrategy), columnWidth - 6)
-    pdf.text(strategyLines.slice(0, 3), rightX + 3, currentY + 10)
+    const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
+    let strategyY = currentY + 10
+    strategyLines.forEach((line: string) => {
+      pdf.text(line, rightX + 3, strategyY)
+      strategyY += 3.5
+    })
     
-    let bulletY = currentY + 10 + (3.5 * Math.min(strategyLines.length, 3)) + 2
+    strategyY += 2
     
     // Bullet points
     pdf.setFontSize(7)
@@ -619,23 +714,23 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     
     // Red bullet
     pdf.setFillColor(239, 68, 68) // red-500
-    pdf.circle(rightX + 4, bulletY - 1, 0.8, 'F')
-    pdf.text('Lead with economic buyers', rightX + 7, bulletY)
-    bulletY += 3.5
+    pdf.circle(rightX + 4, strategyY - 1, 0.8, 'F')
+    pdf.text('Lead with economic buyers', rightX + 7, strategyY)
+    strategyY += 3.5
     
     // Yellow bullet
     pdf.setFillColor(234, 179, 8) // yellow-500
-    pdf.circle(rightX + 4, bulletY - 1, 0.8, 'F')
-    pdf.text('Coordinate with influencers', rightX + 7, bulletY)
-    bulletY += 3.5
+    pdf.circle(rightX + 4, strategyY - 1, 0.8, 'F')
+    pdf.text('Coordinate with influencers', rightX + 7, strategyY)
+    strategyY += 3.5
     
-    // Blue bullet
-    pdf.setFillColor(59, 130, 246) // blue-500
-    pdf.circle(rightX + 4, bulletY - 1, 0.8, 'F')
-    pdf.text('Validate with end users', rightX + 7, bulletY)
+    // Green bullet
+    pdf.setFillColor(21, 128, 61) // green-600
+    pdf.circle(rightX + 4, strategyY - 1, 0.8, 'F')
+    pdf.text('Validate with end users', rightX + 7, strategyY)
   }
   
-  currentY += 50
+  currentY += maxHeight + 8
   
   return currentY
 }
@@ -669,7 +764,7 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
     pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     pdf.setFont('helvetica', 'normal')
-    const rationaleLines = pdf.splitTextToSize(sanitizeText(data.rationale), PDF_CONFIG.page.contentWidth)
+    const rationaleLines = pdf.splitTextToSize(sanitizePDF(data.rationale), PDF_CONFIG.page.contentWidth)
     pdf.text(rationaleLines, PDF_CONFIG.page.margin, currentY)
     currentY += rationaleLines.length * 5 + 6
   }
@@ -686,7 +781,7 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     pdf.setFont('helvetica', 'normal')
     data.supportingEvidence.forEach((evidence: string) => {
-      const evidenceLines = pdf.splitTextToSize(sanitizeText(`• ${evidence}`), PDF_CONFIG.page.contentWidth - 5)
+      const evidenceLines = pdf.splitTextToSize(sanitizePDF(`• ${evidence}`), PDF_CONFIG.page.contentWidth - 5)
       pdf.text(evidenceLines, PDF_CONFIG.page.margin + 5, currentY)
       currentY += evidenceLines.length * 5
     })
@@ -730,7 +825,7 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...PDF_CONFIG.colors.primary)
     pdf.setFont('helvetica', 'bold')
-    const actionTitle = sanitizeText(`${index + 1}. ${action.action}`)
+    const actionTitle = sanitizePDF(`${index + 1}. ${action.action}`)
     const titleLines = pdf.splitTextToSize(actionTitle, PDF_CONFIG.page.contentWidth)
     pdf.text(titleLines, PDF_CONFIG.page.margin, currentY)
     currentY += titleLines.length * 5 + 3
@@ -739,14 +834,14 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     pdf.setFont('helvetica', 'normal')
-    const rationaleLines = pdf.splitTextToSize(sanitizeText(action.rationale), PDF_CONFIG.page.contentWidth)
+    const rationaleLines = pdf.splitTextToSize(sanitizePDF(action.rationale), PDF_CONFIG.page.contentWidth)
     pdf.text(rationaleLines, PDF_CONFIG.page.margin, currentY)
     currentY += rationaleLines.length * 5 + 3
     
     // Timeline and channels
     pdf.setFontSize(PDF_CONFIG.fonts.small.size)
     pdf.setTextColor(...PDF_CONFIG.colors.gray)
-    pdf.text(sanitizeText(`Timeline: ${action.timeline} | Channels: ${action.channels.join(', ')}`), PDF_CONFIG.page.margin, currentY)
+    pdf.text(sanitizePDF(`Timeline: ${action.timeline} | Channels: ${action.channels.join(', ')}`), PDF_CONFIG.page.margin, currentY)
     currentY += 6
     
     // Email template if present
@@ -774,18 +869,18 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
       
       currentY += 2
       
-      // Email Template header with emoji
+      // Email Template header
       pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
       pdf.setTextColor(...PDF_CONFIG.colors.blue)
       pdf.setFont('helvetica', 'bold')
-      pdf.text('📧 Email Template:', PDF_CONFIG.page.margin + 6, currentY)
+      pdf.text('Email Template:', PDF_CONFIG.page.margin + 6, currentY)
       currentY += 7
       
       // Subject line
       pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
       pdf.setFont('helvetica', 'bold')
-      pdf.text(sanitizeText(`Subject: ${action.emailTemplate.subject}`), PDF_CONFIG.page.margin + 6, currentY)
+      pdf.text(sanitizePDF(`Subject: ${action.emailTemplate.subject}`), PDF_CONFIG.page.margin + 6, currentY)
       currentY += 6
       
       // Email body
@@ -830,7 +925,7 @@ function renderDealInsights(pdf: jsPDF, insights: string[], startY: number): num
   
   insights.forEach((insight, index) => {
     currentY = checkPageBreak(pdf, currentY, 15, 'Deal Insights')
-    const insightText = sanitizeText(`${index + 1}. ${insight}`)
+    const insightText = sanitizePDF(`${index + 1}. ${insight}`)
     const insightLines = pdf.splitTextToSize(insightText, PDF_CONFIG.page.contentWidth)
     pdf.text(insightLines, PDF_CONFIG.page.margin, currentY)
     currentY += insightLines.length * 5 + 3
@@ -875,7 +970,7 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
     // Pre-calculate space needed for entire section
     let sectionHeight = 10 // Header + padding
     section.items.forEach((item: string) => {
-      const itemLines = pdf.splitTextToSize(sanitizeText(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
+      const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
       sectionHeight += itemLines.length * 5 + 2
     })
     
@@ -894,7 +989,7 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     pdf.setFont('helvetica', 'normal')
     section.items.forEach((item: string) => {
-      const itemLines = pdf.splitTextToSize(sanitizeText(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
+      const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
       pdf.text(itemLines, PDF_CONFIG.page.margin + 5, currentY)
       currentY += itemLines.length * 5 + 2
     })
