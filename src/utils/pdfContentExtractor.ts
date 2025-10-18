@@ -127,7 +127,7 @@ function extractStrategicAssessment(analysis: any) {
   return {
     primaryStrategy: recommendations?.primaryStrategy || 'Strategic approach to be defined',
     competitiveStrategy: recommendations?.competitiveStrategy || 'Competitive positioning to be established',
-    stakeholderPlan: recommendations?.stakeholderStrategy || 'Stakeholder engagement plan to be developed'
+    stakeholderPlan: recommendations?.stakeholderPlan || 'Stakeholder engagement plan to be developed'
   }
 }
 
@@ -136,7 +136,7 @@ function extractWhyTheseActions(analysis: any) {
   const reasoning = analysis?.reasoning || {}
 
   return {
-    rationale: actionPlan?.rationale || reasoning?.strategicRationale || 'Actions designed to move the deal forward strategically',
+    rationale: actionPlan?.rationale || reasoning?.dealViabilityRationale || reasoning?.strategicRationale || 'Actions designed to move the deal forward strategically',
     supportingEvidence: Array.isArray(reasoning?.supportingEvidence) 
       ? reasoning.supportingEvidence 
       : ['Based on conversation analysis', 'Aligned with buyer journey', 'Optimized for deal momentum']
@@ -159,13 +159,13 @@ function extractActionItems(analysis: any) {
 
   return actions.map((action: any) => ({
     action: action?.action || 'Action item',
-    rationale: action?.rationale || 'Strategic follow-up',
+    rationale: action?.objective || action?.rationale || 'Strategic follow-up',
     timeline: action?.timeline || 'TBD',
-    channels: Array.isArray(action?.channels) ? action.channels : ['Email'],
-    emailTemplate: action?.emailTemplate ? {
-      subject: action.emailTemplate.subject || 'Follow-up',
-      body: action.emailTemplate.body || 'Email content',
-      tone: action.emailTemplate.tone || 'Professional'
+    channels: action?.method ? [action.method] : (Array.isArray(action?.channels) ? action.channels : ['Email']),
+    emailTemplate: action?.copyPasteContent ? {
+      subject: action.copyPasteContent.subject || 'Follow-up',
+      body: action.copyPasteContent.body || 'Email content',
+      tone: action.copyPasteContent.tone || 'Professional'
     } : null
   }))
 }
