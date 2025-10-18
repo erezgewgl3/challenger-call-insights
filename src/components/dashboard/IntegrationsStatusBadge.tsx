@@ -10,7 +10,8 @@ interface IntegrationInfo {
   name: string;
   connected: boolean;
   loading: boolean;
-  error?: string;
+  error?: string;      // Critical issues (connection broken)
+  warning?: string;    // Performance issues (deliveries failing)
   isDefined: boolean; // Has a database record (attempted configuration)
 }
 
@@ -36,12 +37,16 @@ export const IntegrationsStatusBadge: React.FC = () => {
       name: 'Zapier',
       connected: zapierStatus.status === 'connected',
       loading: zapierLoading,
-      // Only treat as error if it's "Verification Needed" or "Delivery Issues"
-      // "Connected (Issues)" is a warning, not an error
-      error: (zapierStatus.status === 'error' && 
-             (zapierStatus.text === 'Verification Needed' || zapierStatus.text === 'Delivery Issues')) 
+      // Critical error: connection can't be verified
+      error: (zapierStatus.status === 'error' && zapierStatus.text === 'Verification Needed') 
              ? zapierStatus.text 
              : undefined,
+      // Warning: connection works but deliveries failing
+      warning: (zapierStatus.status === 'error' && zapierStatus.text === 'Delivery Issues')
+               ? zapierStatus.text
+               : (zapierStatus.status === 'connected' && zapierStatus.text === 'Connected (Issues)')
+               ? zapierStatus.text
+               : undefined,
       isDefined: zapierStatus.isSetupComplete
     }
   ];
@@ -51,6 +56,7 @@ export const IntegrationsStatusBadge: React.FC = () => {
   const connectedCount = definedIntegrations.filter(i => i.connected).length;
   const totalCount = definedIntegrations.length;
   const hasErrors = definedIntegrations.some(i => i.error);
+  const hasWarnings = definedIntegrations.some(i => i.warning);
   const isLoading = allIntegrations.some(i => i.loading);
   const hasAnyConnection = connectedCount > 0;
 
@@ -66,7 +72,7 @@ export const IntegrationsStatusBadge: React.FC = () => {
       };
     }
 
-    // Issue State: One or more defined integrations have problems
+    // Critical Issue State: Connection broken
     if (hasErrors && totalCount > 0) {
       return {
         variant: 'destructive' as const,
@@ -74,11 +80,23 @@ export const IntegrationsStatusBadge: React.FC = () => {
         icon: XCircle,
         iconClassName: 'h-3 w-3 mr-1.5',
         text: 'Integration Issues',
-        description: 'Some integrations have connection errors. Click to resolve.'
+        description: 'Integration connection problems. Click to resolve.'
       };
     }
 
-    // Green State: All defined integrations working
+    // Warning State: Connected but performance issues
+    if (hasWarnings && totalCount > 0 && !hasErrors) {
+      return {
+        variant: 'default' as const,
+        className: 'cursor-pointer hover:bg-yellow-500/90 transition-colors bg-yellow-500 text-white border-yellow-500',
+        icon: AlertTriangle,
+        iconClassName: 'h-3 w-3 mr-1.5',
+        text: 'Integration Warnings',
+        description: 'Some integrations have delivery issues. Connection is working.'
+      };
+    }
+
+    // Green State: All healthy
     if (connectedCount === totalCount && totalCount > 0) {
       return {
         variant: 'default' as const,
@@ -86,7 +104,7 @@ export const IntegrationsStatusBadge: React.FC = () => {
         icon: CheckCircle,
         iconClassName: 'h-3 w-3 mr-1.5',
         text: 'Integrations',
-        description: `All ${totalCount} integrations are connected and working properly.`
+        description: `All ${totalCount} integrations are connected and healthy.`
       };
     }
 
@@ -138,6 +156,8 @@ export const IntegrationsStatusBadge: React.FC = () => {
                 <span className={`font-medium ${
                   integration.error 
                     ? 'text-destructive' 
+                    : integration.warning
+                    ? 'text-yellow-600'
                     : integration.connected 
                     ? 'text-green-600' 
                     : 'text-muted-foreground'
@@ -146,6 +166,8 @@ export const IntegrationsStatusBadge: React.FC = () => {
                     ? 'Checking...' 
                     : integration.error 
                     ? 'Error' 
+                    : integration.warning
+                    ? 'Warning'
                     : integration.connected 
                     ? 'Connected' 
                     : 'Not Connected'
