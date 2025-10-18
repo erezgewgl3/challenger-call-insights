@@ -30,12 +30,23 @@ export function analyzeContentForPDF(element: HTMLElement): ContentSection[] {
     
     // Check for explicit PDF boundary markers
     if (classList.includes('pdf-keep-together') || classList.includes('pdf-section-boundary')) {
+      const sectionType = detectSectionType(el)
+      const heightMM = pixelsToMM(rect.height, 1)
+      const startYMM = pixelsToMM(relativeY, 1)
+      
+      console.log('Found boundary-marked section:', {
+        type: sectionType,
+        classes: classList.filter(c => c.startsWith('pdf-')),
+        height: heightMM.toFixed(2) + 'mm',
+        position: startYMM.toFixed(2) + 'mm'
+      })
+      
       sections.push({
         element: el,
-        startY: pixelsToMM(relativeY, 1), // No scale factor for DOM measurements
-        height: pixelsToMM(rect.height, 1),
+        startY: startYMM,
+        height: heightMM,
         priority: 'must-keep-together',
-        type: detectSectionType(el),
+        type: sectionType,
         id: el.id || `section-${sections.length}`
       })
       return // Don't scan children of boundary-marked elements
@@ -162,62 +173,79 @@ export function calculateOptimalPageBreaks(
   
   for (let i = 0; i < sections.length; i++) {
     const section = sections[i]
-    // Section dimensions are already in MM from DOM scanning
     const sectionHeightMM = section.height
-    const sectionStartMM = section.startY
-    const relativeStartMM = sectionStartMM - currentPageStart
-    const sectionEndMM = relativeStartMM + sectionHeightMM
+    const sectionAbsoluteStartMM = section.startY
+    const sectionAbsoluteEndMM = sectionAbsoluteStartMM + sectionHeightMM
     
-    // Check if section fits in current page
-    if (sectionEndMM <= currentPageAvailable) {
-      // Section fits, continue
+    // Calculate how much content from this section would be on current page
+    // contentOnPageSoFar = how much document content has been placed on current page before this section
+    const contentOnPageSoFar = sectionAbsoluteStartMM - currentPageStart
+    const spaceNeededForSection = contentOnPageSoFar + sectionHeightMM
+    
+    // Check if section fits in available space
+    if (spaceNeededForSection <= currentPageAvailable) {
+      // Fits! Continue on current page
+      console.log(`Section ${i} (${section.type}) FITS on current page`, {
+        absoluteStart: sectionAbsoluteStartMM.toFixed(2) + 'mm',
+        contentSoFar: contentOnPageSoFar.toFixed(2) + 'mm',
+        sectionHeight: sectionHeightMM.toFixed(2) + 'mm',
+        spaceNeeded: spaceNeededForSection.toFixed(2) + 'mm',
+        available: currentPageAvailable.toFixed(2) + 'mm'
+      })
       continue
     }
     
-    // Section doesn't fit - decide on break strategy based on priority
+    // Doesn't fit - apply priority-based strategy
+    console.log(`Section ${i} (${section.type}) DOESN'T FIT`, {
+      priority: section.priority,
+      absoluteStart: sectionAbsoluteStartMM.toFixed(2) + 'mm',
+      sectionHeight: sectionHeightMM.toFixed(2) + 'mm',
+      contentSoFar: contentOnPageSoFar.toFixed(2) + 'mm',
+      available: currentPageAvailable.toFixed(2) + 'mm'
+    })
+    
     if (section.priority === 'must-keep-together') {
-      // Force page break before this section if it's not too large
-      if (sectionHeightMM < currentPageAvailable * 0.9) {
-        // Add break before this section
-        breakPoints.push(sectionStartMM)
-        currentPageStart = sectionStartMM
-        currentPageAvailable = isFirstPage ? subsequentPageAvailable : subsequentPageAvailable
-        isFirstPage = false
-        
-        console.log(`Page break before ${section.type} (must-keep-together):`, {
-          breakAtMM: sectionStartMM,
-          sectionHeight: sectionHeightMM
-        })
-      } else {
-        // Section too large, will span pages anyway
-        console.log(`Large section spans pages: ${section.type}`, { sectionHeightMM })
-      }
-    } else if (section.priority === 'prefer-together' && sectionHeightMM < currentPageAvailable * 0.75) {
-      // Prefer to keep together if reasonable
-      breakPoints.push(sectionStartMM)
-      currentPageStart = sectionStartMM
-      currentPageAvailable = subsequentPageAvailable
-      isFirstPage = false
-      
-      console.log(`Page break before ${section.type} (prefer-together):`, {
-        breakAtMM: sectionStartMM
-      })
-    } else {
-      // Splittable or too large - let it span pages
-      // Calculate next natural break point
-      const overhang = sectionEndMM - currentPageAvailable
-      if (overhang > subsequentPageAvailable * 0.5) {
-        // Need multiple pages for this section
-        const naturalBreak = sectionStartMM + currentPageAvailable
-        breakPoints.push(naturalBreak)
-        currentPageStart = naturalBreak
+      // Break BEFORE this section to keep it intact on next page
+      if (sectionHeightMM <= subsequentPageAvailable) {
+        breakPoints.push(sectionAbsoluteStartMM)
+        currentPageStart = sectionAbsoluteStartMM
         currentPageAvailable = subsequentPageAvailable
         isFirstPage = false
-        
-        console.log(`Mid-section break for large ${section.type}:`, {
-          breakAtMM: naturalBreak
-        })
+        console.log(`→ Breaking BEFORE section at ${sectionAbsoluteStartMM.toFixed(2)}mm to keep together`)
+      } else {
+        // Section too large for a single page, will span pages anyway
+        const breakPoint = currentPageStart + currentPageAvailable
+        breakPoints.push(breakPoint)
+        currentPageStart = breakPoint
+        currentPageAvailable = subsequentPageAvailable
+        isFirstPage = false
+        console.log(`→ Section too large (${sectionHeightMM.toFixed(2)}mm), natural break at ${breakPoint.toFixed(2)}mm`)
       }
+    } else if (section.priority === 'prefer-together') {
+      // Try to keep together if reasonable (< 80% of page height)
+      if (sectionHeightMM < subsequentPageAvailable * 0.8) {
+        breakPoints.push(sectionAbsoluteStartMM)
+        currentPageStart = sectionAbsoluteStartMM
+        currentPageAvailable = subsequentPageAvailable
+        isFirstPage = false
+        console.log(`→ Breaking BEFORE section (prefer-together) at ${sectionAbsoluteStartMM.toFixed(2)}mm`)
+      } else {
+        // Too large, break at current position (natural page boundary)
+        const breakPoint = currentPageStart + currentPageAvailable
+        breakPoints.push(breakPoint)
+        currentPageStart = breakPoint
+        currentPageAvailable = subsequentPageAvailable
+        isFirstPage = false
+        console.log(`→ Natural break at page boundary ${breakPoint.toFixed(2)}mm`)
+      }
+    } else {
+      // Splittable - break at natural page boundary
+      const breakPoint = currentPageStart + currentPageAvailable
+      breakPoints.push(breakPoint)
+      currentPageStart = breakPoint
+      currentPageAvailable = subsequentPageAvailable
+      isFirstPage = false
+      console.log(`→ Natural break (splittable) at ${breakPoint.toFixed(2)}mm`)
     }
   }
   
@@ -241,10 +269,16 @@ export function identifySectionAtPosition(
   sections: ContentSection[],
   positionMM: number
 ): ContentSection | null {
-  const positionPx = positionMM / 0.264583
-  
+  // Sections are already in MM, no need to convert
   for (const section of sections) {
-    if (positionPx >= section.startY && positionPx < section.startY + section.height) {
+    const sectionEndMM = section.startY + section.height
+    if (positionMM >= section.startY && positionMM < sectionEndMM) {
+      console.log('Section identified at position:', {
+        positionMM: positionMM.toFixed(2),
+        sectionType: section.type,
+        sectionStart: section.startY.toFixed(2),
+        sectionEnd: sectionEndMM.toFixed(2)
+      })
       return section
     }
   }
