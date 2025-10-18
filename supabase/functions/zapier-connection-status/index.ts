@@ -95,12 +95,19 @@ async function handleGetStatus(supabaseClient: any, userId: string) {
     v.success && new Date(v.verified_at).getTime() > Date.now() - 15 * 60 * 1000
   );
 
-  // Calculate success rate
-  const totalHooks = webhooks.length;
-  const successfulHooks = webhooks.filter((hook: any) => 
-    hook.success_count > hook.failure_count
-  ).length;
-  const successRate = totalHooks > 0 ? Math.round((successfulHooks / totalHooks) * 100) : 0;
+  // Calculate success rate based on actual delivery attempts
+  const totalDeliveries = webhooks.reduce((sum: number, hook: any) => 
+    sum + (hook.success_count || 0) + (hook.failure_count || 0), 0
+  );
+
+  const successfulDeliveries = webhooks.reduce((sum: number, hook: any) => 
+    sum + (hook.success_count || 0), 0
+  );
+
+  // If no activity yet, show 100% (not 0%) since there are no failures
+  const successRate = totalDeliveries > 0 
+    ? Math.round((successfulDeliveries / totalDeliveries) * 100)
+    : 100;
 
   // Determine status
   let status = 'setup';
@@ -109,23 +116,33 @@ async function handleGetStatus(supabaseClient: any, userId: string) {
 
   if (isSetupComplete) {
     if (recentSuccess) {
-      if (successRate >= 90) {
+      // Connection verified recently
+      if (totalDeliveries === 0) {
+        // No activity yet - show as healthy but note no activity
+        status = 'connected';
+        color = 'bg-green-500';
+        text = 'Connected (No Activity)';
+      } else if (successRate >= 90) {
+        // Excellent health
         status = 'connected';
         color = 'bg-green-500';
         text = 'Healthy';
       } else if (successRate >= 70) {
+        // Some issues but mostly working
         status = 'connected';
         color = 'bg-yellow-500';
-        text = 'Degraded';
+        text = 'Connected (Issues)';
       } else {
-        status = 'connected';
+        // Major delivery problems
+        status = 'error';
         color = 'bg-red-500';
-        text = 'Connected';
+        text = 'Delivery Issues';
       }
     } else {
+      // No recent verification - connection may be stale
       status = 'error';
       color = 'bg-red-500';
-      text = 'Issues Detected';
+      text = 'Verification Needed';
     }
   }
 
@@ -138,7 +155,15 @@ async function handleGetStatus(supabaseClient: any, userId: string) {
     activeApiKeys,
     isSetupComplete,
     lastVerifiedAt: recentSuccess?.verified_at || null,
-    verifications: verifications || []
+    verifications: verifications || [],
+    // Add delivery metrics for transparency
+    metrics: {
+      totalWebhooks: webhooks.length,
+      totalDeliveries,
+      successfulDeliveries,
+      failedDeliveries: totalDeliveries - successfulDeliveries,
+      hasActivity: totalDeliveries > 0
+    }
   };
 
   console.log('Returning status:', response);
