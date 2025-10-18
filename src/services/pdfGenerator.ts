@@ -68,10 +68,13 @@ export function addMultiPageContentWithSmartBreaks(
   const subsequentPageAvailableHeightMM = pdfHeight - 30
   
   // Convert break points (MM) to pixel positions in canvas
-  // Formula: MM → screen pixels (÷0.264583) → canvas pixels (×3 for html2canvas scale)
+  // Phase 3: Add 10mm buffer zone around breaks for visual polish
+  // Phase 4: Updated scale factor from 3x to 2.5x
+  // Formula: MM → screen pixels (÷0.264583) → canvas pixels (×2.5 for html2canvas scale)
   const breakPixels = breakPoints.map(breakMM => {
-    const screenPixels = breakMM / 0.264583 // MM to screen pixels at 96 DPI
-    const canvasPixels = screenPixels * 3 // Account for 3x canvas scale
+    const bufferedBreakMM = breakMM + 10 // Add 10mm buffer zone
+    const screenPixels = bufferedBreakMM / 0.264583 // MM to screen pixels at 96 DPI
+    const canvasPixels = screenPixels * 2.5 // Phase 4: Updated from 3x to 2.5x canvas scale
     return Math.round(canvasPixels)
   })
   
@@ -81,11 +84,11 @@ export function addMultiPageContentWithSmartBreaks(
   
   console.log('Smart Multi-page PDF with content-aware breaks:', {
     canvasHeight: canvas.height,
-    canvasScale: 3,
+    canvasScale: 2.5, // Phase 4: Updated from 3x to 2.5x
     scaledHeight,
     breakPointsMM: breakPoints,
     breakPixels,
-    conversionFormula: 'MM → screen px (÷0.264583) → canvas px (×3)',
+    conversionFormula: 'MM → screen px (÷0.264583) → canvas px (×2.5)',
     totalPagesNeeded
   })
   
@@ -113,8 +116,8 @@ export function addMultiPageContentWithSmartBreaks(
       pdf.addPage()
       
       // Determine section name for continuation marker
-      // Convert canvas pixels back to MM (accounting for 3x scale)
-      const startMM = (startPixel / 3) * 0.264583
+      // Phase 4: Convert canvas pixels back to MM (accounting for 2.5x scale)
+      const startMM = (startPixel / 2.5) * 0.264583
       const currentSection = identifySectionAtPosition(sections, startMM)
       const sectionName = currentSection ? formatSectionName(currentSection.type) : undefined
       

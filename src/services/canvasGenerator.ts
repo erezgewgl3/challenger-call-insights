@@ -34,7 +34,7 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
 
   try {
     const canvas = await html2canvas(element, {
-      scale: 3, // 3x scale for ultra-sharp text rendering
+      scale: 2.5, // Phase 4: Reduced from 3x to 2.5x for balanced quality/performance
       useCORS: true,
       allowTaint: false,
       backgroundColor: '#ffffff',

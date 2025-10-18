@@ -122,8 +122,8 @@ function determinePriority(el: HTMLElement): ContentSection['priority'] {
   const height = el.getBoundingClientRect().height
   const classList = Array.from(el.classList).join(' ').toLowerCase()
   
-  // Small elements should always stay together
-  if (height < 150) return 'must-keep-together'
+  // Phase 2: Increased threshold from 150px to 250px for better content integrity
+  if (height < 250) return 'must-keep-together'
   
   // Action items, email templates, and small cards must stay together
   if (
@@ -222,13 +222,27 @@ export function calculateOptimalPageBreaks(
         console.log(`→ Section too large (${sectionHeightMM.toFixed(2)}mm), natural break at ${breakPoint.toFixed(2)}mm`)
       }
     } else if (section.priority === 'prefer-together') {
-      // Try to keep together if reasonable (< 80% of page height)
-      if (sectionHeightMM < subsequentPageAvailable * 0.8) {
-        breakPoints.push(sectionAbsoluteStartMM)
-        currentPageStart = sectionAbsoluteStartMM
-        currentPageAvailable = subsequentPageAvailable
-        isFirstPage = false
-        console.log(`→ Breaking BEFORE section (prefer-together) at ${sectionAbsoluteStartMM.toFixed(2)}mm`)
+      // Phase 2: Adjusted from 80% to 70% - breaks earlier for better flow
+      if (sectionHeightMM < subsequentPageAvailable * 0.7) {
+        // Phase 2: Look-ahead logic - check if next section would create orphan
+        const nextSection = sections[i + 1]
+        const wouldCreateOrphan = nextSection && nextSection.height < 100
+        
+        if (!wouldCreateOrphan) {
+          breakPoints.push(sectionAbsoluteStartMM)
+          currentPageStart = sectionAbsoluteStartMM
+          currentPageAvailable = subsequentPageAvailable
+          isFirstPage = false
+          console.log(`→ Breaking BEFORE section (prefer-together) at ${sectionAbsoluteStartMM.toFixed(2)}mm`)
+        } else {
+          // Would create orphan, break at current position instead
+          const breakPoint = currentPageStart + currentPageAvailable
+          breakPoints.push(breakPoint)
+          currentPageStart = breakPoint
+          currentPageAvailable = subsequentPageAvailable
+          isFirstPage = false
+          console.log(`→ Avoiding orphan, natural break at ${breakPoint.toFixed(2)}mm`)
+        }
       } else {
         // Too large, break at current position (natural page boundary)
         const breakPoint = currentPageStart + currentPageAvailable
@@ -255,10 +269,11 @@ export function calculateOptimalPageBreaks(
 
 /**
  * Converts pixels to millimeters accounting for canvas scale factor
+ * Phase 4: Updated default scale from 3 to 2.5 for balanced quality/performance
  * @param pixels - Pixel value from canvas
- * @param scale - Canvas scale factor (default 3 for html2canvas)
+ * @param scale - Canvas scale factor (default 2.5 for optimized html2canvas)
  */
-function pixelsToMM(pixels: number, scale: number = 3): number {
+function pixelsToMM(pixels: number, scale: number = 2.5): number {
   return (pixels / scale) * 0.264583
 }
 

@@ -131,7 +131,7 @@
   print-color-adjust: exact !important;
   color-adjust: exact !important;
   
-  /* Optimized typography for PDF readability */
+  /* Improved typography for better PDF readability (Phase 1: Balanced approach) */
   font-size: 100% !important;
   line-height: 1.4 !important;
   font-weight: 400 !important;
@@ -147,50 +147,50 @@
   text-shadow: none !important;
 }
 
-/* Crisp headers with defined font weights */
+/* Crisp headers with improved readability (Phase 1: +20% size increase) */
 .pdf-export-mode h1 {
-  font-size: 1.5rem !important;
+  font-size: 1.8rem !important;
   line-height: 1.3 !important;
-  font-weight: 600 !important; /* More defined than 500 for crispness */
-  margin-bottom: 0.75rem !important;
-  margin-top: 1rem !important;
+  font-weight: 600 !important;
+  margin-bottom: 0.9rem !important;
+  margin-top: 1.2rem !important;
 }
 
 .pdf-export-mode h2 {
-  font-size: 1.25rem !important;
+  font-size: 1.5rem !important;
   line-height: 1.3 !important;
   font-weight: 600 !important;
-  margin-bottom: 0.5rem !important;
-  margin-top: 0.75rem !important;
+  margin-bottom: 0.7rem !important;
+  margin-top: 0.9rem !important;
 }
 
 .pdf-export-mode h3 {
-  font-size: 1.1rem !important;
+  font-size: 1.3rem !important;
   line-height: 1.3 !important;
   font-weight: 600 !important;
-  margin-bottom: 0.4rem !important;
-  margin-top: 0.6rem !important;
+  margin-bottom: 0.6rem !important;
+  margin-top: 0.7rem !important;
 }
 
 .pdf-export-mode p,
 .pdf-export-mode div,
 .pdf-export-mode span,
 .pdf-export-mode li {
-  font-size: 0.9rem !important;
-  line-height: 1.25 !important;
-  margin-bottom: 0.4rem !important;
-  font-weight: 400 !important; /* Clean regular weight for crisp body text */
+  font-size: 1.05rem !important;
+  line-height: 1.4 !important;
+  margin-bottom: 0.6rem !important;
+  font-weight: 400 !important;
 }
 
-/* Final polish - ultra-compact card and section spacing for PDF */
+/* Balanced card and section spacing for better readability (Phase 1: +100% padding increase) */
 .pdf-export-mode [class*="card"], 
 .pdf-export-mode [class*="Card"],
 .pdf-export-mode .bg-white,
 .pdf-export-mode .border,
 .pdf-export-mode .rounded-lg,
 .pdf-export-mode .shadow-sm {
-  padding: 0.3rem !important;
-  margin-bottom: 0.4rem !important;
+  padding: 0.6rem !important;
+  margin-bottom: 0.7rem !important;
   overflow: visible !important;
   height: auto !important;
   min-height: auto !important;
@@ -199,22 +199,22 @@
   print-color-adjust: exact !important;
 }
 
-/* Final polish - ultra-compact spacing for PDF */
-.pdf-export-mode .space-y-1 > * + * { margin-top: 0.05rem !important; }
-.pdf-export-mode .space-y-2 > * + * { margin-top: 0.1rem !important; }
-.pdf-export-mode .space-y-3 > * + * { margin-top: 0.2rem !important; }
-.pdf-export-mode .space-y-4 > * + * { margin-top: 0.25rem !important; }
-.pdf-export-mode .space-y-6 > * + * { margin-top: 0.3rem !important; }
-.pdf-export-mode .space-y-8 > * + * { margin-top: 0.4rem !important; }
+/* Balanced spacing for better readability (Phase 1: ~75% increase) */
+.pdf-export-mode .space-y-1 > * + * { margin-top: 0.1rem !important; }
+.pdf-export-mode .space-y-2 > * + * { margin-top: 0.2rem !important; }
+.pdf-export-mode .space-y-3 > * + * { margin-top: 0.35rem !important; }
+.pdf-export-mode .space-y-4 > * + * { margin-top: 0.45rem !important; }
+.pdf-export-mode .space-y-6 > * + * { margin-top: 0.55rem !important; }
+.pdf-export-mode .space-y-8 > * + * { margin-top: 0.7rem !important; }
 
-/* Compact section-specific spacing */
+/* Balanced section-specific spacing */
 .pdf-export-mode .report-section {
-  margin-bottom: 0.4rem !important;
-  padding: 0.4rem !important;
+  margin-bottom: 0.7rem !important;
+  padding: 0.7rem !important;
 }
 
 .pdf-export-mode .analysis-section {
-  margin-bottom: 0.3rem !important;
+  margin-bottom: 0.6rem !important;
 }
 
 /* Final polish - ultra-compact action items and email templates */
