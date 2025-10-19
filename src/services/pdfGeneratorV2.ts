@@ -238,21 +238,26 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
  */
 function renderHeader(pdf: jsPDF, header: any): number {
   // Title
-  pdf.setFontSize(PDF_CONFIG.fonts.title.size)
-  pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text(sanitizePDF(header.title), PDF_CONFIG.page.margin, 22)
+  renderSmartText(pdf, sanitizePDF(header.title), PDF_CONFIG.page.margin, 22, {
+    fontSize: PDF_CONFIG.fonts.title.size,
+    fontStyle: 'bold'
+  })
   
   // Subtitle
   pdf.setFontSize(13)
   pdf.setTextColor(...PDF_CONFIG.colors.gray)
-  pdf.setFont('helvetica', 'normal')
-  pdf.text('Sales Intelligence Report', PDF_CONFIG.page.margin, 32)
+  renderSmartText(pdf, 'Sales Intelligence Report', PDF_CONFIG.page.margin, 32, {
+    fontSize: 13,
+    fontStyle: 'normal'
+  })
   
   // Date and duration on same line (matching screen format)
   const dateText = sanitizePDF(header.date)
   const durationText = header.duration ? ` • Duration: ${sanitizePDF(header.duration)}` : ''
-  pdf.text(`Analyzed ${dateText}${durationText}`, PDF_CONFIG.page.margin, 40)
+  renderSmartText(pdf, `Analyzed ${dateText}${durationText}`, PDF_CONFIG.page.margin, 40, {
+    fontSize: 13,
+    fontStyle: 'normal'
+  })
   
   // Separator line
   pdf.setDrawColor(...PDF_CONFIG.colors.gray)
@@ -268,14 +273,17 @@ function renderHeader(pdf: jsPDF, header: any): number {
 function addPageHeader(pdf: jsPDF, title: string, pageNum: number): number {
   const pageWidth = pdf.internal.pageSize.getWidth()
   
-  pdf.setFontSize(12)
-  pdf.setTextColor(...PDF_CONFIG.colors.gray)
-  pdf.setFont('helvetica', 'normal')
-  pdf.text(`${sanitizePDF(title)} - Page ${pageNum}`, PDF_CONFIG.page.margin, 12)
+  renderSmartText(pdf, `${sanitizePDF(title)} - Page ${pageNum}`, PDF_CONFIG.page.margin, 12, {
+    fontSize: 12,
+    fontStyle: 'normal'
+  })
   
   // Page number on right
-  pdf.setFontSize(10)
-  pdf.text(`Page ${pageNum}`, pageWidth - PDF_CONFIG.page.margin, 12, { align: 'right' })
+  renderSmartText(pdf, `Page ${pageNum}`, pageWidth - PDF_CONFIG.page.margin, 12, {
+    fontSize: 10,
+    fontStyle: 'normal',
+    align: 'right'
+  })
   
   // Separator
   pdf.setDrawColor(...PDF_CONFIG.colors.lightGray)
@@ -296,12 +304,14 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
     return startY // Skip entire section if no data
   }
   
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
-  pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Deal Command Center', PDF_CONFIG.page.margin, startY)
+  renderSmartText(pdf, 'Deal Command Center', PDF_CONFIG.page.margin, startY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   
   // Add underline to header
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   const headerWidth = pdf.getTextWidth('Deal Command Center')
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
@@ -377,10 +387,11 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   pdf.roundedRect(PDF_CONFIG.page.margin, currentY, PDF_CONFIG.page.contentWidth, boxHeight, 3, 3, 'FD')
   
   // "Win Strategy" label - darker text for better contrast on light background
-  pdf.setFontSize(11)
   pdf.setTextColor(5, 150, 105) // emerald-700
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Win Strategy', PDF_CONFIG.page.margin + 5, currentY + 6)
+  renderSmartText(pdf, 'Win Strategy', PDF_CONFIG.page.margin + 5, currentY + 6, {
+    fontSize: 11,
+    fontStyle: 'bold'
+  })
   
   // "Competitive Advantage" badge - emerald on emerald
   pdf.setFontSize(7)
@@ -392,17 +403,21 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   pdf.setFillColor(16, 185, 129) // emerald-500
   pdf.roundedRect(badgeX, currentY + 3.5, badgeWidth, 5, 1, 1, 'F')
   pdf.setTextColor(255, 255, 255)
-  pdf.text(badgeText, badgeX + 2, currentY + 6.8)
+  renderSmartText(pdf, badgeText, badgeX + 2, currentY + 6.8, {
+    fontSize: 7,
+    fontStyle: 'bold'
+  })
   
   // Strategy text with tighter line spacing - darker text
-  pdf.setFontSize(9)
-  pdf.setFont('helvetica', 'normal')
   pdf.setTextColor(31, 41, 55) // gray-800
   
   // Render each line with custom spacing
   let textY = currentY + 12
   strategyLines.forEach((line: string) => {
-    pdf.text(line, PDF_CONFIG.page.margin + 5, textY)
+    renderSmartText(pdf, line, PDF_CONFIG.page.margin + 5, textY, {
+      fontSize: 9,
+      fontStyle: 'normal'
+    })
     textY += 4.2 // Tighter line spacing
   })
   
@@ -421,12 +436,15 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
   }
   
   // Section heading
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Call Summary', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Call Summary', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   
   // Add underline to header
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   const headerWidth = pdf.getTextWidth('Call Summary')
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
@@ -436,12 +454,13 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
   
   // Overview (only if exists)
   if (data.overview) {
-    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    pdf.setFont('helvetica', 'normal')
-    const overviewLines = pdf.splitTextToSize(sanitizePDF(data.overview), PDF_CONFIG.page.contentWidth)
-    pdf.text(overviewLines, PDF_CONFIG.page.margin, currentY)
-    currentY += overviewLines.length * 5 + 6
+    currentY = renderSmartText(pdf, sanitizePDF(data.overview), PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.body.size,
+      fontStyle: 'normal',
+      maxWidth: PDF_CONFIG.page.contentWidth
+    })
+    currentY += 6
   }
   
   // Two-column grid (only if we have client situation or main topics)
@@ -450,35 +469,41 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
     
     // Client Situation (left column, only if exists)
     if (data.clientSituation) {
-      pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
       pdf.setTextColor(...PDF_CONFIG.colors.primary)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text('Client Situation', PDF_CONFIG.page.margin, currentY)
+      renderSmartText(pdf, 'Client Situation', PDF_CONFIG.page.margin, currentY, {
+        fontSize: PDF_CONFIG.fonts.subheading.size,
+        fontStyle: 'bold'
+      })
       currentY += 6
       
-      pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-      pdf.setFont('helvetica', 'normal')
+      const situationEndY = renderSmartText(pdf, sanitizePDF(data.clientSituation), PDF_CONFIG.page.margin, currentY, {
+        fontSize: PDF_CONFIG.fonts.body.size,
+        fontStyle: 'normal',
+        maxWidth: colWidth
+      })
       const situationLines = pdf.splitTextToSize(sanitizePDF(data.clientSituation), colWidth)
-      pdf.text(situationLines, PDF_CONFIG.page.margin, currentY)
+      currentY = situationEndY // Store for later comparison
     }
     
     // Main Topics (right column, only if exists)
     if (data.mainTopics.length > 0) {
       const rightColX = PDF_CONFIG.page.margin + colWidth + 5
-      pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
+      const topicStartY = currentY - (data.clientSituation ? 6 : 0)
       pdf.setTextColor(...PDF_CONFIG.colors.primary)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text('Main Topics', rightColX, currentY - (data.clientSituation ? 6 : 0))
+      renderSmartText(pdf, 'Main Topics', rightColX, topicStartY, {
+        fontSize: PDF_CONFIG.fonts.subheading.size,
+        fontStyle: 'bold'
+      })
       
-      pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-      pdf.setFont('helvetica', 'normal')
       let topicY = currentY
       data.mainTopics.forEach((topic: string) => {
-        const topicLines = pdf.splitTextToSize(sanitizePDF(`• ${topic}`), colWidth - 5)
-        pdf.text(topicLines, rightColX, topicY)
-        topicY += topicLines.length * 5
+        topicY = renderSmartText(pdf, sanitizePDF(`• ${topic}`), rightColX, topicY, {
+          fontSize: PDF_CONFIG.fonts.body.size,
+          fontStyle: 'normal',
+          maxWidth: colWidth - 5
+        })
       })
       
       if (data.clientSituation) {
@@ -504,76 +529,84 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
 function renderCoachingInsights(pdf: jsPDF, data: any, startY: number): number {
   let currentY = startY
   
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
+  renderSmartText(pdf, 'Coaching Insights', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
+    
+  // Add underline to header (consistent with other sections)
   pdf.setFont('helvetica', 'bold')
-    pdf.text('Coaching Insights', PDF_CONFIG.page.margin, currentY)
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
+  const coachingHeaderWidth = pdf.getTextWidth('Coaching Insights')
+  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+  pdf.setLineWidth(0.5)
+  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + coachingHeaderWidth, currentY + 1)
     
-    // Add underline to header (consistent with other sections)
-    const coachingHeaderWidth = pdf.getTextWidth('Coaching Insights')
-    pdf.setDrawColor(...PDF_CONFIG.colors.primary)
-    pdf.setLineWidth(0.5)
-    pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + coachingHeaderWidth, currentY + 1)
-    
-    currentY += 8
+  currentY += 8
   
   // What Worked Well
   if (data.whatWorkedWell.length > 0) {
-    pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...PDF_CONFIG.colors.green)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('What You Did Well', PDF_CONFIG.page.margin, currentY)
+    renderSmartText(pdf, 'What You Did Well', PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.subheading.size,
+      fontStyle: 'bold'
+    })
     currentY += 6
     
-    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    pdf.setFont('helvetica', 'normal')
     
     data.whatWorkedWell.forEach((item: string) => {
-      const lines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
-      pdf.text(lines, PDF_CONFIG.page.margin + 3, currentY)
-      currentY += lines.length * 5
+      currentY = renderSmartText(pdf, sanitizePDF(`• ${item}`), PDF_CONFIG.page.margin + 3, currentY, {
+        fontSize: PDF_CONFIG.fonts.body.size,
+        fontStyle: 'normal',
+        maxWidth: PDF_CONFIG.page.contentWidth - 5
+      })
     })
     currentY += 4
   }
   
   // Opportunities
-  pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.orange)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Opportunities for Improvement', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Opportunities for Improvement', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.subheading.size,
+    fontStyle: 'bold'
+  })
   currentY += 6
   
-  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
   pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'normal')
   
   if (Array.isArray(data.missedOpportunities)) {
     data.missedOpportunities.forEach((item: string) => {
-      const lines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
-      pdf.text(lines, PDF_CONFIG.page.margin + 3, currentY)
-      currentY += lines.length * 5
+      currentY = renderSmartText(pdf, sanitizePDF(`• ${item}`), PDF_CONFIG.page.margin + 3, currentY, {
+        fontSize: PDF_CONFIG.fonts.body.size,
+        fontStyle: 'normal',
+        maxWidth: PDF_CONFIG.page.contentWidth - 5
+      })
     })
   } else {
-    const lines = pdf.splitTextToSize(sanitizePDF(data.missedOpportunities), PDF_CONFIG.page.contentWidth)
-    pdf.text(lines, PDF_CONFIG.page.margin, currentY)
-    currentY += lines.length * 5
+    currentY = renderSmartText(pdf, sanitizePDF(data.missedOpportunities), PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.body.size,
+      fontStyle: 'normal',
+      maxWidth: PDF_CONFIG.page.contentWidth
+    })
   }
   currentY += 4
   
   // Focus Area
-  pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.blue)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Focus Area for Next Call', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Focus Area for Next Call', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.subheading.size,
+    fontStyle: 'bold'
+  })
   currentY += 6
   
-  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
   pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'normal')
-  const focusLines = pdf.splitTextToSize(sanitizePDF(capitalizeSentences(data.focusArea)), PDF_CONFIG.page.contentWidth)
-  pdf.text(focusLines, PDF_CONFIG.page.margin, currentY)
-  currentY += focusLines.length * 5
+  currentY = renderSmartText(pdf, sanitizePDF(capitalizeSentences(data.focusArea)), PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.body.size,
+    fontStyle: 'normal',
+    maxWidth: PDF_CONFIG.page.contentWidth
+  })
   
   return currentY + PDF_CONFIG.spacing.sectionGap
 }
@@ -586,19 +619,19 @@ function renderDealBlockers(pdf: jsPDF, data: any, startY: number): number {
   
   let currentY = startY
   
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.red)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Deal Blockers', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Deal Blockers', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   currentY += 8
   
-  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
   pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'normal')
-  
-  const lines = pdf.splitTextToSize(sanitizePDF(data.blockers!), PDF_CONFIG.page.contentWidth)
-  pdf.text(lines, PDF_CONFIG.page.margin, currentY)
-  currentY += lines.length * 5
+  currentY = renderSmartText(pdf, sanitizePDF(data.blockers!), PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.body.size,
+    fontStyle: 'normal',
+    maxWidth: PDF_CONFIG.page.contentWidth
+  })
   
   return currentY + PDF_CONFIG.spacing.sectionGap
 }
@@ -610,12 +643,15 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
   let currentY = startY
   
   // Section heading
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Strategic Intelligence & Approach', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Strategic Intelligence & Approach', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   
   // Add underline to header
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   const headerWidth = pdf.getTextWidth('Strategic Intelligence & Approach')
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
@@ -665,19 +701,20 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(...PDF_CONFIG.colors.lightGray)
     pdf.rect(leftX, rowY, colWidth, rowHeight, 'F')
     
-    pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...leftBox.color)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text(leftBox.title, leftX + 2, rowY + 5)
+    renderSmartText(pdf, leftBox.title, leftX + 2, rowY + 5, {
+      fontSize: PDF_CONFIG.fonts.subheading.size,
+      fontStyle: 'bold'
+    })
     
-    pdf.setFontSize(PDF_CONFIG.fonts.small.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    pdf.setFont('helvetica', 'normal')
     let itemY = rowY + 10
     leftBox.items.forEach((item: string) => {
-      const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), colWidth - 4)
-      pdf.text(itemLines, leftX + 2, itemY)
-      itemY += itemLines.length * 4
+      itemY = renderSmartText(pdf, sanitizePDF(`• ${item}`), leftX + 2, itemY, {
+        fontSize: PDF_CONFIG.fonts.small.size,
+        fontStyle: 'normal',
+        maxWidth: colWidth - 4
+      })
     })
     
     // Render right box if exists
@@ -686,19 +723,20 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
       pdf.setFillColor(...PDF_CONFIG.colors.lightGray)
       pdf.rect(rightX, rowY, colWidth, rowHeight, 'F')
       
-      pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
       pdf.setTextColor(...rightBox.color)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text(rightBox.title, rightX + 2, rowY + 5)
+      renderSmartText(pdf, rightBox.title, rightX + 2, rowY + 5, {
+        fontSize: PDF_CONFIG.fonts.subheading.size,
+        fontStyle: 'bold'
+      })
       
-      pdf.setFontSize(PDF_CONFIG.fonts.small.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-      pdf.setFont('helvetica', 'normal')
       let rightItemY = rowY + 10
       rightBox.items.forEach((item: string) => {
-        const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), colWidth - 4)
-        pdf.text(itemLines, rightX + 2, rightItemY)
-        rightItemY += itemLines.length * 4
+        rightItemY = renderSmartText(pdf, sanitizePDF(`• ${item}`), rightX + 2, rightItemY, {
+          fontSize: PDF_CONFIG.fonts.small.size,
+          fontStyle: 'normal',
+          maxWidth: colWidth - 4
+        })
       })
     }
     
@@ -716,12 +754,15 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
 function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): number {
   let currentY = startY
   
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Strategic Assessment', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Strategic Assessment', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   
   // Add underline to header
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   const headerWidth = pdf.getTextWidth('Strategic Assessment')
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
@@ -736,18 +777,20 @@ function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): numbe
   ]
   
   strategies.forEach(strategy => {
-    pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...PDF_CONFIG.colors.gray)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text(strategy.label, PDF_CONFIG.page.margin, currentY)
+    renderSmartText(pdf, strategy.label, PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.subheading.size,
+      fontStyle: 'bold'
+    })
     currentY += 5
     
-    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    pdf.setFont('helvetica', 'normal')
-    const lines = pdf.splitTextToSize(sanitizePDF(strategy.value), PDF_CONFIG.page.contentWidth)
-    pdf.text(lines, PDF_CONFIG.page.margin, currentY)
-    currentY += lines.length * 5 + 4
+    currentY = renderSmartText(pdf, sanitizePDF(strategy.value), PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.body.size,
+      fontStyle: 'normal',
+      maxWidth: PDF_CONFIG.page.contentWidth
+    })
+    currentY += 4
   })
   
   return currentY + PDF_CONFIG.spacing.sectionGap
@@ -801,9 +844,10 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   pdf.rect(PDF_CONFIG.page.margin, currentY, PDF_CONFIG.page.contentWidth, 12, 'F')
   
   pdf.setTextColor(30, 41, 59) // slate-800
-  pdf.setFontSize(PDF_CONFIG.fonts.subtitle.size)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Stakeholder Navigation Map', PDF_CONFIG.page.margin + 5, currentY + 8)
+  renderSmartText(pdf, 'Stakeholder Navigation Map', PDF_CONFIG.page.margin + 5, currentY + 8, {
+    fontSize: PDF_CONFIG.fonts.subtitle.size,
+    fontStyle: 'bold'
+  })
   
   currentY += 18
   
@@ -904,9 +948,10 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.roundedRect(leftX, currentY, columnWidth, maxHeight, 2, 2, 'FD')
     
     pdf.setTextColor(153, 27, 27) // red-900
-    pdf.setFontSize(9)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Economic Buyers', leftX + 3, currentY + 5)
+    renderSmartText(pdf, 'Economic Buyers', leftX + 3, currentY + 5, {
+      fontSize: 9,
+      fontStyle: 'bold'
+    })
     
     pdf.setTextColor(55, 65, 81) // gray-700
     pdf.setFontSize(8)
@@ -919,40 +964,41 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     data.economicBuyers.slice(0, 2).forEach((buyer: any, idx: number) => {
       if (buyer.name) {
         // Name (bold)
-        pdf.setFont('helvetica', 'bold')
-        pdf.setFontSize(8)
-        pdf.text(sanitizePDF(buyer.name), leftX + 3, buyerY)
-        buyerY += LH8
+        pdf.setTextColor(55, 65, 81) // gray-700
+        buyerY = renderSmartText(pdf, sanitizePDF(buyer.name), leftX + 3, buyerY, {
+          fontSize: 8,
+          fontStyle: 'bold'
+        })
         
         // Title - use pre-measured lines
         if (econBuyersMeasured[idx]?.titleLines.length > 0) {
-          pdf.setFont('helvetica', 'normal')
-          pdf.setFontSize(8)
           pdf.setTextColor(107, 114, 128) // gray-500
           econBuyersMeasured[idx].titleLines.forEach((line: string) => {
-            pdf.text(line, leftX + 3, buyerY)
-            buyerY += LH8
+            buyerY = renderSmartText(pdf, line, leftX + 3, buyerY, {
+              fontSize: 8,
+              fontStyle: 'normal'
+            })
           })
         }
         
         // Evidence quote - use pre-measured lines
         if (econBuyersMeasured[idx]?.evidenceLines.length > 0) {
-          pdf.setFont('helvetica', 'normal')
-          pdf.setFontSize(7)
           pdf.setTextColor(107, 114, 128) // gray-500
           econBuyersMeasured[idx].evidenceLines.slice(0, 2).forEach((line: string) => {
-            pdf.text(line, leftX + 3, buyerY)
-            buyerY += LH7
+            buyerY = renderSmartText(pdf, line, leftX + 3, buyerY, {
+              fontSize: 7,
+              fontStyle: 'normal'
+            })
           })
         }
         
         // Primary Contact badge
         if (buyer.isPrimaryContact) {
-          pdf.setFontSize(6)
-          pdf.setFont('helvetica', 'normal')
           pdf.setTextColor(107, 114, 128) // gray-500
-          pdf.text('Primary Contact', leftX + 3, buyerY)
-          buyerY += LH7
+          buyerY = renderSmartText(pdf, 'Primary Contact', leftX + 3, buyerY, {
+            fontSize: 6,
+            fontStyle: 'normal'
+          })
         }
         
         buyerY += LH7 * 0.5
@@ -968,13 +1014,12 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.roundedRect(middleX, currentY, columnWidth, maxHeight, 2, 2, 'FD')
     
     pdf.setTextColor(120, 53, 15) // yellow-900
-    pdf.setFontSize(9)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Key Influencers', middleX + 3, currentY + 5)
+    renderSmartText(pdf, 'Key Influencers', middleX + 3, currentY + 5, {
+      fontSize: 9,
+      fontStyle: 'bold'
+    })
     
     pdf.setTextColor(55, 65, 81) // gray-700
-    pdf.setFontSize(8)
-    pdf.setFont('helvetica', 'normal')
     
     const LH8 = lineHeightMm(pdf, 8)
     const LH7 = lineHeightMm(pdf, 7)
@@ -982,31 +1027,29 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     let influencerY = currentY + 10
     data.keyInfluencers.slice(0, 2).forEach((influencer: any, idx: number) => {
       if (influencer.name) {
-        // Name (bold)
-        pdf.setFont('helvetica', 'bold')
-        pdf.setFontSize(8)
-        pdf.text(sanitizePDF(influencer.name), middleX + 3, influencerY)
-        influencerY += LH8
+        pdf.setTextColor(55, 65, 81)
+        influencerY = renderSmartText(pdf, sanitizePDF(influencer.name), middleX + 3, influencerY, {
+          fontSize: 8,
+          fontStyle: 'bold'
+        })
         
-        // Title - use pre-measured lines
         if (keyInfluencersMeasured[idx]?.titleLines.length > 0) {
-          pdf.setFont('helvetica', 'normal')
-          pdf.setFontSize(8)
-          pdf.setTextColor(107, 114, 128) // gray-500
+          pdf.setTextColor(107, 114, 128)
           keyInfluencersMeasured[idx].titleLines.forEach((line: string) => {
-            pdf.text(line, middleX + 3, influencerY)
-            influencerY += LH8
+            influencerY = renderSmartText(pdf, line, middleX + 3, influencerY, {
+              fontSize: 8,
+              fontStyle: 'normal'
+            })
           })
         }
         
-        // Evidence quote - use pre-measured lines
         if (keyInfluencersMeasured[idx]?.evidenceLines.length > 0) {
-          pdf.setFont('helvetica', 'normal')
-          pdf.setFontSize(7)
-          pdf.setTextColor(107, 114, 128) // gray-500
+          pdf.setTextColor(107, 114, 128)
           keyInfluencersMeasured[idx].evidenceLines.slice(0, 2).forEach((line: string) => {
-            pdf.text(line, middleX + 3, influencerY)
-            influencerY += LH7
+            influencerY = renderSmartText(pdf, line, middleX + 3, influencerY, {
+              fontSize: 7,
+              fontStyle: 'normal'
+            })
           })
         }
         
@@ -1023,44 +1066,52 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.roundedRect(rightX, currentY, columnWidth, maxHeight, 2, 2, 'FD')
     
     pdf.setTextColor(30, 58, 138) // blue-900
-    pdf.setFontSize(9)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Navigation Strategy', rightX + 3, currentY + 5)
+    renderSmartText(pdf, 'Navigation Strategy', rightX + 3, currentY + 5, {
+      fontSize: 9,
+      fontStyle: 'bold'
+    })
     
     pdf.setTextColor(30, 58, 138) // blue-900
-    pdf.setFontSize(8)
-    pdf.setFont('helvetica', 'bold')
     
     // Use pre-measured lines (no re-splitting)
     let strategyY = currentY + 10
     navStrategyLines.forEach((line: string) => {
-      pdf.text(line, rightX + 3, strategyY)
-      strategyY += LH8
+      strategyY = renderSmartText(pdf, line, rightX + 3, strategyY, {
+        fontSize: 8,
+        fontStyle: 'bold'
+      })
     })
     
     strategyY += GAP_AFTER_TEXT
     
     // Bullet points
-    pdf.setFontSize(7)
-    pdf.setFont('helvetica', 'normal')
     pdf.setTextColor(55, 65, 81) // gray-700
     
     // Red bullet
     pdf.setFillColor(239, 68, 68) // red-500
     pdf.circle(rightX + 4, strategyY - 1, 0.8, 'F')
-    pdf.text('Lead with economic buyers', rightX + 7, strategyY)
+    renderSmartText(pdf, 'Lead with economic buyers', rightX + 7, strategyY, {
+      fontSize: 7,
+      fontStyle: 'normal'
+    })
     strategyY += LH7
     
     // Yellow bullet
     pdf.setFillColor(234, 179, 8) // yellow-500
     pdf.circle(rightX + 4, strategyY - 1, 0.8, 'F')
-    pdf.text('Coordinate with influencers', rightX + 7, strategyY)
+    renderSmartText(pdf, 'Coordinate with influencers', rightX + 7, strategyY, {
+      fontSize: 7,
+      fontStyle: 'normal'
+    })
     strategyY += LH7
     
     // Green bullet
     pdf.setFillColor(21, 128, 61) // green-600
     pdf.circle(rightX + 4, strategyY - 1, 0.8, 'F')
-    pdf.text('Validate with end users', rightX + 7, strategyY)
+    renderSmartText(pdf, 'Validate with end users', rightX + 7, strategyY, {
+      fontSize: 7,
+      fontStyle: 'normal'
+    })
   }
   
   currentY += maxHeight + 8
@@ -1079,12 +1130,15 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
     return currentY
   }
   
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Why These Actions?', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Why These Actions?', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   
   // Add underline to header
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   const headerWidth = pdf.getTextWidth('Why These Actions?')
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
@@ -1094,29 +1148,31 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
   
   // Rationale (only if exists)
   if (data.rationale) {
-    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    pdf.setFont('helvetica', 'normal')
-    const rationaleLines = pdf.splitTextToSize(sanitizePDF(data.rationale), PDF_CONFIG.page.contentWidth)
-    pdf.text(rationaleLines, PDF_CONFIG.page.margin, currentY)
-    currentY += rationaleLines.length * 5 + 6
+    currentY = renderSmartText(pdf, sanitizePDF(data.rationale), PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.body.size,
+      fontStyle: 'normal',
+      maxWidth: PDF_CONFIG.page.contentWidth
+    })
+    currentY += 6
   }
   
   // Supporting evidence (only if exists)
   if (data.supportingEvidence.length > 0) {
-    pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...PDF_CONFIG.colors.gray)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text('Supporting Evidence:', PDF_CONFIG.page.margin, currentY)
+    renderSmartText(pdf, 'Supporting Evidence:', PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.subheading.size,
+      fontStyle: 'bold'
+    })
     currentY += 6
     
-    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    pdf.setFont('helvetica', 'normal')
     data.supportingEvidence.forEach((evidence: string) => {
-      const evidenceLines = pdf.splitTextToSize(sanitizePDF(`• ${evidence}`), PDF_CONFIG.page.contentWidth - 5)
-      pdf.text(evidenceLines, PDF_CONFIG.page.margin + 5, currentY)
-      currentY += evidenceLines.length * 5
+      currentY = renderSmartText(pdf, sanitizePDF(`• ${evidence}`), PDF_CONFIG.page.margin + 5, currentY, {
+        fontSize: PDF_CONFIG.fonts.body.size,
+        fontStyle: 'normal',
+        maxWidth: PDF_CONFIG.page.contentWidth - 5
+      })
     })
   }
   

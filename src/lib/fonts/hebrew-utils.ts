@@ -32,26 +32,34 @@ export function reverseText(text: string): string {
 
 /**
  * Processes bidirectional text (mixed Hebrew/English)
- * Reverses Hebrew segments while preserving English segments and spaces
+ * Handles word-level reversal with proper BiDi algorithm
  */
 export function processBiDiText(text: string): string {
   if (!text) return text;
   
-  // Split into words while preserving spaces
-  const segments = text.split(/(\s+)/);
+  // Split into words
+  const words = text.split(/\s+/);
   
-  return segments.map(segment => {
-    // Preserve whitespace
-    if (/^\s+$/.test(segment)) return segment;
+  const processedWords = words.map(word => {
+    // Don't reverse pure numbers or punctuation
+    if (/^[\d\p{P}]+$/u.test(word)) return word;
     
-    // Reverse Hebrew segments
-    if (containsHebrew(segment)) {
-      return reverseText(segment);
+    // Check if word contains Hebrew
+    if (containsHebrew(word)) {
+      // Reverse the word character by character for RTL display
+      return word.split('').reverse().join('');
     }
     
-    // Keep English/numbers as-is
-    return segment;
-  }).join('');
+    // Keep Latin/English words as-is
+    return word;
+  });
+  
+  // If text is predominantly RTL, reverse word order too
+  if (shouldUseRTL(text)) {
+    return processedWords.reverse().join(' ');
+  }
+  
+  return processedWords.join(' ');
 }
 
 /**
