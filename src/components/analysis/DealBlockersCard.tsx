@@ -23,7 +23,7 @@ export function DealBlockersCard({ dealBlockers, analysis }: DealBlockersProps) 
   const topActions = nextBestActions.slice(0, 3)
 
   return (
-    <Card className="border-red-300 bg-gradient-to-br from-red-50 to-orange-50">
+    <Card className="border-red-300 bg-gradient-to-br from-red-50 to-orange-50 mb-6 lg:mb-8">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-red-900">
           <AlertTriangle className="w-5 h-5 text-red-600" />
