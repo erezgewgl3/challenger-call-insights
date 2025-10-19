@@ -414,8 +414,15 @@ function renderCoachingInsights(pdf: jsPDF, data: any, startY: number): number {
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
   pdf.setFont('helvetica', 'bold')
-  pdf.text('Coaching Insights', PDF_CONFIG.page.margin, currentY)
-  currentY += 8
+    pdf.text('Coaching Insights', PDF_CONFIG.page.margin, currentY)
+    
+    // Add underline to header (consistent with other sections)
+    const coachingHeaderWidth = pdf.getTextWidth('Coaching Insights')
+    pdf.setDrawColor(...PDF_CONFIG.colors.primary)
+    pdf.setLineWidth(0.5)
+    pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + coachingHeaderWidth, currentY + 1)
+    
+    currentY += 8
   
   // What Worked Well
   if (data.whatWorkedWell.length > 0) {
@@ -724,11 +731,12 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   }
   keyInfluencersHeight += 10 // Bottom padding
 
-  let navigationStrategyHeight = 10 // Base padding
+  let navigationStrategyHeight = 10 // Header padding
   if (data.navigationStrategy) {
     const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
-    navigationStrategyHeight += strategyLines.length * 3.5
-    navigationStrategyHeight += 12 // Bullets
+    navigationStrategyHeight += strategyLines.length * 3.5 // Main text
+    navigationStrategyHeight += 2 // Gap after main text
+    navigationStrategyHeight += (3 * 3.5) // Three bullet items with 3.5mm spacing each
   }
   navigationStrategyHeight += 6 // Bottom padding
 
