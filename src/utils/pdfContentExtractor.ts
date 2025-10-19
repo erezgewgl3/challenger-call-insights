@@ -66,11 +66,21 @@ function extractDealCommandCenter(analysis: any) {
   const buyingSignals = callSummary?.buyingSignalsAnalysis || {}
   const timeline = callSummary?.timelineAnalysis || {}
   
-  // Extract decision maker from clientContacts (matching UI logic)
-  const contacts = analysis?.participants?.clientContacts || []
+  // Priority 1: Use AI's designated power_center (v12.1+)
   let decisionMaker = { name: '', title: '', influence: '' }
   
-  if (contacts.length > 0) {
+  if (analysis?.guidance?.power_center) {
+    const pc = analysis.guidance.power_center
+    decisionMaker = {
+      name: pc.name || '',
+      title: pc.title || '',
+      influence: pc.influence_level ? `${pc.influence_level.charAt(0).toUpperCase() + pc.influence_level.slice(1)} Influence` : ''
+    }
+  } else {
+    // Fallback: Use scoring algorithm for older analyses
+    const contacts = analysis?.participants?.clientContacts || []
+    
+    if (contacts.length > 0) {
     const scoredContacts = contacts.map((contact: any) => {
       const evidence = contact.decisionEvidence || []
       const decisionLevel = contact.decisionLevel || 'low'
@@ -109,6 +119,7 @@ function extractDealCommandCenter(analysis: any) {
       name: topContact.name || '',
       title: topContact.title || '',
       influence: topContact.confidence ? `${topContact.confidence} Influence` : ''
+    }
     }
   }
 

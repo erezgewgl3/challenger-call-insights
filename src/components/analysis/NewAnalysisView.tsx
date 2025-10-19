@@ -59,6 +59,13 @@ interface AnalysisData {
   reasoning?: any
   action_plan?: any
   heat_level?: string
+  guidance?: {
+    power_center?: {
+      name: string
+      title: string
+      influence_level: string
+    }
+  }
   coaching_insights?: {
     whatWorkedWell: string[]
     missedOpportunities: string[] | string
@@ -234,6 +241,19 @@ export function NewAnalysisView({
   }
 
   const getDecisionMaker = () => {
+    // Priority 1: Use AI's designated power_center (v12.1+)
+    if (analysis.guidance?.power_center) {
+      const pc = analysis.guidance.power_center
+      return {
+        name: pc.name,
+        title: pc.title,
+        influence: `${pc.influence_level?.charAt(0).toUpperCase() + pc.influence_level?.slice(1)} Influence`,
+        confidence: pc.influence_level === 'high' ? 'High' : pc.influence_level === 'medium' ? 'Medium' : 'Low',
+        evidence: []
+      }
+    }
+    
+    // Fallback: Use scoring algorithm for older analyses
     const contacts = analysis.participants?.clientContacts || []
     
     if (contacts.length === 0) {
