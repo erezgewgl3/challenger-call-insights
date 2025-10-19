@@ -177,7 +177,11 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   })
 
   // Register Hebrew fonts at the start
-  registerHebrewFonts(pdf)
+  const hasHebrew = registerHebrewFonts(pdf)
+  
+  // Debug: Log font list to verify Rubik registration
+  console.log('📋 Registered fonts:', Object.keys(pdf.getFontList()))
+  console.log('🔤 Hebrew support:', hasHebrew ? 'enabled' : 'disabled')
 
   let currentY = PDF_CONFIG.page.margin
 
@@ -309,10 +313,16 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
     fontStyle: 'bold'
   })
   
-  // Add underline to header
-  pdf.setFont('helvetica', 'bold')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Deal Command Center'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
-  const headerWidth = pdf.getTextWidth('Deal Command Center')
+  const headerWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, startY + 1, PDF_CONFIG.page.margin + headerWidth, startY + 1)
@@ -333,6 +343,9 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
     ]
   ]
   
+  // Determine if Rubik font is available for Hebrew
+  const isRubikAvailable = Boolean(pdf.getFontList()['Rubik'])
+  
   autoTable(pdf, {
     startY: startY + 6,
     head: [tableData[0]],
@@ -343,12 +356,14 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
       textColor: PDF_CONFIG.colors.white,
       fontStyle: 'bold',
       fontSize: 10,
-      cellPadding: 4
+      cellPadding: 4,
+      font: isRubikAvailable ? 'Rubik' : 'helvetica'
     },
     bodyStyles: {
       fontSize: 9,
       cellPadding: 4,
-      textColor: PDF_CONFIG.colors.darkText
+      textColor: PDF_CONFIG.colors.darkText,
+      font: isRubikAvailable ? 'Rubik' : 'helvetica'
     },
     columnStyles: {
       0: { cellWidth: 42.5 },
@@ -356,7 +371,20 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
       2: { cellWidth: 42.5 },
       3: { cellWidth: 42.5 }
     },
-    margin: { left: PDF_CONFIG.page.margin, right: PDF_CONFIG.page.margin }
+    margin: { left: PDF_CONFIG.page.margin, right: PDF_CONFIG.page.margin },
+    didParseCell: (data) => {
+      // Process Hebrew text in cells
+      if (data.cell.text && Array.isArray(data.cell.text)) {
+        data.cell.text = data.cell.text.map((line: string) => {
+          const sanitized = sanitizePDF(line)
+          if (containsHebrew(sanitized)) {
+            data.cell.styles.halign = 'right'
+            return processBiDiText(sanitized)
+          }
+          return sanitized
+        })
+      }
+    }
   })
   
   return (pdf as any).lastAutoTable.finalY + PDF_CONFIG.spacing.sectionGap
@@ -442,10 +470,16 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
     fontStyle: 'bold'
   })
   
-  // Add underline to header
-  pdf.setFont('helvetica', 'bold')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Call Summary'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
-  const headerWidth = pdf.getTextWidth('Call Summary')
+  const headerWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
@@ -535,10 +569,16 @@ function renderCoachingInsights(pdf: jsPDF, data: any, startY: number): number {
     fontStyle: 'bold'
   })
     
-  // Add underline to header (consistent with other sections)
-  pdf.setFont('helvetica', 'bold')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Coaching Insights'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
-  const coachingHeaderWidth = pdf.getTextWidth('Coaching Insights')
+  const coachingHeaderWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + coachingHeaderWidth, currentY + 1)
@@ -649,10 +689,16 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
     fontStyle: 'bold'
   })
   
-  // Add underline to header
-  pdf.setFont('helvetica', 'bold')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Strategic Intelligence & Approach'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
-  const headerWidth = pdf.getTextWidth('Strategic Intelligence & Approach')
+  const headerWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
@@ -760,10 +806,16 @@ function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): numbe
     fontStyle: 'bold'
   })
   
-  // Add underline to header
-  pdf.setFont('helvetica', 'bold')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Strategic Assessment'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
-  const headerWidth = pdf.getTextWidth('Strategic Assessment')
+  const headerWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
@@ -1136,10 +1188,16 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
     fontStyle: 'bold'
   })
   
-  // Add underline to header
-  pdf.setFont('helvetica', 'bold')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Why These Actions?'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
   pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
-  const headerWidth = pdf.getTextWidth('Why These Actions?')
+  const headerWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
@@ -1190,13 +1248,22 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     return currentY
   }
   
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Battle Plan Execution Timeline', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Battle Plan Execution Timeline', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   
-  // Add underline to header
-  const headerWidth = pdf.getTextWidth('Battle Plan Execution Timeline')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Battle Plan Execution Timeline'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
+  const headerWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
@@ -1211,26 +1278,31 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
     currentY = checkPageBreak(pdf, currentY, estimatedSpace, 'Battle Plan')
     
     // Action number and title
-    pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...PDF_CONFIG.colors.primary)
-    pdf.setFont('helvetica', 'bold')
     const actionTitle = sanitizePDF(`${index + 1}. ${action.action}`)
-    const titleLines = pdf.splitTextToSize(actionTitle, PDF_CONFIG.page.contentWidth)
-    pdf.text(titleLines, PDF_CONFIG.page.margin, currentY)
-    currentY += titleLines.length * 5 + 3
+    currentY = renderSmartText(pdf, actionTitle, PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.subheading.size,
+      fontStyle: 'bold',
+      maxWidth: PDF_CONFIG.page.contentWidth
+    })
+    currentY += 3
     
     // Rationale
-    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    pdf.setFont('helvetica', 'normal')
-    const rationaleLines = pdf.splitTextToSize(sanitizePDF(action.rationale), PDF_CONFIG.page.contentWidth)
-    pdf.text(rationaleLines, PDF_CONFIG.page.margin, currentY)
-    currentY += rationaleLines.length * 5 + 3
+    currentY = renderSmartText(pdf, sanitizePDF(action.rationale), PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.body.size,
+      fontStyle: 'normal',
+      maxWidth: PDF_CONFIG.page.contentWidth
+    })
+    currentY += 3
     
     // Timeline and channels
-    pdf.setFontSize(PDF_CONFIG.fonts.small.size)
     pdf.setTextColor(...PDF_CONFIG.colors.gray)
-    pdf.text(sanitizePDF(`Timeline: ${action.timeline} | Channels: ${action.channels.join(', ')}`), PDF_CONFIG.page.margin, currentY)
+    currentY = renderSmartText(pdf, sanitizePDF(`Timeline: ${action.timeline} | Channels: ${action.channels.join(', ')}`), PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.small.size,
+      fontStyle: 'normal',
+      maxWidth: PDF_CONFIG.page.contentWidth
+    })
     currentY += 6
     
     // Email template if present
@@ -1279,27 +1351,34 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
       pdf.setFillColor(250, 251, 255)
       pdf.rect(boxX, boxY, boxW, boxHeight, 'FD')
       
-      // Render text with precise spacing
+      // Render text with precise spacing using renderSmartText
       let y = currentY
       
       // Label
-      pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
       pdf.setTextColor(...PDF_CONFIG.colors.blue)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text('Email Template:', PDF_CONFIG.page.margin + 6, y)
-      y += lhSub + labelGap
+      y = renderSmartText(pdf, 'Email Template:', PDF_CONFIG.page.margin + 6, y, {
+        fontSize: PDF_CONFIG.fonts.subheading.size,
+        fontStyle: 'bold'
+      })
+      y += labelGap
       
       // Subject
-      pdf.setFontSize(PDF_CONFIG.fonts.body.size)
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-      pdf.setFont('helvetica', 'bold')
-      pdf.text(subjectLines, PDF_CONFIG.page.margin + 6, y)
-      y += subjectLines.length * lhBody + subjectGap
+      const subjectText = sanitizePDF(`Subject: ${action.emailTemplate.subject || ''}`)
+      y = renderSmartText(pdf, subjectText, PDF_CONFIG.page.margin + 6, y, {
+        fontSize: PDF_CONFIG.fonts.body.size,
+        fontStyle: 'bold',
+        maxWidth: wrapWidth
+      })
+      y += subjectGap
       
       // Body
-      pdf.setFont('helvetica', 'normal')
-      pdf.text(bodyLines, PDF_CONFIG.page.margin + 6, y)
-      y += bodyLines.length * lhBody
+      const bodyText = sanitizePDF(action.emailTemplate.body || '')
+      y = renderSmartText(pdf, bodyText, PDF_CONFIG.page.margin + 6, y, {
+        fontSize: PDF_CONFIG.fonts.body.size,
+        fontStyle: 'normal',
+        maxWidth: wrapWidth
+      })
       
       // Move to after box
       currentY = boxY + boxHeight + 5
@@ -1329,29 +1408,39 @@ function renderDealInsights(pdf: jsPDF, insights: string[], startY: number): num
     return currentY
   }
   
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Deal Acceleration Insights', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Deal Acceleration Insights', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   
-  // Add underline to header
-  const headerWidth = pdf.getTextWidth('Deal Acceleration Insights')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Deal Acceleration Insights'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
+  const headerWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
   
   currentY += 8
   
-  pdf.setFontSize(PDF_CONFIG.fonts.body.size)
   pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-  pdf.setFont('helvetica', 'normal')
   
   insights.forEach((insight, index) => {
     currentY = checkPageBreak(pdf, currentY, 15, 'Deal Insights')
     const insightText = sanitizePDF(`${index + 1}. ${insight}`)
-    const insightLines = pdf.splitTextToSize(insightText, PDF_CONFIG.page.contentWidth)
-    pdf.text(insightLines, PDF_CONFIG.page.margin, currentY)
-    currentY += insightLines.length * 5 + 3
+    currentY = renderSmartText(pdf, insightText, PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.body.size,
+      fontStyle: 'normal',
+      maxWidth: PDF_CONFIG.page.contentWidth
+    })
+    currentY += 3
   })
   
   return currentY + PDF_CONFIG.spacing.sectionGap
@@ -1376,13 +1465,22 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
     return currentY
   }
   
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
   pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  pdf.setFont('helvetica', 'bold')
-  pdf.text('Competitive Positioning Arsenal', PDF_CONFIG.page.margin, currentY)
+  renderSmartText(pdf, 'Competitive Positioning Arsenal', PDF_CONFIG.page.margin, currentY, {
+    fontSize: PDF_CONFIG.fonts.heading.size,
+    fontStyle: 'bold'
+  })
   
-  // Add underline to header
-  const headerWidth = pdf.getTextWidth('Competitive Positioning Arsenal')
+  // Add underline to header - measure with correct font for Hebrew
+  const headerText = 'Competitive Positioning Arsenal'
+  const hasHeaderHebrew = containsHebrew(headerText)
+  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', 'bold')
+  } else {
+    pdf.setFont('helvetica', 'bold')
+  }
+  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
+  const headerWidth = pdf.getTextWidth(headerText)
   pdf.setDrawColor(...PDF_CONFIG.colors.primary)
   pdf.setLineWidth(0.5)
   pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
@@ -1393,28 +1491,30 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
     // Pre-calculate space needed for entire section
     let sectionHeight = 10 // Header + padding
     section.items.forEach((item: string) => {
-      const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
-      sectionHeight += itemLines.length * 5 + 2
+      // Calculate height using renderSmartText logic
+      sectionHeight += 10 // Approximate per item
     })
     
     // Check if we need a page break for the entire section
     currentY = checkPageBreak(pdf, currentY, sectionHeight, section.title)
     
     // Render section header with count
-    pdf.setFontSize(PDF_CONFIG.fonts.subheading.size)
     pdf.setTextColor(...section.color)
-    pdf.setFont('helvetica', 'bold')
-    pdf.text(`${section.title} (${section.items.length})`, PDF_CONFIG.page.margin, currentY)
+    currentY = renderSmartText(pdf, `${section.title} (${section.items.length})`, PDF_CONFIG.page.margin, currentY, {
+      fontSize: PDF_CONFIG.fonts.subheading.size,
+      fontStyle: 'bold'
+    })
     currentY += 6
     
     // Render all items
-    pdf.setFontSize(PDF_CONFIG.fonts.body.size)
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    pdf.setFont('helvetica', 'normal')
     section.items.forEach((item: string) => {
-      const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), PDF_CONFIG.page.contentWidth - 5)
-      pdf.text(itemLines, PDF_CONFIG.page.margin + 5, currentY)
-      currentY += itemLines.length * 5 + 2
+      currentY = renderSmartText(pdf, sanitizePDF(`• ${item}`), PDF_CONFIG.page.margin + 5, currentY, {
+        fontSize: PDF_CONFIG.fonts.body.size,
+        fontStyle: 'normal',
+        maxWidth: PDF_CONFIG.page.contentWidth - 5
+      })
+      currentY += 2
     })
     currentY += 5
   })
