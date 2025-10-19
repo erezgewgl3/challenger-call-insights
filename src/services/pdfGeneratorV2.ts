@@ -661,6 +661,18 @@ function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): numbe
 }
 
 /**
+ * Helper to calculate precise line height in MM based on font metrics
+ */
+function lineHeightMm(pdf: jsPDF, fontSize: number): number {
+  const PT_TO_MM = 25.4 / 72
+  const prevSize = pdf.getFontSize()
+  pdf.setFontSize(fontSize)
+  const lh = pdf.getLineHeightFactor() * pdf.getFontSize() * PT_TO_MM
+  pdf.setFontSize(prevSize)
+  return lh
+}
+
+/**
  * Render Stakeholder Navigation Map section
  */
 function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): number {
@@ -691,45 +703,50 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   const middleX = leftX + columnWidth + gapWidth
   const rightX = middleX + columnWidth + gapWidth
   
+  // Calculate precise line heights based on font metrics
+  const LH8 = lineHeightMm(pdf, 8)  // For main text (bold)
+  const LH7 = lineHeightMm(pdf, 7)  // For evidence and bullets
+  const GAP_AFTER_TEXT = Math.round(LH8 * 0.5) // Small gap before bullets
+  
   // Calculate dynamic heights for each column based on content
   let economicBuyersHeight = 10 // Base padding
   if (data.economicBuyers && data.economicBuyers.length > 0) {
     data.economicBuyers.slice(0, 2).forEach((buyer: any) => {
-      economicBuyersHeight += 4 // Name
+      economicBuyersHeight += LH8 // Name
       if (buyer.title) {
         const titleLines = pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 6)
-        economicBuyersHeight += titleLines.length * 3
+        economicBuyersHeight += titleLines.length * LH8
       }
       if (buyer.evidence) {
         const evidenceText = `VERBATIM: "${sanitizePDF(buyer.evidence)}"`
         const evidenceLines = pdf.splitTextToSize(evidenceText, columnWidth - 6)
-        economicBuyersHeight += Math.min(evidenceLines.length, 2) * 2.5
+        economicBuyersHeight += Math.min(evidenceLines.length, 2) * LH7
       }
       if (buyer.isPrimaryContact) {
-        economicBuyersHeight += 5
+        economicBuyersHeight += LH7
       }
-      economicBuyersHeight += 2 // Spacing
+      economicBuyersHeight += LH7 * 0.5 // Spacing between buyers
     })
   }
-  economicBuyersHeight += 10 // Bottom padding
+  economicBuyersHeight += LH7 // Bottom padding
 
   let keyInfluencersHeight = 10 // Base padding
   if (data.keyInfluencers && data.keyInfluencers.length > 0) {
     data.keyInfluencers.slice(0, 2).forEach((influencer: any) => {
-      keyInfluencersHeight += 4 // Name
+      keyInfluencersHeight += LH8 // Name
       if (influencer.title) {
         const titleLines = pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 6)
-        keyInfluencersHeight += titleLines.length * 3
+        keyInfluencersHeight += titleLines.length * LH8
       }
       if (influencer.evidence) {
         const evidenceText = `VERBATIM: "${sanitizePDF(influencer.evidence)}"`
         const evidenceLines = pdf.splitTextToSize(evidenceText, columnWidth - 6)
-        keyInfluencersHeight += Math.min(evidenceLines.length, 2) * 2.5
+        keyInfluencersHeight += Math.min(evidenceLines.length, 2) * LH7
       }
-      keyInfluencersHeight += 2 // Spacing
+      keyInfluencersHeight += LH7 * 0.5 // Spacing between influencers
     })
   }
-  keyInfluencersHeight += 10 // Bottom padding
+  keyInfluencersHeight += LH7 // Bottom padding
 
   // Normalize navigation strategy text to remove hidden whitespace
   const navRaw = sanitizePDF(data.navigationStrategy || '')
@@ -743,22 +760,24 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   let navigationStrategyHeight = 10
   if (navText) {
     const strategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
-    navigationStrategyHeight += strategyLines.length * 3.5 // text lines
-    navigationStrategyHeight += 2                          // gap after text
-    navigationStrategyHeight += 3.5                        // bullet 1
-    navigationStrategyHeight += 3.5                        // bullet 2
-    navigationStrategyHeight += 3.5                        // bullet 3
-    navigationStrategyHeight += 2.5                        // bottom padding
+    navigationStrategyHeight += strategyLines.length * LH8 // text lines
+    navigationStrategyHeight += GAP_AFTER_TEXT             // gap after text
+    navigationStrategyHeight += 3 * LH7                    // 3 bullets
+    navigationStrategyHeight += LH7                        // bottom padding
   } else {
     navigationStrategyHeight += 6
   }
 
   // Debug logging for height verification
-  console.log('Stakeholder Navigation heights:', {
-    economicBuyersHeight,
-    keyInfluencersHeight,
-    navigationStrategyHeight,
-    navTextLines: navText ? pdf.splitTextToSize(navText, columnWidth - 6).length : 0
+  console.log('Stakeholder Navigation metrics:', {
+    LH8: LH8.toFixed(2),
+    LH7: LH7.toFixed(2),
+    GAP_AFTER_TEXT,
+    navTextLength: navText.length,
+    navLines: navText ? pdf.splitTextToSize(navText, columnWidth - 6).length : 0,
+    economicBuyersHeight: economicBuyersHeight.toFixed(2),
+    keyInfluencersHeight: keyInfluencersHeight.toFixed(2),
+    navigationStrategyHeight: navigationStrategyHeight.toFixed(2)
   })
 
   const maxHeight = Math.max(economicBuyersHeight, keyInfluencersHeight, navigationStrategyHeight, 40)
@@ -782,13 +801,16 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'normal')
     
+    const LH8 = lineHeightMm(pdf, 8)
+    const LH7 = lineHeightMm(pdf, 7)
+    
     let buyerY = currentY + 10
     data.economicBuyers.slice(0, 2).forEach((buyer: any) => {
       if (buyer.name) {
         // Name (bold)
         pdf.setFont('helvetica', 'bold')
         pdf.text(sanitizePDF(buyer.name), leftX + 3, buyerY)
-        buyerY += 4
+        buyerY += LH8
         
         // Title
         if (buyer.title) {
@@ -797,7 +819,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           const titleLines = pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 6)
           titleLines.forEach((line: string) => {
             pdf.text(line, leftX + 3, buyerY)
-            buyerY += 3
+            buyerY += LH8
           })
         }
         
@@ -810,7 +832,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           const evidenceLines = pdf.splitTextToSize(evidenceText, columnWidth - 6)
           evidenceLines.slice(0, 2).forEach((line: string) => {
             pdf.text(line, leftX + 3, buyerY)
-            buyerY += 2.5
+            buyerY += LH7
           })
         }
         
@@ -820,10 +842,10 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           pdf.setFont('helvetica', 'normal')
           pdf.setTextColor(107, 114, 128) // gray-500
           pdf.text('Primary Contact', leftX + 3, buyerY)
-          buyerY += 4
+          buyerY += LH7
         }
         
-        buyerY += 2
+        buyerY += LH7 * 0.5
       }
     })
   }
@@ -844,13 +866,16 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'normal')
     
+    const LH8 = lineHeightMm(pdf, 8)
+    const LH7 = lineHeightMm(pdf, 7)
+    
     let influencerY = currentY + 10
     data.keyInfluencers.slice(0, 2).forEach((influencer: any) => {
       if (influencer.name) {
         // Name (bold)
         pdf.setFont('helvetica', 'bold')
         pdf.text(sanitizePDF(influencer.name), middleX + 3, influencerY)
-        influencerY += 4
+        influencerY += LH8
         
         // Title
         if (influencer.title) {
@@ -859,7 +884,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           const titleLines = pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 6)
           titleLines.forEach((line: string) => {
             pdf.text(line, middleX + 3, influencerY)
-            influencerY += 3
+            influencerY += LH8
           })
         }
         
@@ -872,11 +897,11 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           const evidenceLines = pdf.splitTextToSize(evidenceText, columnWidth - 6)
           evidenceLines.slice(0, 2).forEach((line: string) => {
             pdf.text(line, middleX + 3, influencerY)
-            influencerY += 2.5
+            influencerY += LH7
           })
         }
         
-        influencerY += 2
+        influencerY += LH7 * 0.5
       }
     })
   }
@@ -897,14 +922,18 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'bold')
     
+    const LH8 = lineHeightMm(pdf, 8)
+    const LH7 = lineHeightMm(pdf, 7)
+    const GAP_AFTER_TEXT = Math.round(LH8 * 0.5)
+    
     const strategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
     let strategyY = currentY + 10
     strategyLines.forEach((line: string) => {
       pdf.text(line, rightX + 3, strategyY)
-      strategyY += 3.5
+      strategyY += LH8
     })
     
-    strategyY += 2
+    strategyY += GAP_AFTER_TEXT
     
     // Bullet points
     pdf.setFontSize(7)
@@ -915,13 +944,13 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(239, 68, 68) // red-500
     pdf.circle(rightX + 4, strategyY - 1, 0.8, 'F')
     pdf.text('Lead with economic buyers', rightX + 7, strategyY)
-    strategyY += 3.5
+    strategyY += LH7
     
     // Yellow bullet
     pdf.setFillColor(234, 179, 8) // yellow-500
     pdf.circle(rightX + 4, strategyY - 1, 0.8, 'F')
     pdf.text('Coordinate with influencers', rightX + 7, strategyY)
-    strategyY += 3.5
+    strategyY += LH7
     
     // Green bullet
     pdf.setFillColor(21, 128, 61) // green-600
