@@ -13,14 +13,23 @@ import { containsHebrew, processBiDiText, shouldUseRTL, reverseText } from '@/li
 
 /**
  * Sanitize text to handle special characters while preserving important symbols
+ * NOW: Also removes space-like characters and BiDi/formatting control marks
  */
 function sanitizeText(text: string): string {
   if (!text) return ''
   
   return text
-    // Only remove control characters and zero-width spaces
+    // Remove control characters and zero-width spaces
     .replace(/[\u0000-\u001F\u007F-\u009F]/g, '')
     .replace(/[\u200B-\u200D\uFEFF]/g, '')
+    // Replace all space-like characters with normal space
+    .replace(/[\u00A0\u202F\u2009\u200A\u2007\u2006\u2002-\u2005]/g, ' ')
+    // Remove BiDi/formatting controls (LRM, RLM, ALM)
+    .replace(/[\u200E\u200F\u061C]/g, '')
+    // Remove word joiner and isolates (WJ, LRI, RLI, FSI, PDI)
+    .replace(/[\u2060\u2066\u2067\u2068\u2069]/g, '')
+    // Collapse runs of spaces
+    .replace(/[ \t\u00A0\u2009\u200A]+/g, ' ')
     // Normalize smart quotes to straight quotes
     .replace(/[\u2018\u2019]/g, "'")
     .replace(/[\u201C\u201D]/g, '"')
@@ -127,7 +136,9 @@ function measureWrappedLines(
   fontSize: number,
   fontStyle: 'normal' | 'bold' = 'normal'
 ): { lines: string[], heightMM: number } {
-  const hasHebrew = containsHebrew(text)
+  // Sanitize input to remove hidden formatting characters
+  const clean = sanitizePDF(text)
+  const hasHebrew = containsHebrew(clean)
   const fontName = (hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica'
   
   // Temporarily set font for measurement
@@ -137,9 +148,9 @@ function measureWrappedLines(
   pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
   
-  // CRITICAL: Split using ORIGINAL text - jsPDF needs clean text for accurate width calculation
-  // BiDi control characters break splitTextToSize width calculations
-  const lines = pdf.splitTextToSize(text, maxWidth)
+  // CRITICAL: Split using SANITIZED text - jsPDF needs clean text for accurate width calculation
+  // BiDi control characters and special spaces break splitTextToSize width calculations
+  const lines = pdf.splitTextToSize(clean, maxWidth)
   const lineHeightMM = getLineHeightMM(pdf, fontSize)
   const heightMM = lines.length * lineHeightMM
   
@@ -172,12 +183,15 @@ function renderSmartText(
 ): number {
   if (!text) return y
 
+  // Sanitize input to remove hidden formatting characters
+  const clean = sanitizePDF(text)
+
   const fontSize = options.fontSize || PDF_CONFIG.fonts.body.size
   const fontStyle = options.fontStyle || 'normal'
   const forceLTR = options.forceLTR === true
-  const hasHebrewBase = containsHebrew(text)
+  const hasHebrewBase = containsHebrew(clean)
   const hasHebrew = forceLTR ? false : hasHebrewBase
-  const isRTL = forceLTR ? false : (hasHebrew && shouldUseRTL(text))
+  const isRTL = forceLTR ? false : (hasHebrew && shouldUseRTL(clean))
   
   // Choose font
   const fontName = forceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
@@ -189,7 +203,7 @@ function renderSmartText(
   // Handle text wrapping if maxWidth provided
   if (options.maxWidth) {
     // If already wrapped, skip splitTextToSize to prevent re-splitting drift
-    const lines = options.alreadyWrapped ? [text] : pdf.splitTextToSize(text, options.maxWidth)
+    const lines = options.alreadyWrapped ? [clean] : pdf.splitTextToSize(clean, options.maxWidth)
     
     lines.forEach((line: string, index: number) => {
       const lineY = y + (index * lineHeight)
@@ -214,8 +228,8 @@ function renderSmartText(
   }
 
   // Single line rendering (no wrapping)
-  const needsBiDi = !forceLTR && hasHebrew && /[A-Za-z0-9]/.test(text) && /[\u0590-\u05FF]/.test(text)
-  const processedText = forceLTR ? text : (needsBiDi ? processBiDiText(text) : (hasHebrew ? reverseText(text) : text))
+  const needsBiDi = !forceLTR && hasHebrew && /[A-Za-z0-9]/.test(clean) && /[\u0590-\u05FF]/.test(clean)
+  const processedText = forceLTR ? clean : (needsBiDi ? processBiDiText(clean) : (hasHebrew ? reverseText(clean) : clean))
   
   if (isRTL) {
     const anchorX = options.maxWidth ? x + options.maxWidth : x
@@ -247,6 +261,17 @@ function renderHangingBulletItem(
   const forceLTR = options.forceLTR === true
   const bulletIndent = 3.5 // mm
   
+  // Diagnostic: detect special whitespace/BiDi marks in original text
+  if (/[\u00A0\u202F\u2009\u200A\u200E\u200F\u061C\u2060\u2066-\u2069]/.test(text)) {
+    console.log('🔍 Bullet text contained special whitespace/bidi marks; normalizing:', {
+      originalSnippet: text.slice(0, 120),
+      codepoints: [...text].slice(0, 120).map(c => '0x' + c.charCodeAt(0).toString(16))
+    })
+  }
+  
+  // Sanitize input to remove hidden formatting characters
+  const clean = sanitizePDF(text)
+  
   // Draw bullet circle
   pdf.setFillColor(55, 65, 81) // gray-700
   pdf.circle(x, y - 1, 0.8, 'F')
@@ -256,13 +281,13 @@ function renderHangingBulletItem(
   const wrapWidth = maxWidth - bulletIndent
   
   // Split and render text
-  const hasHebrewBase = containsHebrew(text)
+  const hasHebrewBase = containsHebrew(clean)
   const hasHebrew = forceLTR ? false : hasHebrewBase
   const fontName = forceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
   pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
   
-  const lines = pdf.splitTextToSize(text, wrapWidth)
+  const lines = pdf.splitTextToSize(clean, wrapWidth)
   const lineHeight = getLineHeightMM(pdf, fontSize)
   
   lines.forEach((line: string, index: number) => {
