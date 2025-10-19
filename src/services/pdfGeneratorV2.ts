@@ -109,6 +109,77 @@ function registerHebrewFonts(pdf: jsPDF): boolean {
 }
 
 /**
+ * Calculate precise line height in MM based on font size
+ */
+function getLineHeightMM(pdf: jsPDF, fontSize: number): number {
+  const PT_TO_MM = 25.4 / 72
+  return pdf.getLineHeightFactor() * fontSize * PT_TO_MM
+}
+
+/**
+ * Prepare text for rendering with proper font and BiDi processing
+ */
+function prepareTextForRendering(
+  pdf: jsPDF,
+  text: string,
+  fontStyle: 'normal' | 'bold',
+  fontSize: number
+): {
+  processedText: string
+  isRTL: boolean
+  fontName: string
+  fontStyleUsed: 'normal' | 'bold'
+  lineHeightMM: number
+} {
+  const hasHebrew = containsHebrew(text)
+  const isRTL = shouldUseRTL(text)
+  
+  // Determine font
+  const fontName = (hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica'
+  
+  // Process text for RTL if needed
+  const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(text)
+  const processedText = needsBiDi ? processBiDiText(text) : hasHebrew ? reverseText(text) : text
+  
+  return {
+    processedText,
+    isRTL,
+    fontName,
+    fontStyleUsed: fontStyle,
+    lineHeightMM: getLineHeightMM(pdf, fontSize)
+  }
+}
+
+/**
+ * Measure wrapped lines with exact font that will be used for rendering
+ */
+function measureWrappedLines(
+  pdf: jsPDF,
+  text: string,
+  maxWidth: number,
+  fontSize: number,
+  fontStyle: 'normal' | 'bold' = 'normal'
+): { lines: string[], heightMM: number } {
+  const prepared = prepareTextForRendering(pdf, text, fontStyle, fontSize)
+  
+  // Temporarily set font for measurement
+  const prevFont = pdf.getFont()
+  const prevSize = pdf.getFontSize()
+  
+  pdf.setFont(prepared.fontName, prepared.fontStyleUsed)
+  pdf.setFontSize(fontSize)
+  
+  const lines = pdf.splitTextToSize(prepared.processedText, maxWidth)
+  const heightMM = lines.length * prepared.lineHeightMM
+  
+  // Restore previous font
+  pdf.setFont(prevFont.fontName, prevFont.fontStyle)
+  pdf.setFontSize(prevSize)
+  
+  return { lines, heightMM }
+}
+
+/**
  * Smart text rendering with automatic Hebrew/RTL support
  * Detects Hebrew and switches font/direction automatically
  */
@@ -122,50 +193,50 @@ function renderSmartText(
     fontStyle?: 'normal' | 'bold'
     align?: 'left' | 'center' | 'right'
     maxWidth?: number
+    lineHeight?: number
   } = {}
 ): number {
   if (!text) return y
 
-  const hasHebrew = containsHebrew(text)
-  const isRTL = shouldUseRTL(text)
+  const fontSize = options.fontSize || PDF_CONFIG.fonts.body.size
+  const fontStyle = options.fontStyle || 'normal'
+  const prepared = prepareTextForRendering(pdf, text, fontStyle, fontSize)
+  const lineHeight = options.lineHeight || prepared.lineHeightMM
 
-  // Set font based on content
-  if (hasHebrew && pdf.getFontList()['Rubik']) {
-    pdf.setFont('Rubik', options.fontStyle || 'normal')
-  } else {
-    pdf.setFont('helvetica', options.fontStyle || 'normal')
-  }
-
-  pdf.setFontSize(options.fontSize || PDF_CONFIG.fonts.body.size)
-
-  // Process text for RTL if needed
-  // Only use BiDi processing for truly mixed content (Hebrew + Latin/numeric)
-  const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(text)
-  const processedText = needsBiDi ? processBiDiText(text) : hasHebrew ? reverseText(text) : text
+  // Set font
+  pdf.setFont(prepared.fontName, prepared.fontStyleUsed)
+  pdf.setFontSize(fontSize)
 
   // Handle text wrapping if maxWidth provided
   if (options.maxWidth) {
-    const lines = pdf.splitTextToSize(processedText, options.maxWidth)
+    const lines = pdf.splitTextToSize(prepared.processedText, options.maxWidth)
     lines.forEach((line: string, index: number) => {
-      const lineY = y + (index * 5)
-      if (isRTL) {
+      const lineY = y + (index * lineHeight)
+      if (prepared.isRTL) {
         pdf.text(line, x + options.maxWidth, lineY, { align: 'right' })
       } else {
-        pdf.text(line, x, lineY, { align: options.align || 'left' })
+        // Fix alignment for non-RTL text within maxWidth
+        if (options.align === 'right') {
+          pdf.text(line, x + options.maxWidth, lineY, { align: 'right' })
+        } else if (options.align === 'center') {
+          pdf.text(line, x + (options.maxWidth / 2), lineY, { align: 'center' })
+        } else {
+          pdf.text(line, x, lineY, { align: 'left' })
+        }
       }
     })
-    return y + (lines.length * 5)
+    return y + (lines.length * lineHeight)
   }
 
   // Single line rendering
-  if (isRTL) {
+  if (prepared.isRTL) {
     const anchorX = options.maxWidth ? x + options.maxWidth : x
-    pdf.text(processedText, anchorX, y, { align: 'right' })
+    pdf.text(prepared.processedText, anchorX, y, { align: 'right' })
   } else {
-    pdf.text(processedText, x, y, { align: options.align || 'left' })
+    pdf.text(prepared.processedText, x, y, { align: options.align || 'left' })
   }
 
-  return y + 5
+  return y + lineHeight
 }
 
 /**
@@ -401,30 +472,34 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   
   if (!winStrategy) return startY
   
-  // Minimal spacing before Win Strategy box (moved up for better spacing)
+  // Minimal spacing before Win Strategy box
   let currentY = startY - 2
   
-  // Calculate text dimensions for dynamic box height
-  pdf.setFontSize(9)
-  pdf.setFont('helvetica', 'normal')
-  const strategyLines = pdf.splitTextToSize(sanitizePDF(winStrategy), PDF_CONFIG.page.contentWidth - 16)
-  const textHeight = strategyLines.length * 4.2 // Tighter line height
-  const boxHeight = Math.max(20, textHeight + 12) // Reduced padding
+  // Measure text with exact font/size that will be used
+  const measured = measureWrappedLines(
+    pdf,
+    sanitizePDF(winStrategy),
+    PDF_CONFIG.page.contentWidth - 16,
+    9,
+    'normal'
+  )
+  const textHeight = measured.heightMM
+  const boxHeight = Math.max(20, textHeight + 12)
   
-  // Draw more subtle emerald box - lighter colors
+  // Draw emerald box
   pdf.setFillColor(209, 250, 229) // emerald-100
   pdf.setDrawColor(167, 243, 208) // emerald-200
   pdf.setLineWidth(0.5)
   pdf.roundedRect(PDF_CONFIG.page.margin, currentY, PDF_CONFIG.page.contentWidth, boxHeight, 3, 3, 'FD')
   
-  // "Win Strategy" label - darker text for better contrast on light background
+  // "Win Strategy" label
   pdf.setTextColor(5, 150, 105) // emerald-700
   renderSmartText(pdf, 'Win Strategy', PDF_CONFIG.page.margin + 5, currentY + 6, {
     fontSize: 11,
     fontStyle: 'bold'
   })
   
-  // "Competitive Advantage" badge - emerald on emerald
+  // "Competitive Advantage" badge
   pdf.setFontSize(7)
   pdf.setFont('helvetica', 'bold')
   const badgeText = 'COMPETITIVE ADVANTAGE'
@@ -439,10 +514,8 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
     fontStyle: 'bold'
   })
   
-  // Strategy text with tighter line spacing - darker text
+  // Strategy text with consistent line height
   pdf.setTextColor(31, 41, 55) // gray-800
-  
-  // Render full text with consistent wrapping and BiDi handling
   const contentStartY = currentY + 12
   renderSmartText(pdf, sanitizePDF(winStrategy), PDF_CONFIG.page.margin + 5, contentStartY, {
     fontSize: 9,
@@ -450,7 +523,7 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
     maxWidth: PDF_CONFIG.page.contentWidth - 16
   })
   
-  return currentY + boxHeight + 8 // Proper spacing after box to prevent overlap
+  return currentY + boxHeight + 8
 }
 
 /**
@@ -503,6 +576,7 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
     const colWidth = (PDF_CONFIG.page.contentWidth - 5) / 2
     
     // Client Situation (left column, only if exists)
+    let situationEndY = currentY
     if (data.clientSituation) {
       pdf.setTextColor(...PDF_CONFIG.colors.primary)
       renderSmartText(pdf, 'Client Situation', PDF_CONFIG.page.margin, currentY, {
@@ -512,19 +586,18 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
       currentY += 6
       
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-      const situationEndY = renderSmartText(pdf, sanitizePDF(data.clientSituation), PDF_CONFIG.page.margin, currentY, {
+      situationEndY = renderSmartText(pdf, sanitizePDF(data.clientSituation), PDF_CONFIG.page.margin, currentY, {
         fontSize: PDF_CONFIG.fonts.body.size,
         fontStyle: 'normal',
         maxWidth: colWidth
       })
-      const situationLines = pdf.splitTextToSize(sanitizePDF(data.clientSituation), colWidth)
-      currentY = situationEndY // Store for later comparison
     }
     
     // Main Topics (right column, only if exists)
+    let topicEndY = currentY
     if (data.mainTopics.length > 0) {
       const rightColX = PDF_CONFIG.page.margin + colWidth + 5
-      const topicStartY = currentY - (data.clientSituation ? 6 : 0)
+      const topicStartY = data.clientSituation ? currentY - 6 : currentY
       pdf.setTextColor(...PDF_CONFIG.colors.primary)
       renderSmartText(pdf, 'Main Topics', rightColX, topicStartY, {
         fontSize: PDF_CONFIG.fonts.subheading.size,
@@ -540,19 +613,11 @@ function renderCallSummary(pdf: jsPDF, data: any, startY: number): number {
           maxWidth: colWidth - 5
         })
       })
-      
-      if (data.clientSituation) {
-        const situationLines = pdf.splitTextToSize(sanitizePDF(data.clientSituation), colWidth)
-        currentY = Math.max(currentY + situationLines.length * 5, topicY)
-      } else {
-        currentY = topicY
-      }
-    } else if (data.clientSituation) {
-      const situationLines = pdf.splitTextToSize(sanitizePDF(data.clientSituation), colWidth)
-      currentY += situationLines.length * 5
+      topicEndY = topicY
     }
     
-    currentY += PDF_CONFIG.spacing.sectionGap
+    // Set currentY to the max of both columns
+    currentY = Math.max(situationEndY, topicEndY) + PDF_CONFIG.spacing.sectionGap
   }
   
   return currentY
@@ -722,8 +787,14 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
   const boxHeights = boxes.map(box => {
     let contentHeight = 10 // Title + padding
     box.items.forEach((item: string) => {
-      const itemLines = pdf.splitTextToSize(sanitizePDF(`• ${item}`), colWidth - 4)
-      contentHeight += itemLines.length * 4
+      const measured = measureWrappedLines(
+        pdf,
+        sanitizePDF(`• ${item}`),
+        colWidth - 4,
+        PDF_CONFIG.fonts.small.size,
+        'normal'
+      )
+      contentHeight += measured.heightMM
     })
     return Math.max(minBoxHeight, contentHeight + 2)
   })
@@ -850,36 +921,6 @@ function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): numbe
 }
 
 /**
- * Helper to calculate precise line height in MM based on font metrics
- */
-function lineHeightMm(pdf: jsPDF, fontSize: number): number {
-  const PT_TO_MM = 25.4 / 72
-  const prevSize = pdf.getFontSize()
-  pdf.setFontSize(fontSize)
-  const lh = pdf.getLineHeightFactor() * pdf.getFontSize() * PT_TO_MM
-  pdf.setFontSize(prevSize)
-  return lh
-}
-
-/**
- * Helper: Measure text with exact font/size that will be used for rendering
- */
-function measureLines(pdf: jsPDF, text: string, width: number, fontSize: number, fontStyle: 'normal' | 'bold' = 'normal'): string[] {
-  const prevFontName = pdf.getFont().fontName
-  const prevFontStyle = pdf.getFont().fontStyle
-  const prevFontSize = pdf.getFontSize()
-  
-  pdf.setFont('helvetica', fontStyle)
-  pdf.setFontSize(fontSize)
-  const lines = pdf.splitTextToSize(text, width)
-  
-  pdf.setFont(prevFontName, prevFontStyle)
-  pdf.setFontSize(prevFontSize)
-  
-  return lines
-}
-
-/**
  * Render Stakeholder Navigation Map section
  */
 function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): number {
@@ -912,8 +953,8 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   const rightX = middleX + columnWidth + gapWidth
   
   // Calculate precise line heights based on font metrics
-  const LH8 = lineHeightMm(pdf, 8)  // For main text (bold)
-  const LH7 = lineHeightMm(pdf, 7)  // For evidence and bullets
+  const LH8 = getLineHeightMM(pdf, 8)  // For main text (bold)
+  const LH7 = getLineHeightMM(pdf, 7)  // For evidence and bullets
   const GAP_AFTER_TEXT = Math.round(LH8 * 0.5) // Small gap before bullets
   
   // Store measured lines to reuse during rendering (prevents drift)
@@ -926,9 +967,14 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   if (data.economicBuyers && data.economicBuyers.length > 0) {
     data.economicBuyers.slice(0, 2).forEach((buyer: any) => {
       economicBuyersHeight += LH8 // Name
-      const titleLines = buyer.title ? measureLines(pdf, sanitizePDF(buyer.title), columnWidth - 6, 8, 'normal') : []
-      const evidenceLines = buyer.evidence ? measureLines(pdf, `VERBATIM: "${sanitizePDF(buyer.evidence)}"`, columnWidth - 6, 7, 'normal') : []
+      
+      // Measure title lines
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      const titleLines = buyer.title ? pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 6) : []
+      const evidenceLines = buyer.evidence ? pdf.splitTextToSize(`VERBATIM: "${sanitizePDF(buyer.evidence)}"`, columnWidth - 6) : []
       econBuyersMeasured.push({ titleLines, evidenceLines })
+      
       economicBuyersHeight += titleLines.length * LH8
       economicBuyersHeight += Math.min(evidenceLines.length, 2) * LH7
       if (buyer.isPrimaryContact) {
@@ -943,9 +989,14 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   if (data.keyInfluencers && data.keyInfluencers.length > 0) {
     data.keyInfluencers.slice(0, 2).forEach((influencer: any) => {
       keyInfluencersHeight += LH8 // Name
-      const titleLines = influencer.title ? measureLines(pdf, sanitizePDF(influencer.title), columnWidth - 6, 8, 'normal') : []
-      const evidenceLines = influencer.evidence ? measureLines(pdf, `VERBATIM: "${sanitizePDF(influencer.evidence)}"`, columnWidth - 6, 7, 'normal') : []
+      
+      // Measure title lines
+      pdf.setFont('helvetica', 'normal')
+      pdf.setFontSize(8)
+      const titleLines = influencer.title ? pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 6) : []
+      const evidenceLines = influencer.evidence ? pdf.splitTextToSize(`VERBATIM: "${sanitizePDF(influencer.evidence)}"`, columnWidth - 6) : []
       keyInfluencersMeasured.push({ titleLines, evidenceLines })
+      
       keyInfluencersHeight += titleLines.length * LH8
       keyInfluencersHeight += Math.min(evidenceLines.length, 2) * LH7
       keyInfluencersHeight += LH7 * 0.5 // Spacing between influencers
@@ -964,7 +1015,9 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   
   let navigationStrategyHeight = 10
   if (navText) {
-    navStrategyLines = measureLines(pdf, navText, columnWidth - 6, 8, 'bold')
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(8)
+    navStrategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
     navigationStrategyHeight += navStrategyLines.length * LH8 // text lines
     navigationStrategyHeight += GAP_AFTER_TEXT                // gap after text
     navigationStrategyHeight += 3 * LH7                       // 3 bullets
@@ -1010,8 +1063,8 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'normal')
     
-    const LH8 = lineHeightMm(pdf, 8)
-    const LH7 = lineHeightMm(pdf, 7)
+    const LH8 = getLineHeightMM(pdf, 8)
+    const LH7 = getLineHeightMM(pdf, 7)
     
     let buyerY = currentY + 10
     data.economicBuyers.slice(0, 2).forEach((buyer: any, idx: number) => {
@@ -1074,8 +1127,8 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     
     pdf.setTextColor(55, 65, 81) // gray-700
     
-    const LH8 = lineHeightMm(pdf, 8)
-    const LH7 = lineHeightMm(pdf, 7)
+    const LH8 = getLineHeightMM(pdf, 8)
+    const LH7 = getLineHeightMM(pdf, 7)
     
     let influencerY = currentY + 10
     data.keyInfluencers.slice(0, 2).forEach((influencer: any, idx: number) => {
@@ -1328,8 +1381,8 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
       )
       
       // Precise spacing
-      const lhBody = lineHeightMM(pdf, PDF_CONFIG.fonts.body.size)
-      const lhSub = lineHeightMM(pdf, PDF_CONFIG.fonts.subheading.size)
+      const lhBody = getLineHeightMM(pdf, PDF_CONFIG.fonts.body.size)
+      const lhSub = getLineHeightMM(pdf, PDF_CONFIG.fonts.subheading.size)
       const paddingTop = 4
       const labelGap = 2.5
       const subjectGap = 2
@@ -1389,13 +1442,6 @@ function renderActionItems(pdf: jsPDF, actions: any[], startY: number): number {
   })
   
   return currentY + PDF_CONFIG.spacing.sectionGap
-}
-
-/**
- * Calculate precise line height in millimeters
- */
-function lineHeightMM(pdf: jsPDF, fontSize: number): number {
-  return (fontSize / (pdf as any).internal.scaleFactor) * pdf.getLineHeightFactor()
 }
 
 /**
