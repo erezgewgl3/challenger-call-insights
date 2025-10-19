@@ -31,6 +31,7 @@ interface ParsedAnalysis {
   recommendations?: any;
   reasoning?: any;
   actionPlan?: any;
+  coachingInsights?: any;
 }
 
 // Frontend-exact deal heat calculation logic (returns string only)
@@ -475,7 +476,8 @@ serve(async (req) => {
       recommendations: parsedResult.recommendations,
       reasoning: parsedResult.reasoning,
       action_plan: parsedResult.actionPlan,
-      heat_level: heatLevel
+      heat_level: heatLevel,
+      coaching_insights: parsedResult.coachingInsights
     };
 
     const { data: analysisData, error: analysisError } = await supabase
@@ -1192,7 +1194,8 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
       keyTakeaways: parsed.keyTakeaways || parsed.key_takeaways || null,
       recommendations: parsed.recommendations || null,
       reasoning: parsed.reasoning || null,
-      actionPlan: parsed.actionPlan || parsed.action_plan || null
+      actionPlan: parsed.actionPlan || parsed.action_plan || null,
+      coachingInsights: parsed.coachingInsights || parsed.coaching_insights || null
     };
     
     console.log('🔍 [PARSE] Final parsed result stored directly from AI response');
