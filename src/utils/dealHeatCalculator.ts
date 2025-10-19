@@ -156,6 +156,14 @@ export function calculateDealHeat(analysis: any): DealHeatResult {
     }
   }
   
+  // Floor rule: High pain + business drivers also deserve MEDIUM minimum
+  if (painLevel === 'high' && businessFactors.length >= 2) {
+    if (dealScore < 2) {
+      console.log('🔍 [HEAT] FLOOR RULE: High pain + 2+ business factors → MEDIUM minimum (dealScore boosted from', dealScore, 'to 2)')
+      dealScore = 2 // Ensures MEDIUM minimum even with high resistance
+    }
+  }
+  
   let heatLevel: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW'
   let emoji = '❄️'
   let description = 'Long-term opportunity'
@@ -171,8 +179,9 @@ export function calculateDealHeat(analysis: any): DealHeatResult {
     emoji = '🔥'
     description = 'Immediate attention needed'
   } else if (
-    // MEDIUM heat requires meaningful buying intent, not just pain
+    // MEDIUM heat requires meaningful buying intent or business pain
     (painLevel === 'medium' && dealScore >= 2) ||  // Medium pain + some positive signals
+    (painLevel === 'high' && dealScore >= 2) ||    // High pain + some signals (even with resistance)
     (businessFactors.length >= 1 && dealScore >= 1) ||  // Business urgency + at least 1 signal
     dealScore >= 4                                  // Strong buying signals independently
   ) {

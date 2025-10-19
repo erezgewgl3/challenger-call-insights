@@ -735,9 +735,10 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   if (data.navigationStrategy) {
     const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
     navigationStrategyHeight += strategyLines.length * 3.5 // Main text lines
-    navigationStrategyHeight += 2 // Gap after main text (line 886)
-    navigationStrategyHeight += (3 * 3.5) // Three bullet items with spacing
-    navigationStrategyHeight += 3 // Bottom padding after last bullet
+    navigationStrategyHeight += 2 // Gap after main text (line 888)
+    navigationStrategyHeight += 3.5 // First bullet spacing
+    navigationStrategyHeight += 3.5 // Second bullet spacing
+    navigationStrategyHeight += 5 // Third bullet text height (2.5mm) + bottom padding (2.5mm)
   } else {
     navigationStrategyHeight += 6 // Fallback bottom padding if no content
   }
