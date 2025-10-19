@@ -117,41 +117,8 @@ function getLineHeightMM(pdf: jsPDF, fontSize: number): number {
 }
 
 /**
- * Prepare text for rendering with proper font and BiDi processing
- */
-function prepareTextForRendering(
-  pdf: jsPDF,
-  text: string,
-  fontStyle: 'normal' | 'bold',
-  fontSize: number
-): {
-  processedText: string
-  isRTL: boolean
-  fontName: string
-  fontStyleUsed: 'normal' | 'bold'
-  lineHeightMM: number
-} {
-  const hasHebrew = containsHebrew(text)
-  const isRTL = shouldUseRTL(text)
-  
-  // Determine font
-  const fontName = (hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica'
-  
-  // Process text for RTL if needed
-  const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(text)
-  const processedText = needsBiDi ? processBiDiText(text) : hasHebrew ? reverseText(text) : text
-  
-  return {
-    processedText,
-    isRTL,
-    fontName,
-    fontStyleUsed: fontStyle,
-    lineHeightMM: getLineHeightMM(pdf, fontSize)
-  }
-}
-
-/**
  * Measure wrapped lines with exact font that will be used for rendering
+ * CRITICAL: Uses ORIGINAL text for splitting to avoid BiDi control character width issues
  */
 function measureWrappedLines(
   pdf: jsPDF,
@@ -160,17 +127,21 @@ function measureWrappedLines(
   fontSize: number,
   fontStyle: 'normal' | 'bold' = 'normal'
 ): { lines: string[], heightMM: number } {
-  const prepared = prepareTextForRendering(pdf, text, fontStyle, fontSize)
+  const hasHebrew = containsHebrew(text)
+  const fontName = (hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica'
   
   // Temporarily set font for measurement
   const prevFont = pdf.getFont()
   const prevSize = pdf.getFontSize()
   
-  pdf.setFont(prepared.fontName, prepared.fontStyleUsed)
+  pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
   
-  const lines = pdf.splitTextToSize(prepared.processedText, maxWidth)
-  const heightMM = lines.length * prepared.lineHeightMM
+  // CRITICAL: Split using ORIGINAL text - jsPDF needs clean text for accurate width calculation
+  // BiDi control characters break splitTextToSize width calculations
+  const lines = pdf.splitTextToSize(text, maxWidth)
+  const lineHeightMM = getLineHeightMM(pdf, fontSize)
+  const heightMM = lines.length * lineHeightMM
   
   // Restore previous font
   pdf.setFont(prevFont.fontName, prevFont.fontStyle)
@@ -182,6 +153,7 @@ function measureWrappedLines(
 /**
  * Smart text rendering with automatic Hebrew/RTL support
  * Detects Hebrew and switches font/direction automatically
+ * CRITICAL: Splits on ORIGINAL text first, then processes each line for BiDi
  */
 function renderSmartText(
   pdf: jsPDF,
@@ -200,40 +172,52 @@ function renderSmartText(
 
   const fontSize = options.fontSize || PDF_CONFIG.fonts.body.size
   const fontStyle = options.fontStyle || 'normal'
-  const prepared = prepareTextForRendering(pdf, text, fontStyle, fontSize)
-  const lineHeight = options.lineHeight || prepared.lineHeightMM
-
-  // Set font
-  pdf.setFont(prepared.fontName, prepared.fontStyleUsed)
+  const hasHebrew = containsHebrew(text)
+  const isRTL = hasHebrew && shouldUseRTL(text)
+  
+  // Choose font
+  const fontName = (hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica'
+  pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
+  
+  const lineHeight = options.lineHeight || getLineHeightMM(pdf, fontSize)
 
   // Handle text wrapping if maxWidth provided
   if (options.maxWidth) {
-    const lines = pdf.splitTextToSize(prepared.processedText, options.maxWidth)
+    // CRITICAL: Split using ORIGINAL text for accurate width calculation
+    const lines = pdf.splitTextToSize(text, options.maxWidth)
+    
     lines.forEach((line: string, index: number) => {
       const lineY = y + (index * lineHeight)
-      if (prepared.isRTL) {
-        pdf.text(line, x + options.maxWidth, lineY, { align: 'right' })
+      
+      // Process each line individually for BiDi/RTL after splitting
+      const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(line)
+      const processedLine = needsBiDi ? processBiDiText(line) : hasHebrew ? reverseText(line) : line
+      
+      if (isRTL) {
+        pdf.text(processedLine, x + options.maxWidth, lineY, { align: 'right' })
       } else {
-        // Fix alignment for non-RTL text within maxWidth
         if (options.align === 'right') {
-          pdf.text(line, x + options.maxWidth, lineY, { align: 'right' })
+          pdf.text(processedLine, x + options.maxWidth, lineY, { align: 'right' })
         } else if (options.align === 'center') {
-          pdf.text(line, x + (options.maxWidth / 2), lineY, { align: 'center' })
+          pdf.text(processedLine, x + (options.maxWidth / 2), lineY, { align: 'center' })
         } else {
-          pdf.text(line, x, lineY, { align: 'left' })
+          pdf.text(processedLine, x, lineY, { align: 'left' })
         }
       }
     })
     return y + (lines.length * lineHeight)
   }
 
-  // Single line rendering
-  if (prepared.isRTL) {
+  // Single line rendering (no wrapping)
+  const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(text)
+  const processedText = needsBiDi ? processBiDiText(text) : hasHebrew ? reverseText(text) : text
+  
+  if (isRTL) {
     const anchorX = options.maxWidth ? x + options.maxWidth : x
-    pdf.text(prepared.processedText, anchorX, y, { align: 'right' })
+    pdf.text(processedText, anchorX, y, { align: 'right' })
   } else {
-    pdf.text(prepared.processedText, x, y, { align: options.align || 'left' })
+    pdf.text(processedText, x, y, { align: options.align || 'left' })
   }
 
   return y + lineHeight
