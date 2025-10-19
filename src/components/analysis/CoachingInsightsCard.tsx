@@ -1,4 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { capitalizeSentences } from '@/lib/utils'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Lightbulb, Target, ChevronDown, ChevronUp } from 'lucide-react'
@@ -102,7 +103,7 @@ export function CoachingInsightsCard({ coachingInsights, dealHeat }: CoachingIns
                 🎯 Focus Area for Next Call
               </h4>
               <p className="text-sm text-slate-700 leading-relaxed">
-                {focusArea || 'Continue building on current strengths'}
+                {capitalizeSentences(focusArea || 'Continue building on current strengths')}
               </p>
             </div>
           </CardContent>

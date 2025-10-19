@@ -7,6 +7,7 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { PDFContentData } from '@/types/pdfExport'
+import { capitalizeSentences } from '@/lib/utils'
 
 /**
  * Sanitize text to handle special characters while preserving important symbols
@@ -478,7 +479,7 @@ function renderCoachingInsights(pdf: jsPDF, data: any, startY: number): number {
   pdf.setFontSize(PDF_CONFIG.fonts.body.size)
   pdf.setTextColor(...PDF_CONFIG.colors.darkText)
   pdf.setFont('helvetica', 'normal')
-  const focusLines = pdf.splitTextToSize(sanitizePDF(data.focusArea), PDF_CONFIG.page.contentWidth)
+  const focusLines = pdf.splitTextToSize(sanitizePDF(capitalizeSentences(data.focusArea)), PDF_CONFIG.page.contentWidth)
   pdf.text(focusLines, PDF_CONFIG.page.margin, currentY)
   currentY += focusLines.length * 5
   

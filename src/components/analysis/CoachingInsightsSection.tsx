@@ -1,5 +1,6 @@
 import React from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { capitalizeSentences } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Lightbulb, CheckCircle, Target, ChevronDown, ChevronUp } from 'lucide-react'
@@ -113,7 +114,7 @@ export function CoachingInsightsSection({
                 🎯 Focus Area for Next Call
               </h4>
               <p className="text-gray-800 text-sm lg:text-base leading-relaxed">
-                {focusArea || 'Continue building on current strengths'}
+                {capitalizeSentences(focusArea || 'Continue building on current strengths')}
               </p>
             </div>
           </CardContent>
