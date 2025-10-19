@@ -36,30 +36,48 @@ export function reverseText(text: string): string {
  */
 export function processBiDiText(text: string): string {
   if (!text) return text;
-  
-  // Split into words
-  const words = text.split(/\s+/);
-  
-  const processedWords = words.map(word => {
-    // Don't reverse pure numbers or punctuation
-    if (/^[\d\p{P}]+$/u.test(word)) return word;
-    
-    // Check if word contains Hebrew
-    if (containsHebrew(word)) {
-      // Reverse the word character by character for RTL display
-      return word.split('').reverse().join('');
+
+  const LRI = '\u2066'; // Left-to-Right isolate
+  const PDI = '\u2069'; // Pop directional isolate
+
+  // Tokenize into Hebrew runs, Latin/number runs, brackets/punctuation, and whitespace
+  const tokens = text.match(/[\u0590-\u05FF]+|[A-Za-z0-9@#%&+\/\-_.:]+|[()\[\]{}<>]+|[\p{P}]+|\s+/gu) || [text];
+
+  let rtlCount = 0;
+  let ltrCount = 0;
+
+  const mapped = tokens.map((tok) => {
+    if (/^\s+$/.test(tok)) return tok; // keep whitespace
+
+    // Pure Hebrew run
+    if (/^[\u0590-\u05FF]+$/.test(tok)) {
+      rtlCount++;
+      return tok.split('').reverse().join('');
     }
-    
-    // Keep Latin/English words as-is
-    return word;
+
+    // Pure Latin/number run -> wrap with LRI/PDI to preserve LTR inside RTL context
+    if (/^[A-Za-z0-9@#%&+\/\-_.:]+$/.test(tok)) {
+      ltrCount++;
+      return `${LRI}${tok}${PDI}`;
+    }
+
+    // Mixed or punctuation: if contains Hebrew, treat as RTL and reverse chars, else keep
+    if (containsHebrew(tok)) {
+      rtlCount++;
+      return tok.split('').reverse().join('');
+    }
+
+    return tok;
   });
-  
-  // If text is predominantly RTL, reverse word order too
-  if (shouldUseRTL(text)) {
-    return processedWords.reverse().join(' ');
-  }
-  
-  return processedWords.join(' ');
+
+  const pureHebrewLine = ltrCount === 0 && rtlCount > 0;
+  const rtlDominant = rtlCount > 0 && (rtlCount / (rtlCount + ltrCount)) > 0.9;
+
+  // For pure (or near-pure) Hebrew, reverse token order so the sentence reads RTL.
+  // For mixed lines, keep original token order so English stays readable.
+  const ordered = (pureHebrewLine || rtlDominant) ? mapped.reverse() : mapped;
+
+  return ordered.join('');
 }
 
 /**

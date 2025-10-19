@@ -157,7 +157,8 @@ function renderSmartText(
 
   // Single line rendering
   if (isRTL) {
-    pdf.text(processedText, x + (options.maxWidth || PDF_CONFIG.page.contentWidth), y, { align: 'right' })
+    const anchorX = options.maxWidth ? x + options.maxWidth : x
+    pdf.text(processedText, anchorX, y, { align: 'right' })
   } else {
     pdf.text(processedText, x, y, { align: options.align || 'left' })
   }
@@ -439,14 +440,12 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   // Strategy text with tighter line spacing - darker text
   pdf.setTextColor(31, 41, 55) // gray-800
   
-  // Render each line with custom spacing
-  let textY = currentY + 12
-  strategyLines.forEach((line: string) => {
-    renderSmartText(pdf, line, PDF_CONFIG.page.margin + 5, textY, {
-      fontSize: 9,
-      fontStyle: 'normal'
-    })
-    textY += 4.2 // Tighter line spacing
+  // Render full text with consistent wrapping and BiDi handling
+  const contentStartY = currentY + 12
+  renderSmartText(pdf, sanitizePDF(winStrategy), PDF_CONFIG.page.margin + 5, contentStartY, {
+    fontSize: 9,
+    fontStyle: 'normal',
+    maxWidth: PDF_CONFIG.page.contentWidth - 16
   })
   
   return currentY + boxHeight + 8 // Proper spacing after box to prevent overlap
