@@ -47,13 +47,6 @@ export interface DealCommandCenterData {
     name: string
     title: string
     influence: string
-    authorityMismatch?: {
-      detected: boolean
-      technical_buyer: string
-      economic_buyer: string
-      risk_level: string
-      warning: string
-    } | null
   }
   momentum: {
     score: string

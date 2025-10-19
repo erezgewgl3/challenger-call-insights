@@ -483,12 +483,7 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
   
   // Build table data, filtering out empty cells
   const dealHeatText = data.dealHeat.description ? `[${data.dealHeat.level}] ${data.dealHeat.description}` : ''
-  const powerCenterText = [
-    data.powerCenter.name, 
-    data.powerCenter.title, 
-    data.powerCenter.influence,
-    data.powerCenter.authorityMismatch?.detected ? '⚠️ Authority Split' : null
-  ].filter(Boolean).join('\n')
+  const powerCenterText = [data.powerCenter.name, data.powerCenter.title, data.powerCenter.influence].filter(Boolean).join('\n')
   const momentumText = [data.momentum.score, data.momentum.strength].filter(Boolean).join('\n')
   const competitiveEdgeText = [data.competitiveEdge.strategy, data.competitiveEdge.driver].filter(Boolean).join('\n')
   
@@ -546,65 +541,7 @@ function renderDealCommandCenter(pdf: jsPDF, data: any, startY: number): number 
     }
   })
   
-  let finalY = (pdf as any).lastAutoTable.finalY + PDF_CONFIG.spacing.sectionGap
-  
-  // Render Authority Mismatch Alert if detected
-  if (data.powerCenter.authorityMismatch?.detected) {
-    finalY = renderAuthorityMismatchAlert(pdf, data.powerCenter.authorityMismatch, finalY)
-  }
-  
-  return finalY
-}
-
-/**
- * Render Authority Mismatch Alert (orange warning box)
- */
-function renderAuthorityMismatchAlert(pdf: jsPDF, mismatch: any, startY: number): number {
-  const pageWidth = pdf.internal.pageSize.getWidth()
-  const boxWidth = pageWidth - (PDF_CONFIG.page.margin * 2)
-  const boxPadding = 4
-  
-  // Draw orange warning box
-  pdf.setFillColor(255, 237, 213) // Light orange background
-  pdf.setDrawColor(251, 146, 60) // Orange border
-  pdf.setLineWidth(1)
-  
-  // Calculate box height based on content
-  const warningText = mismatch.warning || 
-    `${mismatch.technical_buyer} leads technical evaluation, but ${mismatch.economic_buyer} controls final budget decision.`
-  
-  const fontName = pdf.getFontList()['Rubik'] ? 'Rubik' : 'helvetica'
-  pdf.setFont(fontName, 'normal')
-  pdf.setFontSize(9)
-  const wrappedText = pdf.splitTextToSize(warningText, boxWidth - (boxPadding * 2))
-  const textHeight = wrappedText.length * 4
-  const boxHeight = 12 + textHeight + 4
-  
-  pdf.rect(PDF_CONFIG.page.margin, startY, boxWidth, boxHeight, 'FD')
-  
-  // Warning icon and title
-  pdf.setFont(fontName, 'bold')
-  pdf.setFontSize(12)
-  pdf.setTextColor(194, 65, 12) // Dark orange text
-  pdf.text('⚠️ AUTHORITY MISMATCH DETECTED', PDF_CONFIG.page.margin + boxPadding, startY + 6)
-  
-  // Warning message
-  pdf.setFont(fontName, 'normal')
-  pdf.setFontSize(9)
-  pdf.setTextColor(0, 0, 0)
-  pdf.text(wrappedText, PDF_CONFIG.page.margin + boxPadding, startY + 12)
-  
-  // Risk level indicator
-  pdf.setFont(fontName, 'bold')
-  pdf.setFontSize(8)
-  const riskColor = mismatch.risk_level === 'high' ? [239, 68, 68] : [251, 146, 60]
-  pdf.setTextColor(...(riskColor as [number, number, number]))
-  pdf.text(`Risk Level: ${mismatch.risk_level.toUpperCase()}`, PDF_CONFIG.page.margin + boxPadding, startY + boxHeight - 3)
-  
-  // Reset colors
-  pdf.setTextColor(0, 0, 0)
-  
-  return startY + boxHeight + PDF_CONFIG.spacing.sectionGap
+  return (pdf as any).lastAutoTable.finalY + PDF_CONFIG.spacing.sectionGap
 }
 
 /**

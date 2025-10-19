@@ -66,62 +66,49 @@ function extractDealCommandCenter(analysis: any) {
   const buyingSignals = callSummary?.buyingSignalsAnalysis || {}
   const timeline = callSummary?.timelineAnalysis || {}
   
-  // ✅ PRIORITY 1: Use AI's designated power_center from v12.1 prompt
-  let decisionMaker: any = { name: '', title: '', influence: '', authorityMismatch: null }
+  // Extract decision maker from clientContacts (matching UI logic)
+  const contacts = analysis?.participants?.clientContacts || []
+  let decisionMaker = { name: '', title: '', influence: '' }
   
-  if (analysis?.guidance?.power_center) {
-    const pc = analysis.guidance.power_center
-    decisionMaker = {
-      name: pc.name || '',
-      title: pc.title || '',
-      influence: pc.influence_level ? `${pc.influence_level.charAt(0).toUpperCase() + pc.influence_level.slice(1)} Influence` : '',
-      authorityMismatch: pc.authority_mismatch || null
-    }
-  } else {
-    // ✅ FALLBACK: Use scoring algorithm for older analyses
-    const contacts = analysis?.participants?.clientContacts || []
-    
-    if (contacts.length > 0) {
-      const scoredContacts = contacts.map((contact: any) => {
-        const evidence = contact.decisionEvidence || []
-        const decisionLevel = contact.decisionLevel || 'low'
-        
-        let authorityScore = 0
-        
-        evidence.forEach((ev: string) => {
-          const evidence_lower = ev.toLowerCase()
-          if (evidence_lower.includes('budget') || evidence_lower.includes('approval')) {
-            authorityScore += 4
-          } else if (evidence_lower.includes('timeline') || evidence_lower.includes('decision')) {
-            authorityScore += 3
-          } else if (evidence_lower.includes('deferred') || evidence_lower.includes('strategic')) {
-            authorityScore += 2
-          } else {
-            authorityScore += 1
-          }
-        })
-        
-        if (decisionLevel === 'high') authorityScore += 3
-        else if (decisionLevel === 'medium') authorityScore += 1
-        
-        const confidence = authorityScore >= 6 ? 'High' : 
-                         authorityScore >= 3 ? 'Medium' : 'Low'
-        
-        return {
-          ...contact,
-          authorityScore,
-          confidence
+  if (contacts.length > 0) {
+    const scoredContacts = contacts.map((contact: any) => {
+      const evidence = contact.decisionEvidence || []
+      const decisionLevel = contact.decisionLevel || 'low'
+      
+      let authorityScore = 0
+      
+      evidence.forEach((ev: string) => {
+        const evidence_lower = ev.toLowerCase()
+        if (evidence_lower.includes('budget') || evidence_lower.includes('approval')) {
+          authorityScore += 4
+        } else if (evidence_lower.includes('timeline') || evidence_lower.includes('decision')) {
+          authorityScore += 3
+        } else if (evidence_lower.includes('deferred') || evidence_lower.includes('strategic')) {
+          authorityScore += 2
+        } else {
+          authorityScore += 1
         }
       })
       
-      const topContact = scoredContacts.sort((a, b) => b.authorityScore - a.authorityScore)[0]
+      if (decisionLevel === 'high') authorityScore += 3
+      else if (decisionLevel === 'medium') authorityScore += 1
       
-      decisionMaker = {
-        name: topContact.name || '',
-        title: topContact.title || '',
-        influence: topContact.confidence ? `${topContact.confidence} Influence` : '',
-        authorityMismatch: null
+      const confidence = authorityScore >= 6 ? 'High' : 
+                       authorityScore >= 3 ? 'Medium' : 'Low'
+      
+      return {
+        ...contact,
+        authorityScore,
+        confidence
       }
+    })
+    
+    const topContact = scoredContacts.sort((a, b) => b.authorityScore - a.authorityScore)[0]
+    
+    decisionMaker = {
+      name: topContact.name || '',
+      title: topContact.title || '',
+      influence: topContact.confidence ? `${topContact.confidence} Influence` : ''
     }
   }
 
