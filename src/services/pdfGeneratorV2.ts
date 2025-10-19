@@ -731,17 +731,16 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   }
   keyInfluencersHeight += 10 // Bottom padding
 
-  // Sanitize and trim navigation strategy once
-  const navText = sanitizePDF(data.navigationStrategy || '').trim()
-  
-  let navigationStrategyHeight = 0
-  if (navText) {
-    navigationStrategyHeight = 10 // Header to main text start
-    const strategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
-    navigationStrategyHeight += strategyLines.length * 3.5 // Per-line increments (matches render)
-    navigationStrategyHeight += 2 // Gap after text (matches render)
-    navigationStrategyHeight += 3.5 + 3.5 // Two bullet increments (matches render)
-    navigationStrategyHeight += 2 // Minimal bottom padding
+  let navigationStrategyHeight = 10
+  if (data.navigationStrategy) {
+    const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
+    navigationStrategyHeight += strategyLines.length * 3.5
+    navigationStrategyHeight += 2
+    navigationStrategyHeight += 3.5
+    navigationStrategyHeight += 3.5
+    navigationStrategyHeight += 2.5
+  } else {
+    navigationStrategyHeight += 6
   }
 
   const maxHeight = Math.max(economicBuyersHeight, keyInfluencersHeight, navigationStrategyHeight, 40)
@@ -754,7 +753,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(254, 242, 242) // red-50
     pdf.setDrawColor(254, 202, 202) // red-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(leftX, currentY, columnWidth, economicBuyersHeight, 2, 2, 'FD')
+    pdf.roundedRect(leftX, currentY, columnWidth, maxHeight, 2, 2, 'FD')
     
     pdf.setTextColor(153, 27, 27) // red-900
     pdf.setFontSize(9)
@@ -816,7 +815,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFillColor(254, 252, 232) // yellow-50
     pdf.setDrawColor(254, 240, 138) // yellow-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(middleX, currentY, columnWidth, keyInfluencersHeight, 2, 2, 'FD')
+    pdf.roundedRect(middleX, currentY, columnWidth, maxHeight, 2, 2, 'FD')
     
     pdf.setTextColor(120, 53, 15) // yellow-900
     pdf.setFontSize(9)
@@ -865,11 +864,11 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   }
   
   // Navigation Strategy (Right Column - Blue theme)
-  if (navText) {
+  if (data.navigationStrategy) {
     pdf.setFillColor(239, 246, 255) // blue-50
     pdf.setDrawColor(191, 219, 254) // blue-200
     pdf.setLineWidth(0.5)
-    pdf.roundedRect(rightX, currentY, columnWidth, navigationStrategyHeight, 2, 2, 'FD')
+    pdf.roundedRect(rightX, currentY, columnWidth, maxHeight, 2, 2, 'FD')
     
     pdf.setTextColor(30, 58, 138) // blue-900
     pdf.setFontSize(9)
@@ -880,7 +879,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'bold')
     
-    const strategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
+    const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
     let strategyY = currentY + 10
     strategyLines.forEach((line: string) => {
       pdf.text(line, rightX + 3, strategyY)
