@@ -46,7 +46,7 @@ import { StakeholderNavigation } from './StakeholderNavigation'
 import { ExpandableSections } from './ExpandableSections'
 import { usePDFExport } from '@/hooks/usePDFExport'
 import { calculateDealHeat, type DealHeatResult } from '@/utils/dealHeatCalculator'
-import { CoachingInsightsCard } from './CoachingInsightsCard'
+import { CoachingInsightsSection } from './CoachingInsightsSection'
 import { DealBlockersCard } from './DealBlockersCard'
 import { QualityIndicatorBadge } from './QualityIndicatorBadge'
 
@@ -149,10 +149,11 @@ export function NewAnalysisView({
   // State for collapsible sections with smart defaults
   const [sectionsOpen, setSectionsOpen] = useState({
     insights: isHighPriorityDeal, // Open for high-priority deals
-    competitive: false // Progressive disclosure
+    competitive: false, // Progressive disclosure
+    coaching: isHighPriorityDeal // Auto-open coaching for high-priority deals
   })
 
-  const toggleSection = (section: keyof typeof sectionsOpen) => {
+  const toggleSection = (section: 'insights' | 'competitive' | 'coaching') => {
     setSectionsOpen(prev => ({
       ...prev,
       [section]: !prev[section]
@@ -516,14 +517,6 @@ export function NewAnalysisView({
           {/* 🎓 QUALITY INDICATOR - Show if analysis has quality flags */}
           <QualityIndicatorBadge analysisId={analysis.id} />
 
-          {/* 🎓 COACHING INSIGHTS - Critical for rep improvement */}
-          {analysis.coaching_insights && (
-            <CoachingInsightsCard 
-              coachingInsights={analysis.coaching_insights}
-              dealHeat={dealHeat}
-            />
-          )}
-
           {/* 🚧 DEAL BLOCKERS - Show critical obstacles */}
           {analysis.recommendations?.dealBlockers && (
             <DealBlockersCard 
@@ -552,6 +545,16 @@ export function NewAnalysisView({
             toggleSection={toggleSection}
             conversationIntel={conversationIntel}
           />
+
+          {/* 🎓 COACHING INSIGHTS SECTION - Positioned at end for reflection */}
+          {analysis.coaching_insights && (
+            <CoachingInsightsSection
+              coachingInsights={analysis.coaching_insights}
+              dealHeat={dealHeat}
+              isOpen={sectionsOpen.coaching}
+              onToggle={() => toggleSection('coaching')}
+            />
+          )}
       </div>
     </div>
   )
