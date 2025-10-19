@@ -267,8 +267,8 @@ function renderWinStrategy(pdf: jsPDF, data: any, startY: number): number {
   
   if (!winStrategy) return startY
   
-  // Minimal spacing before Win Strategy box
-  let currentY = startY + 3
+  // Minimal spacing before Win Strategy box (moved up for better spacing)
+  let currentY = startY - 2
   
   // Calculate text dimensions for dynamic box height
   pdf.setFontSize(9)
