@@ -93,6 +93,10 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   currentY = renderDealCommandCenter(pdf, contentData.dealCommandCenter, currentY)
   currentY = renderWinStrategy(pdf, contentData.dealCommandCenter, currentY)
   
+  // Deal Blockers - CRITICAL: Display immediately after Win Strategy
+  currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
+  currentY = renderDealBlockers(pdf, contentData.dealBlockers, currentY)
+  
   // Call Summary
   currentY = checkPageBreak(pdf, currentY, 70, contentData.header.title)
   currentY = renderCallSummary(pdf, contentData.callSummary, currentY)
@@ -104,10 +108,6 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   // Strategic Assessment
   currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
   currentY = renderStrategicAssessment(pdf, contentData.strategicAssessment, currentY)
-  
-  // Deal Blockers
-  currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
-  currentY = renderDealBlockers(pdf, contentData.dealBlockers, currentY)
   
   // Stakeholder Navigation Map
   currentY = checkPageBreak(pdf, currentY, 50, contentData.header.title)
