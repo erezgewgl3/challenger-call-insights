@@ -188,13 +188,14 @@ function renderSmartText(
 
   const fontSize = options.fontSize || PDF_CONFIG.fonts.body.size
   const fontStyle = options.fontStyle || 'normal'
-  const forceLTR = options.forceLTR === true
   const hasHebrewBase = containsHebrew(clean)
-  const hasHebrew = forceLTR ? false : hasHebrewBase
-  const isRTL = forceLTR ? false : (hasHebrew && shouldUseRTL(clean))
+  // CONDITIONAL: Only force LTR if requested AND text doesn't contain Hebrew
+  const localForceLTR = options.forceLTR === true && !hasHebrewBase
+  const hasHebrew = localForceLTR ? false : hasHebrewBase
+  const isRTL = localForceLTR ? false : (hasHebrew && shouldUseRTL(clean))
   
   // Choose font
-  const fontName = forceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
+  const fontName = localForceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
   pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
   
@@ -209,8 +210,8 @@ function renderSmartText(
       const lineY = y + (index * lineHeight)
       
       // Process each line individually for BiDi/RTL after splitting
-      const needsBiDi = !forceLTR && hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
-      const processedLine = forceLTR ? line : (needsBiDi ? processBiDiText(line) : (hasHebrew ? reverseText(line) : line))
+      const needsBiDi = !localForceLTR && hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
+      const processedLine = localForceLTR ? line : (needsBiDi ? processBiDiText(line) : (hasHebrew ? reverseText(line) : line))
       
       if (isRTL) {
         pdf.text(processedLine, x + options.maxWidth, lineY, { align: 'right' })
@@ -228,8 +229,8 @@ function renderSmartText(
   }
 
   // Single line rendering (no wrapping)
-  const needsBiDi = !forceLTR && hasHebrew && /[A-Za-z0-9]/.test(clean) && /[\u0590-\u05FF]/.test(clean)
-  const processedText = forceLTR ? clean : (needsBiDi ? processBiDiText(clean) : (hasHebrew ? reverseText(clean) : clean))
+  const needsBiDi = !localForceLTR && hasHebrew && /[A-Za-z0-9]/.test(clean) && /[\u0590-\u05FF]/.test(clean)
+  const processedText = localForceLTR ? clean : (needsBiDi ? processBiDiText(clean) : (hasHebrew ? reverseText(clean) : clean))
   
   if (isRTL) {
     const anchorX = options.maxWidth ? x + options.maxWidth : x
@@ -258,7 +259,6 @@ function renderHangingBulletItem(
 ): number {
   const fontSize = options.fontSize || PDF_CONFIG.fonts.body.size
   const fontStyle = options.fontStyle || 'normal'
-  const forceLTR = options.forceLTR === true
   const bulletIndent = 3.5 // mm
   
   // Diagnostic: detect special whitespace/BiDi marks in original text
@@ -272,6 +272,12 @@ function renderHangingBulletItem(
   // Sanitize input to remove hidden formatting characters
   const clean = sanitizePDF(text)
   
+  // Detect Hebrew BEFORE applying forceLTR
+  const hasHebrewBase = containsHebrew(clean)
+  
+  // CONDITIONAL: Only force LTR if requested AND text doesn't contain Hebrew
+  const localForceLTR = options.forceLTR === true && !hasHebrewBase
+  
   // Draw bullet circle
   pdf.setFillColor(55, 65, 81) // gray-700
   pdf.circle(x, y - 1, 0.8, 'F')
@@ -281,19 +287,31 @@ function renderHangingBulletItem(
   const wrapWidth = maxWidth - bulletIndent
   
   // Split and render text
-  const hasHebrewBase = containsHebrew(clean)
-  const hasHebrew = forceLTR ? false : hasHebrewBase
-  const fontName = forceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
+  const hasHebrew = localForceLTR ? false : hasHebrewBase
+  const fontName = localForceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
+  const isRTL = localForceLTR ? false : (hasHebrew && shouldUseRTL(clean))
+  
   pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
   
   const lines = pdf.splitTextToSize(clean, wrapWidth)
   const lineHeight = getLineHeightMM(pdf, fontSize)
   
+  // Diagnostic logging for first 2 bullets
+  if (lines.length > 0) {
+    console.log('🎯 Bullet rendering:', {
+      hasHebrewBase,
+      localForceLTR,
+      fontName,
+      isRTL,
+      textSnippet: clean.slice(0, 60)
+    })
+  }
+  
   lines.forEach((line: string, index: number) => {
     const lineY = y + (index * lineHeight)
-    const needsBiDi = !forceLTR && hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
-    const processedLine = forceLTR ? line : (needsBiDi ? processBiDiText(line) : (hasHebrew ? reverseText(line) : line))
+    const needsBiDi = !localForceLTR && hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
+    const processedLine = localForceLTR ? line : (needsBiDi ? processBiDiText(line) : (hasHebrew ? reverseText(line) : line))
     pdf.text(processedLine, textX, lineY, { align: 'left' })
   })
   
