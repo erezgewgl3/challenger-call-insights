@@ -8,6 +8,8 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import type { PDFContentData } from '@/types/pdfExport'
 import { capitalizeSentences } from '@/lib/utils'
+import { RUBIK_REGULAR_BASE64, RUBIK_BOLD_BASE64 } from '@/lib/fonts/rubik-fonts'
+import { containsHebrew, processBiDiText, shouldUseRTL } from '@/lib/fonts/hebrew-utils'
 
 /**
  * Sanitize text to handle special characters while preserving important symbols
@@ -77,6 +79,93 @@ const PDF_CONFIG = {
 }
 
 /**
+ * Registers Hebrew fonts (Rubik) with jsPDF
+ * Only registers if base64 strings are provided
+ */
+function registerHebrewFonts(pdf: jsPDF): boolean {
+  try {
+    // Check if fonts are actually provided (not placeholder text)
+    if (RUBIK_REGULAR_BASE64.includes('PASTE_YOUR') || RUBIK_REGULAR_BASE64.length < 1000) {
+      console.log('⚠️ Hebrew fonts not configured - using default fonts only')
+      return false
+    }
+
+    console.log('🔤 Registering Hebrew fonts...')
+    
+    // Register Rubik Regular
+    pdf.addFileToVFS('Rubik-Regular.ttf', RUBIK_REGULAR_BASE64)
+    pdf.addFont('Rubik-Regular.ttf', 'Rubik', 'normal')
+    
+    // Register Rubik Bold
+    pdf.addFileToVFS('Rubik-Bold.ttf', RUBIK_BOLD_BASE64)
+    pdf.addFont('Rubik-Bold.ttf', 'Rubik', 'bold')
+    
+    console.log('✅ Hebrew fonts registered successfully')
+    return true
+  } catch (error) {
+    console.error('❌ Failed to register Hebrew fonts:', error)
+    return false
+  }
+}
+
+/**
+ * Smart text rendering with automatic Hebrew/RTL support
+ * Detects Hebrew and switches font/direction automatically
+ */
+function renderSmartText(
+  pdf: jsPDF,
+  text: string,
+  x: number,
+  y: number,
+  options: {
+    fontSize?: number
+    fontStyle?: 'normal' | 'bold'
+    align?: 'left' | 'center' | 'right'
+    maxWidth?: number
+  } = {}
+): number {
+  if (!text) return y
+
+  const hasHebrew = containsHebrew(text)
+  const isRTL = shouldUseRTL(text)
+
+  // Set font based on content
+  if (hasHebrew && pdf.getFontList()['Rubik']) {
+    pdf.setFont('Rubik', options.fontStyle || 'normal')
+  } else {
+    pdf.setFont('helvetica', options.fontStyle || 'normal')
+  }
+
+  pdf.setFontSize(options.fontSize || PDF_CONFIG.fonts.body.size)
+
+  // Process text for RTL if needed
+  const processedText = hasHebrew ? processBiDiText(text) : text
+
+  // Handle text wrapping if maxWidth provided
+  if (options.maxWidth) {
+    const lines = pdf.splitTextToSize(processedText, options.maxWidth)
+    lines.forEach((line: string, index: number) => {
+      const lineY = y + (index * 5)
+      if (isRTL) {
+        pdf.text(line, x + options.maxWidth, lineY, { align: 'right' })
+      } else {
+        pdf.text(line, x, lineY, { align: options.align || 'left' })
+      }
+    })
+    return y + (lines.length * 5)
+  }
+
+  // Single line rendering
+  if (isRTL) {
+    pdf.text(processedText, x + (options.maxWidth || PDF_CONFIG.page.contentWidth), y, { align: 'right' })
+  } else {
+    pdf.text(processedText, x, y, { align: options.align || 'left' })
+  }
+
+  return y + 5
+}
+
+/**
  * Main PDF generation function - creates complete PDF from structured data
  */
 export function generateTextBasedPDF(contentData: PDFContentData, filename: string): jsPDF {
@@ -86,6 +175,9 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
     format: 'a4',
     compress: true
   })
+
+  // Register Hebrew fonts at the start
+  registerHebrewFonts(pdf)
 
   let currentY = PDF_CONFIG.page.margin
 
