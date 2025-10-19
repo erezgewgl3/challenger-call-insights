@@ -42,6 +42,7 @@ interface AnalysisData {
   reasoning?: any
   action_plan?: any
   heat_level?: string
+  coaching_insights?: any
 }
 
 interface SalesIntelligenceViewProps {
@@ -109,7 +110,8 @@ export function SalesIntelligenceView({
           recommendations: rawAnalysis.recommendations,
           reasoning: rawAnalysis.reasoning,
           action_plan: rawAnalysis.action_plan,
-          heat_level: rawAnalysis.heat_level
+          heat_level: rawAnalysis.heat_level,
+          coaching_insights: rawAnalysis.coaching_insights
         })
       }
 
