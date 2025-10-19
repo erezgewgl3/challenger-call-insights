@@ -166,6 +166,7 @@ function renderSmartText(
     align?: 'left' | 'center' | 'right'
     maxWidth?: number
     lineHeight?: number
+    alreadyWrapped?: boolean
   } = {}
 ): number {
   if (!text) return y
@@ -184,8 +185,8 @@ function renderSmartText(
 
   // Handle text wrapping if maxWidth provided
   if (options.maxWidth) {
-    // CRITICAL: Split using ORIGINAL text for accurate width calculation
-    const lines = pdf.splitTextToSize(text, options.maxWidth)
+    // If already wrapped, skip splitTextToSize to prevent re-splitting drift
+    const lines = options.alreadyWrapped ? [text] : pdf.splitTextToSize(text, options.maxWidth)
     
     lines.forEach((line: string, index: number) => {
       const lineY = y + (index * lineHeight)
@@ -221,6 +222,51 @@ function renderSmartText(
   }
 
   return y + lineHeight
+}
+
+/**
+ * Render a hanging bullet item with proper indentation
+ */
+function renderHangingBulletItem(
+  pdf: jsPDF,
+  x: number,
+  y: number,
+  text: string,
+  maxWidth: number,
+  options: {
+    fontSize?: number
+    fontStyle?: 'normal' | 'bold'
+  } = {}
+): number {
+  const fontSize = options.fontSize || PDF_CONFIG.fonts.body.size
+  const fontStyle = options.fontStyle || 'normal'
+  const bulletIndent = 3.5 // mm
+  
+  // Draw bullet circle
+  pdf.setFillColor(55, 65, 81) // gray-700
+  pdf.circle(x, y - 1, 0.8, 'F')
+  
+  // Calculate text area
+  const textX = x + bulletIndent
+  const wrapWidth = maxWidth - bulletIndent
+  
+  // Split and render text
+  const hasHebrew = containsHebrew(text)
+  const fontName = (hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica'
+  pdf.setFont(fontName, fontStyle)
+  pdf.setFontSize(fontSize)
+  
+  const lines = pdf.splitTextToSize(text, wrapWidth)
+  const lineHeight = getLineHeightMM(pdf, fontSize)
+  
+  lines.forEach((line: string, index: number) => {
+    const lineY = y + (index * lineHeight)
+    const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
+    const processedLine = needsBiDi ? processBiDiText(line) : hasHebrew ? reverseText(line) : line
+    pdf.text(processedLine, textX, lineY, { align: 'left' })
+  })
+  
+  return y + (lines.length * lineHeight)
 }
 
 /**
@@ -812,10 +858,9 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     let itemY = rowY + 10
     leftBox.items.forEach((item: string) => {
-      itemY = renderSmartText(pdf, sanitizePDF(`• ${item}`), leftX + 2, itemY, {
+      itemY = renderHangingBulletItem(pdf, leftX + 2, itemY, sanitizePDF(item), colWidth - 4, {
         fontSize: PDF_CONFIG.fonts.small.size,
-        fontStyle: 'normal',
-        maxWidth: colWidth - 4
+        fontStyle: 'normal'
       })
     })
     
@@ -834,10 +879,9 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
       pdf.setTextColor(...PDF_CONFIG.colors.darkText)
       let rightItemY = rowY + 10
       rightBox.items.forEach((item: string) => {
-        rightItemY = renderSmartText(pdf, sanitizePDF(`• ${item}`), rightX + 2, rightItemY, {
+        rightItemY = renderHangingBulletItem(pdf, rightX + 2, rightItemY, sanitizePDF(item), colWidth - 4, {
           fontSize: PDF_CONFIG.fonts.small.size,
-          fontStyle: 'normal',
-          maxWidth: colWidth - 4
+          fontStyle: 'normal'
         })
       })
     }
@@ -952,11 +996,11 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     data.economicBuyers.slice(0, 2).forEach((buyer: any) => {
       economicBuyersHeight += LH8 // Name
       
-      // Measure title lines
+      // Measure title lines with 1mm buffer
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(8)
-      const titleLines = buyer.title ? pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 6) : []
-      const evidenceLines = buyer.evidence ? pdf.splitTextToSize(sanitizePDF(buyer.evidence), columnWidth - 6) : []
+      const titleLines = buyer.title ? pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 7) : []
+      const evidenceLines = buyer.evidence ? pdf.splitTextToSize(sanitizePDF(buyer.evidence), columnWidth - 7) : []
       econBuyersMeasured.push({ titleLines, evidenceLines })
       
       economicBuyersHeight += titleLines.length * LH8
@@ -974,11 +1018,11 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     data.keyInfluencers.slice(0, 2).forEach((influencer: any) => {
       keyInfluencersHeight += LH8 // Name
       
-      // Measure title lines
+      // Measure title lines with 1mm buffer
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(8)
-      const titleLines = influencer.title ? pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 6) : []
-      const evidenceLines = influencer.evidence ? pdf.splitTextToSize(sanitizePDF(influencer.evidence), columnWidth - 6) : []
+      const titleLines = influencer.title ? pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 7) : []
+      const evidenceLines = influencer.evidence ? pdf.splitTextToSize(sanitizePDF(influencer.evidence), columnWidth - 7) : []
       keyInfluencersMeasured.push({ titleLines, evidenceLines })
       
       keyInfluencersHeight += titleLines.length * LH8
@@ -1060,26 +1104,26 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           fontStyle: 'bold'
         })
         
-        // Title - use pre-measured lines
+        // Title - render pre-wrapped lines as-is
         if (econBuyersMeasured[idx]?.titleLines.length > 0) {
           pdf.setTextColor(107, 114, 128) // gray-500
           econBuyersMeasured[idx].titleLines.forEach((line: string) => {
             buyerY = renderSmartText(pdf, line, leftX + 3, buyerY, {
               fontSize: 8,
               fontStyle: 'normal',
-              maxWidth: columnWidth - 6
+              alreadyWrapped: true
             })
           })
         }
         
-        // Evidence quote - use pre-measured lines
+        // Evidence quote - render pre-wrapped lines as-is
         if (econBuyersMeasured[idx]?.evidenceLines.length > 0) {
           pdf.setTextColor(107, 114, 128) // gray-500
           econBuyersMeasured[idx].evidenceLines.slice(0, 2).forEach((line: string) => {
             buyerY = renderSmartText(pdf, line, leftX + 3, buyerY, {
               fontSize: 7,
               fontStyle: 'normal',
-              maxWidth: columnWidth - 6
+              alreadyWrapped: true
             })
           })
         }
@@ -1131,7 +1175,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
             influencerY = renderSmartText(pdf, line, middleX + 3, influencerY, {
               fontSize: 8,
               fontStyle: 'normal',
-              maxWidth: columnWidth - 6
+              alreadyWrapped: true
             })
           })
         }
@@ -1142,7 +1186,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
             influencerY = renderSmartText(pdf, line, middleX + 3, influencerY, {
               fontSize: 7,
               fontStyle: 'normal',
-              maxWidth: columnWidth - 6
+              alreadyWrapped: true
             })
           })
         }
@@ -1541,13 +1585,12 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
     })
     currentY += 6
     
-    // Render all items
+    // Render all items with hanging bullet
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     section.items.forEach((item: string) => {
-      currentY = renderSmartText(pdf, sanitizePDF(`• ${item}`), PDF_CONFIG.page.margin + 5, currentY, {
+      currentY = renderHangingBulletItem(pdf, PDF_CONFIG.page.margin + 4, currentY, sanitizePDF(item), PDF_CONFIG.page.contentWidth - 8, {
         fontSize: PDF_CONFIG.fonts.body.size,
-        fontStyle: 'normal',
-        maxWidth: PDF_CONFIG.page.contentWidth - 10
+        fontStyle: 'normal'
       })
       currentY += 2
     })
