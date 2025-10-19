@@ -194,8 +194,8 @@ function renderSmartText(
   const hasHebrew = localForceLTR ? false : hasHebrewBase
   const isRTL = localForceLTR ? false : (hasHebrew && shouldUseRTL(clean))
   
-  // Choose font
-  const fontName = localForceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
+  // STANDARDIZED: Always use Rubik if available for consistent rendering across all text
+  const fontName = pdf.getFontList()['Rubik'] ? 'Rubik' : 'helvetica'
   pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
   
@@ -288,7 +288,8 @@ function renderHangingBulletItem(
   
   // Split and render text
   const hasHebrew = localForceLTR ? false : hasHebrewBase
-  const fontName = localForceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
+  // STANDARDIZED: Always use Rubik if available for consistent rendering
+  const fontName = pdf.getFontList()['Rubik'] ? 'Rubik' : 'helvetica'
   const isRTL = localForceLTR ? false : (hasHebrew && shouldUseRTL(clean))
   
   pdf.setFont(fontName, fontStyle)
@@ -297,16 +298,16 @@ function renderHangingBulletItem(
   const lines = pdf.splitTextToSize(clean, wrapWidth)
   const lineHeight = getLineHeightMM(pdf, fontSize)
   
-  // Diagnostic logging for first 2 bullets
-  if (lines.length > 0) {
-    console.log('🎯 Bullet rendering:', {
-      hasHebrewBase,
-      localForceLTR,
-      fontName,
-      isRTL,
-      textSnippet: clean.slice(0, 60)
-    })
-  }
+  // Diagnostic logging
+  console.log('🎯 Bullet rendering:', {
+    hasHebrewBase,
+    localForceLTR,
+    fontName,
+    isRTL,
+    fontSize,
+    wrapWidth,
+    textSnippet: clean.slice(0, 80)
+  })
   
   lines.forEach((line: string, index: number) => {
     const lineY = y + (index * lineHeight)
