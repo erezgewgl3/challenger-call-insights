@@ -548,12 +548,14 @@ export function NewAnalysisView({
 
           {/* 🎓 COACHING INSIGHTS SECTION - Positioned at end for reflection */}
           {analysis.coaching_insights && (
-            <CoachingInsightsSection
-              coachingInsights={analysis.coaching_insights}
-              dealHeat={dealHeat}
-              isOpen={sectionsOpen.coaching}
-              onToggle={() => toggleSection('coaching')}
-            />
+            <div className="mt-4 lg:mt-6">
+              <CoachingInsightsSection
+                coachingInsights={analysis.coaching_insights}
+                dealHeat={dealHeat}
+                isOpen={sectionsOpen.coaching}
+                onToggle={() => toggleSection('coaching')}
+              />
+            </div>
           )}
       </div>
     </div>
