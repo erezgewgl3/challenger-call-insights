@@ -97,10 +97,6 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   currentY = checkPageBreak(pdf, currentY, 70, contentData.header.title)
   currentY = renderCallSummary(pdf, contentData.callSummary, currentY)
   
-  // Coaching Insights (NEW)
-  currentY = checkPageBreak(pdf, currentY, 80, contentData.header.title)
-  currentY = renderCoachingInsights(pdf, contentData.coachingInsights, currentY)
-  
   // Strategic Intelligence
   currentY = checkPageBreak(pdf, currentY, 90, contentData.header.title)
   currentY = renderStrategicIntelligence(pdf, contentData.strategicIntelligence, currentY)
@@ -109,7 +105,7 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
   currentY = renderStrategicAssessment(pdf, contentData.strategicAssessment, currentY)
   
-  // Deal Blockers (NEW)
+  // Deal Blockers
   currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
   currentY = renderDealBlockers(pdf, contentData.dealBlockers, currentY)
   
@@ -134,6 +130,10 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   // Competitive Positioning
   currentY = checkPageBreak(pdf, currentY, 60, contentData.header.title)
   currentY = renderCompetitivePositioning(pdf, contentData.competitivePositioning, currentY)
+  
+  // Coaching Insights (Moved to end for better narrative flow)
+  currentY = checkPageBreak(pdf, currentY, 80, contentData.header.title)
+  currentY = renderCoachingInsights(pdf, contentData.coachingInsights, currentY)
 
   return pdf
 }
