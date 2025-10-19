@@ -731,17 +731,35 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   }
   keyInfluencersHeight += 10 // Bottom padding
 
+  // Normalize navigation strategy text to remove hidden whitespace
+  const navRaw = sanitizePDF(data.navigationStrategy || '')
+  const navText = navRaw
+    .replace(/\r\n/g, '\n')             // normalize CRLF
+    .replace(/\s+\n/g, '\n')            // trim spaces before newlines
+    .replace(/\n{2,}/g, '\n')           // collapse multiple blank lines
+    .replace(/[ \t]{2,}/g, ' ')         // collapse runs of spaces/tabs
+    .trim()
+  
   let navigationStrategyHeight = 10
-  if (data.navigationStrategy) {
-    const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
-    navigationStrategyHeight += strategyLines.length * 3.5
-    navigationStrategyHeight += 2
-    navigationStrategyHeight += 3.5
-    navigationStrategyHeight += 3.5
-    navigationStrategyHeight += 2.5
+  if (navText) {
+    const strategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
+    navigationStrategyHeight += strategyLines.length * 3.5 // text lines
+    navigationStrategyHeight += 2                          // gap after text
+    navigationStrategyHeight += 3.5                        // bullet 1
+    navigationStrategyHeight += 3.5                        // bullet 2
+    navigationStrategyHeight += 3.5                        // bullet 3
+    navigationStrategyHeight += 2.5                        // bottom padding
   } else {
     navigationStrategyHeight += 6
   }
+
+  // Debug logging for height verification
+  console.log('Stakeholder Navigation heights:', {
+    economicBuyersHeight,
+    keyInfluencersHeight,
+    navigationStrategyHeight,
+    navTextLines: navText ? pdf.splitTextToSize(navText, columnWidth - 6).length : 0
+  })
 
   const maxHeight = Math.max(economicBuyersHeight, keyInfluencersHeight, navigationStrategyHeight, 40)
 
@@ -864,7 +882,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   }
   
   // Navigation Strategy (Right Column - Blue theme)
-  if (data.navigationStrategy) {
+  if (navText) {
     pdf.setFillColor(239, 246, 255) // blue-50
     pdf.setDrawColor(191, 219, 254) // blue-200
     pdf.setLineWidth(0.5)
@@ -879,7 +897,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'bold')
     
-    const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
+    const strategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
     let strategyY = currentY + 10
     strategyLines.forEach((line: string) => {
       pdf.text(line, rightX + 3, strategyY)
