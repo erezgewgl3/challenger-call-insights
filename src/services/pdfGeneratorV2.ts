@@ -191,7 +191,7 @@ function renderSmartText(
       const lineY = y + (index * lineHeight)
       
       // Process each line individually for BiDi/RTL after splitting
-      const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(line)
+      const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
       const processedLine = needsBiDi ? processBiDiText(line) : hasHebrew ? reverseText(line) : line
       
       if (isRTL) {
@@ -210,7 +210,7 @@ function renderSmartText(
   }
 
   // Single line rendering (no wrapping)
-  const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(text)
+  const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(text) && /[\u0590-\u05FF]/.test(text)
   const processedText = needsBiDi ? processBiDiText(text) : hasHebrew ? reverseText(text) : text
   
   if (isRTL) {
@@ -1066,7 +1066,8 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           econBuyersMeasured[idx].titleLines.forEach((line: string) => {
             buyerY = renderSmartText(pdf, line, leftX + 3, buyerY, {
               fontSize: 8,
-              fontStyle: 'normal'
+              fontStyle: 'normal',
+              maxWidth: columnWidth - 6
             })
           })
         }
@@ -1077,7 +1078,8 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           econBuyersMeasured[idx].evidenceLines.slice(0, 2).forEach((line: string) => {
             buyerY = renderSmartText(pdf, line, leftX + 3, buyerY, {
               fontSize: 7,
-              fontStyle: 'normal'
+              fontStyle: 'normal',
+              maxWidth: columnWidth - 6
             })
           })
         }
@@ -1128,7 +1130,8 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           keyInfluencersMeasured[idx].titleLines.forEach((line: string) => {
             influencerY = renderSmartText(pdf, line, middleX + 3, influencerY, {
               fontSize: 8,
-              fontStyle: 'normal'
+              fontStyle: 'normal',
+              maxWidth: columnWidth - 6
             })
           })
         }
@@ -1138,7 +1141,8 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
           keyInfluencersMeasured[idx].evidenceLines.slice(0, 2).forEach((line: string) => {
             influencerY = renderSmartText(pdf, line, middleX + 3, influencerY, {
               fontSize: 7,
-              fontStyle: 'normal'
+              fontStyle: 'normal',
+              maxWidth: columnWidth - 6
             })
           })
         }
