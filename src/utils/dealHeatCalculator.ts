@@ -147,6 +147,15 @@ export function calculateDealHeat(analysis: any): DealHeatResult {
   
   dealScore = Math.max(0, dealScore - resistancePenalty)
   
+  // Floor rule: Medium pain + business drivers deserve MEDIUM minimum
+  if (painLevel === 'medium' && businessFactors.length >= 2) {
+    // Even with high resistance, this is a research/education opportunity
+    if (dealScore < 2) {
+      console.log('🔍 [HEAT] FLOOR RULE: Medium pain + 2+ business factors → MEDIUM minimum (dealScore boosted from', dealScore, 'to 2)')
+      dealScore = 2  // Boost to MEDIUM threshold
+    }
+  }
+  
   let heatLevel: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW'
   let emoji = '❄️'
   let description = 'Long-term opportunity'
