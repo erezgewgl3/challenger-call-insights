@@ -14,7 +14,8 @@ import {
   Shield,
   Target,
   ExternalLink,
-  Thermometer
+  Thermometer,
+  Users
 } from 'lucide-react'
 
 interface ExpandableSectionsProps {
@@ -26,6 +27,7 @@ interface ExpandableSectionsProps {
   }
   toggleSection: (section: 'insights' | 'competitive') => void
   conversationIntel: any
+  competitiveIntelligence?: any
 }
 
 export function ExpandableSections({ 
@@ -33,7 +35,8 @@ export function ExpandableSections({
   dealHeat, 
   sectionsOpen, 
   toggleSection, 
-  conversationIntel 
+  conversationIntel,
+  competitiveIntelligence
 }: ExpandableSectionsProps) {
   const isHighPriorityDeal = dealHeat.level === 'HIGH'
 
@@ -117,6 +120,64 @@ export function ExpandableSections({
           <CollapsibleContent>
             <CardContent className="space-y-4 lg:space-y-6">
               
+              {/* 🎯 COMPETITIVE LANDSCAPE - Structured Intelligence */}
+              {competitiveIntelligence && (competitiveIntelligence.vendorsKnown?.length > 0 || competitiveIntelligence.competitiveAdvantage) && (
+                <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
+                    <Target className="w-4 h-4 lg:w-5 lg:h-5" />
+                    Competitive Landscape
+                    {competitiveIntelligence.evaluationStage && (
+                      <Badge variant="outline" className="text-xs border-blue-300 text-blue-700 ml-2">
+                        {competitiveIntelligence.evaluationStage.toUpperCase()}
+                      </Badge>
+                    )}
+                  </h4>
+                  
+                  <div className="space-y-3">
+                    {/* Known Competitors */}
+                    {competitiveIntelligence.vendorsKnown?.length > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-blue-100">
+                        <p className="text-sm font-medium text-blue-900 mb-2 flex items-center gap-2">
+                          <Users className="w-4 h-4" />
+                          Known Competitors ({competitiveIntelligence.vendorsKnown.length})
+                        </p>
+                        <ul className="space-y-1 ml-6">
+                          {competitiveIntelligence.vendorsKnown.map((vendor: string, idx: number) => (
+                            <li key={idx} className="text-sm text-gray-700 list-disc">{vendor}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Decision Criteria */}
+                    {competitiveIntelligence.decisionCriteria?.length > 0 && (
+                      <div className="bg-white rounded-lg p-3 border border-blue-100">
+                        <p className="text-sm font-medium text-blue-900 mb-2">
+                          Decision Criteria:
+                        </p>
+                        <p className="text-sm text-gray-700">
+                          {Array.isArray(competitiveIntelligence.decisionCriteria) 
+                            ? competitiveIntelligence.decisionCriteria.join(', ')
+                            : competitiveIntelligence.decisionCriteria}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Our Competitive Advantage */}
+                    {competitiveIntelligence.competitiveAdvantage && (
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-200">
+                        <p className="text-sm font-medium text-green-900 mb-2 flex items-center gap-2">
+                          💪 Our Competitive Advantage
+                        </p>
+                        <p className="text-sm text-gray-800 leading-relaxed">
+                          {competitiveIntelligence.competitiveAdvantage}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {conversationIntel.positive.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2 text-sm lg:text-base">

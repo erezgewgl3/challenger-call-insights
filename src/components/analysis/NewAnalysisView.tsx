@@ -544,6 +544,7 @@ export function NewAnalysisView({
             sectionsOpen={sectionsOpen}
             toggleSection={toggleSection}
             conversationIntel={conversationIntel}
+            competitiveIntelligence={analysis.call_summary?.competitiveIntelligence}
           />
 
           {/* 🎓 COACHING INSIGHTS SECTION - Positioned at end for reflection */}
