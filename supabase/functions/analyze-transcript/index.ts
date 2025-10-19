@@ -244,6 +244,12 @@ function calculateDealHeat(analysis: any): string {
       console.log('🔍 [HEAT] DOWNGRADE: High pain but low buying intent → MEDIUM')
       heatLevel = 'MEDIUM'
     }
+    
+    // Rule 5: Budget shock + no commitment = MEDIUM maximum
+    else if (hasBudgetShock && trueCommitmentCount === 0) {
+      console.log('🔽 [DOWNGRADE] Budget shock with no commitment signals → MEDIUM')
+      heatLevel = 'MEDIUM'
+    }
   }
   
   console.log('🔍 [HEAT] Result:', heatLevel);

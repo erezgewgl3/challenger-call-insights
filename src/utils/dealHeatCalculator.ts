@@ -214,6 +214,14 @@ export function calculateDealHeat(analysis: any): DealHeatResult {
       emoji = '🌡️'
       description = 'Pain without urgency'
     }
+    
+    // Rule 5: Budget shock + no commitment = MEDIUM maximum
+    else if (hasBudgetShock && trueCommitmentCount === 0) {
+      console.log('🔽 [DOWNGRADE] Budget shock with no commitment signals → MEDIUM')
+      heatLevel = 'MEDIUM'
+      emoji = '🌡️'
+      description = 'Active opportunity (financial concerns)'
+    }
   }
   
   return {
