@@ -956,7 +956,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(8)
       const titleLines = buyer.title ? pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 6) : []
-      const evidenceLines = buyer.evidence ? pdf.splitTextToSize(`VERBATIM: "${sanitizePDF(buyer.evidence)}"`, columnWidth - 6) : []
+      const evidenceLines = buyer.evidence ? pdf.splitTextToSize(sanitizePDF(buyer.evidence), columnWidth - 6) : []
       econBuyersMeasured.push({ titleLines, evidenceLines })
       
       economicBuyersHeight += titleLines.length * LH8
@@ -978,7 +978,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(8)
       const titleLines = influencer.title ? pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 6) : []
-      const evidenceLines = influencer.evidence ? pdf.splitTextToSize(`VERBATIM: "${sanitizePDF(influencer.evidence)}"`, columnWidth - 6) : []
+      const evidenceLines = influencer.evidence ? pdf.splitTextToSize(sanitizePDF(influencer.evidence), columnWidth - 6) : []
       keyInfluencersMeasured.push({ titleLines, evidenceLines })
       
       keyInfluencersHeight += titleLines.length * LH8
@@ -1543,7 +1543,7 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
       currentY = renderSmartText(pdf, sanitizePDF(`• ${item}`), PDF_CONFIG.page.margin + 5, currentY, {
         fontSize: PDF_CONFIG.fonts.body.size,
         fontStyle: 'normal',
-        maxWidth: PDF_CONFIG.page.contentWidth - 5
+        maxWidth: PDF_CONFIG.page.contentWidth - 10
       })
       currentY += 2
     })
