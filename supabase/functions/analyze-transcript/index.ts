@@ -188,6 +188,15 @@ function calculateDealHeat(analysis: any): string {
     hasNeedSkepticism
   });
   
+  // Floor rule: Medium pain + business drivers deserve MEDIUM minimum
+  if (painLevel === 'medium' && businessFactors.length >= 2) {
+    // Even with high resistance, this is a research/education opportunity
+    if (dealScore < 2) {
+      console.log('🔍 [HEAT] FLOOR RULE: Medium pain + 2+ business factors → MEDIUM minimum (dealScore boosted from', dealScore, 'to 2)')
+      dealScore = 2  // Boost to MEDIUM threshold
+    }
+  }
+  
   // Determine initial heat level
   let heatLevel: string
   
