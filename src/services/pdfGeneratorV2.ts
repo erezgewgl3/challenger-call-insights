@@ -131,9 +131,11 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   currentY = checkPageBreak(pdf, currentY, 60, contentData.header.title)
   currentY = renderCompetitivePositioning(pdf, contentData.competitivePositioning, currentY)
   
-  // Coaching Insights (Moved to end for better narrative flow)
-  currentY = checkPageBreak(pdf, currentY, 80, contentData.header.title)
-  currentY = renderCoachingInsights(pdf, contentData.coachingInsights, currentY)
+  // Coaching Insights (only if real insights exist)
+  if (contentData.coachingInsights) {
+    currentY = checkPageBreak(pdf, currentY, 80, contentData.header.title)
+    currentY = renderCoachingInsights(pdf, contentData.coachingInsights, currentY)
+  }
 
   return pdf
 }

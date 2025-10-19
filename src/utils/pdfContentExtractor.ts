@@ -318,14 +318,28 @@ function extractCompetitivePositioning(analysis: any) {
 function extractCoachingInsights(analysis: any) {
   const insights = analysis?.coaching_insights || {}
   
+  const whatWorkedWell = Array.isArray(insights.whatWorkedWell) 
+    ? insights.whatWorkedWell 
+    : []
+  
+  const missedOpportunities = insights.missedOpportunities
+  const focusArea = insights.focusArea
+  
+  // If all fields are empty/missing or only contain generic fallbacks, return null
+  const hasRealInsights = (
+    whatWorkedWell.length > 0 ||
+    (missedOpportunities && missedOpportunities !== "No critical missed opportunities identified") ||
+    (focusArea && focusArea !== "Continue building on current strengths")
+  )
+  
+  if (!hasRealInsights) {
+    return null
+  }
+  
   return {
-    whatWorkedWell: Array.isArray(insights.whatWorkedWell) 
-      ? insights.whatWorkedWell 
-      : [],
-    missedOpportunities: insights.missedOpportunities || 
-      "No critical missed opportunities identified",
-    focusArea: insights.focusArea || 
-      "Continue building on current strengths"
+    whatWorkedWell,
+    missedOpportunities: missedOpportunities || "No critical missed opportunities identified",
+    focusArea: focusArea || "Continue building on current strengths"
   }
 }
 
