@@ -731,16 +731,17 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   }
   keyInfluencersHeight += 10 // Bottom padding
 
-  let navigationStrategyHeight = 10 // Space from box top to main text start
-  if (data.navigationStrategy) {
-    const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
-    navigationStrategyHeight += strategyLines.length * 3.5 // Main text lines
-    navigationStrategyHeight += 2 // Gap after main text (line 888)
-    navigationStrategyHeight += 3.5 // First bullet spacing
-    navigationStrategyHeight += 3.5 // Second bullet spacing
-    navigationStrategyHeight += 5 // Third bullet text height (2.5mm) + bottom padding (2.5mm)
-  } else {
-    navigationStrategyHeight += 6 // Fallback bottom padding if no content
+  // Sanitize and trim navigation strategy once
+  const navText = sanitizePDF(data.navigationStrategy || '').trim()
+  
+  let navigationStrategyHeight = 0
+  if (navText) {
+    navigationStrategyHeight = 10 // Header to main text start
+    const strategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
+    navigationStrategyHeight += strategyLines.length * 3.5 // Per-line increments (matches render)
+    navigationStrategyHeight += 2 // Gap after text (matches render)
+    navigationStrategyHeight += 3.5 + 3.5 // Two bullet increments (matches render)
+    navigationStrategyHeight += 2 // Minimal bottom padding
   }
 
   const maxHeight = Math.max(economicBuyersHeight, keyInfluencersHeight, navigationStrategyHeight, 40)
@@ -864,7 +865,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   }
   
   // Navigation Strategy (Right Column - Blue theme)
-  if (data.navigationStrategy) {
+  if (navText) {
     pdf.setFillColor(239, 246, 255) // blue-50
     pdf.setDrawColor(191, 219, 254) // blue-200
     pdf.setLineWidth(0.5)
@@ -879,7 +880,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     pdf.setFontSize(8)
     pdf.setFont('helvetica', 'bold')
     
-    const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
+    const strategyLines = pdf.splitTextToSize(navText, columnWidth - 6)
     let strategyY = currentY + 10
     strategyLines.forEach((line: string) => {
       pdf.text(line, rightX + 3, strategyY)
