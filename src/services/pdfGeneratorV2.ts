@@ -731,14 +731,16 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
   }
   keyInfluencersHeight += 10 // Bottom padding
 
-  let navigationStrategyHeight = 10 // Header padding
+  let navigationStrategyHeight = 10 // Space from box top to main text start
   if (data.navigationStrategy) {
     const strategyLines = pdf.splitTextToSize(sanitizePDF(data.navigationStrategy), columnWidth - 6)
-    navigationStrategyHeight += strategyLines.length * 3.5 // Main text
-    navigationStrategyHeight += 2 // Gap after main text
-    navigationStrategyHeight += (3 * 3.5) // Three bullet items with 3.5mm spacing each
+    navigationStrategyHeight += strategyLines.length * 3.5 // Main text lines
+    navigationStrategyHeight += 2 // Gap after main text (line 886)
+    navigationStrategyHeight += (3 * 3.5) // Three bullet items with spacing
+    navigationStrategyHeight += 3 // Bottom padding after last bullet
+  } else {
+    navigationStrategyHeight += 6 // Fallback bottom padding if no content
   }
-  navigationStrategyHeight += 6 // Bottom padding
 
   const maxHeight = Math.max(economicBuyersHeight, keyInfluencersHeight, navigationStrategyHeight, 40)
 
