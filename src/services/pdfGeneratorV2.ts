@@ -167,17 +167,20 @@ function renderSmartText(
     maxWidth?: number
     lineHeight?: number
     alreadyWrapped?: boolean
+    forceLTR?: boolean
   } = {}
 ): number {
   if (!text) return y
 
   const fontSize = options.fontSize || PDF_CONFIG.fonts.body.size
   const fontStyle = options.fontStyle || 'normal'
-  const hasHebrew = containsHebrew(text)
-  const isRTL = hasHebrew && shouldUseRTL(text)
+  const forceLTR = options.forceLTR === true
+  const hasHebrewBase = containsHebrew(text)
+  const hasHebrew = forceLTR ? false : hasHebrewBase
+  const isRTL = forceLTR ? false : (hasHebrew && shouldUseRTL(text))
   
   // Choose font
-  const fontName = (hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica'
+  const fontName = forceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
   pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
   
@@ -192,8 +195,8 @@ function renderSmartText(
       const lineY = y + (index * lineHeight)
       
       // Process each line individually for BiDi/RTL after splitting
-      const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
-      const processedLine = needsBiDi ? processBiDiText(line) : hasHebrew ? reverseText(line) : line
+      const needsBiDi = !forceLTR && hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
+      const processedLine = forceLTR ? line : (needsBiDi ? processBiDiText(line) : (hasHebrew ? reverseText(line) : line))
       
       if (isRTL) {
         pdf.text(processedLine, x + options.maxWidth, lineY, { align: 'right' })
@@ -211,8 +214,8 @@ function renderSmartText(
   }
 
   // Single line rendering (no wrapping)
-  const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(text) && /[\u0590-\u05FF]/.test(text)
-  const processedText = needsBiDi ? processBiDiText(text) : hasHebrew ? reverseText(text) : text
+  const needsBiDi = !forceLTR && hasHebrew && /[A-Za-z0-9]/.test(text) && /[\u0590-\u05FF]/.test(text)
+  const processedText = forceLTR ? text : (needsBiDi ? processBiDiText(text) : (hasHebrew ? reverseText(text) : text))
   
   if (isRTL) {
     const anchorX = options.maxWidth ? x + options.maxWidth : x
@@ -236,10 +239,12 @@ function renderHangingBulletItem(
   options: {
     fontSize?: number
     fontStyle?: 'normal' | 'bold'
+    forceLTR?: boolean
   } = {}
 ): number {
   const fontSize = options.fontSize || PDF_CONFIG.fonts.body.size
   const fontStyle = options.fontStyle || 'normal'
+  const forceLTR = options.forceLTR === true
   const bulletIndent = 3.5 // mm
   
   // Draw bullet circle
@@ -251,8 +256,9 @@ function renderHangingBulletItem(
   const wrapWidth = maxWidth - bulletIndent
   
   // Split and render text
-  const hasHebrew = containsHebrew(text)
-  const fontName = (hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica'
+  const hasHebrewBase = containsHebrew(text)
+  const hasHebrew = forceLTR ? false : hasHebrewBase
+  const fontName = forceLTR ? 'helvetica' : ((hasHebrew && pdf.getFontList()['Rubik']) ? 'Rubik' : 'helvetica')
   pdf.setFont(fontName, fontStyle)
   pdf.setFontSize(fontSize)
   
@@ -261,8 +267,8 @@ function renderHangingBulletItem(
   
   lines.forEach((line: string, index: number) => {
     const lineY = y + (index * lineHeight)
-    const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
-    const processedLine = needsBiDi ? processBiDiText(line) : hasHebrew ? reverseText(line) : line
+    const needsBiDi = !forceLTR && hasHebrew && /[A-Za-z0-9]/.test(line) && /[\u0590-\u05FF]/.test(line)
+    const processedLine = forceLTR ? line : (needsBiDi ? processBiDiText(line) : (hasHebrew ? reverseText(line) : line))
     pdf.text(processedLine, textX, lineY, { align: 'left' })
   })
   
@@ -860,7 +866,8 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
     leftBox.items.forEach((item: string) => {
       itemY = renderHangingBulletItem(pdf, leftX + 2, itemY, sanitizePDF(item), colWidth - 4, {
         fontSize: PDF_CONFIG.fonts.small.size,
-        fontStyle: 'normal'
+        fontStyle: 'normal',
+        forceLTR: true
       })
     })
     
@@ -881,7 +888,8 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
       rightBox.items.forEach((item: string) => {
         rightItemY = renderHangingBulletItem(pdf, rightX + 2, rightItemY, sanitizePDF(item), colWidth - 4, {
           fontSize: PDF_CONFIG.fonts.small.size,
-          fontStyle: 'normal'
+          fontStyle: 'normal',
+          forceLTR: true
         })
       })
     }
@@ -999,8 +1007,9 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
       // Measure title lines with 1mm buffer
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(8)
-      const titleLines = buyer.title ? pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 7) : []
-      const evidenceLines = buyer.evidence ? pdf.splitTextToSize(sanitizePDF(buyer.evidence), columnWidth - 7) : []
+      const titleLines = buyer.title ? pdf.splitTextToSize(sanitizePDF(buyer.title), columnWidth - 8) : []
+      pdf.setFontSize(7)
+      const evidenceLines = buyer.evidence ? pdf.splitTextToSize(sanitizePDF(buyer.evidence), columnWidth - 8) : []
       econBuyersMeasured.push({ titleLines, evidenceLines })
       
       economicBuyersHeight += titleLines.length * LH8
@@ -1021,8 +1030,9 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
       // Measure title lines with 1mm buffer
       pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(8)
-      const titleLines = influencer.title ? pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 7) : []
-      const evidenceLines = influencer.evidence ? pdf.splitTextToSize(sanitizePDF(influencer.evidence), columnWidth - 7) : []
+      const titleLines = influencer.title ? pdf.splitTextToSize(sanitizePDF(influencer.title), columnWidth - 8) : []
+      pdf.setFontSize(7)
+      const evidenceLines = influencer.evidence ? pdf.splitTextToSize(sanitizePDF(influencer.evidence), columnWidth - 8) : []
       keyInfluencersMeasured.push({ titleLines, evidenceLines })
       
       keyInfluencersHeight += titleLines.length * LH8
@@ -1054,7 +1064,7 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     navigationStrategyHeight += 6
   }
 
-  // Debug logging for height verification
+  // Debug logging for height and wrap verification
   console.log('Stakeholder Navigation metrics:', {
     fontForTitleMeasure: '8-normal',
     fontForEvidenceMeasure: '7-normal',
@@ -1066,7 +1076,12 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     navLines: navStrategyLines.length,
     economicBuyersHeight: economicBuyersHeight.toFixed(2),
     keyInfluencersHeight: keyInfluencersHeight.toFixed(2),
-    navigationStrategyHeight: navigationStrategyHeight.toFixed(2)
+    navigationStrategyHeight: navigationStrategyHeight.toFixed(2),
+    columnWidth: columnWidth.toFixed(2),
+    titleWrapWidth: (columnWidth - 8).toFixed(2),
+    evidenceWrapWidth: (columnWidth - 8).toFixed(2),
+    econSample: econBuyersMeasured[0] ? { titleLines: econBuyersMeasured[0].titleLines.length, evidenceLines: econBuyersMeasured[0].evidenceLines.length } : null,
+    keySample: keyInfluencersMeasured[0] ? { titleLines: keyInfluencersMeasured[0].titleLines.length, evidenceLines: keyInfluencersMeasured[0].evidenceLines.length } : null
   })
 
   const maxHeight = Math.max(economicBuyersHeight, keyInfluencersHeight, navigationStrategyHeight, 28)
@@ -1099,19 +1114,21 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
       if (buyer.name) {
         // Name (bold)
         pdf.setTextColor(55, 65, 81) // gray-700
-        buyerY = renderSmartText(pdf, sanitizePDF(buyer.name), leftX + 3, buyerY, {
+        buyerY = renderSmartText(pdf, sanitizePDF(buyer.name), leftX + 4, buyerY, {
           fontSize: 8,
-          fontStyle: 'bold'
+          fontStyle: 'bold',
+          forceLTR: true
         })
         
         // Title - render pre-wrapped lines as-is
         if (econBuyersMeasured[idx]?.titleLines.length > 0) {
           pdf.setTextColor(107, 114, 128) // gray-500
           econBuyersMeasured[idx].titleLines.forEach((line: string) => {
-            buyerY = renderSmartText(pdf, line, leftX + 3, buyerY, {
+            buyerY = renderSmartText(pdf, line, leftX + 4, buyerY, {
               fontSize: 8,
               fontStyle: 'normal',
-              alreadyWrapped: true
+              alreadyWrapped: true,
+              forceLTR: true
             })
           })
         }
@@ -1120,10 +1137,11 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
         if (econBuyersMeasured[idx]?.evidenceLines.length > 0) {
           pdf.setTextColor(107, 114, 128) // gray-500
           econBuyersMeasured[idx].evidenceLines.slice(0, 2).forEach((line: string) => {
-            buyerY = renderSmartText(pdf, line, leftX + 3, buyerY, {
+            buyerY = renderSmartText(pdf, line, leftX + 4, buyerY, {
               fontSize: 7,
               fontStyle: 'normal',
-              alreadyWrapped: true
+              alreadyWrapped: true,
+              forceLTR: true
             })
           })
         }
@@ -1131,9 +1149,10 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
         // Primary Contact badge
         if (buyer.isPrimaryContact) {
           pdf.setTextColor(107, 114, 128) // gray-500
-          buyerY = renderSmartText(pdf, 'Primary Contact', leftX + 3, buyerY, {
+          buyerY = renderSmartText(pdf, 'Primary Contact', leftX + 4, buyerY, {
             fontSize: 6,
-            fontStyle: 'normal'
+            fontStyle: 'normal',
+            forceLTR: true
           })
         }
         
@@ -1164,18 +1183,20 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
     data.keyInfluencers.slice(0, 2).forEach((influencer: any, idx: number) => {
       if (influencer.name) {
         pdf.setTextColor(55, 65, 81)
-        influencerY = renderSmartText(pdf, sanitizePDF(influencer.name), middleX + 3, influencerY, {
+        influencerY = renderSmartText(pdf, sanitizePDF(influencer.name), middleX + 4, influencerY, {
           fontSize: 8,
-          fontStyle: 'bold'
+          fontStyle: 'bold',
+          forceLTR: true
         })
         
         if (keyInfluencersMeasured[idx]?.titleLines.length > 0) {
           pdf.setTextColor(107, 114, 128)
           keyInfluencersMeasured[idx].titleLines.forEach((line: string) => {
-            influencerY = renderSmartText(pdf, line, middleX + 3, influencerY, {
+            influencerY = renderSmartText(pdf, line, middleX + 4, influencerY, {
               fontSize: 8,
               fontStyle: 'normal',
-              alreadyWrapped: true
+              alreadyWrapped: true,
+              forceLTR: true
             })
           })
         }
@@ -1183,10 +1204,11 @@ function renderStakeholderNavigation(pdf: jsPDF, data: any, startY: number): num
         if (keyInfluencersMeasured[idx]?.evidenceLines.length > 0) {
           pdf.setTextColor(107, 114, 128)
           keyInfluencersMeasured[idx].evidenceLines.slice(0, 2).forEach((line: string) => {
-            influencerY = renderSmartText(pdf, line, middleX + 3, influencerY, {
+            influencerY = renderSmartText(pdf, line, middleX + 4, influencerY, {
               fontSize: 7,
               fontStyle: 'normal',
-              alreadyWrapped: true
+              alreadyWrapped: true,
+              forceLTR: true
             })
           })
         }
@@ -1312,10 +1334,10 @@ function renderWhyTheseActions(pdf: jsPDF, data: any, startY: number): number {
     
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
     data.supportingEvidence.forEach((evidence: string) => {
-      currentY = renderSmartText(pdf, sanitizePDF(`• ${evidence}`), PDF_CONFIG.page.margin + 5, currentY, {
+      currentY = renderHangingBulletItem(pdf, PDF_CONFIG.page.margin + 4, currentY, sanitizePDF(evidence), PDF_CONFIG.page.contentWidth - 9, {
         fontSize: PDF_CONFIG.fonts.body.size,
         fontStyle: 'normal',
-        maxWidth: PDF_CONFIG.page.contentWidth - 5
+        forceLTR: true
       })
     })
   }
@@ -1587,10 +1609,13 @@ function renderCompetitivePositioning(pdf: jsPDF, data: any, startY: number): nu
     
     // Render all items with hanging bullet
     pdf.setTextColor(...PDF_CONFIG.colors.darkText)
+    const bulletWrapWidth = PDF_CONFIG.page.contentWidth - 9
+    console.log('Competitive bullets wrap', { wrapWidth: bulletWrapWidth, bulletIndent: 3.5, section: section.title })
     section.items.forEach((item: string) => {
-      currentY = renderHangingBulletItem(pdf, PDF_CONFIG.page.margin + 4, currentY, sanitizePDF(item), PDF_CONFIG.page.contentWidth - 8, {
+      currentY = renderHangingBulletItem(pdf, PDF_CONFIG.page.margin + 4, currentY, sanitizePDF(item), bulletWrapWidth, {
         fontSize: PDF_CONFIG.fonts.body.size,
-        fontStyle: 'normal'
+        fontStyle: 'normal',
+        forceLTR: true
       })
       currentY += 2
     })
