@@ -64,6 +64,22 @@ interface AnalysisData {
     missedOpportunities: string[] | string
     focusArea: string
   }
+  guidance?: {
+    power_center?: {
+      name: string
+      title: string
+      influence_level: string
+      authority_notes?: string
+      role_evidence?: string[]
+      authority_mismatch?: {
+        detected: boolean
+        technical_buyer: string
+        economic_buyer: string
+        risk_level: string
+        warning: string
+      }
+    }
+  }
 }
 
 interface TranscriptData {
@@ -234,6 +250,21 @@ export function NewAnalysisView({
   }
 
   const getDecisionMaker = () => {
+    // ✅ PRIORITY 1: Use AI's designated power_center from v12.1 prompt
+    if (analysis.guidance?.power_center) {
+      const pc = analysis.guidance.power_center
+      return {
+        name: pc.name,
+        title: pc.title,
+        influence: `${pc.influence_level.charAt(0).toUpperCase() + pc.influence_level.slice(1)} Influence`,
+        confidence: pc.influence_level === 'high' ? 'High' : pc.influence_level === 'medium' ? 'Medium' : 'Low',
+        evidence: pc.role_evidence?.slice(0, 1) || [],
+        authorityNotes: pc.authority_notes,
+        authorityMismatch: pc.authority_mismatch
+      }
+    }
+    
+    // ✅ FALLBACK: Use scoring algorithm for older analyses without guidance.power_center
     const contacts = analysis.participants?.clientContacts || []
     
     if (contacts.length === 0) {
