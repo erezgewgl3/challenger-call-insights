@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable'
 import type { PDFContentData } from '@/types/pdfExport'
 import { capitalizeSentences } from '@/lib/utils'
 import { RUBIK_REGULAR_BASE64, RUBIK_BOLD_BASE64 } from '@/lib/fonts/rubik-fonts'
-import { containsHebrew, processBiDiText, shouldUseRTL } from '@/lib/fonts/hebrew-utils'
+import { containsHebrew, processBiDiText, shouldUseRTL, reverseText } from '@/lib/fonts/hebrew-utils'
 
 /**
  * Sanitize text to handle special characters while preserving important symbols
@@ -139,7 +139,9 @@ function renderSmartText(
   pdf.setFontSize(options.fontSize || PDF_CONFIG.fonts.body.size)
 
   // Process text for RTL if needed
-  const processedText = hasHebrew ? processBiDiText(text) : text
+  // Only use BiDi processing for truly mixed content (Hebrew + Latin/numeric)
+  const needsBiDi = hasHebrew && /[A-Za-z0-9]/.test(text)
+  const processedText = needsBiDi ? processBiDiText(text) : hasHebrew ? reverseText(text) : text
 
   // Handle text wrapping if maxWidth provided
   if (options.maxWidth) {

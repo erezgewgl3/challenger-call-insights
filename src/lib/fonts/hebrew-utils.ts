@@ -36,7 +36,20 @@ export function reverseText(text: string): string {
  */
 export function processBiDiText(text: string): string {
   if (!text) return text;
+  
+  // Quick check: if no Hebrew, return as-is (no processing needed)
+  if (!containsHebrew(text)) return text;
+  
+  // Count Hebrew vs Latin/numeric characters to determine if truly mixed
+  const hebrewChars = (text.match(/[\u0590-\u05FF]/g) || []).length;
+  const latinNumericChars = (text.match(/[A-Za-z0-9]/g) || []).length;
+  
+  // If pure Hebrew (no Latin/numeric), just reverse characters
+  if (latinNumericChars === 0) {
+    return text.split('').reverse().join('');
+  }
 
+  // Only for truly mixed content, apply full BiDi processing with isolates
   const LRI = '\u2066'; // Left-to-Right isolate
   const PDI = '\u2069'; // Pop directional isolate
 
