@@ -71,26 +71,27 @@ export function EditableTitle({ transcriptId, currentTitle, className = "" }: Ed
           ref={inputRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          onBlur={handleSave}
           onKeyDown={handleKeyDown}
           className="h-7 text-sm font-medium"
           disabled={updateMutation.isPending}
         />
         <Button 
           size="sm" 
-          variant="ghost"
-          className="h-7 w-7 p-0"
+          variant="outline"
+          className="h-7 w-7 p-0 hover:bg-green-50 border-green-200"
           onClick={handleSave}
           disabled={updateMutation.isPending}
+          title="Save changes (or press Enter)"
         >
           <Check className="h-3.5 w-3.5 text-green-600" />
         </Button>
         <Button 
           size="sm" 
-          variant="ghost"
-          className="h-7 w-7 p-0"
+          variant="outline"
+          className="h-7 w-7 p-0 hover:bg-red-50 border-red-200"
           onClick={handleCancel}
           disabled={updateMutation.isPending}
+          title="Cancel (or press Escape)"
         >
           <X className="h-3.5 w-3.5 text-red-600" />
         </Button>
