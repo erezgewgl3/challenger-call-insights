@@ -66,8 +66,26 @@ export function useUpdateTranscriptTitle() {
       toast.success("Title updated");
     },
     onSettled: () => {
-      // Refetch to ensure sync
-      queryClient.invalidateQueries({ queryKey: ['transcripts'] });
+      // Invalidate ALL transcript-related queries to ensure dashboard updates
+      queryClient.invalidateQueries({ 
+        queryKey: ['transcripts'],
+        refetchType: 'all' // Force refetch of all matching queries
+      });
+      
+      // Also invalidate queue-related queries that may display transcripts
+      queryClient.invalidateQueries({ 
+        queryKey: ['queue'] 
+      });
+      
+      // Invalidate transcript data hook queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['transcript-data'] 
+      });
+      
+      // Invalidate transcript count queries
+      queryClient.invalidateQueries({ 
+        queryKey: ['transcript-count'] 
+      });
     }
   });
 }

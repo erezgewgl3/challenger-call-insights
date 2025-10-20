@@ -103,6 +103,9 @@ export function EditableTitle({ transcriptId, currentTitle, className = "" }: Ed
       <h4 className={`font-medium text-slate-900 group-hover:text-blue-600 transition-colors text-sm ${className}`}>
         {currentTitle}
       </h4>
+      {updateMutation.isPending && (
+        <span className="text-xs text-slate-500">Saving...</span>
+      )}
       <button
         onClick={(e) => {
           e.stopPropagation();

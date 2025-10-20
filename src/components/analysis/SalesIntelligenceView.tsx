@@ -181,8 +181,11 @@ export function SalesIntelligenceView({
             const updatedTranscript = payload.new as any
             setTranscript(prev => prev ? {
               ...prev,
+              title: updatedTranscript.title,
               status: updatedTranscript.status,
-              error_message: updatedTranscript.error_message
+              error_message: updatedTranscript.error_message,
+              extracted_company_name: updatedTranscript.extracted_company_name,
+              deal_context: updatedTranscript.deal_context
             } : null)
 
             // Refetch data if completed
