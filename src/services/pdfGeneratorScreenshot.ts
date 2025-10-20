@@ -13,19 +13,26 @@ import { expandCollapsedSections, restoreElementStates } from '@/utils/sectionEx
  * Calculates simple fixed-height page break points
  */
 function calculateSimpleBreakPoints(canvasHeightPx: number): number[] {
-  const PAGE_HEIGHT_PX = 3400 // ~270mm at 2.5x scale
-  const totalPages = Math.ceil(canvasHeightPx / PAGE_HEIGHT_PX)
+  // A4 page content area is ~270mm tall (297mm - margins)
+  const PAGE_HEIGHT_MM = 270
+  
+  // Convert canvas height to MM (accounting for 2.5x html2canvas scale)
+  // Formula: canvas px → screen px (÷2.5) → MM (×0.264583 at 96 DPI)
+  const canvasHeightMM = (canvasHeightPx / 2.5) * 0.264583
+  
+  const totalPages = Math.ceil(canvasHeightMM / PAGE_HEIGHT_MM)
   const breakPoints: number[] = []
   
   for (let i = 1; i < totalPages; i++) {
-    breakPoints.push(i * PAGE_HEIGHT_PX)
+    breakPoints.push(i * PAGE_HEIGHT_MM) // Return MM values
   }
   
-  console.log('📄 Calculated fixed-height page breaks:', {
-    canvasHeight: canvasHeightPx,
-    pageHeight: PAGE_HEIGHT_PX,
+  console.log('📄 Calculated simple page breaks (MM):', {
+    canvasHeightPx,
+    canvasHeightMM: canvasHeightMM.toFixed(2),
+    pageHeightMM: PAGE_HEIGHT_MM,
     totalPages,
-    breakPoints
+    breakPointsMM: breakPoints
   })
   
   return breakPoints
