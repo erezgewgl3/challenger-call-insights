@@ -4,7 +4,7 @@ import { Target } from "lucide-react";
 
 export function ActionItemsSection() {
   return (
-    <Card>
+    <Card className="pdf-keep-together" data-section-type="action-items">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
           <Target className="h-5 w-5" />

@@ -27,7 +27,7 @@ export function CoachingInsightsSection({
   const { whatWorkedWell, missedOpportunities, focusArea } = coachingInsights
 
   return (
-    <Card className="border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 transition-all hover:shadow-md">
+    <Card className="pdf-keep-together border-l-4 border-l-blue-400 bg-gradient-to-r from-blue-50 to-indigo-50 transition-all hover:shadow-md" data-section-type="coaching-insights">
       <Collapsible open={isOpen} onOpenChange={onToggle}>
         <CollapsibleTrigger asChild>
           <CardHeader className="cursor-pointer hover:bg-blue-100/50 transition-colors">
@@ -70,7 +70,7 @@ export function CoachingInsightsSection({
                   {whatWorkedWell.map((item, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-3 p-2 lg:p-3 bg-white rounded-lg border border-green-200"
+                      className="pdf-keep-together flex items-start gap-3 p-2 lg:p-3 bg-white rounded-lg border border-green-200"
                     >
                       <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-500 flex-shrink-0 mt-0.5" />
                       <span className="text-gray-800 text-sm lg:text-base">{item}</span>
@@ -91,7 +91,7 @@ export function CoachingInsightsSection({
                   {missedOpportunities.map((item, index) => (
                     <div
                       key={index}
-                      className="flex items-start gap-3 p-2 lg:p-3 bg-amber-50 rounded-lg border border-amber-200"
+                      className="pdf-keep-together flex items-start gap-3 p-2 lg:p-3 bg-amber-50 rounded-lg border border-amber-200"
                     >
                       <Lightbulb className="w-4 h-4 lg:w-5 lg:h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                       <span className="text-gray-800 text-sm lg:text-base">{item}</span>
