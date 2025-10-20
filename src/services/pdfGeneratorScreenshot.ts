@@ -10,85 +10,25 @@ import type { ContentSection } from '@/utils/pdfContentAnalyzer'
 import { expandCollapsedSections, restoreElementStates } from '@/utils/sectionExpansion'
 
 /**
- * Detects content sections in the DOM for smart page breaks
+ * Calculates simple fixed-height page break points
  */
-function detectSections(element: HTMLElement): ContentSection[] {
-  const sections: ContentSection[] = []
-  
-  // Find all section headers
-  const sectionElements = element.querySelectorAll('[data-section], h2, h3, section, [class*="section"]')
-  
-  sectionElements.forEach((sectionEl, index) => {
-    if (!(sectionEl instanceof HTMLElement)) return
-    
-    const rect = sectionEl.getBoundingClientRect()
-    const containerRect = element.getBoundingClientRect()
-    
-    // Calculate position relative to container
-    const relativeTop = rect.top - containerRect.top + element.scrollTop
-    const positionMM = (relativeTop * 0.264583) // Convert pixels to MM at 96 DPI
-    const heightMM = (rect.height * 0.264583)
-    
-    // Determine section type
-    let sectionType: ContentSection['type'] = 'section'
-    const classList = Array.from(sectionEl.classList).join(' ').toLowerCase()
-    const dataSection = sectionEl.getAttribute('data-section')
-    
-    if (dataSection) {
-      sectionType = 'section'
-    } else if (classList.includes('hero')) {
-      sectionType = 'hero'
-    } else if (classList.includes('battle') || classList.includes('action')) {
-      sectionType = 'battle-plan'
-    } else if (classList.includes('stakeholder')) {
-      sectionType = 'stakeholder'
-    } else if (classList.includes('expandable') || classList.includes('collapsible')) {
-      sectionType = 'expandable'
-    } else if (classList.includes('card')) {
-      sectionType = 'card'
-    }
-    
-    sections.push({
-      element: sectionEl,
-      startY: positionMM,
-      height: heightMM,
-      priority: heightMM < 100 ? 'must-keep-together' : 'prefer-together',
-      type: sectionType,
-      id: sectionEl.id || `section-${index}`
-    })
-  })
-  
-  console.log('📍 Detected sections for page breaks:', {
-    count: sections.length,
-    sections: sections.map(s => ({ type: s.type, startY: s.startY.toFixed(1), height: s.height.toFixed(1) }))
-  })
-  
-  return sections
-}
-
-/**
- * Calculates optimal page break points based on detected sections
- */
-function calculateBreakPoints(sections: ContentSection[]): number[] {
-  const PAGE_HEIGHT_MM = 270 // A4 page height minus margins
+function calculateSimpleBreakPoints(canvasHeightPx: number): number[] {
+  const PAGE_HEIGHT_PX = 3400 // ~270mm at 2.5x scale
+  const totalPages = Math.ceil(canvasHeightPx / PAGE_HEIGHT_PX)
   const breakPoints: number[] = []
   
-  sections.forEach((section) => {
-    // If section starts beyond a page boundary, add break point
-    const pageNumber = Math.floor(section.startY / PAGE_HEIGHT_MM)
-    const breakPointMM = pageNumber * PAGE_HEIGHT_MM
-    
-    if (breakPointMM > 0 && !breakPoints.includes(breakPointMM)) {
-      breakPoints.push(breakPointMM)
-    }
+  for (let i = 1; i < totalPages; i++) {
+    breakPoints.push(i * PAGE_HEIGHT_PX)
+  }
+  
+  console.log('📄 Calculated fixed-height page breaks:', {
+    canvasHeight: canvasHeightPx,
+    pageHeight: PAGE_HEIGHT_PX,
+    totalPages,
+    breakPoints
   })
   
-  console.log('📄 Calculated page break points:', {
-    breakPointsMM: breakPoints,
-    estimatedPages: breakPoints.length + 1
-  })
-  
-  return breakPoints.sort((a, b) => a - b)
+  return breakPoints
 }
 
 /**
@@ -125,9 +65,9 @@ export async function generateScreenshotPDF(title: string): Promise<void> {
       aspectRatio: (canvas.width / canvas.height).toFixed(2)
     })
     
-    // Detect sections for smart page breaks
-    const sections = detectSections(element)
-    const breakPoints = calculateBreakPoints(sections)
+    // Calculate simple fixed-height page breaks
+    const breakPoints = calculateSimpleBreakPoints(canvas.height)
+    const sections: ContentSection[] = [] // Empty sections array for compatibility
     
     // Create PDF document
     console.log('📄 Creating multi-page PDF with smart breaks...')

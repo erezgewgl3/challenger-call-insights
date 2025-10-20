@@ -58,15 +58,30 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
                element.classList.contains('pdf-ignore')
       },
       removeContainer: true,
-      // Enhanced font smoothing through onclone
-      onclone: (clonedDoc) => {
+      // Enhanced font smoothing and Hebrew font loading through onclone
+      onclone: async (clonedDoc) => {
+        // Wait for all fonts to be loaded
+        await clonedDoc.fonts.ready
+        
         const clonedElement = clonedDoc.getElementById(element.id)
         if (clonedElement) {
-          // Force crisp text rendering using style properties
-          const style = clonedElement.style as any
-          style.webkitFontSmoothing = 'antialiased'
-          style.mozOsxFontSmoothing = 'grayscale'
-          style.textRendering = 'optimizeLegibility'
+          // Apply Hebrew-compatible fonts to all text elements
+          const allElements = clonedElement.querySelectorAll('*')
+          allElements.forEach(el => {
+            if (el instanceof HTMLElement) {
+              const computedStyle = window.getComputedStyle(el)
+              const currentFont = computedStyle.fontFamily
+              
+              // Apply Rubik for Hebrew support, fallback to Arial
+              el.style.fontFamily = 'Rubik, Arial, sans-serif'
+              
+              // Force crisp text rendering
+              const style = el.style as any
+              style.webkitFontSmoothing = 'antialiased'
+              style.mozOsxFontSmoothing = 'grayscale'
+              style.textRendering = 'optimizeLegibility'
+            }
+          })
         }
       }
     })
