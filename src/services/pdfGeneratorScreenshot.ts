@@ -7,6 +7,7 @@ import { generateCanvas } from '@/services/canvasGenerator'
 import { addMultiPageContentWithSmartBreaks, createPDFDocument } from '@/services/pdfGenerator'
 import { generateCleanFilename } from '@/utils/pdfUtils'
 import type { ContentSection } from '@/utils/pdfContentAnalyzer'
+import { expandCollapsedSections, restoreElementStates } from '@/utils/sectionExpansion'
 
 /**
  * Detects content sections in the DOM for smart page breaks
@@ -109,35 +110,45 @@ export async function generateScreenshotPDF(title: string): Promise<void> {
     id: element.id
   })
   
-  // Generate canvas from UI (captures perfect Hebrew rendering)
-  console.log('📸 Capturing UI with html2canvas...')
-  const canvas = await generateCanvas(element)
+  // Expand all collapsed sections for complete capture
+  console.log('📂 Expanding collapsed sections for complete PDF capture...')
+  const modifiedElements = expandCollapsedSections(element)
   
-  console.log('✅ Canvas generated:', {
-    width: canvas.width,
-    height: canvas.height,
-    aspectRatio: (canvas.width / canvas.height).toFixed(2)
-  })
-  
-  // Detect sections for smart page breaks
-  const sections = detectSections(element)
-  const breakPoints = calculateBreakPoints(sections)
-  
-  // Create PDF document
-  console.log('📄 Creating multi-page PDF with smart breaks...')
-  const pdf = createPDFDocument()
-  
-  // Add multi-page content with smart breaks
-  addMultiPageContentWithSmartBreaks(pdf, canvas, title, breakPoints, sections)
-  
-  // Save PDF
-  const filename = generateCleanFilename(title)
-  console.log('💾 Saving PDF as:', filename)
-  pdf.save(filename)
-  
-  console.log('✅ Screenshot-based PDF generated successfully:', {
-    method: 'html2canvas',
-    pages: breakPoints.length + 1,
-    filename
-  })
+  try {
+    // Generate canvas from UI (captures perfect Hebrew rendering)
+    console.log('📸 Capturing UI with html2canvas...')
+    const canvas = await generateCanvas(element)
+    
+    console.log('✅ Canvas generated:', {
+      width: canvas.width,
+      height: canvas.height,
+      aspectRatio: (canvas.width / canvas.height).toFixed(2)
+    })
+    
+    // Detect sections for smart page breaks
+    const sections = detectSections(element)
+    const breakPoints = calculateBreakPoints(sections)
+    
+    // Create PDF document
+    console.log('📄 Creating multi-page PDF with smart breaks...')
+    const pdf = createPDFDocument()
+    
+    // Add multi-page content with smart breaks
+    addMultiPageContentWithSmartBreaks(pdf, canvas, title, breakPoints, sections)
+    
+    // Save PDF
+    const filename = generateCleanFilename(title)
+    console.log('💾 Saving PDF as:', filename)
+    pdf.save(filename)
+    
+    console.log('✅ Screenshot-based PDF generated successfully with all sections expanded:', {
+      method: 'html2canvas',
+      pages: breakPoints.length + 1,
+      filename
+    })
+  } finally {
+    // Restore UI to original state
+    restoreElementStates(modifiedElements)
+    console.log('🔄 UI restored to original state')
+  }
 }
