@@ -72,6 +72,12 @@ export function useUpdateTranscriptTitle() {
         refetchType: 'all' // Force refetch of all matching queries
       });
       
+      // CRITICAL: ActiveDashboard uses 'heat-transcripts' query key
+      queryClient.invalidateQueries({ 
+        queryKey: ['heat-transcripts'],
+        refetchType: 'all'
+      });
+      
       // Also invalidate queue-related queries that may display transcripts
       queryClient.invalidateQueries({ 
         queryKey: ['queue'] 
