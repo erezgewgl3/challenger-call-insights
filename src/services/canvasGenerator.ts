@@ -5,6 +5,17 @@ import html2canvas from 'html2canvas'
  * Enhanced canvas generation with production positioning fixes
  */
 export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasElement> {
+  // PRODUCTION FIX: Store current scroll position for restoration
+  const originalScrollY = window.scrollY
+  const originalScrollX = window.scrollX
+  
+  // PRODUCTION FIX: Scroll element to top of viewport for consistent capture
+  element.scrollIntoView({ behavior: 'instant', block: 'start' })
+  window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  
+  // Wait for scroll and layout to stabilize
+  await new Promise(resolve => setTimeout(resolve, 100))
+  
   // Get actual element dimensions
   const rect = element.getBoundingClientRect()
   
@@ -107,5 +118,8 @@ export async function generateCanvas(element: HTMLElement): Promise<HTMLCanvasEl
     element.style.left = originalLeft
     element.style.top = originalTop
     element.style.transform = originalTransform
+    
+    // PRODUCTION FIX: Restore original scroll position
+    window.scrollTo({ top: originalScrollY, left: originalScrollX, behavior: 'instant' })
   }
 }
