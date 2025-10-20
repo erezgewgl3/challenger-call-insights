@@ -12,8 +12,10 @@
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { generateTextBasedPDF } from '@/services/pdfGeneratorV2'
+import { generateScreenshotPDF } from '@/services/pdfGeneratorScreenshot'
 import { extractPDFData } from '@/utils/pdfContentExtractor'
 import { generateCleanFilename } from '@/utils/pdfUtils'
+import { detectHebrewInAnalysis } from '@/utils/hebrewDetector'
 
 interface UsePDFExportProps {
   filename?: string
@@ -39,33 +41,52 @@ export function usePDFExport({ filename = 'sales-analysis-report' }: UsePDFExpor
     title: string
   ) => {
     try {
-      console.log('🚀 Starting text-based PDF export')
+      // Detect Hebrew content
+      const hasHebrew = detectHebrewInAnalysis(transcript, analysis)
       
-      // Show initial toast
-      toast.info('Generating PDF...', { duration: 2000 })
-      
-      // Extract structured data from analysis
-      const contentData = extractPDFData(transcript, analysis)
-      console.log('✅ Data extracted successfully', {
-        sections: Object.keys(contentData).length,
-        actionItems: contentData.actionItems.length,
-        insights: contentData.dealInsights.length
+      console.log('🔍 PDF Generation Strategy:', {
+        hasHebrew,
+        method: hasHebrew ? 'Screenshot-based (html2canvas)' : 'Text-based (jsPDF)',
+        reason: hasHebrew ? 'Hebrew detected - using UI rendering' : 'English only - using native text'
       })
       
-      // Generate PDF with native text rendering
-      console.log('📄 Generating PDF with jsPDF + AutoTable...')
-      const pdf = generateTextBasedPDF(contentData, title)
-      console.log('✅ PDF generated successfully')
+      if (hasHebrew) {
+        // Use screenshot-based generation for Hebrew content
+        toast.info('Generating PDF (screenshot mode for Hebrew)...', { duration: 3000 })
+        await generateScreenshotPDF(title)
+        
+        toast.success('PDF exported successfully!', { 
+          duration: 3000,
+          description: 'Hebrew content rendered perfectly'
+        })
+      } else {
+        // Use text-based generation for English content
+        console.log('🚀 Starting text-based PDF export')
+        toast.info('Generating PDF...', { duration: 2000 })
+        
+        // Extract structured data from analysis
+        const contentData = extractPDFData(transcript, analysis)
+        console.log('✅ Data extracted successfully', {
+          sections: Object.keys(contentData).length,
+          actionItems: contentData.actionItems.length,
+          insights: contentData.dealInsights.length
+        })
+        
+        // Generate PDF with native text rendering
+        console.log('📄 Generating PDF with jsPDF + AutoTable...')
+        const pdf = generateTextBasedPDF(contentData, title)
+        console.log('✅ PDF generated successfully')
 
-      // Generate filename and save
-      const cleanFilename = generateCleanFilename(title)
-      console.log('💾 Saving PDF as:', cleanFilename)
-      pdf.save(cleanFilename)
+        // Generate filename and save
+        const cleanFilename = generateCleanFilename(title)
+        console.log('💾 Saving PDF as:', cleanFilename)
+        pdf.save(cleanFilename)
 
-      toast.success('PDF exported successfully!', { 
-        duration: 3000,
-        description: `Saved as ${cleanFilename}`
-      })
+        toast.success('PDF exported successfully!', { 
+          duration: 3000,
+          description: `Saved as ${cleanFilename}`
+        })
+      }
     } catch (error) {
       console.error('❌ PDF export error:', error)
       toast.error('Failed to generate PDF', {

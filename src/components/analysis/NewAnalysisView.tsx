@@ -459,7 +459,7 @@ export function NewAnalysisView({
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
       {/* ENHANCED: Add pdf-optimized class to main content container */}
-      <div id="analysis-content" className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
+      <div id="analysis-content" data-pdf-content className="max-w-6xl mx-auto px-4 py-6 lg:py-8 pdf-optimized">
           
           {/* 📱 ENHANCED HEADER - Better Mobile + Priority Indicators */}
           <div className="mb-6 lg:mb-8">
