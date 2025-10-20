@@ -7,39 +7,37 @@ import { generateCanvas } from '@/services/canvasGenerator'
 import { addMultiPageContentWithSmartBreaks, createPDFDocument } from '@/services/pdfGenerator'
 import { generateCleanFilename } from '@/utils/pdfUtils'
 import type { ContentSection } from '@/utils/pdfContentAnalyzer'
-import { analyzeContentForPDF, calculateOptimalPageBreaks } from '@/utils/pdfContentAnalyzer'
 import { expandCollapsedSections, restoreElementStates } from '@/utils/sectionExpansion'
 
 /**
- * Analyzes content structure and calculates intelligent page breaks
+ * Calculates simple fixed-height page breaks (optimized)
  */
-function calculateSmartBreakPoints(element: HTMLElement, canvasHeightPx: number): {
-  breakPoints: number[]
-  sections: ContentSection[]
-} {
-  console.log('🧠 Starting smart content analysis...')
+function calculateSimpleBreakPoints(canvasHeightPx: number): number[] {
+  // Use 280mm pages (taller than before) to reduce break frequency
+  const PAGE_HEIGHT_MM = 280
   
-  // Step 1: Analyze DOM structure to identify logical sections
-  const sections = analyzeContentForPDF(element)
+  // Convert canvas pixels to millimeters
+  // Assuming 96 DPI and html2canvas scale of 2.5
+  const canvasHeightMM = (canvasHeightPx / 2.5) * 0.264583
   
-  console.log('📊 Found content sections:', {
-    totalSections: sections.length,
-    mustKeepTogether: sections.filter(s => s.priority === 'must-keep-together').length,
-    preferTogether: sections.filter(s => s.priority === 'prefer-together').length,
-    splittable: sections.filter(s => s.priority === 'splittable').length
+  // Calculate number of pages needed
+  const totalPages = Math.ceil(canvasHeightMM / PAGE_HEIGHT_MM)
+  
+  // Generate break points
+  const breakPoints: number[] = []
+  for (let i = 1; i < totalPages; i++) {
+    breakPoints.push(i * PAGE_HEIGHT_MM)
+  }
+  
+  console.log('📄 Simple page breaks (optimized):', {
+    canvasHeightPx,
+    canvasHeightMM: canvasHeightMM.toFixed(2),
+    pageHeightMM: PAGE_HEIGHT_MM,
+    totalPages,
+    breakPointsMM: breakPoints
   })
   
-  // Step 2: Calculate optimal break points (in MM)
-  const PAGE_HEIGHT_MM = 270 // A4 page content area
-  const breakPoints = calculateOptimalPageBreaks(sections, PAGE_HEIGHT_MM)
-  
-  console.log('✨ Smart page breaks calculated:', {
-    breakPointsMM: breakPoints,
-    totalPages: breakPoints.length + 1,
-    method: 'content-aware'
-  })
-  
-  return { breakPoints, sections }
+  return breakPoints
 }
 
 /**
@@ -76,8 +74,9 @@ export async function generateScreenshotPDF(title: string): Promise<void> {
       aspectRatio: (canvas.width / canvas.height).toFixed(2)
     })
     
-    // Calculate smart content-aware page breaks
-    const { breakPoints, sections } = calculateSmartBreakPoints(element, canvas.height)
+    // Calculate simple fixed-height page breaks
+    const breakPoints = calculateSimpleBreakPoints(canvas.height)
+    const sections: ContentSection[] = [] // Empty for compatibility
     
     // Create PDF document
     console.log('📄 Creating multi-page PDF with smart breaks...')
@@ -91,7 +90,7 @@ export async function generateScreenshotPDF(title: string): Promise<void> {
     console.log('💾 Saving PDF as:', filename)
     pdf.save(filename)
     
-    console.log('✅ Screenshot-based PDF generated successfully with all sections expanded:', {
+    console.log('✅ PDF generated successfully (simple breaks, 280mm pages):', {
       method: 'html2canvas',
       pages: breakPoints.length + 1,
       filename
