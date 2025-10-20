@@ -13,6 +13,7 @@ import { supabase } from '@/lib/supabase'
 import { NewAnalysisView } from './NewAnalysisView'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { toast } from 'sonner'
+import { getDisplayTitle } from '@/utils/titleUtils'
 
 interface TranscriptData {
   id: string
@@ -239,9 +240,7 @@ export function SalesIntelligenceView({
 
   // Show error state with retry option
   if (transcript.status === 'error') {
-    const displayTitle = transcript.extracted_company_name || 
-                        transcript.deal_context?.company_name || 
-                        transcript.title
+    const displayTitle = getDisplayTitle(transcript)
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
@@ -309,9 +308,7 @@ export function SalesIntelligenceView({
 
   // Show processing state
   if (transcript.status === 'processing') {
-    const displayTitle = transcript.extracted_company_name || 
-                        transcript.deal_context?.company_name || 
-                        transcript.title
+    const displayTitle = getDisplayTitle(transcript)
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">
@@ -365,9 +362,7 @@ export function SalesIntelligenceView({
   }
 
   // Show no analysis available state
-  const displayTitle = transcript.extracted_company_name || 
-                      transcript.deal_context?.company_name || 
-                      transcript.title
+  const displayTitle = transcript ? getDisplayTitle(transcript) : 'Untitled Transcript'
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-gray-100">

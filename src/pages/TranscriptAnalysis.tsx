@@ -10,6 +10,7 @@ import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
 import { useAuth } from '@/hooks/useAuth'
 import { ArrowLeft } from 'lucide-react'
+import { getDisplayTitle } from '@/utils/titleUtils'
 
 interface TranscriptData {
   id: string
@@ -134,7 +135,7 @@ export default function TranscriptAnalysis() {
         <div className="max-w-4xl mx-auto px-4 py-8">
           <div className="text-center space-y-6">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold text-slate-900">{transcript.title}</h1>
+              <h1 className="text-3xl font-bold text-slate-900">{getDisplayTitle(transcript)}</h1>
               <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
                 Intelligence Processing
               </Badge>

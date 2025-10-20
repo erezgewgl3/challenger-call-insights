@@ -49,6 +49,7 @@ import { calculateDealHeat, type DealHeatResult } from '@/utils/dealHeatCalculat
 import { CoachingInsightsSection } from './CoachingInsightsSection'
 import { DealBlockersCard } from './DealBlockersCard'
 import { QualityIndicatorBadge } from './QualityIndicatorBadge'
+import { getDisplayTitle } from '@/utils/titleUtils'
 
 interface AnalysisData {
   id: string
@@ -102,10 +103,8 @@ export function NewAnalysisView({
   const { exportToPDF } = usePDFExport({ filename: 'sales-analysis-report' })
   const [isExporting, setIsExporting] = useState(false)
 
-  // Prioritize company name over generic title
-  const displayTitle = transcript.extracted_company_name || 
-                      transcript.deal_context?.company_name || 
-                      transcript.title
+  // Use centralized title logic
+  const displayTitle = getDisplayTitle(transcript)
 
   // Enhanced data mapping functions - moved before usage
   const getDealHeat = (): DealHeatResult => {

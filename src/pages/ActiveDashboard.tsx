@@ -10,6 +10,7 @@ import { IntegrationsStatusBadge } from '@/components/dashboard/IntegrationsStat
 import { CollapsibleProcessingQueue } from '@/components/dashboard/CollapsibleProcessingQueue';
 import { ArchivedDealsDrawer } from '@/components/dashboard/ArchivedDealsDrawer';
 import { useNavigate } from 'react-router-dom';
+import { getDisplayTitle } from '@/utils/titleUtils';
 import {
   Dialog,
   DialogContent,
@@ -53,38 +54,12 @@ export default function ActiveDashboard() {
           ? firstParticipant 
           : (firstParticipant?.name as string | undefined);
         
-        // Helper to detect generic titles
-        const isGenericTitle = (title?: string) => {
-          if (!title) return true;
-          const t = title.trim();
-          const genericPatterns = [
-            /^the (client|prospect|customer|company)$/i,
-            /^(call|meeting|conversation|discussion)$/i,
-            /^compliance risks?$/i,
-            /^transcript\.?(txt|docx|vtt)?$/i,
-            /^unnamed/i,
-            /^untitled/i
-          ];
-          return genericPatterns.some((p) => p.test(t));
-        };
-        
-        // PRIORITY ORDER: Manual title (if not generic) > Extracted data > AI fallbacks
-        const manualTitle = (transcript.title || '').trim();
-        const displayTitle =
-          (manualTitle && !isGenericTitle(manualTitle) ? manualTitle :
-            transcript.extracted_company_name ||
-            (transcript.extracted_participants && Array.isArray(transcript.extracted_participants) && transcript.extracted_participants.length > 0
-              ? `Call with ${transcript.extracted_participants.map((p: any) => p.name).join(', ')}`
-              : null) ||
-            callSummary?.title ||
-            callSummary?.meeting_title ||
-            callSummary?.account?.name ||
-            callSummary?.company_name ||
-            callSummary?.deal_name ||
-            callSummary?.contact_name ||
-            (firstParticipantName ? `Call with ${firstParticipantName}` : undefined) ||
-            transcript.accounts?.name ||
-            manualTitle || '');
+        // Use centralized title logic
+        const displayTitle = getDisplayTitle({
+          title: transcript.title,
+          extracted_company_name: transcript.extracted_company_name,
+          deal_context: callSummary
+        });
         
         return {
           id: transcript.id,
