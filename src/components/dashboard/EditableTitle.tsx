@@ -100,7 +100,7 @@ export function EditableTitle({ transcriptId, currentTitle, className = "" }: Ed
   }
 
   return (
-    <div className="flex items-center gap-2 group/title">
+    <div className="flex items-center gap-2 group/title min-w-0">
       <h4 className={`font-medium text-slate-900 group-hover:text-blue-600 transition-colors text-sm truncate ${className}`}>
         {currentTitle}
       </h4>
