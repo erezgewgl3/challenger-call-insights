@@ -5,6 +5,7 @@
 
 import type { PDFContentData } from '@/types/pdfExport'
 import { calculateDealHeat } from './dealHeatCalculator'
+import { getDisplayTitle } from './titleUtils'
 
 /**
  * Main extraction function - converts analysis data into PDF-ready structure
@@ -34,10 +35,12 @@ function extractHeaderData(transcript: any, analysis: any) {
       ? [participants] 
       : []
 
-  // Match screen logic: prioritize extracted_company_name over title
-  const displayTitle = transcript?.extracted_company_name || 
-                      transcript?.deal_context?.company_name || 
-                      transcript?.title || ''
+  // Use centralized title logic for consistency with UI
+  const displayTitle = getDisplayTitle({
+    title: transcript?.title || '',
+    extracted_company_name: transcript?.extracted_company_name,
+    deal_context: transcript?.deal_context
+  })
 
   // Match screen date format: "Saturday, October 18, 2025"
   const meetingDate = transcript?.meeting_date || transcript?.created_at
