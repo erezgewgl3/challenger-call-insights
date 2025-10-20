@@ -34,9 +34,11 @@ export function useUpdateTranscriptTitle() {
     onMutate: async ({ transcriptId, newTitle }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['transcripts'] });
+      await queryClient.cancelQueries({ queryKey: ['heat-transcripts'] });
 
       // Snapshot previous value
       const previousData = queryClient.getQueryData(['transcripts']);
+      const previousHeatData = queryClient.getQueryData(['heat-transcripts']);
 
       // Optimistically update to the new value
       queryClient.setQueriesData({ queryKey: ['transcripts'] }, (old: any) => {
@@ -52,12 +54,28 @@ export function useUpdateTranscriptTitle() {
         return old;
       });
 
-      return { previousData };
+      // Also optimistically update heat-transcripts
+      queryClient.setQueriesData({ queryKey: ['heat-transcripts'] }, (old: any) => {
+        if (!old) return old;
+        
+        if (Array.isArray(old)) {
+          return old.map((t: any) => 
+            t.id === transcriptId ? { ...t, title: newTitle.trim() } : t
+          );
+        }
+        
+        return old;
+      });
+
+      return { previousData, previousHeatData };
     },
     onError: (error: any, variables, context) => {
       // Rollback on error
       if (context?.previousData) {
         queryClient.setQueryData(['transcripts'], context.previousData);
+      }
+      if (context?.previousHeatData) {
+        queryClient.setQueryData(['heat-transcripts'], context.previousHeatData);
       }
       
       toast.error(error.message || "Failed to update title");

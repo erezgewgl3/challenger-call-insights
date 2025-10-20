@@ -326,7 +326,7 @@ export function HeatDealsSection({ heatLevel, transcripts, isLoading }: HeatDeal
                       <div className="flex-1">
                         <EditableTitle
                           transcriptId={transcript.id}
-                          currentTitle={getDisplayTitle(transcript)}
+                          currentTitle={transcript.title}
                           className="mb-1"
                         />
                         {(() => {
