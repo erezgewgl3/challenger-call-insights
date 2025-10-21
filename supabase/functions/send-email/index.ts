@@ -1,24 +1,18 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.2";
+import React from 'npm:react@18.3.1';
+import { renderAsync } from 'npm:@react-email/components@0.0.22';
+import { Resend } from 'npm:resend@4.0.0';
+import { InviteEmail } from './_templates/invite-email.tsx';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Simple HTML email templates
-const generateInviteEmailHTML = (data: any) => `
-<!DOCTYPE html>
-<html>
-<head><title>You're Invited to Sales Whisperer</title></head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-  <h1>Welcome to Sales Whisperer!</h1>
-  <p>You've been invited by ${data.invitedBy} to join Sales Whisperer.</p>
-  <p><a href="${data.inviteLink}" style="background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px;">Accept Invitation</a></p>
-  <p>This invitation expires on ${new Date(data.expiresAt).toLocaleDateString()}.</p>
-</body>
-</html>`;
+const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
+// Simple HTML email templates for other types
 const generateRegistrationFailureHTML = (data: any) => `
 <!DOCTYPE html>
 <html>
@@ -53,7 +47,15 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate HTML based on email type
     switch (emailType) {
       case 'invite':
-        html = generateInviteEmailHTML(data);
+        // Render React Email template
+        html = await renderAsync(
+          React.createElement(InviteEmail, {
+            email: data.email || to,
+            inviteLink: data.inviteLink,
+            expiresAt: data.expiresAt,
+            invitedBy: data.invitedBy
+          })
+        );
         break;
       case 'registration-failure':
         html = generateRegistrationFailureHTML(data);
@@ -68,25 +70,22 @@ const handler = async (req: Request): Promise<Response> => {
         html = '<p>Email content</p>';
     }
 
-    // Send via Resend API
-    const resendResponse = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('RESEND_API_KEY')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'Sales Whisperer <noreply@saleswhisperer.net>',
-        to: [to],
-        subject,
-        html
-      })
+    // Send via Resend SDK
+    const { error: resendError } = await resend.emails.send({
+      from: 'Sales Whisperer <noreply@saleswhisperer.net>',
+      to: [to],
+      subject: subject || 'You\'re invited to Sales Whisperer',
+      html
     });
 
-    const result = await resendResponse.json();
-    console.log('Email sent successfully:', result);
+    if (resendError) {
+      console.error('Resend error:', resendError);
+      throw resendError;
+    }
 
-    return new Response(JSON.stringify(result), {
+    console.log('Email sent successfully to:', to);
+
+    return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 

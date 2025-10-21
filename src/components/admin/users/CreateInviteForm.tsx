@@ -166,6 +166,7 @@ export function CreateInviteForm() {
             body: {
               type: 'invite',
               to: data.email,
+              subject: 'You\'re invited to Sales Whisperer',
               data: {
                 email: data.email,
                 inviteLink,
