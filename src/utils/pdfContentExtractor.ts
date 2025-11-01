@@ -61,8 +61,25 @@ function extractHeaderData(transcript: any, analysis: any) {
 }
 
 function extractDealCommandCenter(analysis: any) {
-  // Use frontend calculator for consistency with UI
-  const dealHeatResult = calculateDealHeat(analysis)
+  // PRIORITY 1: Use database heat_level (authoritative source - matches screen display)
+  let dealHeatResult
+  
+  if (analysis?.heat_level) {
+    const dbHeatLevel = analysis.heat_level.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW'
+    dealHeatResult = {
+      level: dbHeatLevel,
+      emoji: dbHeatLevel === 'HIGH' ? '🔥' : dbHeatLevel === 'MEDIUM' ? '🌡️' : '❄️',
+      description: dbHeatLevel === 'HIGH' ? 'Immediate attention needed' : 
+                  dbHeatLevel === 'MEDIUM' ? 'Active opportunity' : 'Long-term opportunity',
+      evidence: analysis?.call_summary?.painSeverity?.indicators?.slice(0, 2) || [],
+      businessImpact: analysis?.call_summary?.painSeverity?.businessImpact || '',
+      bgColor: dbHeatLevel === 'HIGH' ? 'bg-red-500' : dbHeatLevel === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500',
+      color: dbHeatLevel === 'HIGH' ? 'text-red-300' : dbHeatLevel === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
+    }
+  } else {
+    // FALLBACK: Calculate for older analyses without heat_level stored in DB
+    dealHeatResult = calculateDealHeat(analysis)
+  }
   
   const recommendations = analysis?.recommendations || {}
   const callSummary = analysis?.call_summary || {}
