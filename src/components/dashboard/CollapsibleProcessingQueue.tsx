@@ -35,8 +35,11 @@ export function CollapsibleProcessingQueue({ user_id }: CollapsibleProcessingQue
 
       let zoomCount = 0;
       if (hasZoom.data) {
-        const { data: zoomData } = await supabase.functions.invoke('get-zoom-meetings');
-        zoomCount = zoomData?.meetings?.length || 0;
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          const { data: zoomData } = await supabase.functions.invoke('get-zoom-meetings');
+          zoomCount = zoomData?.meetings?.length || 0;
+        }
       }
 
       return {

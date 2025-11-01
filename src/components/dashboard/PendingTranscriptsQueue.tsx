@@ -115,6 +115,12 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
   const { data: zoomMeetings = [], isLoading: zoomLoading } = useQuery({
     queryKey: ['zoom-meetings-queue', user_id],
     queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        console.warn('No active session, skipping Zoom meetings fetch');
+        return [];
+      }
+      
       const { data, error } = await supabase.functions.invoke('get-zoom-meetings');
       if (error) {
         console.error('Error fetching Zoom meetings:', error);
