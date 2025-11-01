@@ -114,7 +114,9 @@ serve(async (req) => {
 
       if (expiresAt.getTime() - now.getTime() < bufferTime) {
         console.log('Token expires soon, attempting refresh');
-        accessToken = await refreshZoomToken(connection, supabase);
+        const refreshResult = await refreshZoomToken(credentials, connection, supabase);
+        accessToken = refreshResult.accessToken;
+        credentials = refreshResult.credentials;
       }
     }
 
@@ -162,7 +164,8 @@ serve(async (req) => {
       if (meetingsResponse.status === 401 && credentials.refresh_token) {
         console.log('Token unauthorized, attempting refresh');
         try {
-          accessToken = await refreshZoomToken(connection, supabase);
+          const refreshResult = await refreshZoomToken(credentials, connection, supabase);
+          accessToken = refreshResult.accessToken;
           
           // Retry the request with new token
           const retryResponse = await fetch(
@@ -208,9 +211,11 @@ serve(async (req) => {
   }
 });
 
-async function refreshZoomToken(connection: any, supabase: any): Promise<string> {
-  const credentials = connection.credentials as any;
-  
+async function refreshZoomToken(
+  credentials: any, 
+  connection: any, 
+  supabase: any
+): Promise<{ accessToken: string; credentials: any }> {
   if (!credentials.refresh_token) {
     throw new Error('No refresh token available');
   }
@@ -265,7 +270,10 @@ async function refreshZoomToken(connection: any, supabase: any): Promise<string>
   }
 
   console.log('Token refreshed successfully');
-  return tokenData.access_token;
+  return {
+    accessToken: tokenData.access_token,
+    credentials: updatedCredentials
+  };
 }
 
 async function processZoomMeetings(meetings: ZoomMeeting[], userId: string, supabase: any): Promise<Response> {
