@@ -34,35 +34,84 @@ serve(async (req) => {
   try {
     console.log('Starting get-zoom-meetings function');
 
-    // Initialize Supabase client
+    // Get Authorization header
+    const authHeader = req.headers.get('Authorization') ?? '';
+    
+    if (!authHeader || authHeader.length < 20) {
+      console.error('Missing or invalid Authorization header');
+      return new Response(JSON.stringify({ 
+        error: 'authentication_required',
+        message: 'Valid authentication token required',
+        meetings: []
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    console.log('Authorization header received, length:', authHeader.length);
+
+    // Initialize Supabase client with bound Authorization header
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+      {
+        global: {
+          headers: {
+            Authorization: authHeader
+          }
+        }
+      }
     );
 
-    // Get user from JWT
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      console.error('No authorization header provided');
-      throw new Error('No authorization header');
-    }
+    // Get user from JWT (header is now bound to client)
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
+    let userId: string;
 
     if (authError || !user) {
-      console.error('Invalid user token:', authError);
-      throw new Error('Invalid user token');
+      console.warn('getUser() failed, attempting JWT decode fallback:', authError?.message);
+      
+      // Fallback: decode JWT to extract sub claim
+      try {
+        const token = authHeader.replace(/^Bearer\s+/i, '');
+        const parts = token.split('.');
+        
+        if (parts.length !== 3) {
+          throw new Error('Invalid JWT format');
+        }
+        
+        const payload = JSON.parse(atob(parts[1]));
+        userId = payload?.sub;
+        
+        if (!userId) {
+          throw new Error('No sub claim in JWT');
+        }
+        
+        console.log('Successfully extracted userId from JWT fallback:', userId);
+      } catch (decodeError) {
+        console.error('JWT decode fallback failed:', decodeError);
+        return new Response(JSON.stringify({ 
+          error: 'authentication_required',
+          message: 'Invalid or expired authentication token',
+          meetings: []
+        }), {
+          status: 401,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        });
+      }
+    } else {
+      userId = user.id;
+      console.log('Successfully authenticated user via getUser():', userId);
     }
 
-    console.log(`Fetching Zoom connection for user: ${user.id}`);
+    console.log(`Fetching Zoom connection for user: ${userId}`);
 
     // Get user's Zoom connection
     const { data: connection, error: connectionError } = await supabase
       .from('integration_connections')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('integration_type', 'zoom')
       .eq('connection_status', 'active')
       .single();
@@ -86,7 +135,7 @@ serve(async (req) => {
         credentials = await getCredentialsFromVault(
           supabase, 
           connection.vault_secret_id,
-          user.id,
+          userId,
           'zoom'
         );
       } else {
@@ -183,7 +232,7 @@ serve(async (req) => {
           }
 
           const retryData = await retryResponse.json();
-          return processZoomMeetings(retryData.meetings || [], user.id, supabase);
+          return processZoomMeetings(retryData.meetings || [], userId, supabase);
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
           throw new Error('Authentication failed - please reconnect Zoom');
@@ -196,7 +245,7 @@ serve(async (req) => {
     const meetingsData = await meetingsResponse.json();
     console.log(`Found ${meetingsData.meetings?.length || 0} meetings`);
 
-    return processZoomMeetings(meetingsData.meetings || [], user.id, supabase);
+    return processZoomMeetings(meetingsData.meetings || [], userId, supabase);
 
   } catch (error) {
     console.error('Error in get-zoom-meetings:', error);
