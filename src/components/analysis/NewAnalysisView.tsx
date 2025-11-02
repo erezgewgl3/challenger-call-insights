@@ -544,6 +544,9 @@ export function NewAnalysisView({
             />
           )}
 
+          {/* 🎯 STAKEHOLDER NAVIGATION */}
+          <StakeholderNavigation analysis={analysis} />
+
           {/* 🚀 BATTLE PLAN SECTION */}
           <BattlePlanSection
             analysis={analysis}
@@ -552,9 +555,6 @@ export function NewAnalysisView({
             copyFullEmail={copyFullEmail}
             openInEmailClient={openInEmailClient}
           />
-
-          {/* 🎯 STAKEHOLDER NAVIGATION */}
-          <StakeholderNavigation analysis={analysis} />
 
           {/* 🎯 EXPANDABLE SECTIONS */}
           <ExpandableSections

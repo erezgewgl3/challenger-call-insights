@@ -220,45 +220,6 @@ export function BattlePlanSection({
             <div className="mt-4 h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent"></div>
           </div>
 
-          {/* Strategic Assessment - OPTIMIZED: More Compact Layout */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 border border-blue-200">
-            <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
-              <Shield className="w-4 h-4" />
-              Strategic Assessment
-            </h4>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-              {/* Primary Strategy Rationale */}
-              {analysis.recommendations?.primaryStrategy && (
-                <div className="bg-white rounded-lg p-3 border border-blue-100">
-                  <span className="font-medium text-blue-700 text-sm">Recommended Approach:</span>
-                  <p className="text-gray-700 text-sm mt-1 leading-relaxed">
-                    {analysis.recommendations.primaryStrategy}
-                  </p>
-                </div>
-              )}
-              
-              {/* Competitive Positioning Logic */}
-              {analysis.recommendations?.competitiveStrategy && (
-                <div className="bg-white rounded-lg p-3 border border-blue-100">
-                  <span className="font-medium text-purple-700 text-sm">Competitive Edge:</span>
-                  <p className="text-gray-700 text-sm mt-1 leading-relaxed">
-                    {analysis.recommendations.competitiveStrategy}
-                  </p>
-                </div>
-              )}
-              
-              {/* Stakeholder Navigation Strategy */}
-              {analysis.recommendations?.stakeholderPlan && (
-                <div className="bg-white rounded-lg p-3 border border-blue-100">
-                  <span className="font-medium text-green-700 text-sm">Stakeholder Strategy:</span>
-                  <p className="text-gray-700 text-sm mt-1 leading-relaxed">
-                    {analysis.recommendations.stakeholderPlan}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
 
         </div>
       </div>
