@@ -418,7 +418,7 @@ function calculateDealHeat(analysis: any): string {
   
   if (
     (painLevel === 'high' && trueCommitmentCount >= 1 && dealScore >= 4) ||  // NEW: Requires commitment + higher score
-    criticalFactors.length >= 1 && trueCommitmentCount >= 1) ||  // Critical factors alone don't guarantee HIGH - need economic buyer commitment
+    (criticalFactors.length >= 1 && trueCommitmentCount >= 1) ||  // Critical factors alone don't guarantee HIGH - need economic buyer commitment
     dealScore >= 8 ||
     (trueCommitmentCount >= 2 && dealScore >= 6) ||
     (painLevel === 'medium' && trueCommitmentCount >= 2 && dealScore >= 5)
