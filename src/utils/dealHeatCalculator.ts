@@ -113,14 +113,14 @@ export function calculateDealHeat(analysis: any): DealHeatResult {
                            allResistanceText.includes('never had an issue')
 
   if (hasNeedSkepticism) {
-    resistancePenalty += 5
+    resistancePenalty += 8  // Increased from 5 - economic buyer skepticism is deal-critical
     
-    // Extra penalty if influential stakeholder
+    // Extra penalty if economic buyer or influential stakeholder
     const isInfluential = allResistanceText.includes('i have to ask') || 
                          allResistanceText.includes('honestly') ||
                          allResistanceText.includes('to be frank')
     if (isInfluential) {
-      resistancePenalty += 2
+      resistancePenalty += 3  // Increased from 2
     }
   }
   
@@ -148,90 +148,99 @@ export function calculateDealHeat(analysis: any): DealHeatResult {
   dealScore = Math.max(0, dealScore - resistancePenalty)
   
   // Floor rule: Medium pain + business drivers deserve MEDIUM minimum
+  // BUT only if there's actual buying intent (commitment or exploratory signals)
   if (painLevel === 'medium' && businessFactors.length >= 2) {
-    // Even with high resistance, this is a research/education opportunity
-    if (dealScore < 2) {
-      console.log('🔍 [HEAT] FLOOR RULE: Medium pain + 2+ business factors → MEDIUM minimum (dealScore boosted from', dealScore, 'to 2)')
+    // Only boost if there's buying intent
+    if (dealScore < 2 && (trueCommitmentCount > 0 || exploratoryCount > 2)) {
+      console.log('🔍 [HEAT] FLOOR RULE: Medium pain + 2+ business factors + buying intent → MEDIUM minimum (dealScore boosted from', dealScore, 'to 2)')
       dealScore = 2  // Boost to MEDIUM threshold
     }
   }
   
   // Floor rule: High pain + business drivers also deserve MEDIUM minimum
   if (painLevel === 'high' && businessFactors.length >= 2) {
-    if (dealScore < 2) {
-      console.log('🔍 [HEAT] FLOOR RULE: High pain + 2+ business factors → MEDIUM minimum (dealScore boosted from', dealScore, 'to 2)')
+    if (dealScore < 2 && (trueCommitmentCount > 0 || exploratoryCount > 2)) {
+      console.log('🔍 [HEAT] FLOOR RULE: High pain + 2+ business factors + buying intent → MEDIUM minimum (dealScore boosted from', dealScore, 'to 2)')
       dealScore = 2 // Ensures MEDIUM minimum even with high resistance
     }
   }
   
-  let heatLevel: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW'
+  // Step 1: Determine PRELIMINARY heat level
+  let preliminaryHeat: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW'
   let emoji = '❄️'
   let description = 'Long-term opportunity'
   
   if (
-    (painLevel === 'high' && dealScore >= 1) ||
+    (painLevel === 'high' && trueCommitmentCount >= 1 && dealScore >= 4) ||  // NEW: Requires commitment + higher score
     criticalFactors.length >= 1 ||
     dealScore >= 8 ||
     (trueCommitmentCount >= 2 && dealScore >= 6) ||
     (painLevel === 'medium' && trueCommitmentCount >= 2 && dealScore >= 5)
   ) {
-    heatLevel = 'HIGH'
+    preliminaryHeat = 'HIGH'
     emoji = '🔥'
     description = 'Immediate attention needed'
   } else if (
-    // MEDIUM heat requires meaningful buying intent or business pain
-    (painLevel === 'medium' && dealScore >= 2) ||  // Medium pain + some positive signals
-    (painLevel === 'high' && dealScore >= 2) ||    // High pain + some signals (even with resistance)
-    (businessFactors.length >= 1 && dealScore >= 1) ||  // Business urgency + at least 1 signal
-    dealScore >= 4                                  // Strong buying signals independently
+    (painLevel === 'medium' && dealScore >= 2) ||
+    (painLevel === 'high' && (dealScore >= 2 || businessFactors.length >= 2)) ||  // NEW: Alternative threshold
+    (businessFactors.length >= 1 && dealScore >= 1) ||
+    dealScore >= 4
   ) {
-    heatLevel = 'MEDIUM'
+    preliminaryHeat = 'MEDIUM'
     emoji = '🌡️'
     description = 'Active opportunity'
   }
   
-  // FIX 4: Add forced downgrade rules
-  if (heatLevel === 'HIGH') {
-    // Rule 1: Need skepticism + Budget shock = MEDIUM maximum
+  // Step 2: Apply downgrade rules BEFORE finalizing
+  let heatLevel = preliminaryHeat
+  
+  if (preliminaryHeat === 'HIGH') {
+    // Rule 1: Need skepticism + Budget shock
     if (hasNeedSkepticism && hasBudgetShock) {
-      console.log('🔍 [HEAT] DOWNGRADE: Need skepticism + budget shock → MEDIUM')
+      console.log('🔽 [DOWNGRADE] Need skepticism + budget shock → MEDIUM')
       heatLevel = 'MEDIUM'
       emoji = '🌡️'
       description = 'Active opportunity with concerns'
     }
-    
-    // Rule 2: No true commitment + high resistance = MEDIUM maximum
+    // Rule 2: No true commitment + high resistance
     else if (trueCommitmentCount === 0 && resistanceLevel === 'high') {
-      console.log('🔍 [HEAT] DOWNGRADE: No commitment + high resistance → MEDIUM')
+      console.log('🔽 [DOWNGRADE] No commitment + high resistance → MEDIUM')
       heatLevel = 'MEDIUM'
       emoji = '🌡️'
       description = 'Active opportunity'
     }
-    
-    // Rule 3: Exploratory stage only = MEDIUM maximum
+    // Rule 3: Exploratory stage only
     else if (trueCommitmentCount === 0 && exploratoryCount > 0 && commitmentSignals.length === exploratoryCount) {
-      console.log('🔍 [HEAT] DOWNGRADE: Exploratory stage only → MEDIUM')
+      console.log('🔽 [DOWNGRADE] Exploratory stage only → MEDIUM')
       heatLevel = 'MEDIUM'
       emoji = '🌡️'
       description = 'Active opportunity (early stage)'
     }
-    
-    // Rule 4: Pain level high but dealScore near zero or negative
+    // Rule 4: Pain level high but low buying intent
     else if (painLevel === 'high' && dealScore <= 2) {
-      console.log('🔍 [HEAT] DOWNGRADE: High pain but low buying intent → MEDIUM')
+      console.log('🔽 [DOWNGRADE] High pain but low buying intent → MEDIUM')
       heatLevel = 'MEDIUM'
       emoji = '🌡️'
       description = 'Pain without urgency'
     }
-    
-    // Rule 5: Budget shock + no commitment = MEDIUM maximum
+    // Rule 5: Budget shock with no commitment
     else if (hasBudgetShock && trueCommitmentCount === 0) {
       console.log('🔽 [DOWNGRADE] Budget shock with no commitment signals → MEDIUM')
       heatLevel = 'MEDIUM'
       emoji = '🌡️'
       description = 'Active opportunity (financial concerns)'
     }
+    // Rule 6: Economic buyer resistance (NEW)
+    else if (resistanceLevel === 'high' && trueCommitmentCount === 0 && 
+             (hasBudgetShock || hasNeedSkepticism)) {
+      console.log('🔽 [DOWNGRADE] Economic buyer resistance without commitment → MEDIUM')
+      heatLevel = 'MEDIUM'
+      emoji = '🌡️'
+      description = 'Economic buyer concerns present'
+    }
   }
+  
+  console.log('🔍 [HEAT] Final heat level:', heatLevel)
   
   return {
     level: heatLevel,
