@@ -49,9 +49,16 @@ export function PasswordCreationForm({
         onChange={onPasswordChange}
         placeholder="Create a password"
       />
-      <p className="text-sm text-slate-500">
-        Password must be at least 6 characters long
-      </p>
+      <div className="text-sm text-muted-foreground space-y-1">
+        <p className="font-medium">Password must contain:</p>
+        <ul className="list-disc list-inside space-y-0.5 text-xs">
+          <li>At least 12 characters</li>
+          <li>One uppercase letter</li>
+          <li>One lowercase letter</li>
+          <li>One number</li>
+          <li>One special character (!@#$%^&*)</li>
+        </ul>
+      </div>
 
       <PasswordField 
         id="confirmPassword"

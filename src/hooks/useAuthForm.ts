@@ -47,7 +47,7 @@ export function useAuthForm({
     return true
   }
 
-  const validatePasswordLength = (minLength = 6) => {
+  const validatePasswordLength = (minLength = 12) => {
     if (password.length < minLength) {
       setError(`Password must be at least ${minLength} characters long`)
       return false
