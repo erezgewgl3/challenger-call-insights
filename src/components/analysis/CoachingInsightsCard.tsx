@@ -4,11 +4,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Button } from '@/components/ui/button'
 import { CheckCircle, Lightbulb, Target, ChevronDown, ChevronUp } from 'lucide-react'
 import { useState } from 'react'
+import { RichOpportunityCard } from './RichOpportunityCard'
 
 interface CoachingInsightsProps {
   coachingInsights: {
     whatWorkedWell: string[]
-    missedOpportunities: string[] | string
+    missedOpportunities: string[] | string | Array<{
+      "THE MOMENT": string
+      [key: string]: any
+    }>
     focusArea: string
   }
   dealHeat?: {
@@ -81,7 +85,25 @@ export function CoachingInsightsCard({ coachingInsights, dealHeat }: CoachingIns
                 <Lightbulb className="w-4 h-4 text-amber-600" />
                 💡 Opportunities for Improvement
               </h4>
-              {Array.isArray(missedOpportunities) ? (
+              
+              {/* Check if it's the new rich object format */}
+              {Array.isArray(missedOpportunities) && 
+               missedOpportunities.length > 0 && 
+               typeof missedOpportunities[0] === 'object' && 
+               missedOpportunities[0] !== null &&
+               'THE MOMENT' in missedOpportunities[0] ? (
+                // Rich format - use new component
+                <div className="space-y-3">
+                  {missedOpportunities.map((opportunity, index) => (
+                    <RichOpportunityCard 
+                      key={index} 
+                      opportunity={opportunity as any} 
+                      index={index} 
+                    />
+                  ))}
+                </div>
+              ) : Array.isArray(missedOpportunities) ? (
+                // Legacy string array format
                 <ul className="space-y-2">
                   {missedOpportunities.map((item, idx) => (
                     <li key={idx} className="text-sm text-slate-700 pl-6 relative before:content-['•'] before:absolute before:left-2 before:text-amber-600">
@@ -90,6 +112,7 @@ export function CoachingInsightsCard({ coachingInsights, dealHeat }: CoachingIns
                   ))}
                 </ul>
               ) : (
+                // Legacy single string format
                 <p className="text-sm text-slate-700 pl-2">
                   {missedOpportunities || 'No critical missed opportunities identified'}
                 </p>

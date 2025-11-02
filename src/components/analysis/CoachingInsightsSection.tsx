@@ -4,11 +4,15 @@ import { capitalizeSentences } from '@/lib/utils'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Lightbulb, CheckCircle, Target, ChevronDown, ChevronUp } from 'lucide-react'
+import { RichOpportunityCard } from './RichOpportunityCard'
 
 interface CoachingInsightsSectionProps {
   coachingInsights: {
     whatWorkedWell: string[]
-    missedOpportunities: string[] | string
+    missedOpportunities: string[] | string | Array<{
+      "THE MOMENT": string
+      [key: string]: any
+    }>
     focusArea: string
   }
   dealHeat: {
@@ -86,7 +90,25 @@ export function CoachingInsightsSection({
                 <Lightbulb className="w-4 h-4 lg:w-5 lg:h-5" />
                 💡 Opportunities for Improvement
               </h4>
-              {Array.isArray(missedOpportunities) ? (
+              
+              {/* Check if it's the new rich object format */}
+              {Array.isArray(missedOpportunities) && 
+               missedOpportunities.length > 0 && 
+               typeof missedOpportunities[0] === 'object' && 
+               missedOpportunities[0] !== null &&
+               'THE MOMENT' in missedOpportunities[0] ? (
+                // Rich format - use new component
+                <div className="grid gap-3">
+                  {missedOpportunities.map((opportunity, index) => (
+                    <RichOpportunityCard 
+                      key={index} 
+                      opportunity={opportunity as any} 
+                      index={index} 
+                    />
+                  ))}
+                </div>
+              ) : Array.isArray(missedOpportunities) ? (
+                // Legacy string array format
                 <div className="grid gap-2">
                   {missedOpportunities.map((item, index) => (
                     <div
@@ -99,6 +121,7 @@ export function CoachingInsightsSection({
                   ))}
                 </div>
               ) : (
+                // Legacy single string format
                 <div className="p-2 lg:p-3 bg-white rounded-lg border border-amber-200">
                   <span className="text-gray-800 text-sm lg:text-base">
                     {missedOpportunities || 'No critical missed opportunities identified'}

@@ -1,6 +1,24 @@
+export interface RichMissedOpportunity {
+  "THE MOMENT": string
+  "SURFACE vs UNDERLYING"?: {
+    Surface: string
+    Underlying: string
+  }
+  "WHY THIS MATTERS"?: {
+    "Deal impact"?: string
+    "Time impact"?: string
+    "Relationship impact"?: string
+  }
+  EVIDENCE?: string[]
+  "WHAT TOP 0.01% REPS DO"?: {
+    [key: string]: string
+  }
+  [key: string]: any
+}
+
 export interface CoachingInsights {
   whatWorkedWell: string[]
-  missedOpportunities: string[] | string
+  missedOpportunities: string[] | string | RichMissedOpportunity[]
   focusArea: string
 }
 
