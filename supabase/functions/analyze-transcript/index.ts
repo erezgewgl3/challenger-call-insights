@@ -20,50 +20,119 @@ async function rewriteEmailsForNaturalTone(
 ): Promise<Array<{ subject: string; body: string }>> {
   console.log('📧 [EMAIL-REWRITE] Processing', emails.length, 'emails using', provider.toUpperCase());
   
-  const REWRITE_PROMPT = `You are an email tone expert. Rewrite the following sales emails to sound like a natural, experienced B2B sales professional.
+  const REWRITE_PROMPT = `You are rewriting sales follow-up emails to sound natural and human, not corporate or AI-generated.
 
-CRITICAL RULES:
-1. NEVER use these phrases:
-   - "I hope this finds you well"
-   - "I hope you're doing well"
-   - "I wanted to reach out"
-   - "I wanted to follow up"
-   - "Just checking in"
-   - "Just touching base"
-   - "Circling back"
+CRITICAL: These emails MUST pass the "would a human write this?" test.
 
-2. ALWAYS:
-   - Start with "[Name] - [Direct statement]" (NOT "Hi [Name],")
-   - Use direct, confident language
-   - Keep paragraphs 2-3 sentences max
-   - Maintain all specific data, names, dates, and numbers from original
-   - Preserve the VERBATIM quotes exactly as written
+=== FORBIDDEN AI PHRASES (NEVER USE) ===
+- "I hope this email finds you well" / "I hope you're doing well"
+- "I wanted to reach out" / "I wanted to follow up"
+- "Just checking in" / "Just touching base" / "Circling back"
+- "This is crucial" / "This is essential" / "This is critical"
+- "Your concern is valid" / "This is absolutely right"
+- "Unexpected budget variances" / "Complicate approvals"
+- "Aligning our teams effectively" / "Documenting our approach"
+- "Looking forward to your thoughts" / "I appreciate your time"
+- Starting with "Hi [Name]," or "Dear [Name],"
 
-3. Format:
-   [Name] - [Direct statement about what they said/asked]
-   
-   You said VERBATIM: "[exact quote]"
-   
-   [Why this matters - 1-2 sentences]
-   
-   [Solution with bullet points - preserve all original data]
-   
-   [Specific next step with date/time]
-   
-   [Rep name]
+=== REQUIRED NATURAL PATTERNS (ALWAYS USE) ===
+- Start: "[Name] -" then jump straight to the point
+- Use contractions: don't, can't, won't, I'll, you're, that's
+- Use fragments: "Quick thing." "So here's what matters."
+- Drop formality: "makes sense" not "is valid"
+- Be direct: "You said" not "You expressed the view that"
+- Real talk: "Last thing you need" not "This could complicate"
+
+=== TONE RULES ===
+1. **Confident, not deferential:** "Here's how we handle this" NOT "I believe we may be able to"
+2. **Direct, not wordy:** 10 words > 20 words saying the same thing
+3. **Conversational, not corporate:** "So" and "Quick thing" are good sentence starters
+4. **Active voice only:** "I'm sending" NOT "This will be sent"
+5. **Fragments are OK:** "Bottom line?" "Three things:" "Quick answer:"
+6. **Drop unnecessary words:** Remove "really," "very," "quite," "somewhat"
+
+=== STRUCTURE ===
+[Name] - [Direct statement - no politeness]
+
+You said VERBATIM: "[exact quote]"
+
+[Why this matters - 1 sentence, conversational]
+
+[Solution - bullet format, their specific data]
+• [Item 1 with THEIR numbers]
+• [Item 2 with THEIR situation]  
+• [Item 3 - concrete deliverable]
+
+[Concrete next step with specific ask]
+
+[Rep name]
+
+NO CLOSING PLEASANTRIES. Just stop after the ask.
+
+=== EXAMPLES OF GOOD VS BAD ===
+
+❌ BAD (Current AI tone):
+"Your concern about budget predictability is valid. This is crucial as you approach a significant financial commitment."
+
+✅ GOOD (Natural human tone):
+"Your budget concern makes total sense. You're committing $1.5M - last thing you need is surprise overages."
+
+---
+
+❌ BAD:
+"I wanted to follow up on our discussion regarding the technical architecture deep dive."
+
+✅ GOOD:
+"Quick thing on the tech deep dive we discussed."
+
+---
+
+❌ BAD:
+"This session is essential for documenting our integration approach and aligning our teams effectively."
+
+✅ GOOD:
+"We need 30 minutes to map out the integration. Your team needs to see how this plugs into your stack."
+
+---
+
+❌ BAD:
+"I hope this email finds you well. I wanted to reach out to share..."
+
+✅ GOOD:
+"[Name] - Here's what you asked for."
+
+=== FORMAT ENFORCEMENT ===
+1. Subject line: Keep as-is (already good format)
+2. Opening: "[Name] -" then direct statement (NO greetings)
+3. VERBATIM quote: Required, but tighten the introduction
+4. Body: Max 3 paragraphs, each 1-3 sentences
+5. Bullets: Use when listing items, keep short
+6. Close: Just ask + name (no "Best," "Sincerely," etc.)
+
+=== TRANSFORMATION CHECKLIST ===
+For each email, verify:
+✅ Removed ALL forbidden phrases?
+✅ Used contractions where natural?
+✅ Dropped unnecessary politeness?
+✅ Made it conversational (would you text this)?
+✅ Removed corporate buzzwords?
+✅ Cut word count by 20-30%?
+✅ Would a human write this exact email?
+
+If answer to last question is NO, rewrite again more aggressively.
 
 EMAILS TO REWRITE:
 ${JSON.stringify(emails, null, 2)}
 
-Return ONLY a JSON array of rewritten emails in this exact format:
+Return ONLY a JSON array in this format:
 [
   {
     "subject": "original subject unchanged",
-    "body": "rewritten body following rules above"
+    "body": "rewritten body - natural, direct, human"
   }
 ]
 
-CRITICAL: Return ONLY valid JSON. No markdown, no explanation, no code blocks.`;
+CRITICAL: Return ONLY valid JSON. No markdown, no code blocks.`;
 
   try {
     let rewrittenText: string;
