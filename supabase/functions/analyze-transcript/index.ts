@@ -13,6 +13,143 @@ const AI_MODELS = {
   claude: 'claude-3-5-sonnet-20241022'
 } as const;
 
+// ============ EMAIL TONE ENHANCEMENT FUNCTION ============
+async function rewriteEmailsForNaturalTone(
+  emails: Array<{ subject: string; body: string }>,
+  provider: 'openai' | 'claude' = 'openai'
+): Promise<Array<{ subject: string; body: string }>> {
+  console.log('📧 [EMAIL-REWRITE] Processing', emails.length, 'emails using', provider.toUpperCase());
+  
+  const REWRITE_PROMPT = `You are an email tone expert. Rewrite the following sales emails to sound like a natural, experienced B2B sales professional.
+
+CRITICAL RULES:
+1. NEVER use these phrases:
+   - "I hope this finds you well"
+   - "I hope you're doing well"
+   - "I wanted to reach out"
+   - "I wanted to follow up"
+   - "Just checking in"
+   - "Just touching base"
+   - "Circling back"
+
+2. ALWAYS:
+   - Start with "[Name] - [Direct statement]" (NOT "Hi [Name],")
+   - Use direct, confident language
+   - Keep paragraphs 2-3 sentences max
+   - Maintain all specific data, names, dates, and numbers from original
+   - Preserve the VERBATIM quotes exactly as written
+
+3. Format:
+   [Name] - [Direct statement about what they said/asked]
+   
+   You said VERBATIM: "[exact quote]"
+   
+   [Why this matters - 1-2 sentences]
+   
+   [Solution with bullet points - preserve all original data]
+   
+   [Specific next step with date/time]
+   
+   [Rep name]
+
+EMAILS TO REWRITE:
+${JSON.stringify(emails, null, 2)}
+
+Return ONLY a JSON array of rewritten emails in this exact format:
+[
+  {
+    "subject": "original subject unchanged",
+    "body": "rewritten body following rules above"
+  }
+]
+
+CRITICAL: Return ONLY valid JSON. No markdown, no explanation, no code blocks.`;
+
+  try {
+    let rewrittenText: string;
+
+    if (provider === 'openai') {
+      // Use OpenAI (respects admin choice)
+      const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+      if (!openAIApiKey) {
+        console.warn('📧 [EMAIL-REWRITE] OpenAI key not found, returning original emails');
+        return emails;
+      }
+
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: AI_MODELS.openai,
+          messages: [{ role: 'user', content: REWRITE_PROMPT }],
+          temperature: 0.7,
+          max_tokens: 2000
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('📧 [EMAIL-REWRITE] OpenAI API error:', response.status, errorText);
+        return emails;
+      }
+
+      const data = await response.json();
+      rewrittenText = data.choices[0].message.content.trim();
+
+    } else {
+      // Use Claude (respects admin choice)
+      const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+      if (!claudeApiKey) {
+        console.warn('📧 [EMAIL-REWRITE] Claude key not found, returning original emails');
+        return emails;
+      }
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${claudeApiKey}`,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: AI_MODELS.claude,
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: REWRITE_PROMPT }],
+          temperature: 0.7,
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('📧 [EMAIL-REWRITE] Claude API error:', response.status, errorText);
+        return emails;
+      }
+
+      const data = await response.json();
+      rewrittenText = data.content[0].text.trim();
+    }
+    
+    // Strip markdown code blocks if present
+    const cleanedText = rewrittenText
+      .replace(/```json\n?/g, '')
+      .replace(/```\n?/g, '')
+      .trim();
+    
+    const rewrittenEmails = JSON.parse(cleanedText);
+    
+    console.log('📧 [EMAIL-REWRITE] Successfully rewrote', rewrittenEmails.length, 'emails using', provider.toUpperCase());
+    return rewrittenEmails;
+    
+  } catch (error) {
+    console.error('📧 [EMAIL-REWRITE] Rewriting failed:', error);
+    return emails;
+  }
+}
+// ============ END EMAIL TONE ENHANCEMENT FUNCTION ============
+
 interface AnalysisRequest {
   transcriptId: string;
   userId: string;
@@ -455,6 +592,43 @@ serve(async (req) => {
     // Parse AI response
     const parsedResult = parseAIResponse(aiResponse);
     console.log('🔍 [PARSE] AI response parsed successfully');
+
+    // ============ EMAIL TONE ENHANCEMENT (TWO-STEP ARCHITECTURE) ============
+    // Uses SAME AI provider as main analysis (respects admin choice)
+    if (parsedResult.actionPlan?.actions?.length > 0) {
+      console.log('📧 [EMAIL] Starting email tone enhancement with provider:', usedProvider);
+      
+      try {
+        const emailsToRewrite = parsedResult.actionPlan.actions
+          .filter((action: any) => action.copyPasteContent?.body)
+          .map((action: any) => ({
+            subject: action.copyPasteContent.subject,
+            body: action.copyPasteContent.body
+          }));
+        
+        if (emailsToRewrite.length > 0) {
+          console.log('📧 [EMAIL] Found', emailsToRewrite.length, 'emails to enhance');
+          
+          // Pass usedProvider to ensure same AI service as main analysis
+          const rewrittenEmails = await rewriteEmailsForNaturalTone(emailsToRewrite, usedProvider);
+          
+          let emailIndex = 0;
+          parsedResult.actionPlan.actions.forEach((action: any) => {
+            if (action.copyPasteContent?.body) {
+              action.copyPasteContent.body = rewrittenEmails[emailIndex].body;
+              emailIndex++;
+            }
+          });
+          
+          console.log('📧 [EMAIL] Email tone enhancement complete using', usedProvider.toUpperCase());
+        } else {
+          console.log('📧 [EMAIL] No emails found in action plan');
+        }
+      } catch (emailError) {
+        console.error('📧 [EMAIL] Email enhancement failed (non-critical):', emailError);
+      }
+    }
+    // ============ END EMAIL TONE ENHANCEMENT ============
 
     // Calculate deal heat using frontend-exact logic with proper data structure
     console.log('🔍 [HEAT] Calculating deal heat with transformed data structure');
