@@ -19,7 +19,6 @@ export interface PDFContentData {
   dealCommandCenter: DealCommandCenterData
   callSummary: CallSummaryData
   strategicIntelligence: StrategicIntelligenceData
-  strategicAssessment: StrategicAssessmentData
   stakeholderNavigation: StakeholderNavigationData
   whyTheseActions: WhyTheseActionsData
   actionItems: ActionItemData[]
@@ -73,12 +72,6 @@ export interface StrategicIntelligenceData {
   timelineDriver: string
   buyingSignals: string[]
   competitiveLandscape: string[]
-}
-
-export interface StrategicAssessmentData {
-  primaryStrategy: string
-  competitiveStrategy: string
-  stakeholderPlan: string
 }
 
 export interface StakeholderContact {

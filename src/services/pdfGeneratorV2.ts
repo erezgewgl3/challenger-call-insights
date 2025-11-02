@@ -356,10 +356,6 @@ export function generateTextBasedPDF(contentData: PDFContentData, filename: stri
   currentY = checkPageBreak(pdf, currentY, 90, contentData.header.title)
   currentY = renderStrategicIntelligence(pdf, contentData.strategicIntelligence, currentY)
   
-  // Strategic Assessment
-  currentY = checkPageBreak(pdf, currentY, 40, contentData.header.title)
-  currentY = renderStrategicAssessment(pdf, contentData.strategicAssessment, currentY)
-  
   // Stakeholder Navigation Map
   currentY = checkPageBreak(pdf, currentY, 50, contentData.header.title)
   currentY = renderStakeholderNavigation(pdf, contentData.stakeholderNavigation, currentY)
@@ -944,60 +940,6 @@ function renderStrategicIntelligence(pdf: jsPDF, data: any, startY: number): num
   currentY = rowY + PDF_CONFIG.spacing.sectionGap
   
   return currentY
-}
-
-/**
- * Render Strategic Assessment section
- */
-function renderStrategicAssessment(pdf: jsPDF, data: any, startY: number): number {
-  let currentY = startY
-  
-  pdf.setTextColor(...PDF_CONFIG.colors.primary)
-  renderSmartText(pdf, 'Strategic Assessment', PDF_CONFIG.page.margin, currentY, {
-    fontSize: PDF_CONFIG.fonts.heading.size,
-    fontStyle: 'bold'
-  })
-  
-  // Add underline to header - measure with correct font for Hebrew
-  const headerText = 'Strategic Assessment'
-  const hasHeaderHebrew = containsHebrew(headerText)
-  if (hasHeaderHebrew && pdf.getFontList()['Rubik']) {
-    pdf.setFont('Rubik', 'bold')
-  } else {
-    pdf.setFont('helvetica', 'bold')
-  }
-  pdf.setFontSize(PDF_CONFIG.fonts.heading.size)
-  const headerWidth = pdf.getTextWidth(headerText)
-  pdf.setDrawColor(...PDF_CONFIG.colors.primary)
-  pdf.setLineWidth(0.5)
-  pdf.line(PDF_CONFIG.page.margin, currentY + 1, PDF_CONFIG.page.margin + headerWidth, currentY + 1)
-  
-  currentY += 8
-  
-  const strategies = [
-    { label: 'Primary Strategy', value: data.primaryStrategy },
-    { label: 'Competitive Strategy', value: data.competitiveStrategy },
-    { label: 'Stakeholder Plan', value: data.stakeholderPlan }
-  ]
-  
-  strategies.forEach(strategy => {
-    pdf.setTextColor(...PDF_CONFIG.colors.gray)
-    renderSmartText(pdf, strategy.label, PDF_CONFIG.page.margin, currentY, {
-      fontSize: PDF_CONFIG.fonts.subheading.size,
-      fontStyle: 'bold'
-    })
-    currentY += 5
-    
-    pdf.setTextColor(...PDF_CONFIG.colors.darkText)
-    currentY = renderSmartText(pdf, sanitizePDF(strategy.value), PDF_CONFIG.page.margin, currentY, {
-      fontSize: PDF_CONFIG.fonts.body.size,
-      fontStyle: 'normal',
-      maxWidth: PDF_CONFIG.page.contentWidth
-    })
-    currentY += 4
-  })
-  
-  return currentY + PDF_CONFIG.spacing.sectionGap
 }
 
 /**

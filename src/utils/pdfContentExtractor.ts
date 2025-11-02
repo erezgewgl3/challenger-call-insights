@@ -16,7 +16,6 @@ export function extractPDFData(transcript: any, analysis: any): PDFContentData {
     dealCommandCenter: extractDealCommandCenter(analysis),
     callSummary: extractCallSummary(analysis),
     strategicIntelligence: extractStrategicIntelligence(analysis),
-    strategicAssessment: extractStrategicAssessment(analysis),
     stakeholderNavigation: extractStakeholderNavigation(analysis),
     whyTheseActions: extractWhyTheseActions(analysis),
     actionItems: extractActionItems(analysis),
@@ -229,16 +228,6 @@ function extractStrategicIntelligence(analysis: any) {
     competitiveLandscape: Array.isArray(competitiveIntel?.vendorsKnown) && competitiveIntel.vendorsKnown.length > 0
       ? competitiveIntel.vendorsKnown 
       : []
-  }
-}
-
-function extractStrategicAssessment(analysis: any) {
-  const recommendations = analysis?.recommendations || {}
-
-  return {
-    primaryStrategy: recommendations?.primaryStrategy || '',
-    competitiveStrategy: recommendations?.competitiveStrategy || '',
-    stakeholderPlan: recommendations?.stakeholderPlan || ''
   }
 }
 

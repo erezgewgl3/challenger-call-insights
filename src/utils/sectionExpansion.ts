@@ -153,19 +153,8 @@ function expandBattlePlanSubSections(battlePlanContainer: HTMLElement, modifiedE
       const sectionState = forceExpandElement(section, modifiedElements, `Strategic Intelligence ${index + 1}`)
       if (sectionState) modifiedElements.push(sectionState)
       
-      // Expand all nested content including Strategic Assessment
+      // Expand all nested content
       expandNestedContent(section, modifiedElements, 'Strategic Intelligence Child')
-      
-      // SPECIFIC: Target Strategic Assessment nested inside
-      const strategicAssessmentSections = section.querySelectorAll('.bg-gradient-to-r.from-blue-50.to-indigo-50')
-      console.log(`📊 Strategic Assessment sections found in container ${index + 1}:`, strategicAssessmentSections.length)
-      strategicAssessmentSections.forEach((assessment, aIndex) => {
-        if (assessment instanceof HTMLElement) {
-          console.log(`📊 Expanding Strategic Assessment ${aIndex + 1}`)
-          const assessmentState = forceExpandElement(assessment, modifiedElements, `Strategic Assessment ${aIndex + 1}`)
-          if (assessmentState) modifiedElements.push(assessmentState)
-        }
-      })
     }
   })
 
@@ -391,7 +380,6 @@ function forceExpandElementWithTextOptimization(element: HTMLElement, existingMo
 function findElementsByContent(container: HTMLElement, modifiedElements: ElementState[]): void {
   const targetTexts = [
     'Strategic Intelligence',
-    'Strategic Assessment', 
     'Why These Specific Actions',
     'Email Template',
     'Subject Line',
