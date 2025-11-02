@@ -371,9 +371,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
-    }
 
     console.log('🔗 [INGEST] Transcript created:', transcript.id);
 
