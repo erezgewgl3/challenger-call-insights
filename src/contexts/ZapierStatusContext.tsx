@@ -40,7 +40,7 @@ interface ZapierStatusProviderProps {
 
 export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, isAuthReady } = useAuth();
 
   // Query for fetching status from server - only when authenticated
   const {
@@ -58,31 +58,18 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
       });
 
       if (error) {
-        // Log but don't throw - makes dashboard resilient
-        console.log('Zapier status unavailable:', error.message);
-        
-        // Return a safe default status
-        return {
-          status: 'setup' as const,
-          color: 'bg-yellow-500',
-          text: 'Setup Required',
-          successRate: 0,
-          activeWebhooks: 0,
-          activeApiKeys: 0,
-          isSetupComplete: false,
-          lastVerifiedAt: null
-        } as ZapierStatus;
+        console.error('Error fetching Zapier status:', error);
+        throw new Error(error.message || 'Failed to fetch Zapier status');
       }
 
       console.log('Server status response:', data);
       return data as ZapierStatus;
     },
-    staleTime: 5 * 60 * 1000, // 5 minutes - less aggressive refetching
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: 1, // Reduced retries to fail faster
-    retryDelay: 1000, // Shorter delay between retries
-    refetchOnWindowFocus: false, // Don't refetch on window focus
-    enabled: !!user // Only run query when user is authenticated
+    staleTime: 2 * 60 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 1,
+    retryDelay: 500,
+    enabled: !!user && isAuthReady
   });
 
   // Mutation for verifying connection

@@ -6,6 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { PendingTranscriptsQueue } from './PendingTranscriptsQueue';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 
 interface CollapsibleProcessingQueueProps {
   user_id: string;
@@ -13,8 +14,9 @@ interface CollapsibleProcessingQueueProps {
 
 export function CollapsibleProcessingQueue({ user_id }: CollapsibleProcessingQueueProps) {
   const [isOpen, setIsOpen] = useState(true);
+  const { isAuthReady } = useAuth();
 
-  // Fetch queue stats to show summary when collapsed
+  // Fetch queue stats to show summary when collapsed (only when auth is ready)
   const { data: queueStats } = useQuery({
     queryKey: ['queue-stats', user_id],
     queryFn: async () => {
@@ -35,11 +37,8 @@ export function CollapsibleProcessingQueue({ user_id }: CollapsibleProcessingQue
 
       let zoomCount = 0;
       if (hasZoom.data) {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-          const { data: zoomData } = await supabase.functions.invoke('get-zoom-meetings');
-          zoomCount = zoomData?.meetings?.length || 0;
-        }
+        const { data: zoomData } = await supabase.functions.invoke('get-zoom-meetings');
+        zoomCount = zoomData?.meetings?.length || 0;
       }
 
       return {
@@ -49,8 +48,10 @@ export function CollapsibleProcessingQueue({ user_id }: CollapsibleProcessingQue
         total: stats.processing_count + stats.error_count + stats.pending_owned + zoomCount
       };
     },
-    enabled: !!user_id,
+    enabled: !!user_id && isAuthReady,
     refetchInterval: 10000,
+    retry: 1,
+    retryDelay: 500,
   });
 
   // Don't render if queue is empty

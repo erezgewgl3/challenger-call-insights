@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { SourceBadge } from '@/components/ui/SourceBadge';
 import { formatDistanceToNow, parseISO, differenceInDays, format } from 'date-fns';
 import { TranscriptViewerDialog } from './TranscriptViewerDialog';
+import { useAuth } from '@/hooks/useAuth';
 
 interface PendingTranscriptsQueueProps {
   user_id: string;
@@ -59,6 +60,7 @@ interface QueueData {
 export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { isAuthReady } = useAuth();
   const [viewingTranscriptId, setViewingTranscriptId] = React.useState<string | null>(null);
 
   // Check if user has Zoom integration
@@ -111,21 +113,12 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     enabled: !!user_id,
   });
 
-  // Fetch unprocessed Zoom meetings (only if user has Zoom connected)
+  // Fetch unprocessed Zoom meetings (only if user has Zoom connected AND auth is ready)
   const { data: zoomMeetings = [], isLoading: zoomLoading } = useQuery({
     queryKey: ['zoom-meetings-queue', user_id],
     queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        console.warn('No active session, skipping Zoom meetings fetch');
-        return [];
-      }
-      
       const { data, error } = await supabase.functions.invoke('get-zoom-meetings');
-      if (error) {
-        console.error('Error fetching Zoom meetings:', error);
-        return [];
-      }
+      if (error) throw error;
       
       // Transform Zoom meetings to UnifiedQueueItem format
       const meetings = data?.meetings || [];
@@ -142,8 +135,10 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
         isNew: meeting.isRecent || false
       }));
     },
-    enabled: !!user_id && hasZoomConnection === true,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    enabled: !!user_id && hasZoomConnection === true && isAuthReady,
+    refetchInterval: 30000,
+    retry: 1,
+    retryDelay: 500,
   });
 
   const isLoading = dbLoading || zoomLoading;
@@ -262,13 +257,13 @@ export function PendingTranscriptsQueue({ user_id }: PendingTranscriptsQueueProp
     }
   };
 
-  if (isLoading) {
+  if (isLoading || !isAuthReady) {
     return (
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-            Loading Queue...
+            {!isAuthReady ? 'Securing connection...' : 'Loading Queue...'}
           </CardTitle>
         </CardHeader>
       </Card>

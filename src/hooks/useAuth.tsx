@@ -10,6 +10,7 @@ interface AuthContextType {
   user: AuthUser | null
   session: Session | null
   loading: boolean
+  isAuthReady: boolean
   signOut: () => Promise<void>
   isAdmin: boolean
   isSalesUser: boolean
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [isAuthReady, setIsAuthReady] = useState(false)
 
   const enhanceUserWithRoleAsync = async (authUser: User, mounted: boolean) => {
     if (!mounted) return
@@ -122,6 +124,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setSession(session)
 
     if (session?.user) {
+      // Mark auth as not ready yet during login
+      setIsAuthReady(false)
+      
       // Update last_login timestamp for this user
       setTimeout(() => {
         updateLastLogin(session.user.id)
@@ -138,8 +143,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setTimeout(() => {
         enhanceUserWithRoleAsync(session.user, mounted)
       }, AUTH_CONFIG.ROLE_FETCH_DELAY)
+      
+      // Mark auth as ready after a short delay to ensure token propagation
+      setTimeout(() => {
+        if (mounted) {
+          setIsAuthReady(true)
+        }
+      }, AUTH_CONFIG.ROLE_FETCH_DELAY + 200)
     } else {
       setUser(null)
+      setIsAuthReady(false)
     }
 
     setLoading(false)
@@ -205,6 +218,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    isAuthReady,
     signOut,
     isAdmin: user?.role === AUTH_ROLES.ADMIN,
     isSalesUser: user?.role === AUTH_ROLES.SALES_USER
