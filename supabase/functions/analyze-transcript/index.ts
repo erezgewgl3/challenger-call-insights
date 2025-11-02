@@ -264,13 +264,21 @@ function calculateDealHeat(analysis: any): string {
     const lower = signal.toLowerCase()
     return (
       lower.includes('budget approved') ||
+      lower.includes('budget allocated') ||
       lower.includes('let\'s get the contract') ||
+      lower.includes('send the contract') ||
+      lower.includes('send over the contract') ||
       lower.includes('when can we start') ||
       lower.includes('can we sign') ||
       lower.includes('need this in front of') ||
       lower.includes('ready to move forward') ||
+      lower.includes('ready to proceed') ||
+      lower.includes('ready to sign') ||
       lower.includes('schedule implementation') ||
-      lower.includes('get the paperwork')
+      lower.includes('get the paperwork') ||
+      lower.includes('execute') ||
+      lower.includes('proceed with a contract') ||
+      (lower.includes('proceed with') && lower.includes('contract'))
     )
   })
 
