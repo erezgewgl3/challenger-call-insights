@@ -58,17 +58,30 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
       });
 
       if (error) {
-        console.error('Error fetching status:', error);
-        throw new Error(error.message || 'Failed to fetch status');
+        // Log but don't throw - makes dashboard resilient
+        console.log('Zapier status unavailable:', error.message);
+        
+        // Return a safe default status
+        return {
+          status: 'setup' as const,
+          color: 'bg-yellow-500',
+          text: 'Setup Required',
+          successRate: 0,
+          activeWebhooks: 0,
+          activeApiKeys: 0,
+          isSetupComplete: false,
+          lastVerifiedAt: null
+        } as ZapierStatus;
       }
 
       console.log('Server status response:', data);
       return data as ZapierStatus;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    staleTime: 5 * 60 * 1000, // 5 minutes - less aggressive refetching
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 1, // Reduced retries to fail faster
+    retryDelay: 1000, // Shorter delay between retries
+    refetchOnWindowFocus: false, // Don't refetch on window focus
     enabled: !!user // Only run query when user is authenticated
   });
 
