@@ -3,6 +3,29 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
 import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
+// Comprehensive validation schemas with security constraints
+const MeetingMetadataSchema = z.object({
+  title: z.string().max(200, 'Title exceeds 200 characters').trim(),
+  participants: z.array(z.string().max(100)).max(50, 'Too many participants'),
+  company_name: z.string().max(100, 'Company name exceeds 100 characters').trim().optional(),
+  deal_stage: z.string().max(50).trim().optional(),
+  notes: z.string().max(1000, 'Notes exceed 1000 characters').trim().optional(),
+  tags: z.array(z.string().max(50)).max(20, 'Too many tags').optional(),
+}).strict();
+
+const ExternalTranscriptPayloadSchema = z.object({
+  assigned_user_email: z.string().email().max(255),
+  transcript_text: z.string().max(500000, 'Transcript exceeds 500KB').optional(),
+  transcript_file_url: z.string().url().max(500).optional(),
+  meeting_metadata: MeetingMetadataSchema,
+  priority: z.enum(['low', 'medium', 'high']).optional(),
+  source: z.string().max(50).trim(),
+  source_metadata: z.record(z.unknown()).optional(),
+}).strict().refine(
+  (data) => data.transcript_text || data.transcript_file_url,
+  { message: 'Either transcript_text or transcript_file_url must be provided' }
+);
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -342,9 +365,12 @@ serve(async (req) => {
       return new Response(JSON.stringify({
         success: false,
         error: 'Failed to create transcript',
-        details: transcriptError instanceof Error ? transcriptError.message : 'Unknown error'
+        error_code: 'ERR_INGEST_002'
       }), {
         status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       });
     }
@@ -373,8 +399,8 @@ serve(async (req) => {
     
     return new Response(JSON.stringify({
       success: false,
-      error: 'Internal server error',
-      message: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Failed to process transcript request',
+      error_code: 'ERR_INGEST_001'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

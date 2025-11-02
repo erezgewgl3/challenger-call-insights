@@ -1,10 +1,42 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.2';
+import { z } from 'https://deno.land/x/zod@v3.22.4/mod.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Input validation schema for Zoom webhook payloads
+const ZoomWebhookPayloadSchema = z.object({
+  event: z.string().max(100),
+  payload: z.object({
+    account_id: z.string().max(100),
+    object: z.object({
+      uuid: z.string().max(100),
+      id: z.number(),
+      host_id: z.string().max(100),
+      topic: z.string().max(200),
+      type: z.number(),
+      start_time: z.string(),
+      duration: z.number().min(0).max(10000),
+      timezone: z.string().max(50),
+      recording_files: z.array(z.object({
+        id: z.string().max(100),
+        meeting_id: z.string().max(100),
+        recording_start: z.string(),
+        recording_end: z.string(),
+        file_type: z.string().max(50),
+        file_extension: z.string().max(10),
+        file_size: z.number(),
+        play_url: z.string().max(500),
+        download_url: z.string().max(500),
+        status: z.string().max(50),
+      })).optional(),
+    }),
+  }),
+  event_ts: z.number(),
+}).passthrough(); // Allow additional fields but validate required ones
 
 interface ZoomWebhookPayload {
   event: string;
@@ -57,8 +89,19 @@ serve(async (req) => {
 
     // Get webhook payload
     const rawBody = await req.text();
-    const payload: ZoomWebhookPayload = JSON.parse(rawBody);
-    console.log('Received Zoom webhook:', payload.event);
+    let payload: ZoomWebhookPayload;
+    
+    try {
+      const parsedPayload = JSON.parse(rawBody);
+      payload = ZoomWebhookPayloadSchema.parse(parsedPayload);
+      console.log('Received validated Zoom webhook:', payload.event);
+    } catch (validationError) {
+      console.error('[Zoom Webhook] Validation error:', validationError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid webhook payload', error_code: 'ERR_WEBHOOK_001' }), 
+        { status: 400, headers: corsHeaders }
+      );
+    }
 
     // Verify webhook signature
     const webhookSecret = Deno.env.get('ZOOM_WEBHOOK_SECRET');
@@ -97,8 +140,11 @@ serve(async (req) => {
       .eq('connection_status', 'active');
 
     if (connectionError) {
-      console.error('Error fetching connections:', connectionError);
-      throw connectionError;
+      console.error('[Zoom Webhook] Database error:', connectionError);
+      return new Response(
+        JSON.stringify({ error: 'Service unavailable', error_code: 'ERR_WEBHOOK_002' }),
+        { status: 500, headers: corsHeaders }
+      );
     }
 
     // Find matching connection by account ID
@@ -148,11 +194,11 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Error processing Zoom webhook:', error);
-    return new Response('Internal Server Error', { 
-      status: 500, 
-      headers: corsHeaders 
-    });
+    console.error('[Zoom Webhook] Processing error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Failed to process webhook', error_code: 'ERR_WEBHOOK_003' }), 
+      { status: 500, headers: corsHeaders }
+    );
   }
 });
 

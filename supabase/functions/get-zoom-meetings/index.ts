@@ -70,40 +70,19 @@ serve(async (req) => {
     let userId: string;
 
     if (authError || !user) {
-      console.warn('getUser() failed, attempting JWT decode fallback:', authError?.message);
-      
-      // Fallback: decode JWT to extract sub claim
-      try {
-        const token = authHeader.replace(/^Bearer\s+/i, '');
-        const parts = token.split('.');
-        
-        if (parts.length !== 3) {
-          throw new Error('Invalid JWT format');
-        }
-        
-        const payload = JSON.parse(atob(parts[1]));
-        userId = payload?.sub;
-        
-        if (!userId) {
-          throw new Error('No sub claim in JWT');
-        }
-        
-        console.log('Successfully extracted userId from JWT fallback:', userId);
-      } catch (decodeError) {
-        console.error('JWT decode fallback failed:', decodeError);
-        return new Response(JSON.stringify({ 
-          error: 'authentication_required',
-          message: 'Invalid or expired authentication token',
-          meetings: []
-        }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
-      }
-    } else {
-      userId = user.id;
-      console.log('Successfully authenticated user via getUser():', userId);
+      console.error('[Get Zoom Meetings] Authentication failed:', authError?.message);
+      return new Response(JSON.stringify({ 
+        error: 'authentication_required',
+        error_code: 'ERR_AUTH_001',
+        meetings: []
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
+    
+    userId = user.id;
+    console.log('Successfully authenticated user:', userId);
 
     console.log(`Fetching Zoom connection for user: ${userId}`);
 
