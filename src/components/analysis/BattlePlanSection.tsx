@@ -103,14 +103,14 @@ export function BattlePlanSection({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               
               {/* Critical Pain Points - Enhanced */}
-              {(analysis.call_summary?.painSeverity?.indicators ?? []).length > 0 && (
+              {analysis.call_summary?.painSeverity?.indicators && analysis.call_summary.painSeverity.indicators.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                     <span className="font-bold text-red-800 text-sm uppercase tracking-wide">Critical Pain</span>
                   </div>
                   <div className="space-y-2">
-                    {(analysis.call_summary?.painSeverity?.indicators ?? []).slice(0, 2).map((pain: string, index: number) => (
+                    {analysis.call_summary.painSeverity.indicators.slice(0, 2).map((pain: string, index: number) => (
                       <div key={index} className="bg-gradient-to-r from-red-50 to-orange-50 rounded-lg p-3 border border-red-100">
                         <div className="flex items-start gap-2">
                           <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
@@ -123,14 +123,14 @@ export function BattlePlanSection({
               )}
               
               {/* Decision Criteria - Enhanced */}
-              {(analysis.call_summary?.competitiveIntelligence?.decisionCriteria ?? []).length > 0 && (
+              {analysis.call_summary?.competitiveIntelligence?.decisionCriteria && analysis.call_summary.competitiveIntelligence.decisionCriteria.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     <span className="font-bold text-blue-800 text-sm uppercase tracking-wide">Decision Criteria</span>
                   </div>
                   <div className="space-y-2">
-                    {(analysis.call_summary?.competitiveIntelligence?.decisionCriteria ?? []).slice(0, 2).map((criteria: string, index: number) => (
+                    {analysis.call_summary.competitiveIntelligence.decisionCriteria.slice(0, 2).map((criteria: string, index: number) => (
                       <div key={index} className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg p-3 border border-blue-100">
                         <div className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
@@ -176,14 +176,14 @@ export function BattlePlanSection({
               )}
               
               {/* Buying Signals - Enhanced */}
-              {(analysis.call_summary?.buyingSignalsAnalysis?.commitmentSignals ?? []).length > 0 && (
+              {analysis.call_summary?.buyingSignalsAnalysis?.commitmentSignals && analysis.call_summary.buyingSignalsAnalysis.commitmentSignals.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="font-bold text-green-800 text-sm uppercase tracking-wide">Strong Signals</span>
                   </div>
                   <div className="space-y-2">
-                    {(analysis.call_summary?.buyingSignalsAnalysis?.commitmentSignals ?? []).slice(0, 2).map((signal: string, index: number) => (
+                    {analysis.call_summary.buyingSignalsAnalysis.commitmentSignals.slice(0, 2).map((signal: string, index: number) => (
                       <div key={index} className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg p-3 border border-green-100">
                         <div className="flex items-start gap-2">
                           <TrendingUp className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
@@ -196,14 +196,14 @@ export function BattlePlanSection({
               )}
               
               {/* Competitive Landscape - Enhanced */}
-              {(analysis.call_summary?.competitiveIntelligence?.vendorsKnown ?? []).length > 0 && (
+              {analysis.call_summary?.competitiveIntelligence?.vendorsKnown && analysis.call_summary.competitiveIntelligence.vendorsKnown.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                     <span className="font-bold text-purple-800 text-sm uppercase tracking-wide">Competitive Landscape</span>
                   </div>
                   <div className="space-y-2">
-                    {(analysis.call_summary?.competitiveIntelligence?.vendorsKnown ?? []).slice(0, 2).map((vendor: string, index: number) => (
+                    {analysis.call_summary.competitiveIntelligence.vendorsKnown.slice(0, 2).map((vendor: string, index: number) => (
                       <div key={index} className="bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg p-3 border border-purple-100">
                         <div className="flex items-start gap-2">
                           <Building2 className="w-4 h-4 text-purple-600 flex-shrink-0 mt-0.5" />
@@ -231,49 +231,39 @@ export function BattlePlanSection({
           Why These Specific Actions
         </h4>
         
-        {(analysis.reasoning?.whyTheseRecommendations || 
-          analysis.reasoning?.dealViabilityRationale || 
-          analysis.reasoning?.strategicRationale) ? (
-          <div className="bg-white rounded-lg p-3 border border-emerald-100">
-            <p className="text-gray-700 text-sm leading-relaxed">
-              {analysis.reasoning?.whyTheseRecommendations || 
-               analysis.reasoning?.dealViabilityRationale || 
-               analysis.reasoning?.strategicRationale || 
-               ''}
-            </p>
-            
-            {/* Key Strategic Signals - OPTIMIZED */}
-            {(analysis.reasoning?.clientSignalsObserved ?? []).length > 0 && (
-              <div className="mt-3 pt-3 border-t border-emerald-100">
-                <span className="font-medium text-emerald-700 text-xs uppercase tracking-wider">Supporting Evidence:</span>
-                <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-1">
-                  {(analysis.reasoning?.clientSignalsObserved ?? []).slice(0, 2).map((signal: string, index: number) => (
-                    <div key={index} className="flex items-center gap-2">
-                      <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0" />
-                      <span className="text-gray-600 text-xs italic">"{signal}"</span>
-                    </div>
-                  ))}
-                </div>
+        <div className="bg-white rounded-lg p-3 border border-emerald-100">
+          <p className="text-gray-700 text-sm leading-relaxed">
+            {analysis.reasoning?.whyTheseRecommendations || 
+             analysis.reasoning?.dealViabilityRationale || 
+             analysis.reasoning?.strategicRationale || 
+             ''}
+          </p>
+          
+          {/* Key Strategic Signals - OPTIMIZED */}
+          {analysis.reasoning?.clientSignalsObserved && analysis.reasoning.clientSignalsObserved.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-emerald-100">
+              <span className="font-medium text-emerald-700 text-xs uppercase tracking-wider">Supporting Evidence:</span>
+              <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-1">
+                {analysis.reasoning.clientSignalsObserved.slice(0, 2).map((signal: string, index: number) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <CheckCircle className="w-3 h-3 text-emerald-500 flex-shrink-0" />
+                    <span className="text-gray-600 text-xs italic">"{signal}"</span>
+                  </div>
+                ))}
               </div>
-            )}
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg p-3 border border-emerald-100">
-            <p className="text-gray-500 text-sm italic">
-              Strategic rationale will appear here once the AI completes analysis.
-            </p>
-          </div>
-        )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* EXECUTION TIMELINE FROM ACTION PLAN - PRESERVE EXACTLY */}
-      {(analysis.action_plan?.actions ?? []).length > 0 ? (
+      {analysis.action_plan?.actions && analysis.action_plan.actions.length > 0 ? (
         <div className="relative">
           {/* Timeline Line */}
           <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-red-300 to-red-100"></div>
           
           <div className="space-y-6">
-            {(analysis.action_plan?.actions ?? []).map((action: any, index: number) => {
+            {analysis.action_plan.actions.map((action: any, index: number) => {
               // Priority detection based on timeline text
               const getPriorityColor = (timeline: string) => {
                 if (timeline.toLowerCase().includes('24 hours') || timeline.toLowerCase().includes('immediate')) return 'bg-red-500'

@@ -55,7 +55,7 @@ export function ExpandableSections({
                     <Lightbulb className="w-5 h-5 lg:w-6 lg:h-6 text-yellow-600" />
                     <div>
                       <CardTitle className="text-base lg:text-lg flex items-center gap-2">
-                        Deal Acceleration Insights ({(analysis.key_takeaways ?? []).length})
+                        Deal Acceleration Insights ({analysis.key_takeaways.length})
                         {isHighPriorityDeal && (
                           <Badge variant="secondary" className="bg-red-100 text-red-800 text-xs">
                             AUTO-OPEN
@@ -75,7 +75,7 @@ export function ExpandableSections({
             <CollapsibleContent>
               <CardContent>
                 <div className="space-y-3">
-                  {(analysis.key_takeaways ?? []).map((takeaway, index) => (
+                  {analysis.key_takeaways.map((takeaway, index) => (
                     <div key={index} className="flex items-start gap-3 p-3 lg:p-4 bg-white rounded-lg border border-yellow-200">
                       <div className="w-6 h-6 bg-yellow-500 text-white rounded-full flex items-center justify-center text-sm font-medium flex-shrink-0">
                         {index + 1}
@@ -121,7 +121,7 @@ export function ExpandableSections({
             <CardContent className="space-y-4 lg:space-y-6">
               
               {/* 🎯 COMPETITIVE LANDSCAPE - Structured Intelligence */}
-              {competitiveIntelligence && ((competitiveIntelligence.vendorsKnown ?? []).length > 0 || competitiveIntelligence.competitiveAdvantage) && (
+              {competitiveIntelligence && (competitiveIntelligence.vendorsKnown?.length > 0 || competitiveIntelligence.competitiveAdvantage) && (
                 <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg p-4 mb-4">
                   <h4 className="font-semibold text-blue-800 mb-3 flex items-center gap-2 text-sm lg:text-base">
                     <Target className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -135,14 +135,14 @@ export function ExpandableSections({
                   
                   <div className="space-y-3">
                     {/* Known Competitors */}
-                    {(competitiveIntelligence.vendorsKnown ?? []).length > 0 && (
+                    {competitiveIntelligence.vendorsKnown?.length > 0 && (
                       <div className="bg-white rounded-lg p-3 border border-blue-100">
                         <p className="text-sm font-medium text-blue-900 mb-2 flex items-center gap-2">
                           <Users className="w-4 h-4" />
-                          Known Competitors ({(competitiveIntelligence.vendorsKnown ?? []).length})
+                          Known Competitors ({competitiveIntelligence.vendorsKnown.length})
                         </p>
                         <ul className="space-y-1 ml-6">
-                          {(competitiveIntelligence.vendorsKnown ?? []).map((vendor: string, idx: number) => (
+                          {competitiveIntelligence.vendorsKnown.map((vendor: string, idx: number) => (
                             <li key={idx} className="text-sm text-gray-700 list-disc">{vendor}</li>
                           ))}
                         </ul>
@@ -150,7 +150,7 @@ export function ExpandableSections({
                     )}
                     
                     {/* Decision Criteria */}
-                    {(competitiveIntelligence.decisionCriteria ?? []).length > 0 && (
+                    {competitiveIntelligence.decisionCriteria?.length > 0 && (
                       <div className="bg-white rounded-lg p-3 border border-blue-100">
                         <p className="text-sm font-medium text-blue-900 mb-2">
                           Decision Criteria:
@@ -178,14 +178,14 @@ export function ExpandableSections({
                 </div>
               )}
 
-              {(conversationIntel.positive ?? []).length > 0 && (
+              {conversationIntel.positive.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-green-700 mb-3 flex items-center gap-2 text-sm lg:text-base">
                     <Activity className="w-4 h-4 lg:w-5 lg:h-5" />
-                    Buying Signals ({(conversationIntel.positive ?? []).length})
+                    Buying Signals ({conversationIntel.positive.length})
                   </h4>
                   <div className="grid gap-2">
-                    {(conversationIntel.positive ?? []).map((signal: string, index: number) => (
+                    {conversationIntel.positive.map((signal: string, index: number) => (
                       <div key={index} className="flex items-center gap-3 p-2 lg:p-3 bg-white rounded-lg border border-green-200">
                         <CheckCircle className="w-4 h-4 lg:w-5 lg:h-5 text-green-500 flex-shrink-0" />
                         <span className="text-gray-800 text-sm lg:text-base">{signal}</span>
@@ -195,14 +195,14 @@ export function ExpandableSections({
                 </div>
               )}
 
-              {(conversationIntel.pain ?? []).length > 0 && (
+              {conversationIntel.pain.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-red-700 mb-3 flex items-center gap-2 text-sm lg:text-base">
                     <Thermometer className="w-4 h-4 lg:w-5 lg:h-5" />
-                    Pain Indicators ({(conversationIntel.pain ?? []).length})
+                    Pain Indicators ({conversationIntel.pain.length})
                   </h4>
                   <div className="grid gap-2">
-                    {(conversationIntel.pain ?? []).map((pain: string, index: number) => (
+                    {conversationIntel.pain.map((pain: string, index: number) => (
                       <div key={index} className="flex items-center gap-3 p-2 lg:p-3 bg-red-50 rounded-lg border border-red-200">
                         <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-red-500 flex-shrink-0" />
                         <span className="text-gray-800 text-sm lg:text-base">{pain}</span>
@@ -212,14 +212,14 @@ export function ExpandableSections({
                 </div>
               )}
 
-              {(conversationIntel.concerns ?? []).length > 0 && (
+              {conversationIntel.concerns.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-orange-700 mb-3 flex items-center gap-2 text-sm lg:text-base">
                     <Shield className="w-4 h-4 lg:w-5 lg:h-5" />
-                    Concerns to Address ({(conversationIntel.concerns ?? []).length})
+                    Concerns to Address ({conversationIntel.concerns.length})
                   </h4>
                   <div className="grid gap-2">
-                    {(conversationIntel.concerns ?? []).map((concern: string, index: number) => (
+                    {conversationIntel.concerns.map((concern: string, index: number) => (
                       <div key={index} className="flex items-center gap-3 p-2 lg:p-3 bg-orange-50 rounded-lg border border-orange-200">
                         <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-orange-500 flex-shrink-0" />
                         <span className="text-gray-800 text-sm lg:text-base">{concern}</span>
@@ -229,14 +229,14 @@ export function ExpandableSections({
                 </div>
               )}
 
-              {(conversationIntel.competitive ?? []).length > 0 && (
+              {conversationIntel.competitive.length > 0 && (
                 <div>
                   <h4 className="font-semibold text-purple-700 mb-3 flex items-center gap-2 text-sm lg:text-base">
                     <Target className="w-4 h-4 lg:w-5 lg:h-5" />
-                    Competitive Intelligence ({(conversationIntel.competitive ?? []).length})
+                    Competitive Intelligence ({conversationIntel.competitive.length})
                   </h4>
                   <div className="grid gap-2">
-                    {(conversationIntel.competitive ?? []).map((comp: string, index: number) => (
+                    {conversationIntel.competitive.map((comp: string, index: number) => (
                       <div key={index} className="flex items-center gap-3 p-2 lg:p-3 bg-purple-50 rounded-lg border border-purple-200">
                         <ExternalLink className="w-4 h-4 lg:w-5 lg:h-5 text-purple-500 flex-shrink-0" />
                         <span className="text-gray-800 text-sm lg:text-base">{comp}</span>

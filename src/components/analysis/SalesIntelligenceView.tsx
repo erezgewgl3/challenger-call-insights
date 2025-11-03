@@ -12,10 +12,8 @@ import {
 import { supabase } from '@/lib/supabase'
 import { NewAnalysisView } from './NewAnalysisView'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
-import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { toast } from 'sonner'
 import { getDisplayTitle } from '@/utils/titleUtils'
-import { normalizeAnalysis, type NormalizedAnalysis } from '@/schemas/analysisSchema'
 
 interface TranscriptData {
   id: string
@@ -33,6 +31,21 @@ interface TranscriptData {
   }
 }
 
+interface AnalysisData {
+  id: string
+  challenger_scores: any
+  guidance: any
+  email_followup: any
+  participants?: any
+  call_summary?: any
+  key_takeaways?: string[]
+  recommendations?: any
+  reasoning?: any
+  action_plan?: any
+  heat_level?: string
+  coaching_insights?: any
+}
+
 interface SalesIntelligenceViewProps {
   transcriptId: string
   onBackToDashboard: () => void
@@ -45,20 +58,23 @@ export function SalesIntelligenceView({
   onUploadAnother
 }: SalesIntelligenceViewProps) {
   const [transcript, setTranscript] = useState<TranscriptData | null>(null)
-  const [analysis, setAnalysis] = useState<NormalizedAnalysis | null>(null)
+  const [analysis, setAnalysis] = useState<AnalysisData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isRetrying, setIsRetrying] = useState(false)
 
-  const fetchData = async (retryCount = 0) => {
+  const fetchData = async () => {
     try {
       setIsLoading(true)
       setError(null)
       
-      // Step 1: Fetch transcript
+      // Fetch transcript with analysis data
       const { data: transcriptData, error: transcriptError } = await supabase
         .from('transcripts')
-        .select('*')
+        .select(`
+          *,
+          conversation_analysis (*)
+        `)
         .eq('id', transcriptId)
         .single()
 
@@ -81,27 +97,23 @@ export function SalesIntelligenceView({
         deal_context: transcriptData.deal_context as any
       })
 
-      // Step 2: Fetch latest analysis explicitly
-      const { data: analysisData, error: analysisError } = await supabase
-        .from('conversation_analysis')
-        .select('*')
-        .eq('transcript_id', transcriptId)
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      if (analysisData && analysisData.length > 0) {
-        const rawAnalysis = analysisData[0]
-        
-        // 🛡️ NORMALIZE: Ensure all nested fields exist with safe defaults
-        const normalizedAnalysis = normalizeAnalysis(rawAnalysis)
-        
-        setAnalysis(normalizedAnalysis)
-      } else if (transcriptData.status === 'completed' && retryCount < 2) {
-        // Retry with backoff if analysis is missing but transcript is completed
-        const delay = (retryCount + 1) * 1000 // 1s, 2s
-        console.log(`Analysis missing, retrying in ${delay}ms (attempt ${retryCount + 1}/2)`)
-        setTimeout(() => fetchData(retryCount + 1), delay)
-        return
+      // Set analysis data if available
+      if (transcriptData.conversation_analysis && transcriptData.conversation_analysis.length > 0) {
+        const rawAnalysis = transcriptData.conversation_analysis[0]
+        setAnalysis({
+          id: rawAnalysis.id,
+          challenger_scores: rawAnalysis.challenger_scores,
+          guidance: rawAnalysis.guidance,
+          email_followup: rawAnalysis.email_followup,
+          participants: rawAnalysis.participants,
+          call_summary: rawAnalysis.call_summary,
+          key_takeaways: Array.isArray(rawAnalysis.key_takeaways) ? rawAnalysis.key_takeaways as string[] : [],
+          recommendations: rawAnalysis.recommendations,
+          reasoning: rawAnalysis.reasoning,
+          action_plan: rawAnalysis.action_plan,
+          heat_level: rawAnalysis.heat_level,
+          coaching_insights: rawAnalysis.coaching_insights
+        })
       }
 
     } catch (err) {
@@ -340,14 +352,12 @@ export function SalesIntelligenceView({
   // Show completed analysis with new view
   if (transcript.status === 'completed' && analysis) {
     return (
-      <ErrorBoundary variant="fullscreen" showDetailsInProd={false}>
-        <NewAnalysisView
-          transcript={transcript}
-          analysis={analysis}
-          onBackToDashboard={onBackToDashboard}
-          onUploadAnother={onUploadAnother}
-        />
-      </ErrorBoundary>
+      <NewAnalysisView
+        transcript={transcript}
+        analysis={analysis}
+        onBackToDashboard={onBackToDashboard}
+        onUploadAnother={onUploadAnother}
+      />
     )
   }
 
