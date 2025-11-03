@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { SalesIntelligenceView } from '@/components/analysis/SalesIntelligenceView'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { useAnalysisStatus } from '@/hooks/useAnalysisStatus'
 import { useTranscriptData } from '@/hooks/useTranscriptData'
@@ -171,10 +172,12 @@ export default function TranscriptAnalysis() {
 
   // Show the sales intelligence view
   return (
-    <SalesIntelligenceView
-      transcriptId={transcriptId!}
-      onBackToDashboard={handleBackToDashboard}
-      onUploadAnother={handleUploadAnother}
-    />
+    <ErrorBoundary variant="fullscreen" showDetailsInProd={false}>
+      <SalesIntelligenceView
+        transcriptId={transcriptId!}
+        onBackToDashboard={handleBackToDashboard}
+        onUploadAnother={handleUploadAnother}
+      />
+    </ErrorBoundary>
   )
 }
