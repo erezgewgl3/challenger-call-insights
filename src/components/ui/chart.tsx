@@ -65,6 +65,42 @@ const ChartContainer = React.forwardRef<
 })
 ChartContainer.displayName = "Chart"
 
+/**
+ * SECURITY NOTE: Chart Color Injection
+ * 
+ * This component uses dangerouslySetInnerHTML to inject CSS custom properties
+ * for chart theming. Currently, this is SAFE because:
+ * 
+ * ✅ Chart config is developer-controlled (hardcoded in components)
+ * ✅ Colors are predefined and not user-customizable
+ * ✅ No user input flows into the config object
+ * 
+ * ⚠️ BEFORE ADDING USER CUSTOMIZATION:
+ * If you plan to allow users to customize chart colors, you MUST:
+ * 
+ * 1. Validate all color values using a whitelist regex:
+ *    const COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/i;
+ *    
+ * 2. Sanitize any user-provided strings that go into config
+ * 
+ * 3. Never allow users to provide arbitrary CSS or JavaScript
+ * 
+ * 4. Consider using CSS.escape() for any dynamic values
+ * 
+ * Example safe validation:
+ * ```typescript
+ * function validateColor(color: string): string {
+ *   if (!/^#[0-9A-Fa-f]{6}$/i.test(color)) {
+ *     throw new Error('Invalid color format');
+ *   }
+ *   return color;
+ * }
+ * ```
+ * 
+ * References:
+ * - OWASP XSS Prevention: https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html
+ * - CSS Injection Attacks: https://portswigger.net/web-security/cross-site-scripting/dangerouslysetinnerhtml
+ */
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   const colorConfig = Object.entries(config).filter(
     ([_, config]) => config.theme || config.color
