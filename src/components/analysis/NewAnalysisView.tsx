@@ -50,29 +50,7 @@ import { CoachingInsightsSection } from './CoachingInsightsSection'
 import { DealBlockersCard } from './DealBlockersCard'
 import { QualityIndicatorBadge } from './QualityIndicatorBadge'
 import { getDisplayTitle } from '@/utils/titleUtils'
-
-interface AnalysisData {
-  id: string
-  participants?: any
-  call_summary?: any
-  key_takeaways?: string[]
-  recommendations?: any
-  reasoning?: any
-  action_plan?: any
-  heat_level?: string
-  guidance?: {
-    power_center?: {
-      name: string
-      title: string
-      influence_level: string
-    }
-  }
-  coaching_insights?: {
-    whatWorkedWell: string[]
-    missedOpportunities: string[] | string
-    focusArea: string
-  }
-}
+import type { NormalizedAnalysis } from '@/schemas/analysisSchema'
 
 interface TranscriptData {
   id: string
@@ -88,7 +66,7 @@ interface TranscriptData {
 
 interface NewAnalysisViewProps {
   transcript: TranscriptData
-  analysis: AnalysisData
+  analysis: NormalizedAnalysis
   onBackToDashboard: () => void
   onUploadAnother: () => void
 }
@@ -570,7 +548,11 @@ export function NewAnalysisView({
           {analysis.coaching_insights && (
             <div className="mt-4 lg:mt-6">
               <CoachingInsightsSection
-                coachingInsights={analysis.coaching_insights}
+                coachingInsights={{
+                  whatWorkedWell: analysis.coaching_insights.whatWorkedWell || [],
+                  missedOpportunities: analysis.coaching_insights.missedOpportunities || [],
+                  focusArea: analysis.coaching_insights.focusArea || ''
+                }}
                 dealHeat={dealHeat}
                 isOpen={sectionsOpen.coaching}
                 onToggle={() => toggleSection('coaching')}
