@@ -7,24 +7,29 @@ import { z } from 'zod'
 
 export const analysisSchema = z.object({
   id: z.string(),
-  challenger_scores: z.any().optional().default({}),
+  challenger_scores: z.any().nullable().optional().default({}).transform(val => val ?? {}),
   guidance: z.object({
     power_center: z.object({
       name: z.string().default(''),
       title: z.string().default(''),
       influence_level: z.string().default('medium')
     }).optional().default({ name: '', title: '', influence_level: 'medium' })
-  }).optional().default({}),
-  email_followup: z.any().optional().default({}),
+  }).nullable().optional().default({}).transform(val => val ?? {}),
+  email_followup: z.any().nullable().optional().default({}).transform(val => val ?? {}),
   participants: z.object({
     salesRep: z.object({
       name: z.string().default(''),
       company: z.string().default('')
     }).optional().default({ name: '', company: '' }),
-    clientContacts: z.array(z.any()).optional().default([]),
-    additionalReps: z.array(z.any()).optional().default([]),
-    sellerTeam: z.array(z.any()).optional().default([])
-  }).optional().default({
+    clientContacts: z.array(z.any()).nullable().optional().default([]).transform(val => val ?? []),
+    additionalReps: z.array(z.any()).nullable().optional().default([]).transform(val => val ?? []),
+    sellerTeam: z.array(z.any()).nullable().optional().default([]).transform(val => val ?? [])
+  }).nullable().optional().default({
+    salesRep: { name: '', company: '' },
+    clientContacts: [],
+    additionalReps: [],
+    sellerTeam: []
+  }).transform(val => val ?? {
     salesRep: { name: '', company: '' },
     clientContacts: [],
     additionalReps: [],
@@ -32,13 +37,13 @@ export const analysisSchema = z.object({
   }),
   call_summary: z.object({
     painSeverity: z.object({
-      indicators: z.array(z.string()).default([]),
+      indicators: z.array(z.string()).nullable().default([]).transform(val => val ?? []),
       businessImpact: z.string().default('')
     }).optional().default({ indicators: [], businessImpact: '' }),
     buyingSignalsAnalysis: z.object({
-      commitmentSignals: z.array(z.string()).default([]),
-      engagementSignals: z.array(z.string()).default([]),
-      interestSignals: z.array(z.string()).default([]),
+      commitmentSignals: z.array(z.string()).nullable().default([]).transform(val => val ?? []),
+      engagementSignals: z.array(z.string()).nullable().default([]).transform(val => val ?? []),
+      interestSignals: z.array(z.string()).nullable().default([]).transform(val => val ?? []),
       overallQuality: z.string().default('')
     }).optional().default({
       commitmentSignals: [],
@@ -58,20 +63,40 @@ export const analysisSchema = z.object({
       consequences: ''
     }),
     competitiveIntelligence: z.object({
-      decisionCriteria: z.array(z.string()).default([]),
-      vendorsKnown: z.array(z.string()).default([])
+      decisionCriteria: z.array(z.string()).nullable().default([]).transform(val => val ?? []),
+      vendorsKnown: z.array(z.string()).nullable().default([]).transform(val => val ?? [])
     }).optional().default({
       decisionCriteria: [],
       vendorsKnown: []
     }),
     resistanceAnalysis: z.object({
-      signals: z.array(z.string()).default([])
+      signals: z.array(z.string()).nullable().default([]).transform(val => val ?? [])
     }).optional().default({ signals: [] }),
     urgencyDrivers: z.object({
       primary: z.string().default(''),
-      factors: z.array(z.string()).default([])
+      factors: z.array(z.string()).nullable().default([]).transform(val => val ?? [])
     }).optional().default({ primary: '', factors: [] })
-  }).optional().default({
+  }).nullable().optional().default({
+    painSeverity: { indicators: [], businessImpact: '' },
+    buyingSignalsAnalysis: {
+      commitmentSignals: [],
+      engagementSignals: [],
+      interestSignals: [],
+      overallQuality: ''
+    },
+    timelineAnalysis: {
+      statedTimeline: '',
+      flexibility: 'medium',
+      businessDriver: '',
+      consequences: ''
+    },
+    competitiveIntelligence: {
+      decisionCriteria: [],
+      vendorsKnown: []
+    },
+    resistanceAnalysis: { signals: [] },
+    urgencyDrivers: { primary: '', factors: [] }
+  }).transform(val => val ?? {
     painSeverity: { indicators: [], businessImpact: '' },
     buyingSignalsAnalysis: {
       commitmentSignals: [],
@@ -92,31 +117,40 @@ export const analysisSchema = z.object({
     resistanceAnalysis: { signals: [] },
     urgencyDrivers: { primary: '', factors: [] }
   }),
-  key_takeaways: z.array(z.string()).optional().default([]),
-  recommendations: z.any().optional().default({}),
+  key_takeaways: z.array(z.string()).nullable().optional().default([]).transform(val => val ?? []),
+  recommendations: z.any().nullable().optional().default({}).transform(val => val ?? {}),
   reasoning: z.object({
     whyTheseRecommendations: z.string().default(''),
     dealViabilityRationale: z.string().default(''),
     strategicRationale: z.string().default(''),
-    clientSignalsObserved: z.array(z.string()).default([])
-  }).optional().default({
+    clientSignalsObserved: z.array(z.string()).nullable().default([]).transform(val => val ?? [])
+  }).nullable().optional().default({
+    whyTheseRecommendations: '',
+    dealViabilityRationale: '',
+    strategicRationale: '',
+    clientSignalsObserved: []
+  }).transform(val => val ?? {
     whyTheseRecommendations: '',
     dealViabilityRationale: '',
     strategicRationale: '',
     clientSignalsObserved: []
   }),
   action_plan: z.object({
-    actions: z.array(z.any()).default([])
-  }).optional().default({ actions: [] }),
+    actions: z.array(z.any()).nullable().default([]).transform(val => val ?? [])
+  }).nullable().optional().default({ actions: [] }).transform(val => val ?? { actions: [] }),
   heat_level: z.string().optional(),
   coaching_insights: z.object({
-    whatWorkedWell: z.array(z.string()).default([]),
+    whatWorkedWell: z.array(z.string()).nullable().default([]).transform(val => val ?? []),
     missedOpportunities: z.union([
       z.array(z.string()),
       z.string()
-    ]).default([]),
+    ]).nullable().default([]).transform(val => val ?? []),
     focusArea: z.string().default('')
-  }).optional().default({
+  }).nullable().optional().default({
+    whatWorkedWell: [],
+    missedOpportunities: [],
+    focusArea: ''
+  }).transform(val => val ?? {
     whatWorkedWell: [],
     missedOpportunities: [],
     focusArea: ''
