@@ -34,7 +34,7 @@ interface TranscriptData {
 }
 
 interface AnalysisData {
-  id?: string
+  id: string
   challenger_scores?: any
   guidance?: any
   email_followup?: any
