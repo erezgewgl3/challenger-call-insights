@@ -1948,10 +1948,7 @@ export type Database = {
         }
         Returns: Json
       }
-      check_invite_rate_limit: {
-        Args: { p_admin_id: string }
-        Returns: Json
-      }
+      check_invite_rate_limit: { Args: { p_admin_id: string }; Returns: Json }
       check_login_rate_limit: {
         Args: { p_identifier: string; p_ip_address?: string }
         Returns: Json
@@ -1964,29 +1961,27 @@ export type Database = {
         Args: { p_user_id?: string }
         Returns: boolean
       }
-      cleanup_expired_password_reset_tokens: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
-      cleanup_old_audit_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_old_rate_limits: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_old_webhook_logs: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
+      cleanup_expired_password_reset_tokens: { Args: never; Returns: Json }
+      cleanup_old_audit_logs: { Args: never; Returns: number }
+      cleanup_old_rate_limits: { Args: never; Returns: number }
+      cleanup_old_webhook_logs: { Args: never; Returns: number }
       delete_transcript_cascade: {
         Args: { p_transcript_id: string; p_user_id: string }
         Returns: Json
       }
-      enhanced_file_validation: {
-        Args:
-          | {
+      enhanced_file_validation:
+        | {
+            Args: {
+              p_content_type: string
+              p_file_name: string
+              p_file_size: number
+              p_ip_address?: string
+              p_user_id: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
               p_content_type: string
               p_file_content?: string
               p_file_name: string
@@ -1994,15 +1989,8 @@ export type Database = {
               p_ip_address?: string
               p_user_id: string
             }
-          | {
-              p_content_type: string
-              p_file_name: string
-              p_file_size: number
-              p_ip_address?: string
-              p_user_id: string
-            }
-        Returns: Json
-      }
+            Returns: Json
+          }
       execute_role_change: {
         Args: {
           p_admin_user_id: string
@@ -2012,14 +2000,14 @@ export type Database = {
         Returns: Json
       }
       fix_orphaned_auth_users: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           fixed_email: string
           fixed_user_id: string
         }[]
       }
       get_active_prompt: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           activated_at: string
           change_description: string
@@ -2036,7 +2024,7 @@ export type Database = {
         }[]
       }
       get_admin_user_statistics: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           account_count: number
           assigned_transcript_count: number
@@ -2051,22 +2039,13 @@ export type Database = {
           status: Database["public"]["Enums"]["user_status"]
         }[]
       }
-      get_current_user_role: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      get_integration_registry: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      get_current_user_role: { Args: never; Returns: string }
+      get_integration_registry: { Args: never; Returns: Json }
       get_unified_transcript_queue: {
         Args: { p_user_id: string }
         Returns: Json
       }
-      get_user_queue_summary: {
-        Args: { user_uuid: string }
-        Returns: Json
-      }
+      get_user_queue_summary: { Args: { user_uuid: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
@@ -2074,10 +2053,7 @@ export type Database = {
         }
         Returns: boolean
       }
-      hash_token: {
-        Args: { token: string }
-        Returns: string
-      }
+      hash_token: { Args: { token: string }; Returns: string }
       integration_framework_complete_sync: {
         Args: { result_data: Json; sync_id: string; sync_status?: string }
         Returns: Json
@@ -2120,10 +2096,7 @@ export type Database = {
         Args: { sync_id: string }
         Returns: Json
       }
-      integration_framework_get_system_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      integration_framework_get_system_stats: { Args: never; Returns: Json }
       integration_framework_get_user_stats: {
         Args: { user_uuid: string }
         Returns: Json
@@ -2180,10 +2153,7 @@ export type Database = {
         Args: { p_details?: Json; p_event_type: string; p_user_id: string }
         Returns: undefined
       }
-      lookup_user_by_email: {
-        Args: { email_address: string }
-        Returns: string
-      }
+      lookup_user_by_email: { Args: { email_address: string }; Returns: string }
       mark_invite_as_used_secure: {
         Args: { p_invite_id: string }
         Returns: Json
@@ -2196,22 +2166,23 @@ export type Database = {
         }
         Returns: undefined
       }
-      mark_users_pending_deletion: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      mark_users_pending_deletion: { Args: never; Returns: undefined }
       record_successful_login: {
         Args: { p_identifier: string; p_ip_address?: string }
         Returns: undefined
+      }
+      reset_stuck_transcripts: {
+        Args: never
+        Returns: {
+          reset_count: number
+          transcript_ids: string[]
+        }[]
       }
       scan_file_content_security: {
         Args: { p_content: string; p_file_name: string }
         Returns: Json
       }
-      update_user_last_login: {
-        Args: { p_user_id?: string }
-        Returns: Json
-      }
+      update_user_last_login: { Args: { p_user_id?: string }; Returns: Json }
       validate_file_signature: {
         Args: { p_declared_type: string; p_file_content: string }
         Returns: Json
@@ -2238,18 +2209,9 @@ export type Database = {
         }
         Returns: Json
       }
-      validate_password_strength: {
-        Args: { password: string }
-        Returns: Json
-      }
-      vault_delete_secret: {
-        Args: { secret_id: string }
-        Returns: undefined
-      }
-      vault_get_secret: {
-        Args: { secret_id: string }
-        Returns: Json
-      }
+      validate_password_strength: { Args: { password: string }; Returns: Json }
+      vault_delete_secret: { Args: { secret_id: string }; Returns: undefined }
+      vault_get_secret: { Args: { secret_id: string }; Returns: Json }
       vault_store_secret: {
         Args: { new_description: string; new_name: string; secret_json: Json }
         Returns: string
