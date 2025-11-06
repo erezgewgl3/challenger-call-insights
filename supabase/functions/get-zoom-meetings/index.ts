@@ -51,8 +51,10 @@ serve(async (req) => {
 
     console.log('Authorization header received, length:', authHeader.length);
 
-    // Initialize Supabase client with bound Authorization header
-    // SECURITY: Use ANON key with user auth to enforce RLS policies
+    // Extract token from Bearer header
+    const token = authHeader.replace('Bearer ', '');
+
+    // Initialize Supabase client with ANON key for RLS enforcement
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
@@ -65,8 +67,8 @@ serve(async (req) => {
       }
     );
 
-    // Get user from JWT (header is now bound to client)
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Get user from JWT - must pass token explicitly
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     let userId: string;
 
