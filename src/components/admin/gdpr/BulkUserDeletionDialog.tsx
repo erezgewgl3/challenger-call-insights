@@ -134,7 +134,7 @@ export function BulkUserDeletionDialog({ isOpen, onClose, onSuccess, users }: Bu
 
       // Create audit log entries for all users
       const auditLogEntries = eligibleUsers.map(user => ({
-        event_type: 'data_deletion',
+        event_type: 'data_deletion_requested',
         user_id: user.id,
         admin_id: currentUser.id,
         details: {
