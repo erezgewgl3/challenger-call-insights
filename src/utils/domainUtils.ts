@@ -3,6 +3,9 @@
  * Prevents Host Header Injection and enforces HTTPS
  */
 
+// Production domain for invite links
+const PRODUCTION_BASE_URL = 'https://saleswhisperer.net';
+
 // Allowed domains configuration
 const ALLOWED_DOMAINS = {
   development: [
@@ -57,8 +60,14 @@ export function isValidDomain(domain: string): boolean {
 
 /**
  * Gets a secure base URL for invite links with validation
+ * @param forceProduction - When true, always returns the production URL (used for invite links)
  */
-export function getSecureBaseUrl(): string {
+export function getSecureBaseUrl(forceProduction = false): string {
+  // For production use cases like invite links, always use the production domain
+  if (forceProduction) {
+    return PRODUCTION_BASE_URL;
+  }
+
   let baseUrl: string;
   
   // Use current origin but validate it
@@ -72,7 +81,7 @@ export function getSecureBaseUrl(): string {
       baseUrl = `https://${currentHost}`;
     } else {
       // Ultimate fallback - but this should work with the current domain
-      baseUrl = 'https://app.saleswhisperer.net';
+      baseUrl = PRODUCTION_BASE_URL;
     }
   }
 
@@ -87,7 +96,7 @@ export function getSecureBaseUrl(): string {
       // Keep the current Lovable domain - any lovable subdomain
       baseUrl = `https://${hostname}`;
     } else {
-      baseUrl = 'https://app.saleswhisperer.net';
+      baseUrl = PRODUCTION_BASE_URL;
     }
   }
   
@@ -101,9 +110,10 @@ export function getSecureBaseUrl(): string {
 
 /**
  * Generates a secure invite link with domain binding
+ * Always uses production domain to ensure invite links work correctly
  */
 export function generateSecureInviteLink(token: string): string {
-  const baseUrl = getSecureBaseUrl();
+  const baseUrl = getSecureBaseUrl(true); // Force production domain for invite links
   const inviteLink = `${baseUrl}/register?token=${encodeURIComponent(token)}`;
   return inviteLink;
 }
