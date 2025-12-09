@@ -159,6 +159,7 @@ serve(async (req) => {
         console.error('Prompts deletion error:', promptsError);
       }
 
+      // Delete from public.users first
       const { error: userError } = await supabase
         .from('users')
         .delete()
@@ -168,12 +169,22 @@ serve(async (req) => {
         console.error('User deletion error:', userError);
         throw userError;
       }
+
+      // Also delete from auth.users for complete cleanup
+      const { error: authDeleteError } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (authDeleteError) {
+        console.error('Auth user deletion error:', authDeleteError);
+        // Don't throw - public.users is already deleted, auth user might not exist
+      } else {
+        console.log(`Successfully deleted auth user: ${userId}`);
+      }
       
       return new Response(
         JSON.stringify({ 
           success: true, 
           deletedCount: 1,
-          message: 'User and all associated data deleted successfully'
+          message: 'User and all associated data deleted successfully (including auth.users)'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -251,6 +262,7 @@ serve(async (req) => {
         throw error;
       }
       
+      // Delete from public.users first
       const { error: bulkUserError } = await supabase
         .from('users')
         .delete()
@@ -260,12 +272,25 @@ serve(async (req) => {
         console.error('Bulk user deletion error:', bulkUserError);
         throw bulkUserError;
       }
+
+      // Also delete from auth.users for complete cleanup
+      let authDeletedCount = 0;
+      for (const uid of userIds) {
+        const { error: authDeleteError } = await supabase.auth.admin.deleteUser(uid);
+        if (authDeleteError) {
+          console.error(`Auth user deletion error for ${uid}:`, authDeleteError);
+        } else {
+          authDeletedCount++;
+        }
+      }
+      console.log(`Successfully deleted ${authDeletedCount}/${userIds.length} auth users`);
       
       return new Response(
         JSON.stringify({ 
           success: true, 
           deletedCount: userIds.length,
-          message: 'Users and all associated data deleted successfully'
+          authUsersDeleted: authDeletedCount,
+          message: 'Users and all associated data deleted successfully (including auth.users)'
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
