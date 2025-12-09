@@ -88,22 +88,24 @@ export function InvitesTable({ invites, isLoading, filters, onFiltersChange }: I
     });
   }, [invites, filters]);
 
-  // Revoke invite mutation
+  // Revoke invite mutation - uses edge function to clean up orphaned auth users
   const revokeInviteMutation = useMutation({
     mutationFn: async (inviteId: string) => {
-      const { error } = await supabase
-        .from('invites')
-        .delete()
-        .eq('id', inviteId);
+      const { data, error } = await supabase.functions.invoke('revoke-invite-with-cleanup', {
+        body: { inviteId }
+      });
       
       if (error) throw error;
+      return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'invites'] });
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
       toast({
         title: "Invitation Revoked",
-        description: "The invitation has been successfully revoked.",
+        description: data?.orphanedUserDeleted 
+          ? "Invitation and orphaned user account have been cleaned up."
+          : "The invitation has been successfully revoked.",
       });
     },
     onError: (error) => {
