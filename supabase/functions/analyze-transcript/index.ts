@@ -154,7 +154,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code blocks.`;
         body: JSON.stringify({
           model: AI_MODELS.openai,
           messages: [{ role: 'user', content: REWRITE_PROMPT }],
-          max_completion_tokens: 2000
+          max_completion_tokens: 4096
         })
       });
 
@@ -665,23 +665,55 @@ serve(async (req) => {
     try {
       aiResponse = await callOpenAI(finalPrompt);
     } catch (openAIError) {
-      console.error('🔍 [ERROR] OpenAI failed, trying Claude fallback:', openAIError);
-      try {
-        aiResponse = await callClaude(finalPrompt);
-        usedProvider = 'claude';
-      } catch (claudeError) {
-        console.error('🔍 [ERROR] Both AI providers failed:', claudeError);
-        const errorMessage = claudeError instanceof Error ? claudeError.message : 'Unknown error';
-        await updateTranscriptError(supabase, transcriptId, `AI analysis failed: ${errorMessage}`);
-        throw new Error(`AI analysis failed: ${errorMessage}`);
-      }
+      console.error('🔍 [ERROR] OpenAI failed:', openAIError);
+      
+      // Send admin alert for primary provider failure
+      await sendAIServiceFailureEmail(
+        supabase, 
+        transcriptId, 
+        `OpenAI (${AI_MODELS.openai}) failed: ${openAIError instanceof Error ? openAIError.message : 'Unknown error'}`
+      );
+      
+      // Set user-friendly error message
+      const userErrorMessage = 'Our AI analysis service is temporarily unavailable. Your transcript has been saved and we will notify you when the service is restored. Please try again in a few minutes.';
+      await updateTranscriptError(supabase, transcriptId, userErrorMessage);
+      throw new Error(userErrorMessage);
     }
     
     console.log('🔍 [AI] AI response received, length:', aiResponse.length);
 
-    // Parse AI response
-    const parsedResult = parseAIResponse(aiResponse);
-    console.log('🔍 [PARSE] AI response parsed successfully');
+    // CRITICAL: Validate AI response is not empty
+    if (!aiResponse || aiResponse.trim().length === 0) {
+      const errorDetails = `Empty response from ${usedProvider.toUpperCase()} (${AI_MODELS[usedProvider]})`;
+      console.error('🔍 [CRITICAL] Empty AI response detected');
+      
+      // Send admin notification email
+      await sendAIServiceFailureEmail(supabase, transcriptId, errorDetails);
+      
+      const userErrorMessage = 'Our AI analysis service returned an incomplete response. Your transcript has been saved. Please try again in a few minutes.';
+      await updateTranscriptError(supabase, transcriptId, userErrorMessage);
+      throw new Error(userErrorMessage);
+    }
+
+    // Parse AI response with validation
+    let parsedResult: ParsedAnalysis;
+    try {
+      parsedResult = parseAIResponse(aiResponse);
+      console.log('🔍 [PARSE] AI response parsed successfully');
+    } catch (parseError) {
+      console.error('🔍 [CRITICAL] Failed to parse AI response:', parseError);
+      
+      // Send admin notification for parse failure
+      await sendAIServiceFailureEmail(
+        supabase, 
+        transcriptId, 
+        `Parse failure from ${usedProvider.toUpperCase()}: ${parseError instanceof Error ? parseError.message : 'Unknown parse error'}`
+      );
+      
+      const userErrorMessage = 'Our AI analysis service returned an invalid response. Your transcript has been saved. Please try again in a few minutes.';
+      await updateTranscriptError(supabase, transcriptId, userErrorMessage);
+      throw new Error(userErrorMessage);
+    }
 
     // ============ EMAIL TONE ENHANCEMENT (TWO-STEP ARCHITECTURE) ============
     // Uses SAME AI provider as main analysis (respects admin choice)
@@ -1233,16 +1265,53 @@ async function deliverWebhooksDirectly(userId: string, analysisId: string, webho
 
 // Helper function to update transcript with error status
 async function updateTranscriptError(supabase: any, transcriptId: string, errorMessage: string) {
+  console.error('🔍 [ERROR] Updating transcript with error:', errorMessage);
   await supabase
     .from('transcripts')
     .update({ 
       status: 'error',
-      processing_status: 'failed',
+      processing_status: 'error',
       processing_error: errorMessage,
       error_message: errorMessage,
       processed_at: new Date().toISOString()
     })
     .eq('id', transcriptId);
+}
+
+// Send admin notification email for AI service failures
+async function sendAIServiceFailureEmail(
+  supabase: any, 
+  transcriptId: string, 
+  errorDetails: string
+) {
+  try {
+    const adminEmail = 'ericg@gl3group.com';
+    
+    console.log('🔍 [ALERT] Sending AI failure notification to:', adminEmail);
+    
+    const { error } = await supabase.functions.invoke('send-email', {
+      body: {
+        to: adminEmail,
+        subject: '🚨 Sales Whisperer AI Service Failure Alert',
+        type: 'ai-service-failure',
+        data: {
+          transcriptId,
+          errorDetails,
+          timestamp: new Date().toISOString(),
+          environment: Deno.env.get('SUPABASE_URL')?.includes('localhost') ? 'development' : 'production'
+        }
+      }
+    });
+    
+    if (error) {
+      console.error('🔍 [ALERT] Failed to send admin notification:', error);
+    } else {
+      console.log('🔍 [ALERT] Admin notification email sent successfully');
+    }
+  } catch (emailError) {
+    console.error('🔍 [ALERT] Exception sending admin notification:', emailError);
+    // Don't throw - this is a secondary concern
+  }
 }
 
 async function callOpenAI(prompt: string): Promise<string> {
@@ -1269,7 +1338,7 @@ async function callOpenAI(prompt: string): Promise<string> {
         { role: 'user', content: prompt }
       ],
       response_format: { type: "json_object" },
-      max_completion_tokens: 4096,
+      max_completion_tokens: 16384,
     }),
   });
 
@@ -1450,40 +1519,41 @@ Prospect company name (one word or short phrase only):`;
 function parseAIResponse(aiResponse: string): ParsedAnalysis {
   console.log('🔍 [PARSE] Starting AI response parsing');
   
-  try {
-    const parsed = JSON.parse(aiResponse);
-    console.log('🔍 [PARSE] JSON parsed successfully, keys:', Object.keys(parsed));
-    
-    const result: ParsedAnalysis = {
-      challengerScores: parsed.challengerScores || parsed.challenger_scores || null,
-      guidance: parsed.guidance || null,
-      emailFollowUp: parsed.emailFollowUp || parsed.email_followup || null,
-      participants: parsed.participants || null,
-      callSummary: parsed.callSummary || parsed.call_summary || null,
-      keyTakeaways: parsed.keyTakeaways || parsed.key_takeaways || null,
-      recommendations: parsed.recommendations || null,
-      reasoning: parsed.reasoning || null,
-      actionPlan: parsed.actionPlan || parsed.action_plan || null,
-      coachingInsights: parsed.coachingInsights || parsed.coaching_insights || null
-    };
-    
-    console.log('🔍 [PARSE] Final parsed result stored directly from AI response');
-    
-    return result;
-  } catch (error) {
-    console.error('🔍 [ERROR] Failed to parse AI response:', error);
-    console.error('🔍 [ERROR] Raw response:', aiResponse?.substring(0, 500));
-    
-    return {
-      challengerScores: null,
-      guidance: null,
-      emailFollowUp: null,
-      participants: null,
-      callSummary: null,
-      keyTakeaways: null,
-      recommendations: null,
-      reasoning: null,
-      actionPlan: null
-    };
+  // Validate response is not empty or too short
+  if (!aiResponse || aiResponse.trim().length < 100) {
+    throw new Error(`AI response too short or empty (length: ${aiResponse?.length || 0})`);
   }
+  
+  let parsed;
+  try {
+    parsed = JSON.parse(aiResponse);
+  } catch (jsonError) {
+    console.error('🔍 [ERROR] JSON parse failed:', jsonError);
+    console.error('🔍 [ERROR] Raw response preview:', aiResponse?.substring(0, 500));
+    throw new Error(`Failed to parse AI response as JSON: ${jsonError instanceof Error ? jsonError.message : 'Invalid JSON'}`);
+  }
+  
+  console.log('🔍 [PARSE] JSON parsed successfully, keys:', Object.keys(parsed));
+  
+  const result: ParsedAnalysis = {
+    challengerScores: parsed.challengerScores || parsed.challenger_scores || null,
+    guidance: parsed.guidance || null,
+    emailFollowUp: parsed.emailFollowUp || parsed.email_followup || null,
+    participants: parsed.participants || null,
+    callSummary: parsed.callSummary || parsed.call_summary || null,
+    keyTakeaways: parsed.keyTakeaways || parsed.key_takeaways || null,
+    recommendations: parsed.recommendations || null,
+    reasoning: parsed.reasoning || null,
+    actionPlan: parsed.actionPlan || parsed.action_plan || null,
+    coachingInsights: parsed.coachingInsights || parsed.coaching_insights || null
+  };
+  
+  // CRITICAL: Validate we got meaningful data
+  if (!result.callSummary && !result.challengerScores && !result.guidance) {
+    throw new Error('AI response parsed but contained no meaningful analysis data');
+  }
+  
+  console.log('🔍 [PARSE] Final parsed result stored directly from AI response');
+  
+  return result;
 }
