@@ -9,9 +9,32 @@ const corsHeaders = {
 
 // AI Model Configuration - Single source of truth for model versions
 const AI_MODELS = {
-  openai: 'gpt-5.2',
-  claude: 'claude-opus-4-5-20251101'
+  openai: 'gpt-4-turbo',
+  claude: 'claude-sonnet-4-5-20250514'
 } as const;
+
+// Helper to read admin-configured AI provider from database
+async function getDefaultAiProvider(supabase: any): Promise<'openai' | 'claude'> {
+  try {
+    const { data, error } = await supabase
+      .from('system_settings')
+      .select('setting_value')
+      .eq('setting_key', 'default_ai_provider')
+      .maybeSingle();
+    
+    if (error || !data) {
+      console.log('🔍 [CONFIG] No AI provider setting found, defaulting to openai');
+      return 'openai';
+    }
+    
+    const provider = data.setting_value as 'openai' | 'claude';
+    console.log('🔍 [CONFIG] Using AI provider from admin settings:', provider);
+    return provider;
+  } catch (err) {
+    console.error('🔍 [CONFIG] Error reading AI provider setting:', err);
+    return 'openai';
+  }
+}
 
 // ============ EMAIL TONE ENHANCEMENT FUNCTION ============
 async function rewriteEmailsForNaturalTone(
@@ -657,21 +680,27 @@ serve(async (req) => {
 
     console.log('🔍 [PROMPT] Prompt built, length:', finalPrompt.length);
 
-    // Call AI (default to OpenAI with Claude fallback)
-    console.log('🔍 [AI] Calling OpenAI (default provider)');
+    // Call AI using admin-configured provider
+    const defaultProvider = await getDefaultAiProvider(supabase);
+    console.log('🔍 [AI] Using provider from admin settings:', defaultProvider, `(${AI_MODELS[defaultProvider]})`);
+    
     let aiResponse: string;
-    let usedProvider: 'openai' | 'claude' = 'openai';
+    let usedProvider: 'openai' | 'claude' = defaultProvider;
     
     try {
-      aiResponse = await callOpenAI(finalPrompt);
-    } catch (openAIError) {
-      console.error('🔍 [ERROR] OpenAI failed:', openAIError);
+      if (defaultProvider === 'claude') {
+        aiResponse = await callClaude(finalPrompt);
+      } else {
+        aiResponse = await callOpenAI(finalPrompt);
+      }
+    } catch (aiError) {
+      console.error(`🔍 [ERROR] ${defaultProvider} failed:`, aiError);
       
-      // Send admin alert for primary provider failure
+      // Send admin alert for provider failure
       await sendAIServiceFailureEmail(
         supabase, 
         transcriptId, 
-        `OpenAI (${AI_MODELS.openai}) failed: ${openAIError instanceof Error ? openAIError.message : 'Unknown error'}`
+        `${defaultProvider.toUpperCase()} (${AI_MODELS[defaultProvider]}) failed: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`
       );
       
       // Set user-friendly error message
@@ -1371,7 +1400,7 @@ async function callClaude(prompt: string): Promise<string> {
     },
     body: JSON.stringify({
       model: AI_MODELS.claude,
-      max_tokens: 4000,
+      max_tokens: 16384,
       messages: [
         { 
           role: 'user', 
