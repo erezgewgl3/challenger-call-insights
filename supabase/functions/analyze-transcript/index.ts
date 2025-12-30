@@ -9,8 +9,8 @@ const corsHeaders = {
 
 // AI Model Configuration - Single source of truth for model versions
 const AI_MODELS = {
-  openai: 'gpt-4o-mini',
-  claude: 'claude-3-5-sonnet-20241022'
+  openai: 'gpt-5.2',
+  claude: 'claude-opus-4-5-20251101'
 } as const;
 
 // ============ EMAIL TONE ENHANCEMENT FUNCTION ============
@@ -154,8 +154,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code blocks.`;
         body: JSON.stringify({
           model: AI_MODELS.openai,
           messages: [{ role: 'user', content: REWRITE_PROMPT }],
-          temperature: 0.7,
-          max_tokens: 2000
+          max_completion_tokens: 2000
         })
       });
 
@@ -1270,7 +1269,7 @@ async function callOpenAI(prompt: string): Promise<string> {
         { role: 'user', content: prompt }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.3,
+      max_completion_tokens: 4096,
     }),
   });
 
@@ -1373,8 +1372,7 @@ Prospect company name (one word or short phrase only):`;
           messages: [
             { role: 'user', content: extractionPrompt }
           ],
-          temperature: 0,
-          max_tokens: 50,
+          max_completion_tokens: 50,
         }),
       });
 
