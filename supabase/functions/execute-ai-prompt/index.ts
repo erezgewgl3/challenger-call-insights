@@ -126,7 +126,7 @@ serve(async (req) => {
         });
       }
 
-      console.log('Making OpenAI API call with gpt-4o-mini');
+      console.log('Making OpenAI API call with gpt-5.2');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -134,12 +134,12 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-4o-mini',
+          model: 'gpt-5.2',
           messages: [
             { role: 'user', content: processedPrompt }
           ],
           response_format: { type: "json_object" },
-          temperature: 0.3,
+          max_completion_tokens: 4096,
         }),
       });
 
@@ -164,7 +164,7 @@ serve(async (req) => {
         });
       }
 
-      console.log('Making Claude API call with claude-3-5-sonnet-20241022');
+      console.log('Making Claude API call with claude-opus-4-5-20251101');
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -173,8 +173,8 @@ serve(async (req) => {
           'anthropic-version': '2023-06-01',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 2000,
+          model: 'claude-opus-4-5-20251101',
+          max_tokens: 4096,
           messages: [
             { role: 'user', content: processedPrompt }
           ],
