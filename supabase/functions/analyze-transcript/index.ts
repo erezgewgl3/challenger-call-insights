@@ -10,7 +10,7 @@ const corsHeaders = {
 // AI Model Configuration - Single source of truth for model versions
 const AI_MODELS = {
   openai: 'gpt-4-turbo',
-  claude: 'claude-sonnet-4-5-20250514'
+  claude: 'claude-sonnet-4-20250514'
 } as const;
 
 // Helper to read admin-configured AI provider from database
