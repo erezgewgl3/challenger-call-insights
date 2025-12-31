@@ -1553,12 +1553,28 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
     throw new Error(`AI response too short or empty (length: ${aiResponse?.length || 0})`);
   }
   
+  // Strip markdown code blocks if present (Claude often wraps JSON in ```json ... ```)
+  let cleanedResponse = aiResponse
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```\s*$/i, '')
+    .trim();
+
+  // Also handle case where there's text before/after the JSON object
+  const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    cleanedResponse = jsonMatch[0];
+  }
+
+  console.log('🔍 [PARSE] Cleaned response preview:', cleanedResponse.substring(0, 300));
+
   let parsed;
   try {
-    parsed = JSON.parse(aiResponse);
+    parsed = JSON.parse(cleanedResponse);
   } catch (jsonError) {
     console.error('🔍 [ERROR] JSON parse failed:', jsonError);
     console.error('🔍 [ERROR] Raw response preview:', aiResponse?.substring(0, 500));
+    console.error('🔍 [ERROR] Cleaned response preview:', cleanedResponse?.substring(0, 500));
     throw new Error(`Failed to parse AI response as JSON: ${jsonError instanceof Error ? jsonError.message : 'Invalid JSON'}`);
   }
   
