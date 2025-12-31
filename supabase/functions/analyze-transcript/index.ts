@@ -583,8 +583,12 @@ function extractMetadataFromAnalysis(parsed: ParsedAnalysis, sourceMetadata?: an
 function splitIntoChunks(text: string, maxChunkSize: number = 25000, overlap: number = 1000): string[] {
   const chunks: string[] = [];
   let start = 0;
+  const MAX_CHUNKS = 10; // Safety cap to prevent memory issues
+  const MAX_ITERATIONS = 20; // Absolute guard against infinite loops
+  let iterations = 0;
   
-  while (start < text.length) {
+  while (start < text.length && chunks.length < MAX_CHUNKS && iterations < MAX_ITERATIONS) {
+    iterations++;
     let end = Math.min(start + maxChunkSize, text.length);
     
     // Try to find a natural break point (paragraph or sentence)
@@ -601,10 +605,23 @@ function splitIntoChunks(text: string, maxChunkSize: number = 25000, overlap: nu
     }
     
     chunks.push(text.slice(start, end));
-    start = end - overlap; // Overlap for context continuity
+    
+    // CRITICAL FIX: Exit if we've processed to the end
+    if (end >= text.length) {
+      break;
+    }
+    
+    // Only apply overlap for non-final chunks
+    const nextStart = end - overlap;
+    // Ensure forward progress - start must always move forward
+    start = nextStart > start ? nextStart : end;
   }
   
-  console.log(`🔍 [CHUNK] Split transcript into ${chunks.length} chunks`);
+  if (iterations >= MAX_ITERATIONS) {
+    console.warn('🔍 [CHUNK] Hit max iterations safety limit');
+  }
+  
+  console.log(`🔍 [CHUNK] Split transcript into ${chunks.length} chunks (${iterations} iterations)`);
   return chunks;
 }
 
@@ -628,6 +645,10 @@ ${chunk}`;
 
   console.log(`🔍 [CHUNK] Summarizing chunk ${chunkIndex + 1} using ${provider}`);
   
+  // 30 second timeout for chunk summarization
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
+  
   try {
     if (provider === 'claude') {
       const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY');
@@ -646,7 +667,10 @@ ${chunk}`;
           messages: [{ role: 'user', content: summaryPrompt }],
           temperature: 0.3,
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -669,7 +693,10 @@ ${chunk}`;
           messages: [{ role: 'user', content: summaryPrompt }],
           max_completion_tokens: 1500,
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -679,6 +706,13 @@ ${chunk}`;
       return data.choices[0].message.content;
     }
   } catch (error) {
+    clearTimeout(timeoutId);
+    
+    if (error.name === 'AbortError') {
+      console.error(`🔍 [CHUNK] Chunk ${chunkIndex + 1} summarization timed out after 30s`);
+      return `[Chunk ${chunkIndex + 1} timed out - using excerpt]\n${chunk.substring(0, 2000)}...`;
+    }
+    
     console.error(`🔍 [CHUNK] Error summarizing chunk ${chunkIndex + 1}:`, error);
     // Return a truncated version of the chunk as fallback
     return `[Chunk ${chunkIndex + 1} summary unavailable - using excerpt]\n${chunk.substring(0, 2000)}...`;
