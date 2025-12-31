@@ -201,7 +201,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code blocks.`;
       const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${claudeApiKey}`,
+          'x-api-key': claudeApiKey,
           'Content-Type': 'application/json',
           'anthropic-version': '2023-06-01',
         },
@@ -579,6 +579,135 @@ function extractMetadataFromAnalysis(parsed: ParsedAnalysis, sourceMetadata?: an
   return { companyName, participants };
 }
 
+// ============ SMART CHUNKING HELPERS ============
+function splitIntoChunks(text: string, maxChunkSize: number = 25000, overlap: number = 1000): string[] {
+  const chunks: string[] = [];
+  let start = 0;
+  
+  while (start < text.length) {
+    let end = Math.min(start + maxChunkSize, text.length);
+    
+    // Try to find a natural break point (paragraph or sentence)
+    if (end < text.length) {
+      const breakPoint = text.lastIndexOf('\n\n', end);
+      if (breakPoint > start + maxChunkSize * 0.7) {
+        end = breakPoint;
+      } else {
+        const sentenceBreak = text.lastIndexOf('. ', end);
+        if (sentenceBreak > start + maxChunkSize * 0.7) {
+          end = sentenceBreak + 1;
+        }
+      }
+    }
+    
+    chunks.push(text.slice(start, end));
+    start = end - overlap; // Overlap for context continuity
+  }
+  
+  console.log(`🔍 [CHUNK] Split transcript into ${chunks.length} chunks`);
+  return chunks;
+}
+
+async function summarizeChunk(
+  chunk: string, 
+  chunkIndex: number, 
+  provider: 'openai' | 'claude'
+): Promise<string> {
+  const summaryPrompt = `Summarize this sales conversation excerpt. Extract:
+- Key discussion points and topics covered
+- Customer objections, concerns, or hesitations
+- Pain points mentioned by the customer
+- Buying signals or interest indicators
+- Any decisions, commitments, or next steps agreed
+- 3-5 notable direct quotes (verbatim if possible)
+
+Keep your summary comprehensive but under 3000 characters.
+
+Conversation excerpt:
+${chunk}`;
+
+  console.log(`🔍 [CHUNK] Summarizing chunk ${chunkIndex + 1} using ${provider}`);
+  
+  try {
+    if (provider === 'claude') {
+      const claudeApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+      if (!claudeApiKey) throw new Error('Claude API key not found');
+      
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': claudeApiKey,
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: AI_MODELS.claude,
+          max_tokens: 1500,
+          messages: [{ role: 'user', content: summaryPrompt }],
+          temperature: 0.3,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Chunk ${chunkIndex + 1} summarization failed: ${response.status} ${errorText}`);
+      }
+      const data = await response.json();
+      return data.content[0].text;
+    } else {
+      const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+      if (!openAIApiKey) throw new Error('OpenAI API key not found');
+      
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: AI_MODELS.openai,
+          messages: [{ role: 'user', content: summaryPrompt }],
+          max_completion_tokens: 1500,
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Chunk ${chunkIndex + 1} summarization failed: ${response.status} ${errorText}`);
+      }
+      const data = await response.json();
+      return data.choices[0].message.content;
+    }
+  } catch (error) {
+    console.error(`🔍 [CHUNK] Error summarizing chunk ${chunkIndex + 1}:`, error);
+    // Return a truncated version of the chunk as fallback
+    return `[Chunk ${chunkIndex + 1} summary unavailable - using excerpt]\n${chunk.substring(0, 2000)}...`;
+  }
+}
+
+async function processWithSmartChunking(
+  transcriptText: string, 
+  provider: 'openai' | 'claude'
+): Promise<string> {
+  console.log('🔍 [CHUNK] Starting smart chunking for long transcript');
+  console.log(`🔍 [CHUNK] Original transcript length: ${transcriptText.length} chars`);
+  
+  const chunks = splitIntoChunks(transcriptText, 25000, 1000);
+  const summaries: string[] = [];
+  
+  for (let i = 0; i < chunks.length; i++) {
+    console.log(`🔍 [CHUNK] Processing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
+    const summary = await summarizeChunk(chunks[i], i, provider);
+    summaries.push(`=== Part ${i + 1} of ${chunks.length} ===\n${summary}`);
+  }
+  
+  const digest = summaries.join('\n\n');
+  console.log(`🔍 [CHUNK] Created conversation digest: ${digest.length} chars from ${transcriptText.length} original`);
+  
+  return digest;
+}
+// ============ END SMART CHUNKING HELPERS ============
+
 serve(async (req) => {
   console.log('🔍 [INIT] Analyze transcript function started');
   
@@ -672,18 +801,31 @@ serve(async (req) => {
     
     console.log('🔍 [STRATEGY] Selected strategy:', strategy, 'for duration:', durationMinutes);
 
-    // Build prompt
+    // Get the AI provider early - we need it for chunking
+    const defaultProvider = await getDefaultAiProvider(supabase);
+    console.log('🔍 [AI] Using provider from admin settings:', defaultProvider, `(${AI_MODELS[defaultProvider]})`);
+
+    // Process transcript based on strategy
+    let processedText = transcriptText;
+    if (strategy === 'smart_chunking' || strategy === 'hierarchical') {
+      console.log('🔍 [CHUNK] Applying smart chunking for long transcript');
+      try {
+        processedText = await processWithSmartChunking(transcriptText, defaultProvider);
+        console.log('🔍 [CHUNK] Smart chunking complete, digest length:', processedText.length);
+      } catch (chunkError) {
+        console.error('🔍 [ERROR] Smart chunking failed, falling back to truncated text:', chunkError);
+        // Fallback: truncate to 50k chars with note
+        processedText = transcriptText.substring(0, 50000) + '\n\n[TRANSCRIPT TRUNCATED - Original length: ' + transcriptText.length + ' chars]';
+      }
+    }
+
+    // Build prompt with processed (possibly chunked) text
     const finalPrompt = activePrompt.prompt_text
-      .replace('{{conversation}}', transcriptText)
+      .replace('{{conversation}}', processedText)
       .replace('{{account_context}}', '')
       .replace('{{user_context}}', '');
 
     console.log('🔍 [PROMPT] Prompt built, length:', finalPrompt.length);
-
-    // Call AI using admin-configured provider
-    const defaultProvider = await getDefaultAiProvider(supabase);
-    console.log('🔍 [AI] Using provider from admin settings:', defaultProvider, `(${AI_MODELS[defaultProvider]})`);
-    
     let aiResponse: string;
     let usedProvider: 'openai' | 'claude' = defaultProvider;
     
@@ -1351,36 +1493,52 @@ async function callOpenAI(prompt: string): Promise<string> {
 
   console.log('🔍 [API] Starting OpenAI API call');
   
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openAIApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: AI_MODELS.openai,
-      messages: [
-        { 
-          role: 'system', 
-          content: 'You are a sales intelligence AI that analyzes sales conversations and provides actionable insights in JSON format.' 
-        },
-        { role: 'user', content: prompt }
-      ],
-      response_format: { type: "json_object" },
-      max_completion_tokens: 16384,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('🔍 [ERROR] OpenAI API error:', response.status, errorText);
-    throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  console.log('🔍 [API] OpenAI response received successfully');
+  // Add timeout protection - 55 seconds to stay within edge function limits
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 55000);
   
-  return data.choices[0].message.content;
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openAIApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: AI_MODELS.openai,
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a sales intelligence AI that analyzes sales conversations and provides actionable insights in JSON format.' 
+          },
+          { role: 'user', content: prompt }
+        ],
+        response_format: { type: "json_object" },
+        max_completion_tokens: 6000,
+      }),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔍 [ERROR] OpenAI API error:', response.status, errorText);
+      throw new Error(`OpenAI API error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('🔍 [API] OpenAI response received successfully');
+    
+    return data.choices[0].message.content;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('🔍 [ERROR] OpenAI API call timed out after 55 seconds');
+      throw new Error('AI analysis timed out after 55 seconds. The transcript may be too long - please try a shorter segment or try again.');
+    }
+    throw error;
+  }
 }
 
 async function callClaude(prompt: string): Promise<string> {
@@ -1391,36 +1549,52 @@ async function callClaude(prompt: string): Promise<string> {
 
   console.log('🔍 [API] Starting Claude API call');
   
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': claudeApiKey,
-      'Content-Type': 'application/json',
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: AI_MODELS.claude,
-      max_tokens: 16384,
-      messages: [
-        { 
-          role: 'user', 
-          content: `You are a sales intelligence AI that analyzes sales conversations and provides actionable insights in JSON format. Please analyze the following:\n\n${prompt}` 
-        }
-      ],
-      temperature: 0.3,
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('🔍 [ERROR] Claude API error:', response.status, errorText);
-    throw new Error(`Claude API error: ${response.status} ${errorText}`);
-  }
-
-  const data = await response.json();
-  console.log('🔍 [API] Claude response received successfully');
+  // Add timeout protection - 55 seconds to stay within edge function limits
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 55000);
   
-  return data.content[0].text;
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': claudeApiKey,
+        'Content-Type': 'application/json',
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: AI_MODELS.claude,
+        max_tokens: 6000,
+        messages: [
+          { 
+            role: 'user', 
+            content: `You are a sales intelligence AI that analyzes sales conversations and provides actionable insights in JSON format. Please analyze the following:\n\n${prompt}` 
+          }
+        ],
+        temperature: 0.3,
+      }),
+      signal: controller.signal,
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('🔍 [ERROR] Claude API error:', response.status, errorText);
+      throw new Error(`Claude API error: ${response.status} ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log('🔍 [API] Claude response received successfully');
+    
+    return data.content[0].text;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      console.error('🔍 [ERROR] Claude API call timed out after 55 seconds');
+      throw new Error('AI analysis timed out after 55 seconds. The transcript may be too long - please try a shorter segment or try again.');
+    }
+    throw error;
+  }
 }
 
 // Lightweight AI extraction for company name only
@@ -1491,7 +1665,7 @@ Prospect company name (one word or short phrase only):`;
       const apiResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${claudeApiKey}`,
+          'x-api-key': claudeApiKey,
           'Content-Type': 'application/json',
           'anthropic-version': '2023-06-01',
         },
