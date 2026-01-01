@@ -9,8 +9,8 @@ const corsHeaders = {
 
 // AI Model Configuration - Single source of truth for model versions
 const AI_MODELS = {
-  openai: 'gpt-5-2025-08-07',
-  claude: 'claude-sonnet-4-5'
+  openai: 'gpt-5.2',
+  claude: 'claude-sonnet-4-20250514'
 } as const;
 
 // Helper to read admin-configured AI provider from database
@@ -177,6 +177,7 @@ CRITICAL: Return ONLY valid JSON. No markdown, no code blocks.`;
         body: JSON.stringify({
           model: AI_MODELS.openai,
           messages: [{ role: 'user', content: REWRITE_PROMPT }],
+          reasoning_effort: 'medium',
           max_completion_tokens: 4096
         })
       });
@@ -691,6 +692,7 @@ ${chunk}`;
         body: JSON.stringify({
           model: AI_MODELS.openai,
           messages: [{ role: 'user', content: summaryPrompt }],
+          reasoning_effort: 'medium',
           max_completion_tokens: 1500,
         }),
         signal: controller.signal,
@@ -1548,7 +1550,8 @@ async function callOpenAI(prompt: string): Promise<string> {
           { role: 'user', content: prompt }
         ],
         response_format: { type: "json_object" },
-        max_completion_tokens: 6000,
+        reasoning_effort: 'medium',
+        max_completion_tokens: 8000,
       }),
       signal: controller.signal,
     });
