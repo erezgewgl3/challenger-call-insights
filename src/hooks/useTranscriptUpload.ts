@@ -364,16 +364,19 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
 
         if (analysisResponse.error) {
           console.error('Analysis failed:', analysisResponse.error)
+          // Show actual error message instead of generic text
+          const errorMsg = analysisResponse.error.message || analysisResponse.error || 'Analysis failed to start'
           updateFileStatus(uploadFile.id, {
             status: 'error',
-            error: 'Analysis failed to start'
+            error: errorMsg
           })
+          toast.error(`Analysis failed: ${errorMsg}`)
           continue
         }
 
-        // Poll for completion
+        // Poll for completion - increased timeout for long transcripts
         let attempts = 0
-        const maxAttempts = 30 // 30 seconds max wait
+        const maxAttempts = 120 // 2 minutes max wait (up from 30s)
         
         const pollForCompletion = async () => {
           const { data: transcriptStatus } = await supabase

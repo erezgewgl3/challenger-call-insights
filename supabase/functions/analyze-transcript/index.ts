@@ -729,12 +729,44 @@ async function processWithSmartChunking(
   console.log(`🔍 [CHUNK] Original transcript length: ${transcriptText.length} chars`);
   
   const chunks = splitIntoChunks(transcriptText, 25000, 1000);
-  const summaries: string[] = [];
   
-  for (let i = 0; i < chunks.length; i++) {
-    console.log(`🔍 [CHUNK] Processing chunk ${i + 1}/${chunks.length} (${chunks[i].length} chars)`);
-    const summary = await summarizeChunk(chunks[i], i, provider);
-    summaries.push(`=== Part ${i + 1} of ${chunks.length} ===\n${summary}`);
+  // Pre-allocate array to guarantee order regardless of completion time
+  const summaries: string[] = new Array(chunks.length);
+  
+  // Process chunks in batches of 2 for parallelism (respects API rate limits)
+  const batchSize = 2;
+  
+  for (let i = 0; i < chunks.length; i += batchSize) {
+    const batchEnd = Math.min(i + batchSize, chunks.length);
+    console.log(`🔍 [CHUNK] Processing batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(chunks.length / batchSize)} (chunks ${i + 1}-${batchEnd})`);
+    
+    // Create batch promises with their original indices
+    const batchPromises = chunks.slice(i, batchEnd).map((chunk, batchIndex) => {
+      const originalIndex = i + batchIndex;
+      console.log(`🔍 [CHUNK] Starting chunk ${originalIndex + 1}/${chunks.length} (${chunk.length} chars)`);
+      return summarizeChunk(chunk, originalIndex, provider)
+        .then(summary => ({ originalIndex, summary, success: true as const }))
+        .catch(error => {
+          console.error(`🔍 [CHUNK] Chunk ${originalIndex + 1} failed:`, error);
+          // Graceful fallback: use excerpt instead of failing entire batch
+          return { 
+            originalIndex, 
+            summary: `[Chunk ${originalIndex + 1} failed - using excerpt]\n${chunk.substring(0, 2000)}...`,
+            success: false as const
+          };
+        });
+    });
+    
+    // Wait for batch to complete (Promise.allSettled would also work, but we handle errors above)
+    const batchResults = await Promise.all(batchPromises);
+    
+    // Place results at correct indices
+    batchResults.forEach(result => {
+      summaries[result.originalIndex] = `=== Part ${result.originalIndex + 1} of ${chunks.length} ===\n${result.summary}`;
+      if (result.success) {
+        console.log(`🔍 [CHUNK] Chunk ${result.originalIndex + 1} completed successfully`);
+      }
+    });
   }
   
   const digest = summaries.join('\n\n');
@@ -873,18 +905,55 @@ serve(async (req) => {
       }
     } catch (aiError) {
       console.error(`🔍 [ERROR] ${defaultProvider} failed:`, aiError);
+      const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown error';
+      const technicalError = `${defaultProvider.toUpperCase()} (${AI_MODELS[defaultProvider]}) failed: ${errorMessage}`;
       
-      // Send admin alert for provider failure
-      await sendAIServiceFailureEmail(
-        supabase, 
-        transcriptId, 
-        `${defaultProvider.toUpperCase()} (${AI_MODELS[defaultProvider]}) failed: ${aiError instanceof Error ? aiError.message : 'Unknown error'}`
-      );
+      // Try fallback provider if available
+      const fallbackProvider = defaultProvider === 'claude' ? 'openai' : 'claude';
+      const hasFallbackKey = fallbackProvider === 'openai' 
+        ? !!Deno.env.get('OPENAI_API_KEY')
+        : !!Deno.env.get('ANTHROPIC_API_KEY');
       
-      // Set user-friendly error message
-      const userErrorMessage = 'Our AI analysis service is temporarily unavailable. Your transcript has been saved and we will notify you when the service is restored. Please try again in a few minutes.';
-      await updateTranscriptError(supabase, transcriptId, userErrorMessage);
-      throw new Error(userErrorMessage);
+      if (hasFallbackKey) {
+        console.log(`🔍 [FALLBACK] Attempting fallback to ${fallbackProvider.toUpperCase()}`);
+        try {
+          if (fallbackProvider === 'claude') {
+            aiResponse = await callClaude(finalPrompt);
+          } else {
+            aiResponse = await callOpenAI(finalPrompt);
+          }
+          usedProvider = fallbackProvider;
+          console.log(`🔍 [FALLBACK] Success with ${fallbackProvider.toUpperCase()}`);
+        } catch (fallbackError) {
+          console.error(`🔍 [ERROR] Fallback ${fallbackProvider} also failed:`, fallbackError);
+          const fallbackErrorMsg = fallbackError instanceof Error ? fallbackError.message : 'Unknown error';
+          const fullTechnicalError = `Primary: ${technicalError}. Fallback ${fallbackProvider.toUpperCase()} also failed: ${fallbackErrorMsg}`;
+          
+          // Send admin alert for both provider failures
+          await sendAIServiceFailureEmail(supabase, transcriptId, fullTechnicalError);
+          
+          // User-friendly message vs technical details
+          const userErrorMessage = 'AI analysis service is temporarily unavailable. Please try again in a few minutes.';
+          await updateTranscriptError(supabase, transcriptId, userErrorMessage, fullTechnicalError);
+          throw new Error(userErrorMessage);
+        }
+      } else {
+        // No fallback available
+        await sendAIServiceFailureEmail(supabase, transcriptId, technicalError);
+        
+        // Determine user-friendly message based on error type
+        let userErrorMessage = 'AI analysis service is temporarily unavailable. Please try again in a few minutes.';
+        if (errorMessage.includes('API key not found')) {
+          userErrorMessage = 'AI provider not configured. Please contact your administrator.';
+        } else if (errorMessage.includes('timed out')) {
+          userErrorMessage = 'Analysis timed out. The transcript may be too long - please try a shorter segment.';
+        } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
+          userErrorMessage = 'AI provider authentication failed. Please contact your administrator.';
+        }
+        
+        await updateTranscriptError(supabase, transcriptId, userErrorMessage, technicalError);
+        throw new Error(userErrorMessage);
+      }
     }
     
     console.log('🔍 [AI] AI response received, length:', aiResponse.length);
@@ -1471,15 +1540,22 @@ async function deliverWebhooksDirectly(userId: string, analysisId: string, webho
 }
 
 // Helper function to update transcript with error status
-async function updateTranscriptError(supabase: any, transcriptId: string, errorMessage: string) {
-  console.error('🔍 [ERROR] Updating transcript with error:', errorMessage);
+// Stores user-friendly message in error_message, technical details in processing_error
+async function updateTranscriptError(
+  supabase: any, 
+  transcriptId: string, 
+  userMessage: string,
+  technicalDetails?: string
+) {
+  const techError = technicalDetails || userMessage;
+  console.error('🔍 [ERROR] Updating transcript with error:', { userMessage, technicalDetails: techError });
   await supabase
     .from('transcripts')
     .update({ 
       status: 'error',
       processing_status: 'error',
-      processing_error: errorMessage,
-      error_message: errorMessage,
+      processing_error: techError,  // Technical details for debugging
+      error_message: userMessage,   // User-friendly message
       processed_at: new Date().toISOString()
     })
     .eq('id', transcriptId);
