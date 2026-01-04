@@ -66,3 +66,6 @@ verify_jwt = true
 
 [functions.get-zoom-meetings]
 verify_jwt = true
+
+[functions.ai-diagnostics]
+verify_jwt = false

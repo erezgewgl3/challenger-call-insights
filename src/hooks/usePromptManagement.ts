@@ -4,6 +4,7 @@ import { useActivePrompt, usePrompts, useActivatePromptVersion, useDeletePrompt,
 import { useDefaultAiProvider } from '@/hooks/useSystemSettings'
 import { toast } from 'sonner'
 import { Prompt, PromptTestingData } from '@/types/prompt'
+import { supabase } from '@/lib/supabase'
 
 interface ApiKeyStatus {
   openai: boolean
@@ -98,17 +99,23 @@ export function usePromptManagement() {
 
   const validateApiKeys = async () => {
     setIsValidatingKeys(true)
+    setApiKeyStatus({ openai: false, claude: false })
     try {
-      const response = await fetch('/api/validate-api-keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
+      // Use real ai-diagnostics endpoint
+      const { data, error } = await supabase.functions.invoke('ai-diagnostics')
       
-      if (response.ok) {
-        const data = await response.json()
-        setApiKeyStatus(data)
-      } else {
-        setApiKeyStatus({ openai: true, claude: true })
+      if (error) {
+        console.warn('AI diagnostics failed:', error)
+        setApiKeyStatus({ openai: true, claude: true }) // Assume available if can't check
+        return
+      }
+      
+      if (data) {
+        setApiKeyStatus({
+          openai: data.openai?.hasKey && data.openai?.ping?.ok,
+          claude: data.claude?.hasKey && data.claude?.ping?.ok
+        })
+        console.log('API key validation result:', data)
       }
     } catch (error) {
       console.warn('Could not validate API keys:', error)
