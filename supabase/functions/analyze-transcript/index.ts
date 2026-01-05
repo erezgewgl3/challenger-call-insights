@@ -1626,8 +1626,8 @@ async function callOpenAI(prompt: string): Promise<string> {
           { role: 'user', content: prompt }
         ],
         response_format: { type: "json_object" },
-        reasoning_effort: 'medium',
-        max_completion_tokens: 8000,
+        reasoning_effort: 'low',
+        max_completion_tokens: 4000,
       }),
       signal: controller.signal,
     });
@@ -1676,7 +1676,7 @@ async function callClaude(prompt: string): Promise<string> {
       },
       body: JSON.stringify({
         model: AI_MODELS.claude,
-        max_tokens: 6000,
+        max_tokens: 4000,
         messages: [
           { 
             role: 'user', 
