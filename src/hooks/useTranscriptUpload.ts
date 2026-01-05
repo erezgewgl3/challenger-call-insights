@@ -364,13 +364,14 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
 
         if (analysisResponse.error) {
           console.error('Analysis failed:', analysisResponse.error)
-          // Show actual error message instead of generic text
+          // Show actual error message - transcript uploaded but analysis failed
           const errorMsg = analysisResponse.error.message || analysisResponse.error || 'Analysis failed to start'
           updateFileStatus(uploadFile.id, {
             status: 'error',
-            error: errorMsg
+            error: `Transcript uploaded - analysis failed: ${errorMsg}`,
+            transcriptId: transcript.id // Keep transcript ID so user can retry
           })
-          toast.error(`Analysis failed: ${errorMsg}`)
+          toast.error(`Transcript saved but analysis failed. You can retry from the dashboard.`)
           continue
         }
 
@@ -398,10 +399,12 @@ export function useTranscriptUpload(onAnalysisComplete?: (transcriptId: string) 
               onAnalysisComplete?.(transcript.id)
             }, 2000)
           } else if (transcriptStatus?.status === 'error') {
+            const errorMsg = transcriptStatus.error_message || 'Analysis failed'
             updateFileStatus(uploadFile.id, {
               status: 'error',
-              error: transcriptStatus.error_message || 'Analysis failed'
+              error: `Transcript saved - ${errorMsg}. You can retry analysis.`
             })
+            toast.error(`Analysis failed: ${errorMsg}`)
           } else if (attempts < maxAttempts) {
             attempts++
             setTimeout(pollForCompletion, 1000)
