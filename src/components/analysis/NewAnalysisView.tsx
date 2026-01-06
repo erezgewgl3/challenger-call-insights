@@ -60,6 +60,10 @@ interface AnalysisData {
   reasoning?: any
   action_plan?: any
   heat_level?: string
+  dealAssessment?: {
+    heat: 'HIGH' | 'MEDIUM' | 'LOW'
+    heatRationale: string
+  }
   guidance?: {
     power_center?: {
       name: string
@@ -108,7 +112,27 @@ export function NewAnalysisView({
 
   // Enhanced data mapping functions - moved before usage
   const getDealHeat = (): DealHeatResult => {
-    // PRIORITY 1: Use database heat_level if available (single source of truth)
+    // Get dealAssessment from either root level OR call_summary (where it's stored in DB)
+    const dealAssessment = analysis.dealAssessment || analysis.call_summary?.dealAssessment
+    
+    // PRIORITY 1: Use AI-provided dealAssessment.heat (new v12.2+ analyses)
+    if (dealAssessment?.heat) {
+      const aiHeat = dealAssessment.heat.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW'
+      
+      return {
+        level: aiHeat,
+        emoji: aiHeat === 'HIGH' ? '🔥' : aiHeat === 'MEDIUM' ? '🌡️' : '❄️',
+        description: dealAssessment.heatRationale || 
+                    (aiHeat === 'HIGH' ? 'Immediate attention needed' : 
+                     aiHeat === 'MEDIUM' ? 'Active opportunity' : 'Long-term opportunity'),
+        evidence: analysis.call_summary?.painSeverity?.indicators?.slice(0, 2) || [],
+        businessImpact: analysis.call_summary?.painSeverity?.businessImpact || '',
+        bgColor: aiHeat === 'HIGH' ? 'bg-red-500' : aiHeat === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500',
+        color: aiHeat === 'HIGH' ? 'text-red-300' : aiHeat === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
+      }
+    }
+    
+    // PRIORITY 2: Use database heat_level if available (older analyses)
     if (analysis.heat_level) {
       const dbHeatLevel = analysis.heat_level.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW'
       
@@ -124,10 +148,9 @@ export function NewAnalysisView({
       }
     }
     
-    // FALLBACK: Calculate using shared utility for older records without heat_level
+    // FALLBACK: Calculate using shared utility for very old records
     return calculateDealHeat(analysis)
   }
-
   const getConversationIntelligence = () => {
     // Extract conversation intelligence from analysis data
     const callSummary = analysis.call_summary || {}
