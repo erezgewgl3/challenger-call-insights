@@ -1,6 +1,6 @@
-
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext, useCallback } from 'react'
 import { User, Session } from '@supabase/supabase-js'
+import { useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { authService, AuthUser, UserRole } from '@/services/authService'
@@ -199,20 +199,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const signOut = async () => {
+  // Get query client to clear cache on sign out
+  const queryClient = useQueryClient()
+  
+  const signOut = useCallback(async () => {
     try {
       const { error } = await authService.signOut()
       if (error) {
         console.error('Sign out error:', error)
         toast.error(AUTH_MESSAGES.SIGN_OUT_ERROR)
       } else {
+        // Clear all React Query cache to prevent stale data across sessions
+        queryClient.clear()
+        console.log('Cleared React Query cache on sign out')
         toast.success(AUTH_MESSAGES.SIGN_OUT_SUCCESS)
       }
     } catch (error) {
       console.error('Sign out error:', error)
       toast.error(AUTH_MESSAGES.SIGN_OUT_ERROR)
     }
-  }
+  }, [queryClient])
 
   const value = {
     user,

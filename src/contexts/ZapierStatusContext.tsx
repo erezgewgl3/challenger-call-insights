@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useCallback, ReactNode, useRef, useEffect } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
@@ -41,6 +41,33 @@ interface ZapierStatusProviderProps {
 export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
   const queryClient = useQueryClient();
   const { user, isAuthReady } = useAuth();
+  
+  // Track user ID to detect user changes
+  const previousUserIdRef = useRef<string | null>(null);
+  
+  // Track failed verification attempts for rate limiting
+  const failedAttempts = useRef(0);
+  const lastFailedTime = useRef<number>(0);
+
+  // Clear stale Zapier data when user changes
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    
+    if (previousUserIdRef.current !== currentUserId) {
+      console.log('User changed, clearing Zapier cache. Previous:', previousUserIdRef.current, 'Current:', currentUserId);
+      
+      // Clear all Zapier-related queries to prevent stale data
+      queryClient.removeQueries({ queryKey: ['zapier-status'] });
+      queryClient.removeQueries({ queryKey: ['zapier-api-keys'] });
+      queryClient.removeQueries({ queryKey: ['zapier-webhooks'] });
+      
+      // Reset rate limiting on user change
+      failedAttempts.current = 0;
+      lastFailedTime.current = 0;
+      
+      previousUserIdRef.current = currentUserId;
+    }
+  }, [user?.id, queryClient]);
 
   // Query for fetching status from server - only when authenticated
   const {
@@ -92,6 +119,10 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
     onSuccess: (data) => {
       console.log('Connection verification successful:', data);
       
+      // Reset failed attempts on success
+      failedAttempts.current = 0;
+      lastFailedTime.current = 0;
+      
       // Invalidate and refetch status to get updated data
       queryClient.invalidateQueries({ queryKey: ['zapier-status'] });
       
@@ -114,6 +145,10 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
     },
     onError: (error: Error) => {
       console.error('Connection verification failed:', error);
+      
+      // Track failed attempts for rate limiting
+      failedAttempts.current += 1;
+      lastFailedTime.current = Date.now();
       
       // Only show toast for MANUAL tests (not background tests)
       if (user && !backgroundTestInProgress.current) {
@@ -157,12 +192,21 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
   }, [queryClient, refetch]);
 
   // Run background test on mount if verification needed - only when authenticated
-  const backgroundTestInProgress = React.useRef(false);
+  const backgroundTestInProgress = useRef(false);
   
-  React.useEffect(() => {
+  useEffect(() => {
     // Don't run if test already in progress
     if (backgroundTestInProgress.current) {
       console.log('Background test already in progress, skipping...');
+      return;
+    }
+    
+    // Rate limiting: back off after 3 failures for 1 minute
+    const timeSinceLastFail = Date.now() - lastFailedTime.current;
+    const shouldBackoff = failedAttempts.current >= 3 && timeSinceLastFail < 60000;
+    
+    if (shouldBackoff) {
+      console.log('Backing off from verification attempts after', failedAttempts.current, 'failures');
       return;
     }
 
@@ -179,16 +223,34 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
       
       const backgroundTest = async () => {
         try {
-          const { data: apiKeys } = await supabase
+          // Double-check we still have active API keys in current status
+          const currentStatus = queryClient.getQueryData(['zapier-status']) as ZapierStatus | undefined;
+          
+          if (!currentStatus || currentStatus.activeApiKeys === 0) {
+            console.log('Current status shows no API keys, aborting background test');
+            backgroundTestInProgress.current = false;
+            return;
+          }
+          
+          // Fetch API keys for the CURRENT user only
+          const { data: apiKeys, error: keysError } = await supabase
             .from('zapier_api_keys')
             .select('id')
             .eq('is_active', true)
             .limit(1);
           
-          if (apiKeys && apiKeys.length > 0) {
+          if (keysError) {
+            console.log('Error fetching API keys for background test:', keysError);
+            backgroundTestInProgress.current = false;
+            return;
+          }
+          
+          if (apiKeys && apiKeys.length > 0 && user) {
             await verifyConnectionMutation.mutateAsync({ 
               apiKeyId: apiKeys[0].id 
             });
+          } else {
+            console.log('No active API keys found for current user, skipping verification');
           }
         } catch (error) {
           console.log('Background test failed:', error);
@@ -204,7 +266,7 @@ export function ZapierStatusProvider({ children }: ZapierStatusProviderProps) {
         backgroundTestInProgress.current = false;
       };
     }
-  }, [user, status?.status, status?.text, status?.isSetupComplete, status?.activeApiKeys, verifyConnectionMutation]);
+  }, [user, status?.status, status?.text, status?.isSetupComplete, status?.activeApiKeys, verifyConnectionMutation, queryClient]);
 
   const contextValue: ZapierStatusContextType = {
     status: status || null,
