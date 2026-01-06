@@ -908,7 +908,21 @@ serve(async (req) => {
       const errorMessage = aiError instanceof Error ? aiError.message : 'Unknown error';
       const technicalError = `${defaultProvider.toUpperCase()} (${AI_MODELS[defaultProvider]}) failed: ${errorMessage}`;
       
-      // Try fallback provider if available
+      // Check if this was a timeout - skip fallback since it will likely also timeout
+      const isTimeout = aiError instanceof Error && (
+        aiError.name === 'AbortError' || 
+        errorMessage.includes('timed out') ||
+        errorMessage.includes('timeout')
+      );
+      
+      if (isTimeout) {
+        console.log('🔍 [TIMEOUT] Skipping fallback - primary provider timed out, fallback likely will too');
+        const userErrorMessage = 'Analysis timed out after 90 seconds. The transcript may be too long - please try a shorter segment or try again later.';
+        await updateTranscriptError(supabase, transcriptId, userErrorMessage, technicalError);
+        throw new Error(userErrorMessage);
+      }
+      
+      // Try fallback provider if available (only for non-timeout errors)
       const fallbackProvider = defaultProvider === 'claude' ? 'openai' : 'claude';
       const hasFallbackKey = fallbackProvider === 'openai' 
         ? !!Deno.env.get('OPENAI_API_KEY')
@@ -945,8 +959,6 @@ serve(async (req) => {
         let userErrorMessage = 'AI analysis service is temporarily unavailable. Please try again in a few minutes.';
         if (errorMessage.includes('API key not found')) {
           userErrorMessage = 'AI provider not configured. Please contact your administrator.';
-        } else if (errorMessage.includes('timed out')) {
-          userErrorMessage = 'Analysis timed out. The transcript may be too long - please try a shorter segment.';
         } else if (errorMessage.includes('401') || errorMessage.includes('403')) {
           userErrorMessage = 'AI provider authentication failed. Please contact your administrator.';
         }
@@ -1605,9 +1617,9 @@ async function callOpenAI(prompt: string): Promise<string> {
 
   console.log('🔍 [API] Starting OpenAI API call');
   
-  // Add timeout protection - 55 seconds to stay within edge function limits
+  // Add timeout protection - 90 seconds to allow for longer transcripts (edge functions support up to 150s)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 55000);
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
   
   try {
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -1647,8 +1659,8 @@ async function callOpenAI(prompt: string): Promise<string> {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.error('🔍 [ERROR] OpenAI API call timed out after 55 seconds');
-      throw new Error('AI analysis timed out after 55 seconds. The transcript may be too long - please try a shorter segment or try again.');
+      console.error('🔍 [ERROR] OpenAI API call timed out after 90 seconds');
+      throw new Error('AI analysis timed out after 90 seconds. The transcript may be too long - please try a shorter segment or try again.');
     }
     throw error;
   }
@@ -1662,9 +1674,9 @@ async function callClaude(prompt: string): Promise<string> {
 
   console.log('🔍 [API] Starting Claude API call');
   
-  // Add timeout protection - 55 seconds to stay within edge function limits
+  // Add timeout protection - 90 seconds to allow for longer transcripts (edge functions support up to 150s)
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 55000);
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
   
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -1703,8 +1715,8 @@ async function callClaude(prompt: string): Promise<string> {
   } catch (error) {
     clearTimeout(timeoutId);
     if (error.name === 'AbortError') {
-      console.error('🔍 [ERROR] Claude API call timed out after 55 seconds');
-      throw new Error('AI analysis timed out after 55 seconds. The transcript may be too long - please try a shorter segment or try again.');
+      console.error('🔍 [ERROR] Claude API call timed out after 90 seconds');
+      throw new Error('AI analysis timed out after 90 seconds. The transcript may be too long - please try a shorter segment or try again.');
     }
     throw error;
   }
