@@ -261,6 +261,10 @@ interface ParsedAnalysis {
   reasoning?: any;
   actionPlan?: any;
   coachingInsights?: any;
+  dealAssessment?: {
+    heat: 'HIGH' | 'MEDIUM' | 'LOW';
+    heatRationale: string;
+  };
 }
 
 // Frontend-exact deal heat calculation logic (returns string only)
@@ -1040,28 +1044,42 @@ serve(async (req) => {
     }
     // ============ END EMAIL TONE ENHANCEMENT ============
 
-    // Calculate deal heat using frontend-exact logic with proper data structure
-    console.log('🔍 [HEAT] Calculating deal heat with transformed data structure');
+    // Determine deal heat: PRIORITY 1 = AI-provided, PRIORITY 2 = calculated fallback
+    let heatLevel: string;
     
-    // Transform parsedResult to match expected format (Option A)
-    const transformedData = {
-      call_summary: parsedResult.callSummary  // Convert camelCase to snake_case structure
-    };
-    
-    console.log('🔍 [HEAT] Transformed data for heat calculation:', JSON.stringify(transformedData, null, 2));
-    
-    const heatLevel = calculateDealHeat(transformedData);
-    console.log('🔍 [HEAT] Deal heat calculated:', heatLevel);
+    if (parsedResult.dealAssessment?.heat) {
+      // Use AI-provided heat from dealAssessment (v12.2+ prompts)
+      heatLevel = parsedResult.dealAssessment.heat.toUpperCase();
+      console.log('🔍 [HEAT] Using AI-provided dealAssessment.heat:', heatLevel);
+      console.log('🔍 [HEAT] AI rationale:', parsedResult.dealAssessment.heatRationale || 'No rationale provided');
+    } else {
+      // FALLBACK: Calculate deal heat using frontend-exact logic
+      console.log('🔍 [HEAT] No dealAssessment.heat found, calculating with fallback logic');
+      
+      const transformedData = {
+        call_summary: parsedResult.callSummary
+      };
+      
+      heatLevel = calculateDealHeat(transformedData);
+      console.log('🔍 [HEAT] Deal heat calculated (fallback):', heatLevel);
+    }
 
     // Save analysis results with heat level
     console.log('🔍 [DB] Saving analysis results to database');
+    
+    // Include dealAssessment in call_summary for frontend access
+    const callSummaryWithDealAssessment = {
+      ...parsedResult.callSummary,
+      dealAssessment: parsedResult.dealAssessment
+    };
+    
     const analysisPayload = {
       transcript_id: transcriptId,
       challenger_scores: parsedResult.challengerScores,
       guidance: parsedResult.guidance,
       email_followup: parsedResult.emailFollowUp,
       participants: parsedResult.participants,
-      call_summary: parsedResult.callSummary,
+      call_summary: callSummaryWithDealAssessment,
       key_takeaways: parsedResult.keyTakeaways,
       recommendations: parsedResult.recommendations,
       reasoning: parsedResult.reasoning,

@@ -31,6 +31,11 @@ export interface Recommendations {
   nextBestActions: string[]
 }
 
+export interface DealAssessment {
+  heat: 'HIGH' | 'MEDIUM' | 'LOW'
+  heatRationale: string
+}
+
 export interface ParsedAnalysis {
   challengerScores: {
     teaching: number
@@ -45,6 +50,7 @@ export interface ParsedAnalysis {
   actionPlan: any
   guidance: any
   reasoning: any
+  dealAssessment?: DealAssessment
   fabricatedQuotes?: string[]
   schemaIssues?: string[]
 }

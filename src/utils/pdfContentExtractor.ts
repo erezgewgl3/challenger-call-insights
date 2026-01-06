@@ -60,10 +60,27 @@ function extractHeaderData(transcript: any, analysis: any) {
 }
 
 function extractDealCommandCenter(analysis: any) {
-  // PRIORITY 1: Use database heat_level (authoritative source - matches screen display)
+  // Get dealAssessment from either root level OR call_summary (where it's stored in DB)
+  const dealAssessment = analysis?.dealAssessment || analysis?.call_summary?.dealAssessment
+  
+  // PRIORITY 1: Use AI-provided dealAssessment.heat (new v12.2+ analyses)
   let dealHeatResult
   
-  if (analysis?.heat_level) {
+  if (dealAssessment?.heat) {
+    const aiHeat = dealAssessment.heat.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW'
+    dealHeatResult = {
+      level: aiHeat,
+      emoji: aiHeat === 'HIGH' ? '🔥' : aiHeat === 'MEDIUM' ? '🌡️' : '❄️',
+      description: dealAssessment.heatRationale || 
+                  (aiHeat === 'HIGH' ? 'Immediate attention needed' : 
+                   aiHeat === 'MEDIUM' ? 'Active opportunity' : 'Long-term opportunity'),
+      evidence: analysis?.call_summary?.painSeverity?.indicators?.slice(0, 2) || [],
+      businessImpact: analysis?.call_summary?.painSeverity?.businessImpact || '',
+      bgColor: aiHeat === 'HIGH' ? 'bg-red-500' : aiHeat === 'MEDIUM' ? 'bg-orange-500' : 'bg-blue-500',
+      color: aiHeat === 'HIGH' ? 'text-red-300' : aiHeat === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
+    }
+  } else if (analysis?.heat_level) {
+    // PRIORITY 2: Use database heat_level (older analyses)
     const dbHeatLevel = analysis.heat_level.toUpperCase() as 'HIGH' | 'MEDIUM' | 'LOW'
     dealHeatResult = {
       level: dbHeatLevel,
@@ -76,7 +93,7 @@ function extractDealCommandCenter(analysis: any) {
       color: dbHeatLevel === 'HIGH' ? 'text-red-300' : dbHeatLevel === 'MEDIUM' ? 'text-orange-300' : 'text-blue-300'
     }
   } else {
-    // FALLBACK: Calculate for older analyses without heat_level stored in DB
+    // FALLBACK: Calculate for very old analyses
     dealHeatResult = calculateDealHeat(analysis)
   }
   
