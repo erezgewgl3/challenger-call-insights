@@ -1862,6 +1862,71 @@ Prospect company name (one word or short phrase only):`;
   }
 }
 
+// Attempt to repair truncated/malformed JSON from AI responses
+function repairJSON(jsonString: string): string {
+  let repaired = jsonString;
+  
+  // Track open brackets and braces
+  let openBraces = 0;
+  let openBrackets = 0;
+  let inString = false;
+  let escaped = false;
+  
+  for (let i = 0; i < repaired.length; i++) {
+    const char = repaired[i];
+    
+    if (escaped) {
+      escaped = false;
+      continue;
+    }
+    
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    
+    if (char === '"' && !escaped) {
+      inString = !inString;
+      continue;
+    }
+    
+    if (!inString) {
+      if (char === '{') openBraces++;
+      else if (char === '}') openBraces--;
+      else if (char === '[') openBrackets++;
+      else if (char === ']') openBrackets--;
+    }
+  }
+  
+  // If we ended inside a string, close it
+  if (inString) {
+    repaired += '"';
+    console.log('🔧 [JSON-REPAIR] Closed unclosed string');
+  }
+  
+  // Remove trailing comma before closing bracket/brace
+  repaired = repaired.replace(/,(\s*)([\]\}])/g, '$1$2');
+  
+  // Remove any trailing incomplete key-value pairs (e.g., `"key":` with no value)
+  repaired = repaired.replace(/,?\s*"[^"]*"\s*:\s*$/g, '');
+  
+  // Close unclosed arrays
+  while (openBrackets > 0) {
+    repaired += ']';
+    openBrackets--;
+    console.log('🔧 [JSON-REPAIR] Added missing ]');
+  }
+  
+  // Close unclosed objects
+  while (openBraces > 0) {
+    repaired += '}';
+    openBraces--;
+    console.log('🔧 [JSON-REPAIR] Added missing }');
+  }
+  
+  return repaired;
+}
+
 function parseAIResponse(aiResponse: string): ParsedAnalysis {
   console.log('🔍 [PARSE] Starting AI response parsing');
   
@@ -1889,10 +1954,22 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
   try {
     parsed = JSON.parse(cleanedResponse);
   } catch (jsonError) {
-    console.error('🔍 [ERROR] JSON parse failed:', jsonError);
-    console.error('🔍 [ERROR] Raw response preview:', aiResponse?.substring(0, 500));
-    console.error('🔍 [ERROR] Cleaned response preview:', cleanedResponse?.substring(0, 500));
-    throw new Error(`Failed to parse AI response as JSON: ${jsonError instanceof Error ? jsonError.message : 'Invalid JSON'}`);
+    console.warn('🔧 [PARSE] Initial JSON parse failed, attempting repair...');
+    console.warn('🔧 [PARSE] Error:', jsonError instanceof Error ? jsonError.message : jsonError);
+    
+    // Attempt JSON repair for truncated responses
+    try {
+      const repairedResponse = repairJSON(cleanedResponse);
+      console.log('🔧 [PARSE] Repaired response length:', repairedResponse.length);
+      console.log('🔧 [PARSE] Repaired response tail:', repairedResponse.slice(-100));
+      parsed = JSON.parse(repairedResponse);
+      console.log('🔧 [PARSE] JSON repair successful!');
+    } catch (repairError) {
+      console.error('🔍 [ERROR] JSON repair also failed:', repairError);
+      console.error('🔍 [ERROR] Raw response preview:', aiResponse?.substring(0, 500));
+      console.error('🔍 [ERROR] Cleaned response preview:', cleanedResponse?.substring(0, 500));
+      throw new Error(`Failed to parse AI response as JSON: ${jsonError instanceof Error ? jsonError.message : 'Invalid JSON'}`);
+    }
   }
   
   console.log('🔍 [PARSE] JSON parsed successfully, keys:', Object.keys(parsed));
@@ -1907,7 +1984,8 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
     recommendations: parsed.recommendations || null,
     reasoning: parsed.reasoning || null,
     actionPlan: parsed.actionPlan || parsed.action_plan || null,
-    coachingInsights: parsed.coachingInsights || parsed.coaching_insights || null
+    coachingInsights: parsed.coachingInsights || parsed.coaching_insights || null,
+    dealAssessment: parsed.dealAssessment || parsed.deal_assessment || null
   };
   
   // CRITICAL: Validate we got meaningful data
