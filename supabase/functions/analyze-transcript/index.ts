@@ -988,10 +988,47 @@ serve(async (req) => {
     }
 
     // Parse AI response with validation
+    let parseResult: ParseResult;
     let parsedResult: ParsedAnalysis;
+    let qualityScore: QualityScore;
+    let retryAttempted = false;
+    
     try {
-      parsedResult = parseAIResponse(aiResponse);
-      console.log('🔍 [PARSE] AI response parsed successfully');
+      parseResult = parseAIResponse(aiResponse);
+      parsedResult = parseResult.analysis;
+      qualityScore = assessAnalysisQuality(parsedResult, transcriptText.length);
+      
+      console.log('🔍 [PARSE] AI response parsed successfully, wasRepaired:', parseResult.wasRepaired);
+      console.log('🔍 [QUALITY] Initial quality score:', qualityScore.score, 'acceptable:', qualityScore.isAcceptable);
+      
+      // ⚠️ QUALITY GATE: If repair was needed AND quality is unacceptable, retry once
+      if (parseResult.wasRepaired && !qualityScore.isAcceptable) {
+        console.log('⚠️ [QUALITY] Truncated response detected (score:', qualityScore.score, '), attempting retry...');
+        retryAttempted = true;
+        
+        // Retry AI call
+        const retryResponse = usedProvider === 'claude' 
+          ? await callClaudeAPI(finalPrompt)
+          : await callOpenAIAPI(finalPrompt);
+        
+        if (retryResponse && retryResponse.trim().length > 100) {
+          const retryParseResult = parseAIResponse(retryResponse);
+          const retryQualityScore = assessAnalysisQuality(retryParseResult.analysis, transcriptText.length);
+          
+          console.log('🔍 [RETRY] Retry quality score:', retryQualityScore.score, 'vs original:', qualityScore.score);
+          
+          // Use retry result if it's better OR acceptable
+          if (retryQualityScore.score > qualityScore.score || retryQualityScore.isAcceptable) {
+            parseResult = retryParseResult;
+            parsedResult = retryParseResult.analysis;
+            qualityScore = retryQualityScore;
+            console.log('✅ [RETRY] Using improved retry result');
+          } else {
+            console.log('⚠️ [RETRY] Retry did not improve quality, keeping original');
+          }
+        }
+      }
+      
     } catch (parseError) {
       console.error('🔍 [CRITICAL] Failed to parse AI response:', parseError);
       
@@ -1085,7 +1122,11 @@ serve(async (req) => {
       reasoning: parsedResult.reasoning,
       action_plan: parsedResult.actionPlan,
       heat_level: heatLevel,
-      coaching_insights: parsedResult.coachingInsights
+      coaching_insights: parsedResult.coachingInsights,
+      // Quality metadata for truncation detection
+      quality_score: qualityScore.score,
+      was_repaired: parseResult.wasRepaired,
+      missing_sections: qualityScore.missingFields.length > 0 ? qualityScore.missingFields : null
     };
 
     const { data: analysisData, error: analysisError } = await supabase
@@ -1100,7 +1141,7 @@ serve(async (req) => {
       throw new Error(`Failed to save analysis: ${analysisError instanceof Error ? analysisError.message : 'Unknown error'}`);
     }
 
-    console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id, 'Heat Level:', heatLevel);
+    console.log('🔍 [SUCCESS] Analysis saved with ID:', analysisData.id, 'Heat Level:', heatLevel, 'Quality:', qualityScore.score, 'Repaired:', parseResult.wasRepaired);
 
     // Extract metadata for better display (non-blocking)
     try {
@@ -1862,6 +1903,118 @@ Prospect company name (one word or short phrase only):`;
   }
 }
 
+// Quality scoring interface and function
+interface QualityScore {
+  score: number;        // 0-100
+  missingFields: string[];
+  truncatedFields: string[];
+  isAcceptable: boolean; // score >= 70
+}
+
+function assessAnalysisQuality(parsed: ParsedAnalysis, transcriptLength: number): QualityScore {
+  let score = 0;
+  const missingFields: string[] = [];
+  const truncatedFields: string[] = [];
+  
+  // callSummary: 20% - minimum 100 characters in overview
+  const overview = parsed.callSummary?.overview || '';
+  if (typeof overview === 'string' && overview.length >= 100) {
+    score += 20;
+  } else if (typeof overview === 'string' && overview.length >= 50) {
+    score += 10;
+    truncatedFields.push('callSummary.overview');
+  } else {
+    missingFields.push('callSummary.overview');
+  }
+  
+  // challengerScores: 15% - all 3 scores present and 1-5
+  const scores = parsed.challengerScores || {};
+  const teaching = scores.teaching;
+  const tailoring = scores.tailoring;
+  const control = scores.control;
+  if (
+    typeof teaching === 'number' && teaching >= 1 && teaching <= 5 &&
+    typeof tailoring === 'number' && tailoring >= 1 && tailoring <= 5 &&
+    typeof control === 'number' && control >= 1 && control <= 5
+  ) {
+    score += 15;
+  } else if (teaching || tailoring || control) {
+    score += 5;
+    truncatedFields.push('challengerScores');
+  } else {
+    missingFields.push('challengerScores');
+  }
+  
+  // recommendations.nextBestActions: 20% - at least 2 items
+  const nextBestActions = parsed.recommendations?.nextBestActions || [];
+  if (Array.isArray(nextBestActions) && nextBestActions.length >= 2) {
+    score += 20;
+  } else if (Array.isArray(nextBestActions) && nextBestActions.length >= 1) {
+    score += 10;
+    truncatedFields.push('recommendations.nextBestActions');
+  } else {
+    missingFields.push('recommendations.nextBestActions');
+  }
+  
+  // actionPlan.actions: 20% - at least 1 action with email content
+  const actions = parsed.actionPlan?.actions || parsed.actionPlan?.nextSteps || [];
+  if (Array.isArray(actions) && actions.length >= 1) {
+    const hasEmailContent = actions.some((a: any) => 
+      a.email?.subject || a.email?.body || a.subject || a.body
+    );
+    if (hasEmailContent) {
+      score += 20;
+    } else if (actions.length >= 1) {
+      score += 10;
+      truncatedFields.push('actionPlan.actions.email');
+    }
+  } else {
+    missingFields.push('actionPlan.actions');
+  }
+  
+  // coachingInsights: 15% - either array populated
+  const whatWorked = parsed.coachingInsights?.whatWorkedWell || [];
+  const missed = parsed.coachingInsights?.missedOpportunities || [];
+  const hasWorked = Array.isArray(whatWorked) && whatWorked.length > 0;
+  const hasMissed = (Array.isArray(missed) && missed.length > 0) || 
+                   (typeof missed === 'string' && missed.length > 20);
+  if (hasWorked || hasMissed) {
+    score += 15;
+  } else if (parsed.coachingInsights?.focusArea) {
+    score += 5;
+    truncatedFields.push('coachingInsights');
+  } else {
+    missingFields.push('coachingInsights');
+  }
+  
+  // dealAssessment: 10% - heat + heatRationale present
+  if (parsed.dealAssessment?.heat && parsed.dealAssessment?.heatRationale) {
+    score += 10;
+  } else if (parsed.dealAssessment?.heat) {
+    score += 5;
+    truncatedFields.push('dealAssessment.heatRationale');
+  } else {
+    // Not critical - can be calculated from other data
+  }
+  
+  console.log(`🔍 [QUALITY] Score: ${score}/100, Missing: [${missingFields.join(', ')}], Truncated: [${truncatedFields.join(', ')}]`);
+  
+  return {
+    score,
+    missingFields,
+    truncatedFields,
+    isAcceptable: score >= 70
+  };
+}
+
+// Parse result interface with repair metadata
+interface ParseResult {
+  analysis: ParsedAnalysis;
+  wasRepaired: boolean;
+  originalLength: number;
+  repairedLength: number;
+}
+
 // Attempt to repair truncated/malformed JSON from AI responses
 function repairJSON(jsonString: string): string {
   let repaired = jsonString;
@@ -1927,12 +2080,15 @@ function repairJSON(jsonString: string): string {
   return repaired;
 }
 
-function parseAIResponse(aiResponse: string): ParsedAnalysis {
+function parseAIResponse(aiResponse: string): ParseResult {
   console.log('🔍 [PARSE] Starting AI response parsing');
+  
+  const originalLength = aiResponse?.length || 0;
+  let wasRepaired = false;
   
   // Validate response is not empty or too short
   if (!aiResponse || aiResponse.trim().length < 100) {
-    throw new Error(`AI response too short or empty (length: ${aiResponse?.length || 0})`);
+    throw new Error(`AI response too short or empty (length: ${originalLength})`);
   }
   
   // Strip markdown code blocks if present (Claude often wraps JSON in ```json ... ```)
@@ -1963,6 +2119,7 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
       console.log('🔧 [PARSE] Repaired response length:', repairedResponse.length);
       console.log('🔧 [PARSE] Repaired response tail:', repairedResponse.slice(-100));
       parsed = JSON.parse(repairedResponse);
+      wasRepaired = true;
       console.log('🔧 [PARSE] JSON repair successful!');
     } catch (repairError) {
       console.error('🔍 [ERROR] JSON repair also failed:', repairError);
@@ -1995,5 +2152,10 @@ function parseAIResponse(aiResponse: string): ParsedAnalysis {
   
   console.log('🔍 [PARSE] Final parsed result stored directly from AI response');
   
-  return result;
+  return {
+    analysis: result,
+    wasRepaired,
+    originalLength,
+    repairedLength: cleanedResponse.length
+  };
 }

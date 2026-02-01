@@ -49,6 +49,7 @@ import { calculateDealHeat, type DealHeatResult } from '@/utils/dealHeatCalculat
 import { CoachingInsightsSection } from './CoachingInsightsSection'
 import { DealBlockersCard } from './DealBlockersCard'
 import { QualityIndicatorBadge } from './QualityIndicatorBadge'
+import { AnalysisQualityWarning } from './AnalysisQualityWarning'
 import { getDisplayTitle } from '@/utils/titleUtils'
 
 interface AnalysisData {
@@ -76,6 +77,10 @@ interface AnalysisData {
     missedOpportunities: string[] | string
     focusArea: string
   }
+  // Quality metadata
+  quality_score?: number | null
+  was_repaired?: boolean | null
+  missing_sections?: string[] | null
 }
 
 interface TranscriptData {
@@ -554,6 +559,15 @@ export function NewAnalysisView({
             participants={participantsEnhanced}
             getStakeholderDisplay={getStakeholderDisplay}
             getRoleIcon={getRoleIcon}
+          />
+
+          {/* ⚠️ QUALITY WARNING - Show if analysis may be incomplete */}
+          <AnalysisQualityWarning
+            qualityScore={analysis.quality_score ?? null}
+            wasRepaired={analysis.was_repaired ?? null}
+            missingSections={analysis.missing_sections ?? null}
+            transcriptId={transcript.id}
+            onRetrySuccess={() => window.location.reload()}
           />
 
           {/* 🎓 QUALITY INDICATOR - Show if analysis has quality flags */}
