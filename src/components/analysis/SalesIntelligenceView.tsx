@@ -44,6 +44,10 @@ interface AnalysisData {
   action_plan?: any
   heat_level?: string
   coaching_insights?: any
+  // Quality metadata
+  quality_score?: number | null
+  was_repaired?: boolean | null
+  missing_sections?: string[] | null
 }
 
 interface SalesIntelligenceViewProps {
@@ -112,7 +116,11 @@ export function SalesIntelligenceView({
           reasoning: rawAnalysis.reasoning,
           action_plan: rawAnalysis.action_plan,
           heat_level: rawAnalysis.heat_level,
-          coaching_insights: rawAnalysis.coaching_insights
+          coaching_insights: rawAnalysis.coaching_insights,
+          // Quality metadata
+          quality_score: rawAnalysis.quality_score ?? null,
+          was_repaired: rawAnalysis.was_repaired ?? null,
+          missing_sections: Array.isArray(rawAnalysis.missing_sections) ? rawAnalysis.missing_sections as string[] : null
         })
       }
 

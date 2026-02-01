@@ -179,10 +179,13 @@ export type Database = {
           heat_level: string | null
           id: string
           key_takeaways: Json | null
+          missing_sections: string[] | null
           participants: Json | null
+          quality_score: number | null
           reasoning: Json | null
           recommendations: Json | null
           transcript_id: string | null
+          was_repaired: boolean | null
         }
         Insert: {
           action_plan?: Json | null
@@ -195,10 +198,13 @@ export type Database = {
           heat_level?: string | null
           id?: string
           key_takeaways?: Json | null
+          missing_sections?: string[] | null
           participants?: Json | null
+          quality_score?: number | null
           reasoning?: Json | null
           recommendations?: Json | null
           transcript_id?: string | null
+          was_repaired?: boolean | null
         }
         Update: {
           action_plan?: Json | null
@@ -211,10 +217,13 @@ export type Database = {
           heat_level?: string | null
           id?: string
           key_takeaways?: Json | null
+          missing_sections?: string[] | null
           participants?: Json | null
+          quality_score?: number | null
           reasoning?: Json | null
           recommendations?: Json | null
           transcript_id?: string | null
+          was_repaired?: boolean | null
         }
         Relationships: [
           {

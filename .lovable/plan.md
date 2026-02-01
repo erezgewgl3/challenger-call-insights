@@ -1,128 +1,53 @@
 
 # Plan: Add Content Quality Validation with Retry or User Warning
 
-## Problem Statement
-The current JSON repair mechanism can successfully parse truncated AI responses, but delivers incomplete analyses to users without any warning. A user expecting comprehensive sales coaching could receive a half-finished analysis and not know it.
+## Status: ✅ COMPLETED
 
-## Proposed Solution
-Implement a **quality gate** after JSON parsing that:
-1. Validates content completeness (not just key existence)
-2. Automatically retries once if quality is below threshold
-3. If retry also fails, marks the analysis as "partial" and notifies the user
+## Implementation Summary
 
----
+### Database Changes
+- Added `quality_score` (integer), `was_repaired` (boolean), and `missing_sections` (text[]) columns to `conversation_analysis` table
+- Created index for monitoring low-quality analyses
 
-## Technical Implementation
+### Edge Function Changes (analyze-transcript)
+1. **Added `assessAnalysisQuality()` function** - Scores parsed analysis on completeness:
+   - callSummary.overview: 20% (min 100 chars)
+   - challengerScores: 15% (all 3 scores 1-5)
+   - recommendations.nextBestActions: 20% (min 2 items)
+   - actionPlan.actions: 20% (min 1 with email)
+   - coachingInsights: 15% (either array populated)
+   - dealAssessment: 10% (heat + rationale)
 
-### Step 1: Add Content Quality Scoring Function
-Create a function that scores the parsed analysis on completeness:
+2. **Modified `parseAIResponse()`** - Returns ParseResult with repair metadata:
+   - `analysis`: The parsed analysis
+   - `wasRepaired`: Whether JSON repair was needed
+   - `originalLength` / `repairedLength`: For tracking
 
-```typescript
-interface QualityScore {
-  score: number;        // 0-100
-  missingFields: string[];
-  truncatedFields: string[];
-  isAcceptable: boolean; // score >= 70
-}
+3. **Added retry logic** - After parsing, if repair was needed AND quality < 70:
+   - Automatically retries AI call once
+   - Uses better result if retry improves quality
 
-function assessAnalysisQuality(parsed: ParsedAnalysis, transcriptLength: number): QualityScore {
-  // Check required sections exist AND have meaningful content
-  // - callSummary: minimum 50 characters
-  // - challengerScores: all 3 scores present and 1-5
-  // - actionPlan.actions: at least 1 action with content
-  // - coachingInsights: has whatWorkedWell OR missedOpportunities
-  // - recommendations: has nextBestActions array
-}
-```
+4. **Quality metadata stored** in database insert:
+   - `quality_score`: 0-100 score
+   - `was_repaired`: boolean flag
+   - `missing_sections`: array of incomplete fields
 
-### Step 2: Modify parseAIResponse to Return Repair Metadata
-Track whether repair was needed:
+### UI Changes
+1. **Created `AnalysisQualityWarning` component** - Shows warning banner when:
+   - Quality score < 70, OR
+   - Was repaired with missing sections
+   - Includes "Retry for Better Results" button
+   - Expandable details showing missing sections
 
-```typescript
-interface ParseResult {
-  analysis: ParsedAnalysis;
-  wasRepaired: boolean;
-  originalLength: number;
-  repairedLength: number;
-}
-```
+2. **Updated `NewAnalysisView`** - Added quality warning after hero section
 
-### Step 3: Add Retry Logic in Main Handler
-After parsing, if quality check fails AND repair was used:
-
-```typescript
-if (parseResult.wasRepaired && !qualityScore.isAcceptable) {
-  console.log('⚠️ [QUALITY] Truncated response detected, attempting retry...');
-  // Retry AI call once with slightly shorter context if needed
-  aiResponse = await retryAICall(...);
-  parseResult = parseAIResponse(aiResponse);
-  qualityScore = assessAnalysisQuality(parseResult.analysis);
-}
-```
-
-### Step 4: Store Quality Metadata in Database
-Add to conversation_analysis insert:
-
-```typescript
-{
-  ...analysisData,
-  quality_score: qualityScore.score,
-  was_repaired: parseResult.wasRepaired,
-  missing_sections: qualityScore.missingFields
-}
-```
-
-### Step 5: Surface Warnings to User
-In the UI (NewAnalysisView), show a banner if quality_score < 70:
-
-```tsx
-{analysis.quality_score < 70 && (
-  <Alert variant="warning">
-    This analysis may be incomplete. You can retry for a more comprehensive result.
-  </Alert>
-)}
-```
+3. **Updated `SalesIntelligenceView`** - Passes quality metadata to NewAnalysisView
 
 ---
 
-## Quality Scoring Criteria
+## Files Modified
+- `supabase/functions/analyze-transcript/index.ts` - Quality scoring + retry logic
+- `src/components/analysis/AnalysisQualityWarning.tsx` - New component
+- `src/components/analysis/NewAnalysisView.tsx` - Shows quality warning
+- `src/components/analysis/SalesIntelligenceView.tsx` - Passes quality metadata
 
-| Section | Weight | Minimum Requirement |
-|---------|--------|---------------------|
-| callSummary | 20% | 100+ characters |
-| challengerScores | 15% | All 3 scores present, 1-5 range |
-| recommendations.nextBestActions | 20% | At least 2 items |
-| actionPlan.actions | 20% | At least 1 action with email content |
-| coachingInsights | 15% | Either array populated |
-| dealAssessment | 10% | heat + heatRationale present |
-
-**Acceptable threshold: 70/100**
-
----
-
-## Files to Modify
-
-1. **supabase/functions/analyze-transcript/index.ts**
-   - Add `assessAnalysisQuality()` function
-   - Modify `parseAIResponse()` to return repair metadata
-   - Add retry logic after quality check
-   - Include quality_score in database insert
-
-2. **src/components/analysis/NewAnalysisView.tsx**
-   - Add quality warning banner
-   - Add "Retry Analysis" button for low-quality results
-
-3. **Database migration** (if needed)
-   - Add `quality_score` integer column to `conversation_analysis`
-   - Add `was_repaired` boolean column
-
----
-
-## Alternative: Fail-Fast Approach
-If you prefer, we could instead **remove the JSON repair entirely** and always fail with a clear error when the AI returns malformed JSON. This forces a retry rather than potentially accepting garbage.
-
-The trade-off:
-- **Repair + Quality Check**: Better UX for minor issues, catches major problems
-- **Fail-Fast**: Simpler, guarantees either full quality or error, but more retries needed
-
-Which approach do you prefer?
